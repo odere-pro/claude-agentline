@@ -1,0 +1,1 @@
+- Replace the one-line `README.md` with a real landing page: CI / npm / Node / license badges, a one-command install (`npm install -g @agentline/cli && agentline doctor --fix`), the `scripts/install.sh` flow, configure / themes / verify recipes, links to every page under `docs/`, and an explicit v0.1.0 non-goals section so the CLI-only scope is unmissable.
