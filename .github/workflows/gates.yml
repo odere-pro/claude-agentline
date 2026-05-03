@@ -1,0 +1,79 @@
+# .github/workflows/gates.yml
+# Runs `tests/gates/run-all.sh` on every supported host × Node combination.
+# Spec: §11.1
+#
+# Hard invariants (Implementation Plan 3):
+# - Actions pinned by full commit SHA (not by tag/branch).
+# - `permissions: read-all` at the workflow level; widened per-job only
+#   when needed.
+# - `concurrency:` cancellation set on push triggers.
+# - `fail-fast: false` so one host's failure does not mask another's.
+# - Windows runs use Git Bash (`shell: bash`).
+# - Machine-readable artefacts uploaded on failure.
+
+name: gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: read-all
+
+concurrency:
+  group: gates-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+jobs:
+  gates:
+    name: gates / ${{ matrix.os }} / node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-13, macos-14, ubuntu-22.04, ubuntu-24.04, windows-2022]
+        node: [20, 22]
+    defaults:
+      run:
+        # Git Bash on Windows; default bash everywhere else.
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install shellcheck (linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y shellcheck
+
+      - name: Install shellcheck (macOS)
+        if: runner.os == 'macOS'
+        run: brew install shellcheck
+
+      - name: Install shellcheck (windows)
+        if: runner.os == 'Windows'
+        # `choco install shellcheck` is the canonical Git-Bash-friendly path.
+        # Fall back gracefully — gate-03 will mark itself skipped if the
+        # binary is unavailable, keeping the workflow honest about coverage.
+        run: |
+          if ! command -v shellcheck >/dev/null 2>&1; then
+            choco install shellcheck -y --no-progress || true
+          fi
+
+      - name: Run gates
+        run: bash tests/gates/run-all.sh
+
+      - name: Upload gate artefacts on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: gates-${{ matrix.os }}-node${{ matrix.node }}-${{ github.run_id }}
+          path: tests/gates/.tmp/
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,64 @@
+# .github/workflows/install-matrix.yml
+# Smoke-runs `scripts/install.sh && scripts/uninstall.sh` on every supported
+# host × Node combination. The roundtrip must leave no diff (gate 07 will
+# enforce that contractually once T2 PR 20 ships the body).
+# Spec: §11.1
+#
+# Same hard invariants as gates.yml.
+
+name: install-matrix
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions: read-all
+
+concurrency:
+  group: install-matrix-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+jobs:
+  roundtrip:
+    name: roundtrip / ${{ matrix.os }} / node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-13, macos-14, ubuntu-22.04, ubuntu-24.04, windows-2022]
+        node: [20, 22]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install (dry-run preview)
+        # Until T2 PR 17/20 fill the install body, --dry-run is the only
+        # behaviour to exercise. The skeleton exits 0; this step doubles as
+        # a sanity check that the lib loads under each host.
+        run: bash scripts/install.sh --dry-run
+
+      - name: Install (real)
+        run: bash scripts/install.sh
+
+      - name: Uninstall
+        run: bash scripts/uninstall.sh
+
+      - name: Verify clean tree
+        # Once gate-07 (roundtrip cleanliness) ships and T2 PR 20 fills the
+        # install body, this step will become the contract: install +
+        # uninstall must leave the working tree untouched.
+        run: |
+          if ! git diff --quiet --exit-code; then
+            echo "::error::working tree changed after install + uninstall"
+            git --no-pager diff
+            exit 1
+          fi
