@@ -1,0 +1,160 @@
+# .github/workflows/release.yml
+# Release pipeline for `@agentline/cli`.
+#
+# Triggers on pushes of annotated `v*` tags. The job:
+#   1. Refuses to publish unless the tag (`vX.Y.Z`) matches
+#      `package.json#version` (spec §12.2 — tag ↔ package version).
+#   2. Re-runs the full local quality bar: `npm ci`, build, tests, and
+#      `tests/gates/run-all.sh`. A failure aborts before any publish.
+#   3. Packs the canonical tarball, computes `SHA256SUMS`.
+#   4. `npm publish --provenance`. OIDC-based provenance attestation is
+#      issued by GitHub to npm; no manual key handling.
+#   5. Creates a GitHub Release whose body is the matching `[X.Y.Z]`
+#      block extracted from `CHANGELOG.md`, and attaches the tarball
+#      plus `SHA256SUMS` as release assets.
+#
+# Hard invariants (per spec §11.1):
+#   - SHA-pinned actions.
+#   - Repo-default `permissions: read-all`; the job re-grants the two
+#     write scopes it actually needs (`contents` for the GitHub Release,
+#     `id-token` for npm provenance OIDC).
+#   - Concurrency keyed to the tag so a re-pushed tag cancels stale runs.
+#   - All shell steps use `bash` explicitly.
+#
+# Required repository secret: `NPM_TOKEN` (npm Automation or granular
+# token with publish rights for `@agentline/cli`). The token is consumed
+# only by the publish step; provenance still requires the workflow to
+# run on the public GitHub-hosted runners.
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions: read-all
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: publish ${{ github.ref_name }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Verify tag matches package.json#version
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          version="$(node -p "require('./package.json').version")"
+          expected="v${version}"
+          if [ "${tag}" != "${expected}" ]; then
+            echo "::error::tag '${tag}' does not match package.json version '${version}' (expected '${expected}')"
+            exit 1
+          fi
+          echo "tag matches package.json version: ${tag}"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Run gates
+        run: bash tests/gates/run-all.sh
+
+      - name: Pack tarball
+        id: pack
+        run: |
+          mkdir -p .release
+          tarball="$(npm pack --pack-destination=.release --json \
+            | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{const a=JSON.parse(d);process.stdout.write(a[0].filename)})')"
+          if [ -z "${tarball}" ] || [ ! -f ".release/${tarball}" ]; then
+            echo "::error::npm pack did not produce a tarball"
+            exit 1
+          fi
+          echo "tarball=${tarball}" >> "$GITHUB_OUTPUT"
+          echo "tarball_path=.release/${tarball}" >> "$GITHUB_OUTPUT"
+
+      - name: Compute SHA256SUMS
+        id: sums
+        run: |
+          cd .release
+          # `shasum -a 256 <file>` is portable across the Linux runner image.
+          shasum -a 256 "${{ steps.pack.outputs.tarball }}" > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Extract release notes from CHANGELOG.md
+        id: notes
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          notes_file=".release/RELEASE_NOTES.md"
+          # Pull the lines between `## [<version>]` and the next `## [`.
+          awk -v ver="[${version}]" '
+            $0 ~ "^## \\[" {
+              if (in_block) { exit }
+              if (index($0, ver) > 0) { in_block = 1; next }
+            }
+            in_block { print }
+          ' CHANGELOG.md > "${notes_file}"
+          if [ ! -s "${notes_file}" ]; then
+            echo "::error::no [${version}] block found in CHANGELOG.md"
+            exit 1
+          fi
+          echo "notes_path=${notes_file}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: ${{ steps.notes.outputs.notes_path }}
+          files: |
+            ${{ steps.pack.outputs.tarball_path }}
+            .release/SHA256SUMS
+          fail_on_unmatched_files: true
+          make_latest: true
+
+      - name: Upload failure artefacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-${{ github.ref_name }}
+          path: |
+            .release/*.tgz
+            .release/SHA256SUMS
+            .release/RELEASE_NOTES.md
+            tests/gates/.tmp
+          if-no-files-found: ignore
+          retention-days: 14

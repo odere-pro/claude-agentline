@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `28c0c3e` — Keymap registry: add `src/keys/` with 21 §5.5 bindings, `agentline keys [--json]` subcommand, and gate-17 coverage check.
 - `d1140dc` — Plan: retire PR 24's slot — G16 (accessibility flag fallbacks) shipped early in PR 34 via `tests/gates/gate-16-accessibility-fallbacks.sh`, so the original `feat/agentline-24-accessibility-gates` is collapsed to a docs-only bookkeeping update.
 - `4785c04` — CI: scheduled `pricing-skew.yml` (monthly) enforces the §9.2 D07 90-day budget on the embedded `PRICING_TABLE_VERSION` and optionally diffs against a maintainer-supplied reference URL; `node-skew.yml` (weekly) runs a render smoke against the from-source bin and the published `@agentline/cli` tarball on the floating Node 20 / 22 LTS lines across macOS, Linux, and Windows.
+- `bfd041a` — Release: `release.yml` fires on `v*` tag pushes, refuses to publish unless the tag matches `package.json#version`, re-runs build / lint / typecheck / tests / gates, packs the tarball, and `npm publish --provenance @agentline/cli` before creating the matching GitHub Release with the dated `CHANGELOG.md` block as its body and `SHA256SUMS` attached.
 
 <!-- Pending entries are tracked as fragments under `changelog/`.
      Run `bash scripts/changelog-aggregate.sh` for a dry-run preview, or
