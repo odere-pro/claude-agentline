@@ -1,1 +1,0 @@
-- Performance: a `scripts/bench/cold-start.mjs` harness samples cold-start latency (process spawn → first stdout byte) over N runs with warm-up, and `gate-13-cold-start-budget` enforces the §1.2 N2 ≤120 ms p95 budget on opt-in (`AGENTLINE_BENCH_STRICT=1`) while staying informational on shared CI runners.
