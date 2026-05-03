@@ -1,1 +1,0 @@
-- Reviewer affordance: a `changelog-preview` workflow runs `scripts/changelog-aggregate.sh --dry-run` on every PR and posts the next-release preview as a sticky comment that updates in place, so reviewers can read the aggregated bullets without opening every fragment file.

@@ -1,3 +1,0 @@
-<!-- sha: 53c22eb -->
-
-Make the package publishable and runnable end-to-end: `package.json` declares `@agentline/cli` with a single `agentline` bin, exact-version runtime deps, a strict `files` allowlist, and provenance-on publishing. `src/cli.ts` dispatches subcommands and falls through to a render path that reads stdin and prints a one-line ASCII fallback so the host UI is never blank. `src/stdin/` parses the Claude Code statusline payload safely (256 KB cap, truncation flag, untouched raw object, structured `StdinParseError` on bad input). `npm run {build,test,lint,typecheck,format}` are all wired; first vitest suite covers the parser.

@@ -1,1 +1,0 @@
-- Verification: `gate-18-changelog-fragment-present` blocks PRs that ship non-doc changes without dropping a `changelog/<NN>-<slug>.md` fragment, so the fragment-per-PR convention is enforced by CI rather than by reviewer memory.

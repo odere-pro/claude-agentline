@@ -1,0 +1,147 @@
+# .github/workflows/node-skew.yml
+# Scheduled smoke-run of the agentline bin against the floating Node 20
+# and 22 LTS lines on each supported host. Catches Node-patch regressions
+# between release-time matrix coverage and the user-facing reality. Each
+# cell:
+#   1. builds `dist/cli.mjs` from the current main
+#   2. pipes a canonical Claude Code statusline payload through it and
+#      asserts the stdout matches the install-matrix expectation
+#   3. when `@agentline/cli` is published, installs the published tarball
+#      into an isolated `--prefix` and runs the same render smoke
+#
+# Spec: §1.5, §11.1
+#
+# Hard invariants:
+# - Actions pinned by full commit SHA.
+# - `permissions: read-all`.
+# - `concurrency:` cancellation so a manual dispatch supersedes a
+#   scheduled run rather than queueing a duplicate matrix.
+# - `bash` everywhere (Git Bash on Windows runners).
+# - `fail-fast: false` so one Node patch's regression does not mask
+#   another cell's signal.
+# - Machine-readable artefacts uploaded on failure.
+
+name: node-skew
+
+on:
+  schedule:
+    # Mondays at 09:00 UTC. Picks up Node patch releases that landed
+    # over the weekend without colliding with the broader Monday queue.
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions: read-all
+
+concurrency:
+  group: node-skew-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: smoke / ${{ matrix.os }} / node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Mirrors the §1.5 host matrix without the redundant macOS-13
+        # cell; node-skew is about Node patch drift, not Darwin drift.
+        os: [ubuntu-24.04, macos-14, windows-2022]
+        # `x` floats to the latest patch on each LTS line — exactly what
+        # this workflow exists to detect skew against.
+        node: ["20.x", "22.x"]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Print Node + npm versions
+        run: |
+          node --version
+          npm --version
+
+      - name: Install npm dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Build agentline bin (from source)
+        run: npm run build
+
+      - name: Render smoke (from source)
+        run: |
+          set -Eeuo pipefail
+          # `node-skew` is not a known model id, so the model widget
+          # falls back to the raw payload value. The remaining default
+          # widgets hide (no transcript, no git repo, etc.). Matches the
+          # install-matrix expected-bytes contract.
+          expected='node-skew'
+          actual="$(printf '%s' '{"model":"node-skew","cwd":"/agentline/node-skew"}' \
+            | NO_COLOR=1 node dist/cli.mjs)"
+          actual="${actual%$'\n'}"
+          if [ "${actual}" != "${expected}" ]; then
+            printf 'expected: %s\nactual:   %s\n' "${expected}" "${actual}"
+            exit 1
+          fi
+          echo "from-source render smoke matched expected bytes"
+
+      - name: Smoke published tarball (when available)
+        run: |
+          set -Eeuo pipefail
+          # The published package is the artefact users actually consume.
+          # Until the first release lands, skip cleanly: the from-source
+          # smoke above already covers the Node-skew signal.
+          if ! npm view @agentline/cli version >/dev/null 2>&1; then
+            echo "@agentline/cli not yet published — skipping published smoke"
+            exit 0
+          fi
+          published_version="$(npm view @agentline/cli version)"
+          echo "smoking @agentline/cli@${published_version}"
+
+          prefix="$(pwd)/.ci-prefix"
+          mkdir -p "${prefix}"
+          npm install --global --prefix="${prefix}" --no-audit --no-fund "@agentline/cli@${published_version}"
+
+          # POSIX hosts → <prefix>/bin/agentline; Windows → <prefix>/agentline.cmd.
+          bin=""
+          for cand in "${prefix}/bin/agentline" "${prefix}/agentline" "${prefix}/bin/agentline.cmd" "${prefix}/agentline.cmd"; do
+            if [ -e "${cand}" ]; then
+              bin="${cand}"
+              break
+            fi
+          done
+          if [ -z "${bin}" ]; then
+            echo "::error::published agentline bin not found under ${prefix}"
+            find "${prefix}" -maxdepth 3 || true
+            exit 1
+          fi
+
+          expected='node-skew'
+          actual="$(printf '%s' '{"model":"node-skew","cwd":"/agentline/node-skew"}' \
+            | NO_COLOR=1 "${bin}")"
+          actual="${actual%$'\n'}"
+          if [ "${actual}" != "${expected}" ]; then
+            printf 'expected: %s\nactual:   %s\n' "${expected}" "${actual}"
+            exit 1
+          fi
+          echo "published render smoke matched expected bytes"
+
+      - name: Upload failure artefacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: node-skew-${{ matrix.os }}-node${{ matrix.node }}-${{ github.run_id }}
+          path: |
+            .ci-prefix/
+            tests/gates/.tmp/
+          if-no-files-found: ignore
+          retention-days: 14

@@ -1,1 +1,0 @@
-- Verification: `gate-14-no-network-render` runs the render path under a network-blocking sandbox (`sandbox-exec` on macOS, `unshare -nr` on Linux) so any outbound call from the hot path is caught immediately.

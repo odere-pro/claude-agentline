@@ -1,3 +1,0 @@
-<!-- sha: ab6dad6 -->
-
-Run the gate suite on every supported host on every PR and give the repo a consistent triage shape: adds `.github/workflows/gates.yml` and `install-matrix.yml` (macos-13/14, ubuntu-22.04/24.04, windows-2022 × Node 20/22; SHA-pinned actions; `permissions: read-all`; push-only concurrency cancellation; failure-artefact upload). Adds `.github/pull_request_template.md` mirroring PR-CONVENTIONS.md and three `.github/ISSUE_TEMPLATE/` forms (bug, feature, gate-failure). Lands `gate-05-markdown` (markdownlint-cli2 + prettier --check; tools independently skippable) and `gate-06-trademark` (allowlist-driven misuse check). Tunes `.markdownlint.jsonc` to disable MD012/MD040/MD060.
