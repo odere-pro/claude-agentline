@@ -10,6 +10,7 @@
  */
 
 import type { AgentlineConfig } from "../config/types.js";
+import type { GitState } from "../git/index.js";
 import type { ResolvedSessionFields } from "../session/index.js";
 import type { StdinPayload } from "../stdin/index.js";
 import type { Theme } from "../theme/index.js";
@@ -34,4 +35,11 @@ export interface WidgetContext {
    * MUST NOT read the JSONL transcript themselves during `render()`.
    */
   readonly tokens?: TokensSnapshot;
+  /**
+   * Git working-tree snapshot (§7.6). Resolved once per render tick
+   * by `loadGitSnapshot`; widgets MUST NOT shell out to git from
+   * `render()`. `available: false` means cwd was missing or not
+   * inside a git repo and every git widget hides.
+   */
+  readonly git?: GitState;
 }

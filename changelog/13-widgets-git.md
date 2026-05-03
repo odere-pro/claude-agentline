@@ -1,0 +1,1 @@
+Surface git working-tree state in the statusline: ship the 16 git widgets — branch, changes / insertions / deletions, status / staged / unstaged / untracked, ahead-behind, conflicts, sha, worktree, origin owner / repo, upstream, is-fork — backed by a single `git -C <cwd>` snapshot loader with CRLF normalisation that hides every widget outside a git repo.
