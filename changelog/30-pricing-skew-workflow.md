@@ -1,1 +1,0 @@
-- CI: scheduled `pricing-skew.yml` (monthly) enforces the §9.2 D07 90-day budget on the embedded `PRICING_TABLE_VERSION` and optionally diffs against a maintainer-supplied reference URL; `node-skew.yml` (weekly) runs a render smoke against the from-source bin and the published `@agentline/cli` tarball on the floating Node 20 / 22 LTS lines across macOS, Linux, and Windows.
