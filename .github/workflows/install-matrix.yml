@@ -108,14 +108,13 @@ jobs:
           mkdir -p "$HOME" "$CLAUDE_CONFIG_DIR"
           # Drop a no-op `agentline` shim onto PATH so install.sh skips
           # `npm install -g` (we already proved the tarball works above).
+          # A plain bash script with no extension works under Git Bash on
+          # Windows too — `command -v agentline` resolves it identically
+          # to POSIX hosts, while `.cmd` would be invisible to the lookup.
           shim_dir="$(pwd)/.ci-shim"
           mkdir -p "${shim_dir}"
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            printf '@echo off\r\nexit /b 0\r\n' > "${shim_dir}/agentline.cmd"
-          else
-            printf '#!/usr/bin/env bash\nexit 0\n' > "${shim_dir}/agentline"
-            chmod +x "${shim_dir}/agentline"
-          fi
+          printf '#!/usr/bin/env bash\nexit 0\n' > "${shim_dir}/agentline"
+          chmod +x "${shim_dir}/agentline"
           export PATH="${shim_dir}:$PATH"
           bash scripts/install.sh --dry-run
 
