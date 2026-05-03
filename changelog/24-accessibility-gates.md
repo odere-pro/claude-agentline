@@ -1,0 +1,1 @@
+- Plan: retire PR 24's slot — G16 (accessibility flag fallbacks) shipped early in PR 34 via `tests/gates/gate-16-accessibility-fallbacks.sh`, so the original `feat/agentline-24-accessibility-gates` is collapsed to a docs-only bookkeeping update.
