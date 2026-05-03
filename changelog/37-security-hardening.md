@@ -1,1 +1,0 @@
-- Defense-in-depth: `deepMerge` now drops `__proto__`, `constructor`, and `prototype` keys before recursive copy, so a hand-edited config file cannot pollute `Object.prototype` even before AJV validation runs.

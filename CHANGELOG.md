@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `56b3111` — Promote `[Unreleased]` to `[0.1.0] – 2026-05-03`: aggregate every fragment dropped since the bootstrap PR into a dated `0.1.0` block (commits `ab0b894…044b5b0`), reset `[Unreleased]` for the next cycle, and bump `package.json#version`, `src/version.ts`, and the lock-file root `version` from `0.0.0` to `0.1.0` so `agentline version` and `npm pack` agree on the published release.
+- `31c7634` — Defense-in-depth: `deepMerge` now drops `__proto__`, `constructor`, and `prototype` keys before recursive copy, so a hand-edited config file cannot pollute `Object.prototype` even before AJV validation runs.
+- `0dea30b` — Documentation: `docs/widgets.md` now lists every shipped widget (53 across seven families, up from a partial 19), each in the right family table with its required `reset` axis where applicable; new `docs/testing.md` consolidates the unit / golden / gate workflow plus the cold-start bench and the TDD recipe for adding a widget; README links the TUI editor mention to the keymap and the contributing block to the new testing guide.
+- `b919256` — New `agentline preview` subcommand renders a sample statusline against a built-in stdin payload — no install, no piping, no host session. Supports `--theme`, `--config`, `--all-themes`, and `--minimal`/`--default` for previewing shipped templates. With no flags, prefers the user's saved config and falls back to the shipped default template so a fresh install renders a rich demo bar.
+- `0f9202f` — `agentline themes` (no flag) now prints a swatch table — name + 13 palette colours rendered as coloured blocks via the existing ANSI encoder. `--list` is preserved for scripts (tab-separated `name\tpath`). The default invocation also prints a one-line stderr hint pointing at `agentline preview --all-themes` for live theme comparison.
+- `009bdd2` — Install now backs up the user's prior `statusLine` value before overwriting it, and uninstall restores that backup. Concretely: `agentline doctor --fix` (TS path) and `scripts/install.sh` (shell path) write a snapshot to `${CLAUDE_CONFIG_DIR:-~/.config/agentline}/state/settings-backup.json` containing the previous value (or a flag that the key was absent) before writing agentline's invocation. `scripts/uninstall.sh` reads that file and either restores the prior value or removes the `statusLine` key entirely, then deletes the backup. The host returns to its exact pre-install state.
+
 <!-- Pending entries are tracked as fragments under `changelog/`.
      Run `bash scripts/changelog-aggregate.sh` for a dry-run preview, or
      `--apply` (in the release PR) to inline them here and remove the
