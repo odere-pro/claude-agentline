@@ -29,12 +29,44 @@ describe("summariseWorst", () => {
 describe("formatText", () => {
   it("prints one line per check plus a summary", () => {
     const report: RunReport = { results: sample, worst: "warn" };
-    const out = formatText(report);
-    expect(out).toContain("[ok] D01 settings present — ok");
-    expect(out).toContain("[!!] D02 wired — missing");
+    const out = formatText(report, { tty: false, env: { NO_COLOR: "1" } });
+    // Titles are padded to the widest title's length so messages align.
+    expect(out).toContain("[ok] D01  settings present  ok");
+    expect(out).toContain("[!!] D02  wired             missing");
     expect(out).toContain("↳ do X");
-    expect(out).toContain("[fx] D03 schema — rewritten");
+    expect(out).toContain("[fx] D03  schema            rewritten");
     expect(out).toMatch(/summary:.*1 pass/);
+  });
+
+  it("appends a `--fix` next-step hint when fail/warn rows mention it", () => {
+    const fixable: CheckResult[] = [
+      {
+        id: "D01",
+        title: "wired",
+        status: "fail",
+        message: "missing",
+        hint: "run with --fix",
+      },
+    ];
+    const out = formatText(
+      { results: fixable, worst: "fail" },
+      { tty: false, env: { NO_COLOR: "1" } },
+    );
+    expect(out).toContain("agentline doctor --fix");
+  });
+
+  it("colours glyphs only when stdout is a TTY and NO_COLOR is unset", () => {
+    const report: RunReport = { results: sample, worst: "warn" };
+    const colourised = formatText(report, { tty: true, env: {} });
+    const plain = formatText(report, { tty: false, env: {} });
+    expect(colourised).toMatch(/\x1b\[32m\[ok\]/);
+    expect(plain).not.toMatch(/\x1b\[/);
+  });
+
+  it("respects NO_COLOR=1 even on a TTY", () => {
+    const report: RunReport = { results: sample, worst: "warn" };
+    const out = formatText(report, { tty: true, env: { NO_COLOR: "1" } });
+    expect(out).not.toMatch(/\x1b\[/);
   });
 });
 

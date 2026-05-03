@@ -6,9 +6,22 @@ as `@agentline/cli`. Installing it is two steps:
 1. put the `agentline` binary on `PATH`,
 2. point Claude Code's `statusLine` setting at it.
 
-The bundled `scripts/install.sh` does both for you. The manual recipe at
-the bottom of this page does the same thing by hand if you would rather
-not run a script.
+The blessed path is `npm i -g @agentline/cli && agentline doctor --fix`.
+The bundled `scripts/install.sh` is the developer / from-source equivalent.
+The manual recipe at the bottom of this page does the same thing by hand
+if you would rather not run a script.
+
+## Try it before you install
+
+```bash
+npx @agentline/cli preview
+```
+
+That renders a sample bar straight to your terminal — no install, no
+config, no host session. Add `--all-themes` to compare the four shipped
+looks side-by-side, `--minimal` or `--default` to preview the shipped
+templates, or `--theme <name>` to pin a single theme. See
+[the CLI surface](#cli-surface) for the full flag list.
 
 ## Requirements
 
@@ -21,7 +34,18 @@ not run a script.
 
 ## One-command install
 
-From a checked-out clone:
+The shortest path:
+
+```bash
+npm install -g @agentline/cli
+agentline doctor --fix
+```
+
+`doctor --fix` creates `~/.claude/settings.json` if it's missing,
+seeds the user config + themes, and writes a working `statusLine`
+entry. It's idempotent — re-running on a configured tree is a no-op.
+
+For a checkout-based install (used during development):
 
 ```bash
 bash scripts/install.sh
@@ -56,11 +80,11 @@ Every filesystem write is atomic (write-temp, `fsync`, `rename`). Re-running
 
 ### Environment overrides
 
-| Variable             | Effect                                                                                 |
-| -------------------- | -------------------------------------------------------------------------------------- |
-| `CLAUDE_CONFIG_DIR`  | Overrides the parent of the agentline config directory. Default: `~/.config`.          |
-| `CLAUDE_PROJECT_DIR` | Used by `init.sh` to decide where `.agentline.json` lives. Default: `$PWD`.            |
-| `AGENTLINE_BIN`      | Read by `doctor.sh` and other wrappers to pick a specific bin. Useful in tests and CI. |
+| Variable             | Effect                                                                                             |
+| -------------------- | -------------------------------------------------------------------------------------------------- |
+| `CLAUDE_CONFIG_DIR`  | Overrides the parent of the agentline config directory. Default: `~/.config`.                      |
+| `CLAUDE_PROJECT_DIR` | Used by `agentline init --scope project` to decide where `.agentline.json` lives. Default: `$PWD`. |
+| `AGENTLINE_BIN`      | Read by `doctor.sh` and other wrappers to pick a specific bin. Useful in tests and CI.             |
 
 ## Manual install
 
@@ -126,12 +150,42 @@ agentline doctor
 `--strict` to make warnings exit non-zero — handy in CI. See
 [doctor.md](./doctor.md) for the full check list.
 
-To preview the rendered statusline against a recorded payload (no live
-Claude Code session required) once the renderer is wired:
+To preview your live statusline at any time:
 
 ```bash
-agentline render --fixture path/to/payload.json
+agentline preview                     # uses your saved config (or default template)
+agentline preview --config .agentline.json   # preview a specific config
+agentline preview --all-themes        # one render per shipped theme
 ```
+
+`agentline render --fixture path/to/payload.json` is also available for
+replaying a recorded stdin payload (used by goldens and CI).
+
+## CLI surface
+
+Every subcommand responds to `-h` / `--help`:
+
+| Command             | Purpose                                                         |
+| ------------------- | --------------------------------------------------------------- |
+| `agentline preview` | Render a sample bar (no install, no stdin). Headline command.   |
+| `agentline init`    | Scaffold a config from a preset. See flag table below.          |
+| `agentline config`  | Edit configuration in the TUI (Ink, lazy-loaded).               |
+| `agentline doctor`  | Diagnose host wiring; `--fix` repairs D01–D04.                  |
+| `agentline themes`  | List installed themes; `--show <name>` prints a palette.        |
+| `agentline keys`    | List active keymap bindings (`--json` for scripting).           |
+| `agentline schema`  | Print or `--write <dir>` the config JSON Schema.                |
+| `agentline render`  | Replay a recorded stdin payload (goldens, fixtures).            |
+| `(default)`         | Read stdin, render, write to stdout (the live statusline path). |
+
+`agentline init` flags:
+
+| Flag              | Effect                                                                       |
+| ----------------- | ---------------------------------------------------------------------------- |
+| `--preset <name>` | One of `minimal`, `default`, `focus`, `power`. Default: `default`.           |
+| `--scope <where>` | `user` writes the user config; `project` (default) writes `.agentline.json`. |
+| `--target <path>` | Explicit override; takes precedence over `--scope`.                          |
+| `--force`         | Overwrite an existing target.                                                |
+| `--minimal`       | Deprecated alias for `--preset minimal`.                                     |
 
 ## Uninstall
 
@@ -169,6 +223,10 @@ against the pre-install state.
   permissive: even if your config fails to validate, it prints a
   one-line ASCII fallback so your shell prompt is never blank. Run
   `agentline doctor --strict` to surface the underlying error.
+- **a stderr "using built-in defaults" hint appears once** — that's
+  the first-run nudge; it fires on a TTY when no user/project config
+  exists and recommends `agentline init`. Set `AGENTLINE_QUIET=1` to
+  silence it permanently.
 
 For anything else, open an issue:
 <https://github.com/odere-pro/claude-agentline/issues>.

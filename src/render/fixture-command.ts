@@ -18,6 +18,7 @@
 import { promises as fs } from "node:fs";
 
 import { isHelpFlag, requestHelp } from "../cli/help.js";
+import { resolveConfigPaths } from "../config/paths.js";
 import {
   parseAccessibilityArgs,
   type AccessibilityFlags,
@@ -86,6 +87,13 @@ export async function runRenderCommand(input: RenderInput): Promise<number> {
       );
     }
     return 1;
+  }
+  // First-run hint: when this is a live render (no fixture, no --config)
+  // and the user has not saved a config yet, point them at `agentline init`.
+  // Suppressed for non-TTY stderr (so the host UI is unaffected) and when
+  // AGENTLINE_QUIET=1 is set.
+  if (!fixture && input.args.configPath === undefined) {
+    await maybeEmitFirstRunHint();
   }
   const out = await renderForFixture(payload, {
     ...(input.args.configPath !== undefined ? { configPath: input.args.configPath } : {}),
@@ -165,6 +173,27 @@ export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {
     (out as { frozenClockISO: string }).frozenClockISO = frozenClockISO;
   if (width !== undefined) (out as { width: number }).width = width;
   return out;
+}
+
+async function maybeEmitFirstRunHint(): Promise<void> {
+  if (!process.stderr.isTTY) return;
+  if (process.env.AGENTLINE_QUIET === "1") return;
+  const paths = resolveConfigPaths(process.env, process.cwd());
+  const hasUser = await fileExists(paths.userConfig);
+  const hasProject = await fileExists(paths.projectConfig);
+  if (hasUser || hasProject) return;
+  process.stderr.write(
+    "# agentline: using built-in defaults — `agentline init` to customise (silence with AGENTLINE_QUIET=1)\n",
+  );
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await fs.access(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function readAll(stream: NodeJS.ReadableStream): Promise<string> {

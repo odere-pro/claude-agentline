@@ -174,16 +174,26 @@ A useful starting point is `templates/default.config.json`:
 { "type": "clock" }
 ```
 
-For a leaner line — what `init.sh` writes — see
-`templates/minimal.config.json`.
+For a leaner line — what `agentline init --preset minimal` writes —
+see `templates/minimal.config.json`. Two more presets are shipped:
+`focus` (model + git + context-percentage + clock) and `power` (full
+default plus thinking-effort, weekly-usage, block-timer).
 
 ## Previewing a config
 
 Without restarting Claude Code:
 
 ```bash
-agentline render --fixture <path-to-stdin.json>
+agentline preview                              # uses your saved config
+agentline preview --config <path-to-config>    # preview a specific config
+agentline preview --all-themes                 # one render per theme
+agentline preview --minimal                    # the minimal preset
+agentline render --fixture <path-to-stdin.json>  # replay a recorded payload
 ```
+
+`agentline preview` is the everyday command — it renders against a
+built-in stdin sample so you don't need a live Claude Code session.
+`agentline render --fixture` is the goldens / replay surface.
 
 Three reference fixtures ship under `tests/golden/`:
 

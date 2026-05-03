@@ -6,11 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseThemesArgs, runThemesCommand } from "./command.js";
 
 describe("parseThemesArgs", () => {
-  it("defaults to action=list", () => {
-    expect(parseThemesArgs([])).toEqual({ action: "list" });
+  it("defaults to action=table (swatch view)", () => {
+    expect(parseThemesArgs([])).toEqual({ action: "table" });
   });
 
-  it("--list is explicit", () => {
+  it("--list selects machine-readable output", () => {
     expect(parseThemesArgs(["--list"])).toEqual({ action: "list" });
   });
 
@@ -116,5 +116,49 @@ describe("runThemesCommand", () => {
       builtinDir: tmp,
     });
     expect(code).toBe(2);
+  });
+
+  it("table action renders a swatch row per theme", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = await runThemesCommand({
+      args: { action: "table" },
+      env: {},
+      cwd: "/no-such-cwd",
+      builtinDir: tmp,
+    });
+    expect(code).toBe(0);
+    const out = stdout.mock.calls.map((c) => String(c[0])).join("");
+    expect(out).toContain("demo");
+  });
+
+  it("table action emits a TTY-friendly hint to stderr", async () => {
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    await runThemesCommand({
+      args: { action: "table" },
+      env: {},
+      cwd: "/no-such-cwd",
+      builtinDir: tmp,
+    });
+    const stderrOut = stderr.mock.calls.map((c) => String(c[0])).join("");
+    expect(stderrOut).toContain("agentline preview --all-themes");
+  });
+
+  it("table action fails when no themes found", async () => {
+    const empty = mkdtempSync(join(tmpdir(), "agentline-themes-empty-"));
+    try {
+      const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      const code = await runThemesCommand({
+        args: { action: "table" },
+        env: {},
+        cwd: "/no-such-cwd",
+        builtinDir: empty,
+      });
+      expect(code).toBe(1);
+      expect(stderr).toHaveBeenCalled();
+    } finally {
+      rmSync(empty, { recursive: true, force: true });
+    }
   });
 });

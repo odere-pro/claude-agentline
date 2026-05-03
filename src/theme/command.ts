@@ -1,12 +1,13 @@
 /**
  * Body for `agentline themes [--list | --show <name>]` (§9.1, §5.6).
  *
- *   - `--list` (default when no flag is set): enumerates the four
- *     shipped themes (vscode-dark, vscode-light, claude-code-dark,
- *     claude-code-light) plus any extras the user has dropped into
- *     `${CLAUDE_CONFIG_DIR}/agentline/themes/`.
- *   - `--show <name>`: pretty-prints the resolved palette for one
- *     theme. Useful when authoring overrides or filing a colour bug.
+ *   - default              swatch table — name + 13 colour blocks per palette,
+ *                          rendered with terminal colour-depth detection.
+ *   - `--list`             tab-separated `name<TAB>path` rows, machine-readable
+ *                          for scripts and CI.
+ *   - `--show <name>`      pretty-prints the resolved palette for one
+ *                          theme. Useful when authoring overrides or filing
+ *                          a colour bug.
  */
 
 import { promises as fs } from "node:fs";
@@ -15,20 +16,33 @@ import { fileURLToPath } from "node:url";
 
 import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { resolveConfigPaths } from "../config/paths.js";
-import { listThemesIn, loadTheme, THEME_ROLES } from "./index.js";
+import { detectColourDepth } from "../render/colour-depth.js";
+import { encodeSegments, SGR_RESET } from "../render/ansi.js";
+import type { Segment } from "../render/segment.js";
+import {
+  isColour,
+  listThemesIn,
+  loadTheme,
+  resolveRole,
+  THEME_ROLES,
+  type Theme,
+} from "./index.js";
 
-const HELP = `agentline themes — inspect installed theme presets
+const HELP = `agentline themes — browse and inspect theme presets
 
 Usage:
   agentline themes [--list | --show <name>]
 
 Options:
-  --list         list theme names + paths (default)
+  --list         tab-separated name<TAB>path rows (machine-readable)
   --show <name>  pretty-print one theme's resolved palette
   -h, --help     show this message
+
+With no flags, prints a swatch table — name + the 13 palette colours
+rendered as coloured blocks. Useful for picking a theme at a glance.
 `;
 
-export type ThemesAction = "list" | "show";
+export type ThemesAction = "table" | "list" | "show";
 
 export interface ThemesCommandArgs {
   readonly action: ThemesAction;
@@ -44,28 +58,13 @@ export interface ThemesInput {
 }
 
 export async function runThemesCommand(input: ThemesInput): Promise<number> {
-  if (input.args.action === "show") {
-    return showTheme(input);
-  }
-  return listAllThemes(input);
+  if (input.args.action === "show") return showTheme(input);
+  if (input.args.action === "list") return listAllThemes(input);
+  return tableThemes(input);
 }
 
 async function listAllThemes(input: ThemesInput): Promise<number> {
-  const dirs = themeDirectories(input);
-  const seen = new Set<string>();
-  const rows: { name: string; path: string }[] = [];
-  const errors: { path: string; message: string }[] = [];
-  for (const dir of dirs) {
-    const exists = await pathExists(dir);
-    if (!exists) continue;
-    const listing = await listThemesIn(dir);
-    for (const t of listing.themes) {
-      if (seen.has(t.name)) continue;
-      seen.add(t.name);
-      rows.push(t);
-    }
-    errors.push(...listing.errors);
-  }
+  const { rows, errors } = await collectThemes(input);
   if (rows.length === 0) {
     process.stderr.write("agentline themes: no themes found on the search path\n");
     return 1;
@@ -77,6 +76,72 @@ async function listAllThemes(input: ThemesInput): Promise<number> {
     process.stderr.write(`agentline themes: ${err.path}: ${err.message}\n`);
   }
   return 0;
+}
+
+async function tableThemes(input: ThemesInput): Promise<number> {
+  const { rows, errors } = await collectThemes(input);
+  if (rows.length === 0) {
+    process.stderr.write("agentline themes: no themes found on the search path\n");
+    return 1;
+  }
+  const env = input.env ?? process.env;
+  const depth = detectColourDepth({ env });
+  const widestName = rows.reduce((n, r) => Math.max(n, r.name.length), 0);
+  for (const row of rows) {
+    let theme: Theme;
+    try {
+      theme = await loadTheme(row.path);
+    } catch (err) {
+      errors.push({ path: row.path, message: (err as Error).message });
+      continue;
+    }
+    const swatch = renderSwatch(theme, depth);
+    process.stdout.write(`  ${row.name.padEnd(widestName, " ")}  ${swatch}\n`);
+  }
+  for (const err of errors) {
+    process.stderr.write(`agentline themes: ${err.path}: ${err.message}\n`);
+  }
+  process.stderr.write(
+    "\nTry `agentline preview --all-themes` to see one render per theme.\n",
+  );
+  return 0;
+}
+
+async function collectThemes(
+  input: ThemesInput,
+): Promise<{ rows: { name: string; path: string }[]; errors: { path: string; message: string }[] }> {
+  const dirs = themeDirectories(input);
+  const seen = new Set<string>();
+  const rows: { name: string; path: string }[] = [];
+  const errors: { path: string; message: string }[] = [];
+  for (const dir of dirs) {
+    if (!(await pathExists(dir))) continue;
+    const listing = await listThemesIn(dir);
+    for (const t of listing.themes) {
+      if (seen.has(t.name)) continue;
+      seen.add(t.name);
+      rows.push(t);
+    }
+    errors.push(...listing.errors);
+  }
+  return { rows, errors };
+}
+
+function renderSwatch(theme: Theme, depth: ReturnType<typeof detectColourDepth>): string {
+  if (depth === "none") {
+    // Fall back to the role names as a hint. The bare role list keeps the
+    // swatch column meaningful when colour is suppressed (e.g. NO_COLOR=1).
+    return THEME_ROLES.map((r) => r.slice(0, 2)).join(" ");
+  }
+  const segments: Segment[] = [];
+  for (const role of THEME_ROLES) {
+    const colour = resolveRole(theme, role);
+    if (!isColour(colour)) continue;
+    segments.push({ text: "  ", bg: colour });
+  }
+  // Encode the segments and append a trailing reset so subsequent table
+  // rows do not pick up the last cell's background.
+  return `${encodeSegments(segments, depth)}${SGR_RESET}`;
 }
 
 async function showTheme(input: ThemesInput): Promise<number> {
@@ -144,7 +209,7 @@ async function pathExists(path: string): Promise<boolean> {
 }
 
 export function parseThemesArgs(rest: readonly string[]): ThemesCommandArgs {
-  let action: ThemesAction = "list";
+  let action: ThemesAction = "table";
   let name: string | undefined;
   for (let i = 0; i < rest.length; i += 1) {
     const arg = rest[i];
