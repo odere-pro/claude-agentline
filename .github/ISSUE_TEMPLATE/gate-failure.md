@@ -7,14 +7,14 @@ labels: ["gate-failure", "triage"]
 
 ## Gate
 
-| Field | Value |
-| --- | --- |
-| Gate ID | `gate-NN-topic` |
-| Spec § | §N.M |
+| Field           | Value                                              |
+| --------------- | -------------------------------------------------- |
+| Gate ID         | `gate-NN-topic`                                    |
+| Spec §          | §N.M                                               |
 | Where it failed | CI run URL / `bash tests/gates/run-all.sh` locally |
-| Host | `macos-14` / `ubuntu-24.04` / `windows-2022` / ... |
-| Node | `20` / `22` |
-| Workflow run | (paste run URL, e.g. `actions/runs/RUN_ID`) |
+| Host            | `macos-14` / `ubuntu-24.04` / `windows-2022` / ... |
+| Node            | `20` / `22`                                        |
+| Workflow run    | (paste run URL, e.g. `actions/runs/RUN_ID`)        |
 
 ## Failure output
 
