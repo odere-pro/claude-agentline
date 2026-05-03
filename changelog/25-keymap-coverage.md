@@ -1,0 +1,1 @@
+- Keymap registry: add `src/keys/` with 21 §5.5 bindings, `agentline keys [--json]` subcommand, and gate-17 coverage check.
