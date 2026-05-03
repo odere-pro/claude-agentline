@@ -27,7 +27,7 @@ The normative spec is **`docs/plan/SPEC-v0.1.0.md`**. Treat it as authoritative.
 | Artefact | Pattern | Example |
 | --- | --- | --- |
 | TS source | feature-folder under `src/` | `src/widgets/git/branch.ts` |
-| Themes | `<kebab-case>.json` | `catppuccin-mocha.json` |
+| Themes | `<kebab-case>.json` | `vscode-dark.json` |
 | Branch | `<type>/agentline-<NN>-<slug>` | `feat/agentline-06-config-loader` |
 
 ## Non-goals (v0.1.0)
