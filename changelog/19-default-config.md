@@ -1,0 +1,3 @@
+<!-- sha: 3ff7c82 -->
+
+Give first-run users a sensible statusline out of the box: ships `templates/default.config.json` (the nine-widget line — model, git branch / changes, context-percentage, total tokens, cost, session usage, flex separator, clock — with token / cost / session widgets bucketed by 5-hour block and the bundled `claude-code-dark` theme) and `templates/minimal.config.json` (model, git branch, flex separator, clock) for the `init --minimal` path. Both validate against the embedded JSON Schema; six new round-trip tests guarantee the templates and schema can never silently drift apart.
