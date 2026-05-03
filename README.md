@@ -39,7 +39,7 @@ Full install + uninstall reference: [docs/install.md](./docs/install.md).
 
 After install, your config lives at
 `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`. Edit it by
-hand, or launch the TUI editor:
+hand, or launch the [TUI editor](./docs/keymap.md):
 
 ```bash
 agentline config
@@ -92,13 +92,15 @@ table, and more. Full check list:
   uninstall, troubleshooting.
 - [docs/config.md](./docs/config.md) — file locations, layered merge,
   schema, env-var overrides, atomic writes.
-- [docs/widgets.md](./docs/widgets.md) — built-in widget catalogue with
-  reset axes.
+- [docs/widgets.md](./docs/widgets.md) — built-in widget catalogue
+  (53 widgets, seven families) with reset axes.
 - [docs/themes.md](./docs/themes.md) — theme file shape, palette
   roles, Powerline.
 - [docs/keymap.md](./docs/keymap.md) — TUI editor bindings and
   overrides.
 - [docs/doctor.md](./docs/doctor.md) — D01–D10 checks, exit codes.
+- [docs/testing.md](./docs/testing.md) — unit / golden / gate test
+  workflow, cold-start bench, and the recipe for adding a widget.
 
 The normative spec is [docs/plan/SPEC-v0.1.0.md](./docs/plan/SPEC-v0.1.0.md).
 
@@ -130,6 +132,9 @@ npm test
 npm run build
 bash tests/gates/run-all.sh
 ```
+
+For the full test workflow (unit, golden, gates, cold-start bench, and
+the recipe for adding a widget), see [docs/testing.md](./docs/testing.md).
 
 ## License
 
