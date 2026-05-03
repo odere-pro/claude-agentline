@@ -148,7 +148,7 @@ describe("scripts/install.sh", () => {
     expect(after).toBe(edited);
   });
 
-  it("refuses to overwrite a foreign statusLine without --force", async () => {
+  it("install backs up a foreign statusLine and overwrites with agentline", async () => {
     await fs.mkdir(join(sb.home, ".claude"), { recursive: true });
     const settingsPath = join(sb.home, ".claude", "settings.json");
     await fs.writeFile(
@@ -157,13 +157,16 @@ describe("scripts/install.sh", () => {
     );
 
     await runScript(installSh, [], sb.env);
-    const after = await readJson(settingsPath);
-    expect((after as { statusLine: { command: string } }).statusLine.command).toBe(
-      "starship init bash",
-    );
+    const after = (await readJson(settingsPath)) as { statusLine: { command: string } };
+    expect(after.statusLine.command).toMatch(/agentline/);
+    const backup = (await readJson(
+      join(sb.configDir, "state", "settings-backup.json"),
+    )) as { previousStatusLinePresent: boolean; previousStatusLine: { command: string } };
+    expect(backup.previousStatusLinePresent).toBe(true);
+    expect(backup.previousStatusLine.command).toBe("starship init bash");
   });
 
-  it("--force overwrites a foreign statusLine", async () => {
+  it("--force still works (kept for back-compat); behaviour matches default", async () => {
     await fs.mkdir(join(sb.home, ".claude"), { recursive: true });
     const settingsPath = join(sb.home, ".claude", "settings.json");
     await fs.writeFile(
@@ -174,6 +177,21 @@ describe("scripts/install.sh", () => {
     await runScript(installSh, ["--force"], sb.env);
     const after = (await readJson(settingsPath)) as { statusLine: { command: string } };
     expect(after.statusLine.command).toMatch(/agentline/);
+  });
+
+  it("re-running install does NOT clobber the original backup", async () => {
+    await fs.mkdir(join(sb.home, ".claude"), { recursive: true });
+    const settingsPath = join(sb.home, ".claude", "settings.json");
+    await fs.writeFile(
+      settingsPath,
+      JSON.stringify({ statusLine: { command: "starship init bash" } }),
+    );
+    await runScript(installSh, [], sb.env); // backs up starship
+    await runScript(installSh, [], sb.env); // settings.json now has agentline
+    const backup = (await readJson(
+      join(sb.configDir, "state", "settings-backup.json"),
+    )) as { previousStatusLine: { command: string } };
+    expect(backup.previousStatusLine.command).toBe("starship init bash");
   });
 
   it("--dry-run touches no files", async () => {
@@ -226,7 +244,7 @@ describe("scripts/uninstall.sh", () => {
     expect(await exists(userCfg)).toBe(false);
   });
 
-  it("leaves a foreign statusLine untouched", async () => {
+  it("leaves a foreign statusLine untouched when no backup exists", async () => {
     await fs.mkdir(join(sb.home, ".claude"), { recursive: true });
     const settingsPath = join(sb.home, ".claude", "settings.json");
     await fs.writeFile(
@@ -237,6 +255,33 @@ describe("scripts/uninstall.sh", () => {
     await runScript(uninstallSh, [], sb.env);
     const after = (await readJson(settingsPath)) as { statusLine: { command: string } };
     expect(after.statusLine.command).toBe("starship init bash");
+  });
+
+  it("install + uninstall round-trip restores a foreign statusLine from the backup", async () => {
+    await fs.mkdir(join(sb.home, ".claude"), { recursive: true });
+    const settingsPath = join(sb.home, ".claude", "settings.json");
+    await fs.writeFile(
+      settingsPath,
+      JSON.stringify({ statusLine: { command: "starship init bash" } }),
+    );
+    await runScript(installSh, [], sb.env); // overwrite + back up
+    await runScript(uninstallSh, [], sb.env); // restore from backup
+    const after = (await readJson(settingsPath)) as { statusLine: { command: string } };
+    expect(after.statusLine.command).toBe("starship init bash");
+    expect(
+      await exists(join(sb.configDir, "state", "settings-backup.json")),
+    ).toBe(false);
+  });
+
+  it("install with no prior statusLine + uninstall removes the key entirely", async () => {
+    await fs.mkdir(join(sb.home, ".claude"), { recursive: true });
+    const settingsPath = join(sb.home, ".claude", "settings.json");
+    await fs.writeFile(settingsPath, JSON.stringify({ otherSetting: 1 }));
+    await runScript(installSh, [], sb.env);
+    await runScript(uninstallSh, [], sb.env);
+    const after = (await readJson(settingsPath)) as Record<string, unknown>;
+    expect(after).not.toHaveProperty("statusLine");
+    expect(after.otherSetting).toBe(1);
   });
 
   it("is idempotent — running twice on a clean tree is a no-op", async () => {

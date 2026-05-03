@@ -224,20 +224,26 @@ wire_statusline() {
     *)             __action="conflict"   ;;
   esac
 
-  case "${__action}" in
-    noop)
-      al_log_info "statusLine already wired to agentline; nothing to do"
-      return 0
-      ;;
-    conflict)
-      if [ "${FORCE}" != "1" ]; then
-        al_log_warn "settings.json has a non-agentline statusLine entry; pass --force to overwrite"
-        return 0
-      fi
-      al_log_info "force: overwriting existing statusLine"
-      ;;
-    set) : ;;
-  esac
+  if [ "${__action}" = "noop" ]; then
+    al_log_info "statusLine already wired to agentline; nothing to do"
+    return 0
+  fi
+
+  # Snapshot the prior value before overwriting. The backup helper is
+  # idempotent (first install wins) so re-running install never clobbers
+  # the original with our own freshly-written value. uninstall.sh reads
+  # this file to put the host back to its pre-install state.
+  if [ "${DRY_RUN}" = "1" ]; then
+    al_log_info "would back up prior statusLine to ${AL_STATUS_LINE_BACKUP}"
+  else
+    save_statusline_backup "${settings_file}" "${AL_STATUS_LINE_BACKUP}"
+  fi
+
+  if [ "${__action}" = "conflict" ] && [ "${FORCE}" != "1" ]; then
+    al_log_info "backing up foreign statusLine before overwrite (uninstall will restore)"
+  elif [ "${__action}" = "conflict" ]; then
+    al_log_info "force: overwriting existing statusLine"
+  fi
 
   __new_settings_json="$(merge_statusline_into_settings "${settings_file}" "${__cmd}")"
   atomic_write_via_node "${settings_file}" "${__new_settings_json}"
@@ -252,6 +258,53 @@ resolve_status_command() {
     return 0
   fi
   printf 'npx -y @agentline/cli'
+}
+
+# Save a snapshot of the existing `statusLine` value to the backup file
+# at AL_STATUS_LINE_BACKUP. Idempotent: refuses to overwrite an existing
+# backup so re-running install preserves the original pre-install value.
+# Records `previousStatusLinePresent: false` when the key was absent so
+# uninstall knows to delete the key entirely.
+save_statusline_backup() {
+  __settings="$1"
+  __backup="$2"
+  if [ -f "${__backup}" ]; then
+    return 0
+  fi
+  AL_VERSION_FOR_BACKUP="${AL_VERSION_FOR_BACKUP:-0.1.0}"
+  AL_SETTINGS_FILE="${__settings}" \
+  AL_BACKUP_FILE="${__backup}" \
+  AL_VERSION_FOR_BACKUP="${AL_VERSION_FOR_BACKUP}" \
+  al_node - <<'JS'
+const fs = require('node:fs');
+const path = require('node:path');
+const settings = process.env.AL_SETTINGS_FILE;
+const backup = process.env.AL_BACKUP_FILE;
+let parsed = {};
+try {
+  const raw = fs.readFileSync(settings, 'utf8');
+  const t = JSON.parse(raw);
+  if (t && typeof t === 'object' && !Array.isArray(t)) parsed = t;
+} catch { /* fresh */ }
+const present = Object.prototype.hasOwnProperty.call(parsed, 'statusLine');
+const body = {
+  version: 1,
+  createdAt: new Date().toISOString(),
+  agentlineVersion: process.env.AL_VERSION_FOR_BACKUP || '0.1.0',
+  previousStatusLinePresent: present,
+  previousStatusLine: present ? parsed.statusLine : null,
+};
+fs.mkdirSync(path.dirname(backup), { recursive: true, mode: 0o700 });
+const tmp = backup + '.tmp.' + process.pid;
+const fd = fs.openSync(tmp, 'w', 0o600);
+try {
+  fs.writeFileSync(fd, JSON.stringify(body, null, 2) + '\n');
+  fs.fsyncSync(fd);
+} finally {
+  fs.closeSync(fd);
+}
+fs.renameSync(tmp, backup);
+JS
 }
 
 # Read settings.json and emit "agentline" / "" / a hint about the existing
