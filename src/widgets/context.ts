@@ -13,6 +13,7 @@ import type { AgentlineConfig } from "../config/types.js";
 import type { ResolvedSessionFields } from "../session/index.js";
 import type { StdinPayload } from "../stdin/index.js";
 import type { Theme } from "../theme/index.js";
+import type { TokensSnapshot } from "../tokens/index.js";
 import type { Clock } from "./clock.js";
 
 export interface WidgetContext {
@@ -27,4 +28,10 @@ export interface WidgetContext {
    * widgets MUST NOT do filesystem I/O during `render()`.
    */
   readonly session?: ResolvedSessionFields;
+  /**
+   * Transcript-derived token / cost / context snapshot (§7.3, §7.4).
+   * Resolved once per render tick by `loadTokensSnapshot`; widgets
+   * MUST NOT read the JSONL transcript themselves during `render()`.
+   */
+  readonly tokens?: TokensSnapshot;
 }
