@@ -1,0 +1,1 @@
+Round out the built-in widget set: ship the time family (`clock` with configurable format, `uptime-session`, `uptime-block`) and the custom family (`separator`, `flex-separator` with a renderer-recognised flex marker, sandboxed `command` with timeout / cache / byteLimit / onError marker).
