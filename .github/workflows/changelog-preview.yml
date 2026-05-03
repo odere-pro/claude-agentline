@@ -1,0 +1,104 @@
+# .github/workflows/changelog-preview.yml
+# On every pull_request, run `scripts/changelog-aggregate.sh` (dry-run) and
+# post the output as a single sticky comment so reviewers can see the
+# next-release CHANGELOG without opening every fragment file.
+#
+# Hard invariants (Implementation Plan 3):
+# - Trigger is `pull_request` (NOT `pull_request_target`).
+# - Default workflow permission is read-all; the comment job opts in to
+#   `pull-requests: write` only.
+# - Every `uses:` action is pinned by full commit SHA.
+# - Concurrency cancellation per PR ref so a fresh push supersedes the
+#   in-flight preview run instead of stacking comments.
+# - No secrets beyond the default `GITHUB_TOKEN`.
+
+name: changelog-preview
+
+on:
+  pull_request:
+
+permissions: read-all
+
+concurrency:
+  group: changelog-preview-${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: changelog preview
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # Aggregator resolves the introducing commit per fragment via
+          # `git log -1 -- <fragment>`. A shallow clone hides those
+          # ancestors and every bullet would render as `unreleased`.
+          fetch-depth: 0
+
+      - name: Run aggregator (dry-run)
+        id: aggregate
+        run: |
+          set -Eeuo pipefail
+
+          if [ ! -x scripts/changelog-aggregate.sh ]; then
+            chmod +x scripts/changelog-aggregate.sh || true
+          fi
+
+          aggregate_stdout="$(mktemp)"
+          aggregate_stderr="$(mktemp)"
+          set +e
+          bash scripts/changelog-aggregate.sh \
+            >"${aggregate_stdout}" 2>"${aggregate_stderr}"
+          rc=$?
+          set -e
+
+          {
+            echo '## Changelog preview'
+            echo
+            if [ "${rc}" -eq 0 ]; then
+              fragment_count=$(find changelog -maxdepth 1 -name '*.md' \
+                ! -name 'README.md' -type f 2>/dev/null | wc -l | tr -d ' ')
+              echo "Dry-run of \`bash scripts/changelog-aggregate.sh\` against this PR (${fragment_count} fragment(s) tracked). This comment is updated in place on every push."
+              echo
+              echo '<details>'
+              echo '<summary>Click to expand the aggregated bullets</summary>'
+              echo
+              echo '```markdown'
+              cat "${aggregate_stdout}"
+              echo '```'
+              echo '</details>'
+            else
+              echo "The aggregator exited with rc=${rc}. Reviewer action: confirm the PR's fragment file is well-formed and that \`CHANGELOG.md\` still contains the \`### Added\` heading under \`## [Unreleased]\`."
+              echo
+              echo '<details>'
+              echo '<summary>aggregator stderr</summary>'
+              echo
+              echo '```'
+              cat "${aggregate_stderr}"
+              echo '```'
+              echo '</details>'
+            fi
+          } > preview.md
+
+          # GitHub caps comments at ~65 KB. Truncate defensively so the
+          # comment-post step never fails on a large historical preview.
+          max_bytes=60000
+          if [ "$(wc -c < preview.md | tr -d ' ')" -gt "${max_bytes}" ]; then
+            head -c "${max_bytes}" preview.md > preview.trimmed.md
+            printf '\n\n_(preview truncated at %s bytes; run \`bash scripts/changelog-aggregate.sh\` locally for the full output)_\n' \
+              "${max_bytes}" >> preview.trimmed.md
+            mv preview.trimmed.md preview.md
+          fi
+
+      - name: Post sticky comment
+        # marocchino/sticky-pull-request-comment v3.0.4 — pinned by commit SHA
+        # per the workflow invariant. Updates the existing comment with the
+        # matching `header` instead of posting a new one on each push.
+        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
+        with:
+          header: changelog-preview
+          path: preview.md
