@@ -54,15 +54,18 @@ Colour values accept the same three forms as widget colours
 | `claude-code-dark`  | dark, warm (Claude brand)               |
 | `claude-code-light` | light, warm (Claude brand)              |
 
-To inspect a preset (once the `themes` subcommand is wired):
+To browse, inspect, and preview themes:
 
 ```bash
-agentline themes --list
-agentline themes --show vscode-dark
+agentline themes --list                  # name + path of every theme on the search path
+agentline themes --show vscode-dark      # pretty-print the resolved palette
+agentline preview --theme claude-code-dark   # render a sample bar with the named theme
+agentline preview --all-themes           # one render per shipped theme, stacked
 ```
 
-Until then the shipped JSON files are the source of truth — they are
-small enough to read directly.
+`agentline preview --all-themes` is the recommended way to choose a
+theme — you see the actual rendered bar against each one, in your
+terminal's exact colour profile.
 
 ## Palette roles
 

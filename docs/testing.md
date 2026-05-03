@@ -76,7 +76,7 @@ output. Gates currently shipped:
 | `gate-01-doctor`                     | `agentline doctor` exits 0 on a clean host                     |
 | `gate-02-no-absolute-paths`          | no `/Users/`, `/home/`, `~/.claude/` literals in artefacts     |
 | `gate-03-shellcheck`                 | shellcheck clean across `scripts/` and `tests/gates/`          |
-| `gate-04-init-idempotency`           | `init.sh` is byte-stable on re-run                             |
+| `gate-04-init-idempotency`           | `scripts/init.sh` is byte-stable on re-run (compatibility shim) |
 | `gate-05-markdown`                   | markdownlint + prettier clean on `docs/` and root markdown     |
 | `gate-06-trademark`                  | "Anthropic", "Claude" used only inside an allowlist            |
 | `gate-11-schema-roundtrip`           | every shipped template validates against the embedded schema   |

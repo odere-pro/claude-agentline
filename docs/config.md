@@ -1,11 +1,25 @@
 # Configuration
 
-`agentline` is configured by a JSON file. Two templates are shipped:
+`agentline` is configured by a JSON file. Four shipped presets are
+available via `agentline init --preset <name>`:
 
-- `templates/default.config.json` — what `scripts/install.sh` writes for
-  a new user; the recommended starting point.
-- `templates/minimal.config.json` — what `scripts/init.sh` writes for a
-  per-project pin (model + git + clock).
+- **`minimal`** (`templates/minimal.config.json`) — model, git-branch, clock. The smallest sensible bar.
+- **`default`** (`templates/default.config.json`) — model, git, context, tokens, cost, session usage, clock. The recommended starting point; what `scripts/install.sh` seeds on first run.
+- **`focus`** (`templates/presets/focus.config.json`) — model, git, context-percentage, clock. The "I'm trying to read code" bar.
+- **`power`** (`templates/presets/power.config.json`) — full default plus `thinking-effort`, `weekly-usage`, `block-timer`. Everything.
+
+`agentline init` defaults to the `default` preset and writes
+`.agentline.json` in the current directory; pass `--scope user` to
+write the user config instead, or `--target <path>` for an explicit
+location. Existing targets are preserved unless `--force` is passed.
+
+To preview a preset before committing:
+
+```bash
+agentline preview --minimal     # the minimal preset
+agentline preview --default     # the default preset
+agentline preview --config <path>  # any config file
+```
 
 The canonical schema lives at `schemas/config.schema.json` and is also
 embedded in the binary so validation works offline. To drop a copy into
@@ -152,7 +166,7 @@ strings. Setting an env var to the empty string clears the override.
 ## Atomic writes
 
 Every persisted config write — whether by `agentline config` (TUI),
-`scripts/install.sh`, `scripts/init.sh`, or `agentline doctor --fix` —
+`agentline init`, `scripts/install.sh`, or `agentline doctor --fix` —
 follows the same recipe: write to a sibling temp file, `fsync`, then
 `rename` over the target. Editor watchers observe one consistent state
 and an interrupted write never leaves a half-written file.
