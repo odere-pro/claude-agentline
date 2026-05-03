@@ -7,8 +7,21 @@
  */
 
 import { join } from "node:path";
+import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { atomicWrite } from "../config/atomic.js";
 import { configSchemaJson } from "./embedded.js";
+
+const HELP = `agentline schema — print or write the config JSON Schema
+
+Usage:
+  agentline schema [--write <dir>]
+
+Options:
+  --write <dir>  atomically write to <dir>/agentline.config.schema.json
+  -h, --help     show this message
+
+Without --write, the schema is printed to stdout.
+`;
 
 export interface SchemaCommandArgs {
   /** Directory to write the schema into; undefined → print to stdout. */
@@ -31,7 +44,9 @@ export function parseSchemaArgs(rest: string[]): SchemaCommandArgs {
   const out: SchemaCommandArgs = {};
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i]!;
-    if (arg === "--write") {
+    if (isHelpFlag(arg)) {
+      requestHelp(HELP);
+    } else if (arg === "--write") {
       const next = rest[i + 1];
       if (!next || next.startsWith("-")) {
         throw new Error("agentline schema: --write requires a directory path");

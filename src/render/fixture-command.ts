@@ -17,11 +17,31 @@
 
 import { promises as fs } from "node:fs";
 
+import { isHelpFlag, requestHelp } from "../cli/help.js";
 import {
   parseAccessibilityArgs,
   type AccessibilityFlags,
 } from "./accessibility.js";
 import { renderForFixture } from "./fixture-runner.js";
+
+const HELP = `agentline render — re-render a recorded stdin payload
+
+Usage:
+  agentline render [--fixture <path>] [--config <path>]
+                   [--frozen-clock <iso>] [--width <n>]
+                   [--no-color | --no-unicode | --ascii ...]
+
+Options:
+  --fixture <path>      read JSON payload from disk instead of stdin
+  --config <path>       pin a specific config file (golden harness)
+  --frozen-clock <iso>  inject a deterministic clock for byte-identical output
+  --width <n>           force terminal width
+  --no-color, --ascii   accessibility flags
+  -h, --help            show this message
+
+The default invocation (no \`render\` subcommand) reads stdin directly;
+this subcommand exists for replaying fixtures and goldens.
+`;
 
 export interface RenderCommandArgs {
   readonly fixture?: string;
@@ -60,6 +80,11 @@ export async function runRenderCommand(input: RenderInput): Promise<number> {
   }
   if (!payload.trim()) {
     process.stdout.write("agentline: empty stdin\n");
+    if (!fixture) {
+      process.stderr.write(
+        "agentline: no JSON received on stdin. try `agentline preview` to render without piping.\n",
+      );
+    }
     return 1;
   }
   const out = await renderForFixture(payload, {
@@ -82,7 +107,9 @@ export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {
   const accessibilityArgv: string[] = [];
   for (let i = 0; i < rest.length; i += 1) {
     const arg = rest[i];
-    if (arg === "--fixture") {
+    if (isHelpFlag(arg)) {
+      requestHelp(HELP);
+    } else if (arg === "--fixture") {
       const next = rest[i + 1];
       if (!next || next.startsWith("-")) {
         throw new Error("agentline render: --fixture requires a path");

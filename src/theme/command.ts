@@ -13,8 +13,20 @@ import { promises as fs } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import { listThemesIn, loadTheme, THEME_ROLES } from "./index.js";
+
+const HELP = `agentline themes — inspect installed theme presets
+
+Usage:
+  agentline themes [--list | --show <name>]
+
+Options:
+  --list         list theme names + paths (default)
+  --show <name>  pretty-print one theme's resolved palette
+  -h, --help     show this message
+`;
 
 export type ThemesAction = "list" | "show";
 
@@ -136,7 +148,8 @@ export function parseThemesArgs(rest: readonly string[]): ThemesCommandArgs {
   let name: string | undefined;
   for (let i = 0; i < rest.length; i += 1) {
     const arg = rest[i];
-    if (arg === "--list") action = "list";
+    if (isHelpFlag(arg)) requestHelp(HELP);
+    else if (arg === "--list") action = "list";
     else if (arg === "--show") {
       action = "show";
       const next = rest[i + 1];
