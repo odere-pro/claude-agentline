@@ -1,23 +1,34 @@
 /**
- * Body for `agentline render [--fixture <path>] [--config <path>]`
- * (§9.1).
+ * Body for `agentline render` (§9.1, §11.3).
  *
- * Without flags: identical to the no-args render entry — read stdin,
- * render, exit. With `--fixture <path>`: read the JSON payload from
- * disk instead of stdin and replay through the renderer. With
- * `--config <path>`: pin a specific config file.
+ *   - default        read stdin, render, exit.
+ *   - --fixture <p>  read the JSON payload from disk instead.
+ *   - --config <p>   pin a specific config file (golden harness).
+ *   - --frozen-clock <iso>  inject a deterministic clock so the
+ *                            same fixture renders byte-identically
+ *                            on every host (§11.3 goldens).
+ *   - --no-color / --no-colour / --no-unicode / --ascii
+ *                    accessibility flags (§1.2 N8); honoured here.
  *
- * The render itself goes through `renderForFixture` so the goldens
- * harness (PR 21) and this CLI surface share one code path.
+ * The render itself goes through `renderForFixture` so the golden
+ * harness, doctor's D10 check, and this CLI surface share one
+ * pipeline.
  */
 
 import { promises as fs } from "node:fs";
 
+import {
+  parseAccessibilityArgs,
+  type AccessibilityFlags,
+} from "./accessibility.js";
 import { renderForFixture } from "./fixture-runner.js";
 
 export interface RenderCommandArgs {
   readonly fixture?: string;
   readonly configPath?: string;
+  readonly frozenClockISO?: string;
+  readonly width?: number;
+  readonly accessibility: AccessibilityFlags;
 }
 
 export interface RenderInput {
@@ -51,7 +62,14 @@ export async function runRenderCommand(input: RenderInput): Promise<number> {
     process.stdout.write("agentline: empty stdin\n");
     return 1;
   }
-  const out = await renderForFixture(payload);
+  const out = await renderForFixture(payload, {
+    ...(input.args.configPath !== undefined ? { configPath: input.args.configPath } : {}),
+    ...(input.args.frozenClockISO !== undefined
+      ? { frozenClockISO: input.args.frozenClockISO }
+      : {}),
+    ...(input.args.width !== undefined ? { width: input.args.width } : {}),
+    flags: input.args.accessibility,
+  });
   process.stdout.write(out);
   return 0;
 }
@@ -59,6 +77,9 @@ export async function runRenderCommand(input: RenderInput): Promise<number> {
 export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {
   let fixture: string | undefined;
   let configPath: string | undefined;
+  let frozenClockISO: string | undefined;
+  let width: number | undefined;
+  const accessibilityArgv: string[] = [];
   for (let i = 0; i < rest.length; i += 1) {
     const arg = rest[i];
     if (arg === "--fixture") {
@@ -79,18 +100,43 @@ export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {
       i += 1;
     } else if (arg && arg.startsWith("--config=")) {
       configPath = arg.slice("--config=".length);
+    } else if (arg === "--frozen-clock") {
+      const next = rest[i + 1];
+      if (!next || next.startsWith("-")) {
+        throw new Error("agentline render: --frozen-clock requires an ISO timestamp");
+      }
+      frozenClockISO = next;
+      i += 1;
+    } else if (arg && arg.startsWith("--frozen-clock=")) {
+      frozenClockISO = arg.slice("--frozen-clock=".length);
+    } else if (arg === "--width") {
+      const next = rest[i + 1];
+      const parsed = next ? Number.parseInt(next, 10) : Number.NaN;
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        throw new Error("agentline render: --width requires a positive integer");
+      }
+      width = parsed;
+      i += 1;
+    } else if (arg && arg.startsWith("--width=")) {
+      const parsed = Number.parseInt(arg.slice("--width=".length), 10);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        throw new Error("agentline render: --width requires a positive integer");
+      }
+      width = parsed;
     } else if (arg && ACCESSIBILITY_FLAGS.has(arg)) {
-      // Accessibility flags (§1.2 N8) are tolerated at the CLI
-      // surface and consumed downstream when the renderer wires
-      // `parseAccessibilityArgs` in. Tolerated here so the binary
-      // never errors on the §11.2 G16 matrix.
+      accessibilityArgv.push(arg);
     } else if (arg) {
       throw new Error(`agentline render: unknown argument '${arg}'`);
     }
   }
-  const out: RenderCommandArgs = {};
+  const out: RenderCommandArgs = {
+    accessibility: parseAccessibilityArgs(accessibilityArgv),
+  };
   if (fixture !== undefined) (out as { fixture: string }).fixture = fixture;
   if (configPath !== undefined) (out as { configPath: string }).configPath = configPath;
+  if (frozenClockISO !== undefined)
+    (out as { frozenClockISO: string }).frozenClockISO = frozenClockISO;
+  if (width !== undefined) (out as { width: number }).width = width;
   return out;
 }
 

@@ -1,0 +1,1 @@
+Lock the renderer to byte-deterministic output: wire all widget families through a real `renderFromInputs` pipeline, ship `--frozen-clock` / `--width` flags on `agentline render`, ship the `tests/golden/<scenario>/` fixture corpus, and a vitest harness that diffs every scenario against the recorded expected bytes.

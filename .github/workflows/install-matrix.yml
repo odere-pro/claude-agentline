@@ -90,8 +90,12 @@ jobs:
 
       - name: Render smoke (gate 15)
         run: |
-          expected='gate-15 · /agentline/gate-15'
-          actual="$(printf '%s' '{"model":"gate-15","cwd":"/agentline/gate-15"}' | "${{ steps.prefix.outputs.bin }}")"
+          # `gate-15` is not a known model id, so the `model` widget
+          # falls back to the raw id. The rest of the default config
+          # widgets hide (no transcript, no git repo, etc.) — so the
+          # expected line is simply the raw model id.
+          expected='gate-15'
+          actual="$(printf '%s' '{"model":"gate-15","cwd":"/agentline/gate-15"}' | NO_COLOR=1 "${{ steps.prefix.outputs.bin }}")"
           # Trim a single trailing newline so the byte-comparison is shell-agnostic.
           actual="${actual%$'\n'}"
           if [ "${actual}" != "${expected}" ]; then
