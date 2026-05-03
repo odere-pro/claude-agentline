@@ -223,6 +223,10 @@ against the pre-install state.
   permissive: even if your config fails to validate, it prints a
   one-line ASCII fallback so your shell prompt is never blank. Run
   `agentline doctor --strict` to surface the underlying error.
+- **a stderr "using built-in defaults" hint appears once** — that's
+  the first-run nudge; it fires on a TTY when no user/project config
+  exists and recommends `agentline init`. Set `AGENTLINE_QUIET=1` to
+  silence it permanently.
 
 For anything else, open an issue:
 <https://github.com/odere-pro/claude-agentline/issues>.

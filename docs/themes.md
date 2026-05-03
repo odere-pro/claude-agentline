@@ -57,15 +57,18 @@ Colour values accept the same three forms as widget colours
 To browse, inspect, and preview themes:
 
 ```bash
-agentline themes --list                  # name + path of every theme on the search path
+agentline themes                         # swatch table — name + 13 palette blocks per theme
+agentline themes --list                  # tab-separated name<TAB>path (for scripts and CI)
 agentline themes --show vscode-dark      # pretty-print the resolved palette
 agentline preview --theme claude-code-dark   # render a sample bar with the named theme
 agentline preview --all-themes           # one render per shipped theme, stacked
 ```
 
-`agentline preview --all-themes` is the recommended way to choose a
-theme — you see the actual rendered bar against each one, in your
-terminal's exact colour profile.
+`agentline themes` (no flags) prints one row per theme with a swatch
+of all 13 palette roles rendered through the same ANSI encoder the
+statusline uses, so what you see in the table is what you get on the
+bar. Combine with `agentline preview --all-themes` for actual rendered
+bars side-by-side; that's the recommended way to pick a theme.
 
 ## Palette roles
 
