@@ -380,16 +380,10 @@ The TUI editor (`agentline config`) renders a contextual key footer. Default key
 
 | # | Theme | Tone |
 | --- | --- | --- |
-| 1 | `dracula` | dark, vivid |
-| 2 | `nord` | dark, cool |
-| 3 | `catppuccin-mocha` | dark, pastel |
-| 4 | `gruvbox-material` | dark, warm |
-| 5 | `tokyonight` | dark, indigo |
-| 6 | `one-dark` | dark, neutral |
-| 7 | `monokai` | dark, contrast |
-| 8 | `solarized-dark` | dark, low-contrast |
-| 9 | `solarized-light` | light, low-contrast |
-| 10 | `neutral-light` | light, generic |
+| 1 | `vscode-dark` | dark, neutral (VS Code Default Dark+) |
+| 2 | `vscode-light` | light, neutral (VS Code Default Light+) |
+| 3 | `claude-code-dark` | dark, warm (Claude brand) |
+| 4 | `claude-code-light` | light, warm (Claude brand) |
 
 Theme files live under `themes/` and are copied to `${CLAUDE_CONFIG_DIR}/agentline/themes/` by `install.sh`.
 
@@ -542,7 +536,7 @@ Renders empty space sized to fill remaining width. Multiple flex separators shar
 
 `model · git-branch · git-changes · context-percentage · tokens-total · cost · session-usage · flex-separator · clock`.
 
-The default config makes `tokens-total` and `cost` use `reset: block` and `session-usage` use `reset: block`. Theme is `catppuccin-mocha` under Powerline-disabled mode.
+The default config makes `tokens-total` and `cost` use `reset: block` and `session-usage` use `reset: block`. Theme is `claude-code-dark` under Powerline-disabled mode.
 
 ---
 
