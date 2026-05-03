@@ -31,7 +31,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-14, ubuntu-22.04, ubuntu-24.04, windows-2022]
+        # macos-13 (Intel) intentionally omitted: GitHub is winding down its
+        # Intel-mac runner pool, and agentline ships pure JavaScript with no
+        # native modules — macos-14 (arm64) plus the Linux × Windows axes give
+        # full real coverage. Re-add macos-13 only if a native dependency lands.
+        os: [macos-14, ubuntu-22.04, ubuntu-24.04, windows-2022]
         node: [20, 22]
     defaults:
       run:
