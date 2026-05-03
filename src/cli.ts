@@ -79,6 +79,20 @@ function runUnimplemented(name: string): number {
   return 1;
 }
 
+async function runConfigDispatch(): Promise<number> {
+  // Lazy-import the TUI bundle. tsup builds it as a separate
+  // `dist/tui.mjs` so Ink + React never hit cli.mjs's parse path
+  // (§1.2 N3). Use a runtime URL so the static analyser does not
+  // try to resolve `./tui.mjs` against the source tree (where
+  // `tui` is a directory, not a module file).
+  const moduleUrl = new URL("./tui.mjs", import.meta.url).href;
+  const tui = (await import(moduleUrl)) as {
+    runConfigCommand: () => Promise<{ saved: boolean }>;
+  };
+  await tui.runConfigCommand();
+  return 0;
+}
+
 async function main(): Promise<number> {
   const { command, rest } = parseArgs(process.argv);
   switch (command) {
@@ -107,6 +121,12 @@ async function main(): Promise<number> {
         return 2;
       }
     case "config":
+      try {
+        return await runConfigDispatch();
+      } catch (err) {
+        process.stderr.write(`agentline: config error: ${(err as Error).message}\n`);
+        return 1;
+      }
     case "init":
     case "keys":
     case "themes":
