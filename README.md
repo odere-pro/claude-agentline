@@ -2,9 +2,9 @@
 
 [![gates](https://github.com/odere-pro/claude-agentline/actions/workflows/gates.yml/badge.svg?branch=main)](https://github.com/odere-pro/claude-agentline/actions/workflows/gates.yml)
 [![install-matrix](https://github.com/odere-pro/claude-agentline/actions/workflows/install-matrix.yml/badge.svg?branch=main)](https://github.com/odere-pro/claude-agentline/actions/workflows/install-matrix.yml)
-[![npm](https://img.shields.io/npm/v/@agentline/cli.svg)](https://www.npmjs.com/package/@agentline/cli)
-[![node](https://img.shields.io/node/v/@agentline/cli.svg)](https://nodejs.org/)
-[![license](https://img.shields.io/npm/l/@agentline/cli.svg)](./LICENSE)
+[![node](https://img.shields.io/github/package-json/node-engines/odere-pro/claude-agentline)](https://nodejs.org/)
+[![license](https://img.shields.io/github/license/odere-pro/claude-agentline)](./LICENSE)
+[![status](https://img.shields.io/badge/status-pre--release-blue)](./CHANGELOG.md)
 
 A standalone, fast, themeable Claude Code statusline. Reads the
 Claude Code stdin payload, renders an ANSI-styled line, exits. No
