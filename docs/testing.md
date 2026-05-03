@@ -71,21 +71,21 @@ The orchestrator runs every `gate-*.sh` under `tests/gates/`. Each
 gate is a single-purpose Bash script with `pass` / `fail` / `skip`
 output. Gates currently shipped:
 
-| Gate                                 | Enforces                                                       |
-| ------------------------------------ | -------------------------------------------------------------- |
-| `gate-01-doctor`                     | `agentline doctor` exits 0 on a clean host                     |
-| `gate-02-no-absolute-paths`          | no `/Users/`, `/home/`, `~/.claude/` literals in artefacts     |
-| `gate-03-shellcheck`                 | shellcheck clean across `scripts/` and `tests/gates/`          |
+| Gate                                 | Enforces                                                        |
+| ------------------------------------ | --------------------------------------------------------------- |
+| `gate-01-doctor`                     | `agentline doctor` exits 0 on a clean host                      |
+| `gate-02-no-absolute-paths`          | no `/Users/`, `/home/`, `~/.claude/` literals in artefacts      |
+| `gate-03-shellcheck`                 | shellcheck clean across `scripts/` and `tests/gates/`           |
 | `gate-04-init-idempotency`           | `scripts/init.sh` is byte-stable on re-run (compatibility shim) |
-| `gate-05-markdown`                   | markdownlint + prettier clean on `docs/` and root markdown     |
-| `gate-06-trademark`                  | "Anthropic", "Claude" used only inside an allowlist            |
-| `gate-11-schema-roundtrip`           | every shipped template validates against the embedded schema   |
-| `gate-13-cold-start-budget`          | `agentline render` cold-start ≤ 120 ms p95                     |
-| `gate-14-no-network-render`          | render path makes no outbound network call                     |
-| `gate-15-platform-matrix`            | install + render smoke on macOS / Linux / Windows × Node 20/22 |
-| `gate-16-accessibility-fallbacks`    | `--no-color`, `--no-unicode`, `--ascii` change output          |
-| `gate-17-keymap-coverage`            | every TUI keymap entry has a corresponding registered handler  |
-| `gate-18-changelog-fragment-present` | each PR ships a `changelog/<NN>-<slug>.md`                     |
+| `gate-05-markdown`                   | markdownlint + prettier clean on `docs/` and root markdown      |
+| `gate-06-trademark`                  | "Anthropic", "Claude" used only inside an allowlist             |
+| `gate-11-schema-roundtrip`           | every shipped template validates against the embedded schema    |
+| `gate-13-cold-start-budget`          | `agentline render` cold-start ≤ 120 ms p95                      |
+| `gate-14-no-network-render`          | render path makes no outbound network call                      |
+| `gate-15-platform-matrix`            | install + render smoke on macOS / Linux / Windows × Node 20/22  |
+| `gate-16-accessibility-fallbacks`    | `--no-color`, `--no-unicode`, `--ascii` change output           |
+| `gate-17-keymap-coverage`            | every TUI keymap entry has a corresponding registered handler   |
+| `gate-18-changelog-fragment-present` | each PR ships a `changelog/<NN>-<slug>.md`                      |
 
 Skipped gates (`[skip]`) are usually waiting on a host tool — install
 `shellcheck`, `markdownlint-cli2`, `prettier`, and `ajv-cli` to clear

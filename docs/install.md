@@ -80,11 +80,11 @@ Every filesystem write is atomic (write-temp, `fsync`, `rename`). Re-running
 
 ### Environment overrides
 
-| Variable             | Effect                                                                                 |
-| -------------------- | -------------------------------------------------------------------------------------- |
-| `CLAUDE_CONFIG_DIR`  | Overrides the parent of the agentline config directory. Default: `~/.config`.          |
+| Variable             | Effect                                                                                             |
+| -------------------- | -------------------------------------------------------------------------------------------------- |
+| `CLAUDE_CONFIG_DIR`  | Overrides the parent of the agentline config directory. Default: `~/.config`.                      |
 | `CLAUDE_PROJECT_DIR` | Used by `agentline init --scope project` to decide where `.agentline.json` lives. Default: `$PWD`. |
-| `AGENTLINE_BIN`      | Read by `doctor.sh` and other wrappers to pick a specific bin. Useful in tests and CI. |
+| `AGENTLINE_BIN`      | Read by `doctor.sh` and other wrappers to pick a specific bin. Useful in tests and CI.             |
 
 ## Manual install
 
@@ -165,27 +165,27 @@ replaying a recorded stdin payload (used by goldens and CI).
 
 Every subcommand responds to `-h` / `--help`:
 
-| Command             | Purpose                                                                          |
-| ------------------- | -------------------------------------------------------------------------------- |
-| `agentline preview` | Render a sample bar (no install, no stdin). Headline command.                    |
-| `agentline init`    | Scaffold a config from a preset. See flag table below.                           |
-| `agentline config`  | Edit configuration in the TUI (Ink, lazy-loaded).                                |
-| `agentline doctor`  | Diagnose host wiring; `--fix` repairs D01–D04.                                   |
-| `agentline themes`  | List installed themes; `--show <name>` prints a palette.                         |
-| `agentline keys`    | List active keymap bindings (`--json` for scripting).                            |
-| `agentline schema`  | Print or `--write <dir>` the config JSON Schema.                                 |
-| `agentline render`  | Replay a recorded stdin payload (goldens, fixtures).                             |
-| `(default)`         | Read stdin, render, write to stdout (the live statusline path).                  |
+| Command             | Purpose                                                         |
+| ------------------- | --------------------------------------------------------------- |
+| `agentline preview` | Render a sample bar (no install, no stdin). Headline command.   |
+| `agentline init`    | Scaffold a config from a preset. See flag table below.          |
+| `agentline config`  | Edit configuration in the TUI (Ink, lazy-loaded).               |
+| `agentline doctor`  | Diagnose host wiring; `--fix` repairs D01–D04.                  |
+| `agentline themes`  | List installed themes; `--show <name>` prints a palette.        |
+| `agentline keys`    | List active keymap bindings (`--json` for scripting).           |
+| `agentline schema`  | Print or `--write <dir>` the config JSON Schema.                |
+| `agentline render`  | Replay a recorded stdin payload (goldens, fixtures).            |
+| `(default)`         | Read stdin, render, write to stdout (the live statusline path). |
 
 `agentline init` flags:
 
-| Flag              | Effect                                                                      |
-| ----------------- | --------------------------------------------------------------------------- |
-| `--preset <name>` | One of `minimal`, `default`, `focus`, `power`. Default: `default`.          |
+| Flag              | Effect                                                                       |
+| ----------------- | ---------------------------------------------------------------------------- |
+| `--preset <name>` | One of `minimal`, `default`, `focus`, `power`. Default: `default`.           |
 | `--scope <where>` | `user` writes the user config; `project` (default) writes `.agentline.json`. |
-| `--target <path>` | Explicit override; takes precedence over `--scope`.                         |
-| `--force`         | Overwrite an existing target.                                               |
-| `--minimal`       | Deprecated alias for `--preset minimal`.                                    |
+| `--target <path>` | Explicit override; takes precedence over `--scope`.                          |
+| `--force`         | Overwrite an existing target.                                                |
+| `--minimal`       | Deprecated alias for `--preset minimal`.                                     |
 
 ## Uninstall
 
