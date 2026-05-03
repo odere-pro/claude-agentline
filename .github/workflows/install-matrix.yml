@@ -38,7 +38,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-14, ubuntu-22.04, ubuntu-24.04, windows-2022]
+        # Matrix kept intentionally small: agentline ships pure JavaScript
+        # with no native modules. macos-13 (Intel) is omitted because GitHub
+        # is winding down its Intel-mac pool; ubuntu-22.04 is omitted because
+        # 24.04 is the current LTS and the bash/coreutils skew between them
+        # has not produced a real bug for this codebase. Re-add either if a
+        # native dependency lands or a bash-skew regression appears.
+        os: [macos-14, ubuntu-24.04, windows-2022]
         node: [20, 22]
     defaults:
       run:
