@@ -1,0 +1,30 @@
+# Enforce LF line endings for files where they matter, regardless of
+# the host's git autocrlf setting (Windows runners default to CRLF
+# checkouts, which trips shellcheck SC1017 on shipped scripts).
+
+# Shell scripts MUST be LF on every platform.
+*.sh                text eol=lf
+*.bash              text eol=lf
+
+# Source we run cross-platform.
+*.ts                text eol=lf
+*.tsx               text eol=lf
+*.js                text eol=lf
+*.cjs               text eol=lf
+*.mjs               text eol=lf
+*.json              text eol=lf
+*.jsonc             text eol=lf
+
+# Docs and config that benefit from a stable diff.
+*.md                text eol=lf
+*.yml               text eol=lf
+*.yaml              text eol=lf
+
+# Binary assets — leave untouched.
+*.png               binary
+*.jpg               binary
+*.jpeg              binary
+*.gif               binary
+*.ico               binary
+*.woff              binary
+*.woff2             binary

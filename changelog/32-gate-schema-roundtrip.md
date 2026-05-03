@@ -1,0 +1,1 @@
+- Verification: `gate-11-schema-roundtrip` validates the embedded JSON Schema against the shipped config templates so they cannot drift apart silently.

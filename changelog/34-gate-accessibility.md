@@ -1,0 +1,1 @@
+- Verification: `gate-16-accessibility-fallbacks` exercises `--no-color`, `--no-unicode`, `--ascii`, and `NO_COLOR=1`, asserting each flag drops the bytes it advertises so the renderer can't quietly leak ANSI or non-ASCII into accessibility-constrained terminals.

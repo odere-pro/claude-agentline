@@ -1,0 +1,1 @@
+Round out the CLI surface: wire `agentline init [--minimal] [--force] [--target]`, `agentline keys [--json]`, `agentline themes [--list | --show <name>]`, and `agentline render [--fixture <path>] [--config <path>]`, and accept the `--no-color` / `--no-unicode` / `--ascii` accessibility flags on the render path.
