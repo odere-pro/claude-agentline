@@ -10,6 +10,7 @@
  */
 
 import type { AgentlineConfig } from "../config/types.js";
+import type { ResolvedSessionFields } from "../session/index.js";
 import type { StdinPayload } from "../stdin/index.js";
 import type { Theme } from "../theme/index.js";
 import type { Clock } from "./clock.js";
@@ -20,4 +21,10 @@ export interface WidgetContext {
   readonly theme: Theme | null;
   readonly clock: Clock;
   readonly env: NodeJS.ProcessEnv;
+  /**
+   * Identity fields resolved from `stdin.user.*` with auth-file fallback
+   * (§7.2.1). Resolved once per render tick by `loadSessionFields`;
+   * widgets MUST NOT do filesystem I/O during `render()`.
+   */
+  readonly session?: ResolvedSessionFields;
 }
