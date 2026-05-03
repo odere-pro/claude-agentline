@@ -64,7 +64,7 @@ Surface state from the stdin payload that Claude Code emits.
 | `account-email`   | logged-in account email                          |
 | `login-method`    | auth method (oauth / api-key / device)           |
 | `org`             | active organisation name                         |
-| `thinking-effort` | thinking-effort tier (low / medium / high)      |
+| `thinking-effort` | thinking-effort tier (low / medium / high)       |
 | `vim-mode`        | current vim mode when vim keybindings are active |
 | `skills`          | skills attached to the session                   |
 
@@ -91,25 +91,25 @@ When the table is older than 90 days, `doctor` reports D07.
 
 ### Context (4)
 
-| Type                         | Renders                                                            |
-| ---------------------------- | ------------------------------------------------------------------ |
-| `context-length`             | tokens currently in the context window                             |
-| `context-percentage`         | percentage of the model's context window in use                    |
-| `context-percentage-usable`  | percentage of usable context (excludes reserved-for-output budget) |
-| `context-bar`                | tiny inline bar approximating context fill                         |
+| Type                        | Renders                                                            |
+| --------------------------- | ------------------------------------------------------------------ |
+| `context-length`            | tokens currently in the context window                             |
+| `context-percentage`        | percentage of the model's context window in use                    |
+| `context-percentage-usable` | percentage of usable context (excludes reserved-for-output budget) |
+| `context-bar`               | tiny inline bar approximating context fill                         |
 
 ### Rate limits (8)
 
-| Type                     | Renders                                              | Required `options.reset` |
-| ------------------------ | ---------------------------------------------------- | ------------------------ |
-| `session-usage`          | percentage of the session quota consumed             | yes                      |
-| `weekly-usage`           | percentage of the weekly quota consumed              | yes                      |
-| `block-timer`            | time elapsed in the active conversation block        | no                       |
-| `block-reset-timer`      | time remaining until the next block resets           | no                       |
-| `weekly-reset-timer`     | time remaining until the weekly quota resets         | no                       |
-| `model-usage`            | usage broken out by model id                         | yes                      |
-| `effort-usage`           | usage broken out by thinking-effort tier             | yes                      |
-| `compaction-counter`     | number of compactions performed in the session       | no                       |
+| Type                 | Renders                                        | Required `options.reset` |
+| -------------------- | ---------------------------------------------- | ------------------------ |
+| `session-usage`      | percentage of the session quota consumed       | yes                      |
+| `weekly-usage`       | percentage of the weekly quota consumed        | yes                      |
+| `block-timer`        | time elapsed in the active conversation block  | no                       |
+| `block-reset-timer`  | time remaining until the next block resets     | no                       |
+| `weekly-reset-timer` | time remaining until the weekly quota resets   | no                       |
+| `model-usage`        | usage broken out by model id                   | yes                      |
+| `effort-usage`       | usage broken out by thinking-effort tier       | yes                      |
+| `compaction-counter` | number of compactions performed in the session | no                       |
 
 ### Git (16)
 
@@ -117,24 +117,24 @@ Git widgets activate only when the working directory is a git checkout;
 otherwise they hide themselves. They share a single per-render snapshot
 so a line with sixteen git widgets only spawns `git` once.
 
-| Type                | Renders                                              |
-| ------------------- | ---------------------------------------------------- |
-| `git-branch`        | current branch (or short SHA when detached)          |
-| `git-sha`           | short commit SHA                                     |
-| `git-worktree`      | basename of the current worktree                     |
-| `git-status`        | one-glance dirty / clean summary                     |
-| `git-changes`       | summary of staged / unstaged / untracked counts      |
-| `git-staged`        | staged-file count                                    |
-| `git-unstaged`      | unstaged-file count                                  |
-| `git-untracked`     | untracked-file count                                 |
-| `git-insertions`    | insertion count from `git diff --shortstat`          |
-| `git-deletions`     | deletion count from `git diff --shortstat`           |
-| `git-conflicts`     | merge-conflict file count                            |
-| `git-ahead-behind`  | commits ahead of and behind upstream                 |
-| `git-upstream`      | upstream branch (`origin/main`)                      |
-| `git-origin-owner`  | owner segment of the `origin` remote URL             |
-| `git-origin-repo`   | repo segment of the `origin` remote URL              |
-| `git-is-fork`       | `fork` marker if upstream owner ≠ origin owner       |
+| Type               | Renders                                         |
+| ------------------ | ----------------------------------------------- |
+| `git-branch`       | current branch (or short SHA when detached)     |
+| `git-sha`          | short commit SHA                                |
+| `git-worktree`     | basename of the current worktree                |
+| `git-status`       | one-glance dirty / clean summary                |
+| `git-changes`      | summary of staged / unstaged / untracked counts |
+| `git-staged`       | staged-file count                               |
+| `git-unstaged`     | unstaged-file count                             |
+| `git-untracked`    | untracked-file count                            |
+| `git-insertions`   | insertion count from `git diff --shortstat`     |
+| `git-deletions`    | deletion count from `git diff --shortstat`      |
+| `git-conflicts`    | merge-conflict file count                       |
+| `git-ahead-behind` | commits ahead of and behind upstream            |
+| `git-upstream`     | upstream branch (`origin/main`)                 |
+| `git-origin-owner` | owner segment of the `origin` remote URL        |
+| `git-origin-repo`  | repo segment of the `origin` remote URL         |
+| `git-is-fork`      | `fork` marker if upstream owner ≠ origin owner  |
 
 ### Time (3)
 
@@ -187,11 +187,11 @@ agentline render --fixture <path-to-stdin.json>
 
 Three reference fixtures ship under `tests/golden/`:
 
-| Fixture                          | What it exercises                       |
-| -------------------------------- | --------------------------------------- |
-| `tests/golden/minimal/`          | the `templates/minimal.config.json` line |
-| `tests/golden/no-color/`         | accessibility — `--no-color` output     |
-| `tests/golden/powerline-on/`     | Powerline transform with chevrons       |
+| Fixture                      | What it exercises                        |
+| ---------------------------- | ---------------------------------------- |
+| `tests/golden/minimal/`      | the `templates/minimal.config.json` line |
+| `tests/golden/no-color/`     | accessibility — `--no-color` output      |
+| `tests/golden/powerline-on/` | Powerline transform with chevrons        |
 
 Each scenario has `stdin.json` (the payload), `config.json` (the active
 config), `clock.txt` (frozen clock for determinism), and `expected.ansi`

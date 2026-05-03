@@ -2,11 +2,11 @@
 
 `agentline` has three test surfaces:
 
-| Surface          | Tool          | What it covers                                              |
-| ---------------- | ------------- | ----------------------------------------------------------- |
-| **Unit tests**   | Vitest        | Pure functions, widgets, parsers, config layering.          |
-| **Golden tests** | Vitest        | Byte-for-byte renderer determinism on recorded fixtures.    |
-| **Repo gates**   | Bash + tools  | Cross-cutting checks (no absolute paths, shellcheck, etc.). |
+| Surface          | Tool         | What it covers                                              |
+| ---------------- | ------------ | ----------------------------------------------------------- |
+| **Unit tests**   | Vitest       | Pure functions, widgets, parsers, config layering.          |
+| **Golden tests** | Vitest       | Byte-for-byte renderer determinism on recorded fixtures.    |
+| **Repo gates**   | Bash + tools | Cross-cutting checks (no absolute paths, shellcheck, etc.). |
 
 ## Unit tests
 
@@ -33,12 +33,12 @@ behaviour, not internals.
 The renderer must produce byte-identical output for the same inputs
 across hosts and runs. Each scenario under `tests/golden/` ships:
 
-| File             | Contents                                              |
-| ---------------- | ----------------------------------------------------- |
-| `stdin.json`     | the Claude Code stdin payload                         |
-| `config.json`    | the `AgentlineConfig` to render against               |
-| `clock.txt`      | ISO timestamp the renderer freezes time at            |
-| `expected.ansi`  | the exact bytes the renderer must emit                |
+| File            | Contents                                   |
+| --------------- | ------------------------------------------ |
+| `stdin.json`    | the Claude Code stdin payload              |
+| `config.json`   | the `AgentlineConfig` to render against    |
+| `clock.txt`     | ISO timestamp the renderer freezes time at |
+| `expected.ansi` | the exact bytes the renderer must emit     |
 
 The harness in `src/render/__golden__.test.ts` walks every directory
 and asserts `renderForFixture(...) === expected.ansi`.
@@ -71,21 +71,21 @@ The orchestrator runs every `gate-*.sh` under `tests/gates/`. Each
 gate is a single-purpose Bash script with `pass` / `fail` / `skip`
 output. Gates currently shipped:
 
-| Gate                                  | Enforces                                                    |
-| ------------------------------------- | ----------------------------------------------------------- |
-| `gate-01-doctor`                      | `agentline doctor` exits 0 on a clean host                  |
-| `gate-02-no-absolute-paths`           | no `/Users/`, `/home/`, `~/.claude/` literals in artefacts  |
-| `gate-03-shellcheck`                  | shellcheck clean across `scripts/` and `tests/gates/`       |
-| `gate-04-init-idempotency`            | `init.sh` is byte-stable on re-run                          |
-| `gate-05-markdown`                    | markdownlint + prettier clean on `docs/` and root markdown  |
-| `gate-06-trademark`                   | "Anthropic", "Claude" used only inside an allowlist         |
-| `gate-11-schema-roundtrip`            | every shipped template validates against the embedded schema |
-| `gate-13-cold-start-budget`           | `agentline render` cold-start ≤ 120 ms p95                  |
-| `gate-14-no-network-render`           | render path makes no outbound network call                  |
-| `gate-15-platform-matrix`             | install + render smoke on macOS / Linux / Windows × Node 20/22 |
-| `gate-16-accessibility-fallbacks`     | `--no-color`, `--no-unicode`, `--ascii` change output       |
-| `gate-17-keymap-coverage`             | every TUI keymap entry has a corresponding registered handler |
-| `gate-18-changelog-fragment-present`  | each PR ships a `changelog/<NN>-<slug>.md`                  |
+| Gate                                 | Enforces                                                       |
+| ------------------------------------ | -------------------------------------------------------------- |
+| `gate-01-doctor`                     | `agentline doctor` exits 0 on a clean host                     |
+| `gate-02-no-absolute-paths`          | no `/Users/`, `/home/`, `~/.claude/` literals in artefacts     |
+| `gate-03-shellcheck`                 | shellcheck clean across `scripts/` and `tests/gates/`          |
+| `gate-04-init-idempotency`           | `init.sh` is byte-stable on re-run                             |
+| `gate-05-markdown`                   | markdownlint + prettier clean on `docs/` and root markdown     |
+| `gate-06-trademark`                  | "Anthropic", "Claude" used only inside an allowlist            |
+| `gate-11-schema-roundtrip`           | every shipped template validates against the embedded schema   |
+| `gate-13-cold-start-budget`          | `agentline render` cold-start ≤ 120 ms p95                     |
+| `gate-14-no-network-render`          | render path makes no outbound network call                     |
+| `gate-15-platform-matrix`            | install + render smoke on macOS / Linux / Windows × Node 20/22 |
+| `gate-16-accessibility-fallbacks`    | `--no-color`, `--no-unicode`, `--ascii` change output          |
+| `gate-17-keymap-coverage`            | every TUI keymap entry has a corresponding registered handler  |
+| `gate-18-changelog-fragment-present` | each PR ships a `changelog/<NN>-<slug>.md`                     |
 
 Skipped gates (`[skip]`) are usually waiting on a host tool — install
 `shellcheck`, `markdownlint-cli2`, `prettier`, and `ajv-cli` to clear
