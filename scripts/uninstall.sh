@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
-# scripts/uninstall.sh — skeleton; body lands in T2 PR 20.
-# Spec: §10
+# scripts/uninstall.sh — remove agentline from this host.
 #
-# Idempotent. Will:
-#   1. `npm uninstall -g @agentline/cli` (skipped if absent)
-#   2. remove config files copied by install.sh, but preserve user-edited
-#      content (detected via SHA mismatch with the shipped template).
-#      Only removes the user config when --purge is passed.
-#   3. remove the `statusLine` entry from Claude Code settings only when
+# Idempotent. In order:
+#   1. `npm uninstall -g @agentline/cli` (skipped if absent).
+#   2. remove themes whose bytes match the bundled set; preserve user-edited.
+#   3. on --purge, also remove user-edited config / themes.
+#   4. remove the `statusLine` entry from Claude Code settings only when
 #      it still points at agentline.
 # Refuses to delete unrelated files. No `rm -rf "$VAR"` without guards
 # (al_safe_rm enforces).
+#
+# Spec: §10. Bash 3.2 friendly.
 
 set -Eeuo pipefail
 
 THIS_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "${THIS_DIR}/.." && pwd)"
 # shellcheck source=lib/common.sh
 . "${THIS_DIR}/lib/common.sh"
 al_setup
@@ -56,17 +57,198 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 
+config_dir="$(al_config_dir)"
+config_file="$(al_config_file)"
+themes_dir="$(al_themes_dir)"
+settings_file="$(al_claude_settings)"
+
 al_log_info "platform: $(al_detect_os)"
-al_log_info "config dir: $(al_config_dir)"
-al_log_info "claude settings target: $(al_claude_settings)"
+al_log_info "config dir: ${config_dir}"
+al_log_info "claude settings target: ${settings_file}"
 
 if [ "${DRY_RUN}" = "1" ]; then
-  al_log_info "dry-run: would uninstall global package and tidy config dir"
-fi
-if [ "${PURGE}" = "1" ]; then
-  al_log_info "purge: user-edited config files will be removed"
+  al_log_info "dry-run: no filesystem changes will be applied"
 fi
 
-# Body intentionally stubbed until T2 PR 20 lands the uninstall logic.
-al_log_info "uninstall skeleton: no-op (body lands in T2 PR 20)"
-exit 0
+# ---------------- helpers ----------------
+
+atomic_write_via_node() {
+  __target="$1"
+  __content="$2"
+  if [ "${DRY_RUN}" = "1" ]; then
+    al_log_info "would write: ${__target}"
+    return 0
+  fi
+  AL_TARGET="${__target}" AL_CONTENT="${__content}" node - <<'JS'
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const target = process.env.AL_TARGET;
+const content = process.env.AL_CONTENT;
+fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o700 });
+const tmp = path.join(path.dirname(target), '.' + path.basename(target) + '.' + crypto.randomBytes(6).toString('hex') + '.tmp');
+const fd = fs.openSync(tmp, 'w', 0o600);
+try {
+  fs.writeFileSync(fd, content);
+  fs.fsyncSync(fd);
+} finally {
+  fs.closeSync(fd);
+}
+fs.renameSync(tmp, target);
+JS
+}
+
+strip_statusline_from_settings() {
+  __file="$1"
+  AL_FILE="${__file}" node - <<'JS'
+const fs = require('node:fs');
+const file = process.env.AL_FILE;
+let parsed = {};
+try {
+  const raw = fs.readFileSync(file, 'utf8');
+  const t = JSON.parse(raw);
+  if (t && typeof t === 'object' && !Array.isArray(t)) parsed = t;
+} catch { /* nothing to strip */ }
+delete parsed.statusLine;
+process.stdout.write(JSON.stringify(parsed, null, 2) + '\n');
+JS
+}
+
+read_existing_statusline() {
+  __file="$1"
+  AL_FILE="${__file}" node - <<'JS'
+const fs = require('node:fs');
+const file = process.env.AL_FILE;
+let raw;
+try { raw = fs.readFileSync(file, 'utf8'); } catch { console.log(''); process.exit(0); }
+let parsed;
+try { parsed = JSON.parse(raw); } catch { console.log(''); process.exit(0); }
+const sl = parsed && parsed.statusLine;
+if (sl == null || sl === '') { console.log(''); process.exit(0); }
+const cmd = (typeof sl === 'string') ? sl : (sl && typeof sl.command === 'string' ? sl.command : '');
+if (!cmd) { console.log(''); process.exit(0); }
+if (/agentline/.test(cmd)) { console.log('agentline'); process.exit(0); }
+console.log('foreign:' + cmd);
+JS
+}
+
+sha_of() {
+  __f="$1"
+  if [ ! -f "${__f}" ]; then
+    printf ''
+    return 0
+  fi
+  AL_FILE="${__f}" node - <<'JS'
+const fs = require('node:fs');
+const crypto = require('node:crypto');
+const buf = fs.readFileSync(process.env.AL_FILE);
+process.stdout.write(crypto.createHash('sha256').update(buf).digest('hex'));
+JS
+}
+
+# ---------------- steps ----------------
+
+uninstall_global_package() {
+  if ! command -v npm >/dev/null 2>&1; then
+    al_log_info "npm not on PATH; skipping global uninstall"
+    return 0
+  fi
+  if ! npm ls -g --depth=0 2>/dev/null | grep -q '@agentline/cli'; then
+    al_log_info "@agentline/cli not globally installed; nothing to uninstall"
+    return 0
+  fi
+  if [ "${DRY_RUN}" = "1" ]; then
+    al_log_info "would run: npm uninstall -g @agentline/cli"
+    return 0
+  fi
+  npm uninstall -g @agentline/cli || al_log_warn "npm uninstall reported non-zero exit; continuing"
+}
+
+tidy_themes() {
+  __src_dir="${REPO_ROOT}/themes"
+  if [ ! -d "${themes_dir}" ]; then
+    al_log_info "themes dir not present; nothing to tidy"
+    return 0
+  fi
+  __removed=0
+  __preserved=0
+  for __dest in "${themes_dir}"/*.json; do
+    [ -e "${__dest}" ] || continue
+    __name="$(basename "${__dest}")"
+    __src="${__src_dir}/${__name}"
+    __same=0
+    if [ -f "${__src}" ]; then
+      [ "$(sha_of "${__dest}")" = "$(sha_of "${__src}")" ] && __same=1
+    fi
+    if [ "${__same}" = "1" ] || [ "${PURGE}" = "1" ]; then
+      if [ "${DRY_RUN}" = "1" ]; then
+        al_log_info "would remove theme: ${__dest}"
+      else
+        rm -f -- "${__dest}"
+      fi
+      __removed=$((__removed + 1))
+    else
+      __preserved=$((__preserved + 1))
+    fi
+  done
+  al_log_info "themes: ${__removed} removed, ${__preserved} preserved"
+  if [ "${DRY_RUN}" != "1" ] && [ -d "${themes_dir}" ] && [ -z "$(ls -A "${themes_dir}" 2>/dev/null || true)" ]; then
+    rmdir "${themes_dir}" 2>/dev/null || true
+  fi
+}
+
+tidy_user_config() {
+  if [ ! -f "${config_file}" ]; then
+    al_log_info "no user config to remove"
+    return 0
+  fi
+  __template="${REPO_ROOT}/templates/default.config.json"
+  __same=0
+  if [ -f "${__template}" ] && [ "$(sha_of "${config_file}")" = "$(sha_of "${__template}")" ]; then
+    __same=1
+  fi
+  if [ "${__same}" = "1" ] || [ "${PURGE}" = "1" ]; then
+    if [ "${DRY_RUN}" = "1" ]; then
+      al_log_info "would remove user config: ${config_file}"
+      return 0
+    fi
+    rm -f -- "${config_file}"
+    al_log_info "removed ${config_file}"
+    if [ -d "${config_dir}" ] && [ -z "$(ls -A "${config_dir}" 2>/dev/null || true)" ]; then
+      rmdir "${config_dir}" 2>/dev/null || true
+    fi
+  else
+    al_log_info "user config differs from shipped default; preserving (use --purge to remove)"
+  fi
+}
+
+unwire_statusline() {
+  if [ ! -f "${settings_file}" ]; then
+    al_log_info "no settings file; nothing to unwire"
+    return 0
+  fi
+  __existing="$(read_existing_statusline "${settings_file}")"
+  case "${__existing}" in
+    "")
+      al_log_info "no statusLine entry; nothing to unwire"
+      return 0
+      ;;
+    "agentline")
+      al_log_info "removing agentline statusLine entry"
+      __new="$(strip_statusline_from_settings "${settings_file}")"
+      atomic_write_via_node "${settings_file}" "${__new}"
+      ;;
+    *)
+      al_log_warn "settings.json statusLine references another tool (${__existing#foreign:}); leaving untouched"
+      ;;
+  esac
+}
+
+# ---------------- run ----------------
+
+uninstall_global_package
+tidy_themes
+tidy_user_config
+unwire_statusline
+
+al_log_info "uninstall complete"
