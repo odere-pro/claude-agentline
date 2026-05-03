@@ -16,7 +16,7 @@ Branch names MUST NOT be reused after merge. Delete on merge.
 
 `<scope>` ∈ { `cli`, `config`, `render`, `theme`, `widgets`, `git`, `tokens`, `session`, `tui`, `doctor`, `script`, `ci`, `docs`, `plan`, `tests`, `deps`, `repo` }.
 
-Body answers *why*, not *what*. Cite the spec section when the change is normative-driven (e.g., `per §7.3 reset axes`).
+Body answers _why_, not _what_. Cite the spec section when the change is normative-driven (e.g., `per §7.3 reset axes`).
 
 ## PR title
 
@@ -26,24 +26,30 @@ Same shape as the leading commit subject: `<type>(<scope>): <subject>`.
 
 ```markdown
 ## What
+
 One paragraph; the change in plain English.
 
 ## Why
+
 Spec citation(s) (§N.M) and/or issue link.
 
 ## Gates exercised
+
 List of §11 gate IDs newly satisfied or kept passing.
 
 ## Depends on
+
 PR links the reviewer must merge first.
 
 ## Test plan
+
 - [ ] `bash tests/gates/run-all.sh`
 - [ ] `npm test`
 - [ ] `npm run build` (verifies `dist/` is publishable)
 - [ ] additional scenario steps
 
 ## Out of scope
+
 Bullets with rationale for each deferral.
 ```
 
