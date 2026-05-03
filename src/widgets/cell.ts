@@ -23,6 +23,13 @@ export interface Cell {
   readonly italic?: boolean;
   readonly merged?: MergeMode;
   readonly hidden?: boolean;
+  /**
+   * Flex marker (§7.8.2). The `flex-separator` widget emits a cell
+   * with `flex: true` so the render pipeline can recognise the slot
+   * and expand it to fill remaining width. Other widgets MUST NOT
+   * set this flag.
+   */
+  readonly flex?: boolean;
 }
 
 export const HIDDEN_CELL: Cell = Object.freeze({ text: "", hidden: true });
