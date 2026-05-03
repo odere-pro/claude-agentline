@@ -18,9 +18,9 @@ agentline is **not** a Claude Code plugin. It does not ship `.claude-plugin/plug
 
 ### 0.3 Distribution channels (v0.1.0)
 
-| # | Channel | Artefact | Status |
-| --- | --- | --- | --- |
-| 1 | npm | `@agentline/cli` (pure JS; `bin: { agentline: dist/cli.mjs }`); entry point `npx -y @agentline/cli` | Primary |
+| #   | Channel | Artefact                                                                                            | Status  |
+| --- | ------- | --------------------------------------------------------------------------------------------------- | ------- |
+| 1   | npm     | `@agentline/cli` (pure JS; `bin: { agentline: dist/cli.mjs }`); entry point `npx -y @agentline/cli` | Primary |
 
 Homebrew tap, GitHub Releases native binaries, and curl-installer are explicitly deferred (§13).
 
@@ -175,24 +175,24 @@ Notably absent (by design — §0.1): `.claude-plugin/`, `.mcp.json`, `agents/`,
 
 ## 3. Published package (`package.json`)
 
-| Key | Type | Constraint |
-| --- | --- | --- |
-| `name` | string | `@agentline/cli` |
-| `version` | string | SemVer; matches the latest `vX.Y.Z` git tag on `main` |
-| `description` | string | ≤200 chars; one sentence; no marketing |
-| `author` | object \| string | `{ name, email, url }` or canonical `"name <email> (url)"` form; email reachable |
-| `homepage` | URL | repo URL |
-| `repository` | object | `{ type: "git", url }` |
-| `license` | string | SPDX `MIT`; matches `LICENSE` |
-| `keywords` | string[] | 3–10 lowercase entries; no duplicates; MUST include `claude-code` and `statusline` |
-| `engines` | object | `{ "node": ">=20" }` |
-| `type` | string | `module` (ESM) |
-| `bin` | object | `{ "agentline": "dist/cli.mjs" }` |
-| `files` | string[] | Allowlist of published artefacts: `dist/`, `schemas/`, `themes/`, `templates/`, `LICENSE`, `README.md`, `CHANGELOG.md` |
-| `dependencies` | object | Exact versions only (no `^` / `~` / `latest`); per §1.2 N11 |
-| `devDependencies` | object | `^` ranges permitted |
-| `scripts` | object | At minimum `build`, `test`, `lint`, `typecheck`, `prepublishOnly` (runs `build`) |
-| `publishConfig` | object | `{ "access": "public", "provenance": true }` |
+| Key               | Type             | Constraint                                                                                                             |
+| ----------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `name`            | string           | `@agentline/cli`                                                                                                       |
+| `version`         | string           | SemVer; matches the latest `vX.Y.Z` git tag on `main`                                                                  |
+| `description`     | string           | ≤200 chars; one sentence; no marketing                                                                                 |
+| `author`          | object \| string | `{ name, email, url }` or canonical `"name <email> (url)"` form; email reachable                                       |
+| `homepage`        | URL              | repo URL                                                                                                               |
+| `repository`      | object           | `{ type: "git", url }`                                                                                                 |
+| `license`         | string           | SPDX `MIT`; matches `LICENSE`                                                                                          |
+| `keywords`        | string[]         | 3–10 lowercase entries; no duplicates; MUST include `claude-code` and `statusline`                                     |
+| `engines`         | object           | `{ "node": ">=20" }`                                                                                                   |
+| `type`            | string           | `module` (ESM)                                                                                                         |
+| `bin`             | object           | `{ "agentline": "dist/cli.mjs" }`                                                                                      |
+| `files`           | string[]         | Allowlist of published artefacts: `dist/`, `schemas/`, `themes/`, `templates/`, `LICENSE`, `README.md`, `CHANGELOG.md` |
+| `dependencies`    | object           | Exact versions only (no `^` / `~` / `latest`); per §1.2 N11                                                            |
+| `devDependencies` | object           | `^` ranges permitted                                                                                                   |
+| `scripts`         | object           | At minimum `build`, `test`, `lint`, `typecheck`, `prepublishOnly` (runs `build`)                                       |
+| `publishConfig`   | object           | `{ "access": "public", "provenance": true }`                                                                           |
 
 Forbidden:
 
@@ -218,16 +218,16 @@ Layered top-to-bottom (later overrides earlier):
 
 ### 4.2 Top-level schema
 
-| Key | Type | Default | Notes |
-| --- | --- | --- | --- |
-| `$schema` | string | URL | JSON Schema URL (§4.7) |
-| `version` | int | `1` | Schema version; bin auto-migrates older versions |
-| `theme` | string | `null` | Named theme from `themes/` (§5.6) |
-| `lines` | array | `[ {…} ]` | Ordered statusline lines (§4.3) |
-| `global` | object | `{…}` | Global render options (§4.4) |
-| `powerline` | object | `{…}` | Powerline options (§5.1) |
-| `terminalWidth` | object | `{…}` | Width-detection mode (§4.5) |
-| `keymap` | object | `{}` | Keybinding overrides (§5.5) |
+| Key             | Type   | Default   | Notes                                            |
+| --------------- | ------ | --------- | ------------------------------------------------ |
+| `$schema`       | string | URL       | JSON Schema URL (§4.7)                           |
+| `version`       | int    | `1`       | Schema version; bin auto-migrates older versions |
+| `theme`         | string | `null`    | Named theme from `themes/` (§5.6)                |
+| `lines`         | array  | `[ {…} ]` | Ordered statusline lines (§4.3)                  |
+| `global`        | object | `{…}`     | Global render options (§4.4)                     |
+| `powerline`     | object | `{…}`     | Powerline options (§5.1)                         |
+| `terminalWidth` | object | `{…}`     | Width-detection mode (§4.5)                      |
+| `keymap`        | object | `{}`      | Keybinding overrides (§5.5)                      |
 
 ### 4.3 Lines
 
@@ -239,23 +239,23 @@ A line MUST contain at least one widget. Lines render top-to-bottom in declarati
 
 ### 4.4 `global`
 
-| Key | Type | Default | Notes |
-| --- | --- | --- | --- |
-| `padding` | int | `1` | Spaces between widgets in non-Powerline mode |
-| `separator` | string | `\|` | Default inter-widget separator |
-| `inheritColors` | bool | `false` | If `true`, a widget without explicit colour inherits from the previous widget |
-| `bold` | bool | `false` | Apply bold globally |
-| `italic` | bool | `false` | Apply italic globally |
-| `minimalist` | bool | `false` | Strip widget labels globally (per-widget `rawValue` still wins) |
-| `overrideFg` | colour\|null | `null` | Force foreground colour |
-| `overrideBg` | colour\|null | `null` | Force background colour |
+| Key             | Type         | Default | Notes                                                                         |
+| --------------- | ------------ | ------- | ----------------------------------------------------------------------------- |
+| `padding`       | int          | `1`     | Spaces between widgets in non-Powerline mode                                  |
+| `separator`     | string       | `\|`    | Default inter-widget separator                                                |
+| `inheritColors` | bool         | `false` | If `true`, a widget without explicit colour inherits from the previous widget |
+| `bold`          | bool         | `false` | Apply bold globally                                                           |
+| `italic`        | bool         | `false` | Apply italic globally                                                         |
+| `minimalist`    | bool         | `false` | Strip widget labels globally (per-widget `rawValue` still wins)               |
+| `overrideFg`    | colour\|null | `null`  | Force foreground colour                                                       |
+| `overrideBg`    | colour\|null | `null`  | Force background colour                                                       |
 
 ### 4.5 `terminalWidth`
 
-| Key | Type | Default | Notes |
-| --- | --- | --- | --- |
-| `mode` | enum | `full-minus-40` | One of `full`, `full-minus-40`, `full-until-compact` |
-| `compactThreshold` | int | `60` | Columns below which the renderer switches to compact line set |
+| Key                | Type | Default         | Notes                                                         |
+| ------------------ | ---- | --------------- | ------------------------------------------------------------- |
+| `mode`             | enum | `full-minus-40` | One of `full`, `full-minus-40`, `full-until-compact`          |
+| `compactThreshold` | int  | `60`            | Columns below which the renderer switches to compact line set |
 
 ### 4.6 Widget shape
 
@@ -302,15 +302,15 @@ Every persisted config write follows write-to-temp + `fsync` + `rename`. Editor 
 
 ### 5.1 Powerline mode
 
-| Key | Type | Default | Notes |
-| --- | --- | --- | --- |
-| `enabled` | bool | `false` | Master toggle |
-| `theme` | string\|null | `null` | Optional override of `config.theme` for Powerline-only colours |
-| `caps.start` | string | `""` | Glyph at line start; empty means none |
-| `caps.end` | string | `""` | Glyph at line end |
-| `autoAlign` | bool | `false` | Pad earlier lines so widget columns align across lines |
-| `continueColors` | bool | `false` | Carry the trailing background colour across line breaks |
-| `glyphs` | object | `{…}` | Override the default chevron set; keys: `hardRight`, `softRight`, `hardLeft`, `softLeft` |
+| Key              | Type         | Default | Notes                                                                                    |
+| ---------------- | ------------ | ------- | ---------------------------------------------------------------------------------------- |
+| `enabled`        | bool         | `false` | Master toggle                                                                            |
+| `theme`          | string\|null | `null`  | Optional override of `config.theme` for Powerline-only colours                           |
+| `caps.start`     | string       | `""`    | Glyph at line start; empty means none                                                    |
+| `caps.end`       | string       | `""`    | Glyph at line end                                                                        |
+| `autoAlign`      | bool         | `false` | Pad earlier lines so widget columns align across lines                                   |
+| `continueColors` | bool         | `false` | Carry the trailing background colour across line breaks                                  |
+| `glyphs`         | object       | `{…}`   | Override the default chevron set; keys: `hardRight`, `softRight`, `hardLeft`, `softLeft` |
 
 When `enabled` is `true`:
 
@@ -323,10 +323,10 @@ When `enabled` is `true`:
 
 Per-widget `merged` field:
 
-| Value | Behaviour |
-| --- | --- |
-| `off` | Default: padding + separator on each side |
-| `merge` | One space between this widget and the previous one; no separator |
+| Value              | Behaviour                                                         |
+| ------------------ | ----------------------------------------------------------------- |
+| `off`              | Default: padding + separator on each side                         |
+| `merge`            | One space between this widget and the previous one; no separator  |
 | `merge-no-padding` | Zero space between this widget and the previous one; no separator |
 
 ### 5.3 Raw value mode
@@ -352,38 +352,38 @@ Roles consumed by built-in widgets are listed in §7.9. A widget without an expl
 
 The TUI editor (`agentline config`) renders a contextual key footer. Default keymap (override-able via `config.keymap`):
 
-| Key | Context | Action |
-| --- | --- | --- |
-| `↑ ↓` | list | navigate |
-| `← →` | widget | change type |
-| `a` | list | add widget |
-| `d` | widget | delete |
-| `r` | widget | toggle raw value |
-| `m` | widget | cycle merge mode |
-| `h` | widget | toggle hidden |
-| `l` | git widgets | toggle clickable IDE link (VS Code / Cursor / IntelliJ) |
-| `t` | widget | toggle title/label |
-| `p` | widget | cycle display variant |
-| `s` | widget | toggle compact / short |
-| `v` | widget | invert / cycle inversion |
-| `e` | widget | edit inline value |
-| `u` | context widgets | toggle used-vs-remaining |
-| `f` | widget | cycle format |
-| `n` | widget | toggle Nerd Font glyph |
-| `w` | widget | edit window/width |
-| `Space` | separator | cycle char |
-| `Esc` | any | back |
+| Key     | Context         | Action                                                  |
+| ------- | --------------- | ------------------------------------------------------- |
+| `↑ ↓`   | list            | navigate                                                |
+| `← →`   | widget          | change type                                             |
+| `a`     | list            | add widget                                              |
+| `d`     | widget          | delete                                                  |
+| `r`     | widget          | toggle raw value                                        |
+| `m`     | widget          | cycle merge mode                                        |
+| `h`     | widget          | toggle hidden                                           |
+| `l`     | git widgets     | toggle clickable IDE link (VS Code / Cursor / IntelliJ) |
+| `t`     | widget          | toggle title/label                                      |
+| `p`     | widget          | cycle display variant                                   |
+| `s`     | widget          | toggle compact / short                                  |
+| `v`     | widget          | invert / cycle inversion                                |
+| `e`     | widget          | edit inline value                                       |
+| `u`     | context widgets | toggle used-vs-remaining                                |
+| `f`     | widget          | cycle format                                            |
+| `n`     | widget          | toggle Nerd Font glyph                                  |
+| `w`     | widget          | edit window/width                                       |
+| `Space` | separator       | cycle char                                              |
+| `Esc`   | any             | back                                                    |
 
 `agentline keys [--json]` enumerates every binding with its widget scope.
 
 ### 5.6 Theme presets shipped at v0.1.0
 
-| # | Theme | Tone |
-| --- | --- | --- |
-| 1 | `vscode-dark` | dark, neutral (VS Code Default Dark+) |
-| 2 | `vscode-light` | light, neutral (VS Code Default Light+) |
-| 3 | `claude-code-dark` | dark, warm (Claude brand) |
-| 4 | `claude-code-light` | light, warm (Claude brand) |
+| #   | Theme               | Tone                                    |
+| --- | ------------------- | --------------------------------------- |
+| 1   | `vscode-dark`       | dark, neutral (VS Code Default Dark+)   |
+| 2   | `vscode-light`      | light, neutral (VS Code Default Light+) |
+| 3   | `claude-code-dark`  | dark, warm (Claude brand)               |
+| 4   | `claude-code-light` | light, warm (Claude brand)              |
 
 Theme files live under `themes/` and are copied to `${CLAUDE_CONFIG_DIR}/agentline/themes/` by `install.sh`.
 
@@ -409,19 +409,19 @@ render(ctx: Context, opts: Options): Cell
 
 ### 7.2 Session widgets
 
-| Type | Field source | Notes |
-| --- | --- | --- |
-| `model` | `stdin.model` | Maps id → display name |
-| `version` | `stdin.version` or `claude --version` fallback | |
-| `output-style` | `stdin.outputStyle` | |
-| `session-id` | `stdin.sessionId` | Truncated to 8 chars; `h` toggles hide |
-| `session-name` | `stdin.sessionName` | Empty hides by default |
-| `account-email` | `stdin.user.email` ∨ `~/.claude/auth.json` | Mask modes: `none`, `domain`, `localpart` |
-| `login-method` | `stdin.user.authMethod` ∨ auth file | `oauth` / `api-key` / `enterprise` |
-| `org` | `stdin.user.org.slug` | |
-| `thinking-effort` | `stdin.thinkingEffort` | One of `low`, `medium`, `high`, `xhigh`; semantic colour |
-| `vim-mode` | `stdin.vimMode` | `NORMAL` / `INSERT` / `VISUAL`; format cycled by `f` |
-| `skills` | `stdin.skills` | Display: count, list, last; cycled by `v` |
+| Type              | Field source                                   | Notes                                                    |
+| ----------------- | ---------------------------------------------- | -------------------------------------------------------- |
+| `model`           | `stdin.model`                                  | Maps id → display name                                   |
+| `version`         | `stdin.version` or `claude --version` fallback |                                                          |
+| `output-style`    | `stdin.outputStyle`                            |                                                          |
+| `session-id`      | `stdin.sessionId`                              | Truncated to 8 chars; `h` toggles hide                   |
+| `session-name`    | `stdin.sessionName`                            | Empty hides by default                                   |
+| `account-email`   | `stdin.user.email` ∨ `~/.claude/auth.json`     | Mask modes: `none`, `domain`, `localpart`                |
+| `login-method`    | `stdin.user.authMethod` ∨ auth file            | `oauth` / `api-key` / `enterprise`                       |
+| `org`             | `stdin.user.org.slug`                          |                                                          |
+| `thinking-effort` | `stdin.thinkingEffort`                         | One of `low`, `medium`, `high`, `xhigh`; semantic colour |
+| `vim-mode`        | `stdin.vimMode`                                | `NORMAL` / `INSERT` / `VISUAL`; format cycled by `f`     |
+| `skills`          | `stdin.skills`                                 | Display: count, list, last; cycled by `v`                |
 
 #### 7.2.1 Auth-file fallback
 
@@ -429,71 +429,71 @@ When stdin omits a field, the bin reads `${CLAUDE_CONFIG_DIR}/auth.json` (or pla
 
 ### 7.3 Token & cost widgets
 
-| Type | Reset axis | Notes |
-| --- | --- | --- |
-| `tokens-input` | `session`\|`block`\|`day`\|`week`\|`model`\|`effort` | Sum from JSONL `message.usage.input_tokens` |
-| `tokens-output` | same | |
-| `tokens-cached` | same | |
-| `tokens-total` | same | Sum of the three |
-| `cost` | same | Computed from token counts × model price table (§8.5) |
-| `input-speed` | rolling window (s) | Default 60 s |
-| `output-speed` | same | |
-| `total-speed` | same | |
+| Type            | Reset axis                                           | Notes                                                 |
+| --------------- | ---------------------------------------------------- | ----------------------------------------------------- |
+| `tokens-input`  | `session`\|`block`\|`day`\|`week`\|`model`\|`effort` | Sum from JSONL `message.usage.input_tokens`           |
+| `tokens-output` | same                                                 |                                                       |
+| `tokens-cached` | same                                                 |                                                       |
+| `tokens-total`  | same                                                 | Sum of the three                                      |
+| `cost`          | same                                                 | Computed from token counts × model price table (§8.5) |
+| `input-speed`   | rolling window (s)                                   | Default 60 s                                          |
+| `output-speed`  | same                                                 |                                                       |
+| `total-speed`   | same                                                 |                                                       |
 
 The reset axis is declared in `options.reset` and defaults to `session`.
 
 ### 7.4 Context widgets
 
-| Type | Notes |
-| --- | --- |
-| `context-length` | Raw token count |
-| `context-percentage` | Used / window; colour grades green→yellow→red at 60 / 80 % |
-| `context-percentage-usable` | Same metric against `0.8 × window` |
-| `context-bar` | Visual bar; width set by `options.width` (default 12) |
+| Type                        | Notes                                                      |
+| --------------------------- | ---------------------------------------------------------- |
+| `context-length`            | Raw token count                                            |
+| `context-percentage`        | Used / window; colour grades green→yellow→red at 60 / 80 % |
+| `context-percentage-usable` | Same metric against `0.8 × window`                         |
+| `context-bar`               | Visual bar; width set by `options.width` (default 12)      |
 
 ### 7.5 Rate-limit widgets
 
-| Type | Notes |
-| --- | --- |
-| `session-usage` | 5-h block; cycle display: percent / bar / short bar |
-| `weekly-usage` | Rolling 7-day; same display set |
-| `block-timer` | Time remaining in current 5-h block |
-| `block-reset-timer` | Countdown to next block reset |
-| `weekly-reset-timer` | Countdown to next weekly reset |
-| `model-usage` | Per-model token aggregate; reset axis `model` |
-| `effort-usage` | Per-thinking-effort aggregate; reset axis `effort` |
-| `compaction-counter` | Count of compactions detected in transcript JSONL |
+| Type                 | Notes                                               |
+| -------------------- | --------------------------------------------------- |
+| `session-usage`      | 5-h block; cycle display: percent / bar / short bar |
+| `weekly-usage`       | Rolling 7-day; same display set                     |
+| `block-timer`        | Time remaining in current 5-h block                 |
+| `block-reset-timer`  | Countdown to next block reset                       |
+| `weekly-reset-timer` | Countdown to next weekly reset                      |
+| `model-usage`        | Per-model token aggregate; reset axis `model`       |
+| `effort-usage`       | Per-thinking-effort aggregate; reset axis `effort`  |
+| `compaction-counter` | Count of compactions detected in transcript JSONL   |
 
 ### 7.6 Git widgets
 
-| Type | Output | Notes |
-| --- | --- | --- |
-| `git-branch` | branch name | Detached HEAD shows `(SHA)`; OSC-8 link toggle |
-| `git-changes` | `+N -M` | Aggregate insertions & deletions |
-| `git-insertions` | `+N` | |
-| `git-deletions` | `-M` | |
-| `git-status` | compact `M2 A1 ?3` | |
-| `git-staged` | count | |
-| `git-unstaged` | count | |
-| `git-untracked` | count | |
-| `git-ahead-behind` | `↑N ↓M` | `h` hides when even |
-| `git-conflicts` | `⚡N` | Hidden when zero |
-| `git-sha` | short SHA | |
-| `git-worktree` | worktree name | When inside a worktree |
-| `git-origin-owner` | remote owner | Toggle IDE link |
-| `git-origin-repo` | remote repo | Toggle IDE link |
-| `git-upstream` | upstream ref | |
-| `git-is-fork` | bool indicator | Comparing remote graph |
+| Type               | Output             | Notes                                          |
+| ------------------ | ------------------ | ---------------------------------------------- |
+| `git-branch`       | branch name        | Detached HEAD shows `(SHA)`; OSC-8 link toggle |
+| `git-changes`      | `+N -M`            | Aggregate insertions & deletions               |
+| `git-insertions`   | `+N`               |                                                |
+| `git-deletions`    | `-M`               |                                                |
+| `git-status`       | compact `M2 A1 ?3` |                                                |
+| `git-staged`       | count              |                                                |
+| `git-unstaged`     | count              |                                                |
+| `git-untracked`    | count              |                                                |
+| `git-ahead-behind` | `↑N ↓M`            | `h` hides when even                            |
+| `git-conflicts`    | `⚡N`              | Hidden when zero                               |
+| `git-sha`          | short SHA          |                                                |
+| `git-worktree`     | worktree name      | When inside a worktree                         |
+| `git-origin-owner` | remote owner       | Toggle IDE link                                |
+| `git-origin-repo`  | remote repo        | Toggle IDE link                                |
+| `git-upstream`     | upstream ref       |                                                |
+| `git-is-fork`      | bool indicator     | Comparing remote graph                         |
 
 Git widgets call `git -C <cwd> …`; CRLF and Windows path normalisation handled (§8.6).
 
 ### 7.7 Time widgets
 
-| Type | Notes |
-| --- | --- |
-| `clock` | Local time, format configurable |
-| `uptime-session` | Time since session start |
-| `uptime-block` | Time since current 5-h block start |
+| Type             | Notes                              |
+| ---------------- | ---------------------------------- |
+| `clock`          | Local time, format configurable    |
+| `uptime-session` | Time since session start           |
+| `uptime-block`   | Time since current 5-h block start |
 
 ### 7.8 Custom widgets
 
@@ -562,14 +562,14 @@ Order of operations per tick:
 
 ### 8.4 Reset axes
 
-| Axis | Boundary | Notes |
-| --- | --- | --- |
-| `session` | Session start | Resets when `stdin.sessionId` changes |
-| `block` | 5 h, anchored to first event hour | |
-| `day` | Local midnight | |
-| `week` | Local Monday 00:00 | |
-| `model` | Model id boundary | Aggregates per `stdin.model` |
-| `effort` | Thinking-effort tier | Aggregates per `stdin.thinkingEffort` |
+| Axis      | Boundary                          | Notes                                 |
+| --------- | --------------------------------- | ------------------------------------- |
+| `session` | Session start                     | Resets when `stdin.sessionId` changes |
+| `block`   | 5 h, anchored to first event hour |                                       |
+| `day`     | Local midnight                    |                                       |
+| `week`    | Local Monday 00:00                |                                       |
+| `model`   | Model id boundary                 | Aggregates per `stdin.model`          |
+| `effort`  | Thinking-effort tier              | Aggregates per `stdin.thinkingEffort` |
 
 A widget MUST declare its axis; mixed-axis sums are not supported.
 
@@ -579,10 +579,10 @@ A widget MUST declare its axis; mixed-axis sums are not supported.
 
 ### 8.6 Platform handling
 
-| OS | Notes |
-| --- | --- |
-| macOS | UTF-8 by default; no special handling |
-| Linux | Same |
+| OS      | Notes                                                                                                                                                       |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS   | UTF-8 by default; no special handling                                                                                                                       |
+| Linux   | Same                                                                                                                                                        |
 | Windows | Sets console mode to UTF-8 via `chcp 65001` shim or stdout encoding override; normalises `\\` to `/` for display; git invocations honour `-C` and trim CRLF |
 
 ---
@@ -591,55 +591,55 @@ A widget MUST declare its axis; mixed-axis sums are not supported.
 
 ### 9.1 Subcommands
 
-| Command | Purpose |
-| --- | --- |
-| `agentline` (no args) | Read stdin, render, exit. Default behaviour wired into `statusLine` |
-| `agentline render` | Same as no-args; `--fixture <path>` and `--config <path>` flags supported |
-| `agentline config` | TUI editor (Ink); writes config atomically. Lazy-imports Ink only here. |
-| `agentline doctor [--fix] [--json]` | Diagnose and (optionally) repair |
-| `agentline init [--minimal]` | Scaffold user config + theme directory |
-| `agentline keys [--json]` | Print active keymap |
-| `agentline schema [--write <dir>]` | Print or write JSON Schema |
-| `agentline version` | Print version + build metadata |
-| `agentline themes [--list\|--show <name>]` | Inspect themes |
+| Command                                    | Purpose                                                                   |
+| ------------------------------------------ | ------------------------------------------------------------------------- |
+| `agentline` (no args)                      | Read stdin, render, exit. Default behaviour wired into `statusLine`       |
+| `agentline render`                         | Same as no-args; `--fixture <path>` and `--config <path>` flags supported |
+| `agentline config`                         | TUI editor (Ink); writes config atomically. Lazy-imports Ink only here.   |
+| `agentline doctor [--fix] [--json]`        | Diagnose and (optionally) repair                                          |
+| `agentline init [--minimal]`               | Scaffold user config + theme directory                                    |
+| `agentline keys [--json]`                  | Print active keymap                                                       |
+| `agentline schema [--write <dir>]`         | Print or write JSON Schema                                                |
+| `agentline version`                        | Print version + build metadata                                            |
+| `agentline themes [--list\|--show <name>]` | Inspect themes                                                            |
 
 ### 9.2 Doctor checks
 
 Doctor runs every check in order and prints a structured report. `--fix` attempts the documented repair; otherwise it only reports.
 
-| ID | Check | Auto-fix |
-| --- | --- | --- |
-| D01 | `~/.claude/settings.json` exists | Create with default skeleton |
+| ID  | Check                                                             | Auto-fix                                                       |
+| --- | ----------------------------------------------------------------- | -------------------------------------------------------------- |
+| D01 | `~/.claude/settings.json` exists                                  | Create with default skeleton                                   |
 | D02 | `statusLine.command` resolves to a working `agentline` invocation | Rewrite to `npx -y @agentline/cli` or absolute global bin path |
-| D03 | User config exists and matches schema | Migrate or write defaults |
-| D04 | All themes referenced by config are installed | Copy from package's embedded theme set |
-| D05 | Nerd Font is installed (when Powerline enabled) | Print platform-specific install command |
-| D06 | Git binary on PATH (when any git widget is enabled) | None; report only |
-| D07 | Pricing table is fresher than `now − 90 days` | None; report only |
-| D08 | `CLAUDE_CONFIG_DIR` (if set) points to a writable directory | None; report only |
-| D09 | Custom-command widgets resolve their `cmd` to an executable | None; report only |
-| D10 | Render dry-run on an embedded fixture matches a stored snapshot | None; report only |
+| D03 | User config exists and matches schema                             | Migrate or write defaults                                      |
+| D04 | All themes referenced by config are installed                     | Copy from package's embedded theme set                         |
+| D05 | Nerd Font is installed (when Powerline enabled)                   | Print platform-specific install command                        |
+| D06 | Git binary on PATH (when any git widget is enabled)               | None; report only                                              |
+| D07 | Pricing table is fresher than `now − 90 days`                     | None; report only                                              |
+| D08 | `CLAUDE_CONFIG_DIR` (if set) points to a writable directory       | None; report only                                              |
+| D09 | Custom-command widgets resolve their `cmd` to an executable       | None; report only                                              |
+| D10 | Render dry-run on an embedded fixture matches a stored snapshot   | None; report only                                              |
 
 ### 9.3 Exit codes
 
-| Code | Meaning |
-| --- | --- |
-| 0 | Success |
-| 1 | Unrecoverable error (fallback line still printed for `render`) |
-| 2 | Configuration error (schema/parse) |
-| 3 | Doctor finding (only when `doctor` is run with `--strict`) |
+| Code | Meaning                                                        |
+| ---- | -------------------------------------------------------------- |
+| 0    | Success                                                        |
+| 1    | Unrecoverable error (fallback line still printed for `render`) |
+| 2    | Configuration error (schema/parse)                             |
+| 3    | Doctor finding (only when `doctor` is run with `--strict`)     |
 
 ---
 
 ## 10. Lifecycle scripts
 
-| Script | Behaviour |
-| --- | --- |
-| `scripts/install.sh` | Idempotent. Verifies Node ≥20. Runs `npm i -g @agentline/cli@<pinned>` (or `npm link` when run from a checked-out repo with `--from-source`). Copies `templates/default.config.json` to `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` if absent. Copies `themes/*.json` to the same directory's `themes/` subfolder. Wires `statusLine` into `~/.claude/settings.json` if `statusLine` is unset, using `npx -y @agentline/cli` as the command (or the global bin path when global install succeeded); refuses to overwrite existing user values without `--force`. Supports `--dry-run`. |
-| `scripts/init.sh` | Idempotent. Bootstraps `${CLAUDE_PROJECT_DIR}/.agentline.json` from `templates/minimal.config.json`. Pure filesystem; no network. |
-| `scripts/doctor.sh` | Read-only wrapper over `agentline doctor`. |
-| `scripts/uninstall.sh` | Idempotent. Runs `npm uninstall -g @agentline/cli` (skipped if absent). Removes config files copied by `install.sh`. Preserves user-edited config (detected via SHA mismatch with the shipped template); only removes the user config if `--purge` is passed. Refuses to delete unrelated files. Removes the `statusLine` entry from `~/.claude/settings.json` only if it still points at agentline. |
-| `scripts/lib/common.sh` | Shared helpers: logging, OS detection, Node version check, `set -Eeuo pipefail`. |
+| Script                  | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/install.sh`    | Idempotent. Verifies Node ≥20. Runs `npm i -g @agentline/cli@<pinned>` (or `npm link` when run from a checked-out repo with `--from-source`). Copies `templates/default.config.json` to `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` if absent. Copies `themes/*.json` to the same directory's `themes/` subfolder. Wires `statusLine` into `~/.claude/settings.json` if `statusLine` is unset, using `npx -y @agentline/cli` as the command (or the global bin path when global install succeeded); refuses to overwrite existing user values without `--force`. Supports `--dry-run`. |
+| `scripts/init.sh`       | Idempotent. Bootstraps `${CLAUDE_PROJECT_DIR}/.agentline.json` from `templates/minimal.config.json`. Pure filesystem; no network.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `scripts/doctor.sh`     | Read-only wrapper over `agentline doctor`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `scripts/uninstall.sh`  | Idempotent. Runs `npm uninstall -g @agentline/cli` (skipped if absent). Removes config files copied by `install.sh`. Preserves user-edited config (detected via SHA mismatch with the shipped template); only removes the user config if `--purge` is passed. Refuses to delete unrelated files. Removes the `statusLine` entry from `~/.claude/settings.json` only if it still points at agentline.                                                                                                                                                                                               |
+| `scripts/lib/common.sh` | Shared helpers: logging, OS detection, Node version check, `set -Eeuo pipefail`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 Constraints: no `rm -rf "$VAR"` without guards; no remote one-off package executors.
 
@@ -649,13 +649,13 @@ Constraints: no `rm -rf "$VAR"` without guards; no remote one-off package execut
 
 ### 11.1 Workflows
 
-| Workflow | Triggers | Purpose |
-| --- | --- | --- |
-| `gates.yml` | push, pull_request | Run `tests/gates/run-all.sh` on the matrix |
-| `install-matrix.yml` | push, pull_request | Roundtrip `install.sh` ↔ `uninstall.sh` on every supported host (Node ≥20 only) |
-| `release.yml` | tag push (`v*`) | `npm publish` `@agentline/cli` with provenance (`--provenance`); attach `SHA256SUMS` to GitHub Release |
-| `pricing-skew.yml` | scheduled monthly + manual | Compare embedded pricing table to a maintained reference |
-| `node-skew.yml` | scheduled weekly + manual | Smoke-run the published bin against current Node 20 / 22 LTS lines |
+| Workflow             | Triggers                   | Purpose                                                                                                |
+| -------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `gates.yml`          | push, pull_request         | Run `tests/gates/run-all.sh` on the matrix                                                             |
+| `install-matrix.yml` | push, pull_request         | Roundtrip `install.sh` ↔ `uninstall.sh` on every supported host (Node ≥20 only)                        |
+| `release.yml`        | tag push (`v*`)            | `npm publish` `@agentline/cli` with provenance (`--provenance`); attach `SHA256SUMS` to GitHub Release |
+| `pricing-skew.yml`   | scheduled monthly + manual | Compare embedded pricing table to a maintained reference                                               |
+| `node-skew.yml`      | scheduled weekly + manual  | Smoke-run the published bin against current Node 20 / 22 LTS lines                                     |
 
 Every workflow pins actions by SHA, sets `permissions: read-all`, uses `concurrency:` cancellation, and uploads machine-readable artefacts on failure.
 
@@ -663,25 +663,25 @@ Every workflow pins actions by SHA, sets `permissions: read-all`, uses `concurre
 
 Every gate ID below is a file `tests/gates/gate-NN-<topic>.sh`; orchestrated by `tests/gates/run-all.sh`. Exit contract: `0` pass, `1` fail, `2` skipped.
 
-| Gate | Topic | Source |
-| --- | --- | --- |
-| 01 | `scripts/doctor.sh` exits 0 on healthy host | this spec §9.2 |
-| 02 | No `/Users/`, `/home/`, `~/.claude/` literals in shipped artefacts | this spec §1.2 N6 |
-| 03 | All `*.sh` pass `shellcheck -x` | this spec §10 |
-| 04 | `scripts/init.sh` run twice yields no diff | this spec §10 |
-| 05 | `markdownlint-cli2` + `prettier --check` over `*.md` | this spec §11.1 |
-| 06 | No third-party trademark misuse (allowlist) | this spec §0.2 |
-| 07 | Roundtrip clean: `install.sh && uninstall.sh` leaves no diff | this spec §10 |
-| 08 | Roundtrip preserves user-authored content | this spec §10 |
-| 09 | Install-twice idempotent | this spec §10 |
-| 10 | `install.sh --dry-run` matches real run | this spec §10 |
-| 11 | `agentline schema` round-trips against `templates/*.json` | this spec §4.7 |
-| 12 | Render determinism: same fixture + frozen clock ⇒ byte-identical bytes | this spec §1.2 N7 |
-| 13 | Cold-start budget on reference host (`agentline render` ≤120 ms p95 with global install) | this spec §1.2 N2 |
-| 14 | No network at render time (verified via sandbox) | this spec §1.2 N5 |
-| 15 | Published package smoke-runs on `{macos-13, macos-14, ubuntu-22.04, ubuntu-24.04, windows-2022}` × `{Node 20, Node 22}` | this spec §1.2 N1 |
-| 16 | Accessibility flags produce semantically equivalent output | this spec §1.2 N8 |
-| 17 | Keymap coverage: every documented binding renders in `agentline keys --json` | this spec §5.5 |
+| Gate | Topic                                                                                                                   | Source            |
+| ---- | ----------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| 01   | `scripts/doctor.sh` exits 0 on healthy host                                                                             | this spec §9.2    |
+| 02   | No `/Users/`, `/home/`, `~/.claude/` literals in shipped artefacts                                                      | this spec §1.2 N6 |
+| 03   | All `*.sh` pass `shellcheck -x`                                                                                         | this spec §10     |
+| 04   | `scripts/init.sh` run twice yields no diff                                                                              | this spec §10     |
+| 05   | `markdownlint-cli2` + `prettier --check` over `*.md`                                                                    | this spec §11.1   |
+| 06   | No third-party trademark misuse (allowlist)                                                                             | this spec §0.2    |
+| 07   | Roundtrip clean: `install.sh && uninstall.sh` leaves no diff                                                            | this spec §10     |
+| 08   | Roundtrip preserves user-authored content                                                                               | this spec §10     |
+| 09   | Install-twice idempotent                                                                                                | this spec §10     |
+| 10   | `install.sh --dry-run` matches real run                                                                                 | this spec §10     |
+| 11   | `agentline schema` round-trips against `templates/*.json`                                                               | this spec §4.7    |
+| 12   | Render determinism: same fixture + frozen clock ⇒ byte-identical bytes                                                  | this spec §1.2 N7 |
+| 13   | Cold-start budget on reference host (`agentline render` ≤120 ms p95 with global install)                                | this spec §1.2 N2 |
+| 14   | No network at render time (verified via sandbox)                                                                        | this spec §1.2 N5 |
+| 15   | Published package smoke-runs on `{macos-13, macos-14, ubuntu-22.04, ubuntu-24.04, windows-2022}` × `{Node 20, Node 22}` | this spec §1.2 N1 |
+| 16   | Accessibility flags produce semantically equivalent output                                                              | this spec §1.2 N8 |
+| 17   | Keymap coverage: every documented binding renders in `agentline keys --json`                                            | this spec §5.5    |
 
 Gates dropped vs earlier drafts: plugin-manifest validity, YAML frontmatter, and `hooks/hooks.json` validity — none apply to a CLI-only distribution (§0.1).
 

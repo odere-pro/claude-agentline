@@ -25,14 +25,14 @@ What you expected to see instead.
 
 ## Environment
 
-| Field | Value |
-| --- | --- |
-| `agentline --version` | |
-| OS | macOS 14 / Ubuntu 24.04 / Windows 11 (Git Bash) / ... |
-| Node | `node --version` |
-| Install method | `npm i -g` / `npx -y` / `--from-source` |
-| Terminal | iTerm2 / Alacritty / Windows Terminal / ... |
-| `$CLAUDE_CONFIG_DIR` set? | yes/no |
+| Field                     | Value                                                 |
+| ------------------------- | ----------------------------------------------------- |
+| `agentline --version`     |                                                       |
+| OS                        | macOS 14 / Ubuntu 24.04 / Windows 11 (Git Bash) / ... |
+| Node                      | `node --version`                                      |
+| Install method            | `npm i -g` / `npx -y` / `--from-source`               |
+| Terminal                  | iTerm2 / Alacritty / Windows Terminal / ...           |
+| `$CLAUDE_CONFIG_DIR` set? | yes/no                                                |
 
 ## Logs / screenshots
 

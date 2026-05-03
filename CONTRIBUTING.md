@@ -41,7 +41,7 @@ Conventional Commits:
 `<type>` ∈ `feat | fix | chore | docs | test | refactor | perf | ci`.
 `<scope>` ∈ the closed list defined in `docs/plan/PR-CONVENTIONS.md`.
 
-Body answers *why*, citing the spec section (e.g. `per §7.3`).
+Body answers _why_, citing the spec section (e.g. `per §7.3`).
 
 ## Tests & gates
 

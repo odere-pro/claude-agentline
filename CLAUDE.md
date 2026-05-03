@@ -24,11 +24,11 @@ The normative spec is **`docs/plan/SPEC-v0.1.0.md`**. Treat it as authoritative.
 
 ## Naming policy
 
-| Artefact | Pattern | Example |
-| --- | --- | --- |
-| TS source | feature-folder under `src/` | `src/widgets/git/branch.ts` |
-| Themes | `<kebab-case>.json` | `vscode-dark.json` |
-| Branch | `<type>/agentline-<NN>-<slug>` | `feat/agentline-06-config-loader` |
+| Artefact  | Pattern                        | Example                           |
+| --------- | ------------------------------ | --------------------------------- |
+| TS source | feature-folder under `src/`    | `src/widgets/git/branch.ts`       |
+| Themes    | `<kebab-case>.json`            | `vscode-dark.json`                |
+| Branch    | `<type>/agentline-<NN>-<slug>` | `feat/agentline-06-config-loader` |
 
 ## Non-goals (v0.1.0)
 
@@ -36,13 +36,13 @@ Plugin distribution (`.claude-plugin/`, slash commands, hooks, agents, skills, r
 
 ## Quick commands
 
-| Command | Purpose |
-| --- | --- |
-| `npm i && npm run build` | Bootstrap and build |
-| `npm test` | Unit tests |
-| `bash tests/gates/run-all.sh` | Run all repo gates |
+| Command                             | Purpose                     |
+| ----------------------------------- | --------------------------- |
+| `npm i && npm run build`            | Bootstrap and build         |
+| `npm test`                          | Unit tests                  |
+| `bash tests/gates/run-all.sh`       | Run all repo gates          |
 | `bash scripts/install.sh --dry-run` | Preview the install actions |
-| `bash scripts/doctor.sh` | Diagnose host configuration |
+| `bash scripts/doctor.sh`            | Diagnose host configuration |
 
 ## When in doubt
 
