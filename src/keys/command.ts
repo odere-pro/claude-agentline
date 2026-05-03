@@ -8,8 +8,19 @@
  * appear in the listing so missing wiring is detectable mechanically.
  */
 
+import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { loadConfig } from "../config/load.js";
 import { listBindings, type KeyBinding } from "./bindings.js";
+
+const HELP = `agentline keys — list active keymap bindings
+
+Usage:
+  agentline keys [--json]
+
+Options:
+  --json      emit machine-readable JSON
+  -h, --help  show this message
+`;
 
 export interface KeysCommandArgs {
   readonly json: boolean;
@@ -67,6 +78,7 @@ export function parseKeysArgs(rest: readonly string[]): KeysCommandArgs {
   let json = false;
   for (const arg of rest) {
     if (arg === "--json") json = true;
+    else if (isHelpFlag(arg)) requestHelp(HELP);
     else if (arg) throw new Error(`agentline keys: unknown argument '${arg}'`);
   }
   return { json };

@@ -10,6 +10,16 @@ A standalone, fast, themeable Claude Code statusline. Reads the
 Claude Code stdin payload, renders an ANSI-styled line, exits. No
 network at render time, no native modules, no plugin scaffolding.
 
+## Try it now
+
+```bash
+npx @agentline/cli preview
+```
+
+That renders a sample statusline straight to your terminal — no
+install, no config, no host session needed. Add `--all-themes` to
+compare the four shipped looks.
+
 ## Install
 
 ```bash
@@ -21,7 +31,7 @@ That installs the binary, creates Claude Code's settings file if it
 does not exist, and writes a working `statusLine` entry that points
 at agentline.
 
-For a guided install with theme + config seeding from a checkout:
+For a checkout-based install (used during development):
 
 ```bash
 git clone https://github.com/odere-pro/claude-agentline
@@ -37,24 +47,23 @@ Full install + uninstall reference: [docs/install.md](./docs/install.md).
 
 ## Configure
 
-After install, your config lives at
-`${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`. Edit it by
-hand, or launch the [TUI editor](./docs/keymap.md):
-
 ```bash
-agentline config
+agentline init --preset focus     # scaffold a project config
+agentline preview --config .agentline.json   # see what it'll look like
+agentline config                  # edit interactively in the TUI
 ```
 
-The shipped default renders model, git, context, tokens, cost, session
-usage, and a clock. To pin a project to a smaller line:
+`agentline init` accepts `--preset minimal | default | focus | power`
+and `--scope user | project`. With no flags, it scaffolds a
+`.agentline.json` in the current directory using the full default
+preset (model, git, tokens, cost, session usage, clock). After write,
+it prints the next two commands you'll want — preview the result, and
+wire the bin into Claude Code via `agentline doctor --fix`.
 
-```bash
-bash scripts/init.sh
-```
-
-That seeds `${CLAUDE_PROJECT_DIR:-$PWD}/.agentline.json` from
-`templates/minimal.config.json`. Project config is layered on top of
-the user config; only the keys you set override.
+User-scope config lives at
+`${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`; project-scope
+config is `${CLAUDE_PROJECT_DIR:-$PWD}/.agentline.json`. Project
+config layers on top of user config; only the keys you set override.
 
 Full configuration reference: [docs/config.md](./docs/config.md).
 

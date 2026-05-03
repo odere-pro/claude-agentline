@@ -94,16 +94,24 @@ To pin a project to a smaller config (for example, in a repo where you
 want only model + git on the statusline):
 
 ```bash
-bash scripts/init.sh
+agentline init --preset minimal      # smaller line, project-scoped
+agentline init --preset focus        # model + git + context + clock
+agentline init --preset power        # everything: tokens, cost, limits
+agentline init --scope user          # write to user config instead
 ```
 
-That seeds `${CLAUDE_PROJECT_DIR:-$PWD}/.agentline.json` from
-`templates/minimal.config.json`. The file is layered on top of the user
-config (§4.1 of the spec): only the keys you set in `.agentline.json`
-override the user defaults; everything else passes through.
+Available presets: `minimal | default | focus | power`. The default
+scope is `project`, which writes
+`${CLAUDE_PROJECT_DIR:-$PWD}/.agentline.json`. Project config is
+layered on top of user config (§4.1 of the spec): only the keys you
+set override the user defaults.
 
-`scripts/init.sh` is idempotent: if `.agentline.json` already exists, the
-script reports the existing path and exits 0 without touching it.
+`agentline init` refuses to overwrite an existing target unless
+`--force` is passed, so re-running it on a configured tree is safe.
+
+The shipped `scripts/init.sh` remains as a thin compatibility shim for
+the install script lifecycle (gate 04 covers its idempotency); for new
+projects, prefer `agentline init` directly.
 
 ## Verify
 

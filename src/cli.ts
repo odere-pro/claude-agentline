@@ -14,11 +14,13 @@
 
 import { StdinParseError } from "./stdin/index.js";
 import { AGENTLINE_VERSION } from "./version.js";
+import { HelpRequestedError } from "./cli/help.js";
 import { parseSchemaArgs, runSchemaCommand } from "./schema/command.js";
 import { parseDoctorArgs, runDoctorCommand } from "./doctor/command.js";
 import { parseInitArgs, runInitCommand } from "./init/command.js";
 import { parseKeysArgs, runKeysCommand } from "./keys/command.js";
 import { parseThemesArgs, runThemesCommand } from "./theme/command.js";
+import { parsePreviewArgs, runPreviewCommand } from "./preview/command.js";
 import { parseRenderArgs, runRenderCommand } from "./render/fixture-command.js";
 
 type ParsedArgs = {
@@ -38,11 +40,35 @@ async function runRender(rest: readonly string[]): Promise<number> {
   try {
     return await runRenderCommand({ args: parseRenderArgs(rest) });
   } catch (err) {
+    if (err instanceof HelpRequestedError) {
+      process.stdout.write(err.body);
+      return 0;
+    }
     if (err instanceof StdinParseError) {
+      // stdout stays a single line because the host UI shows it inline
+      // as the statusline. Detail goes to stderr where a human reading
+      // the terminal can see what to do next.
       process.stdout.write("agentline: invalid stdin\n");
+      process.stderr.write(
+        [
+          `agentline: ${(err as Error).message}`,
+          "  expected: a JSON object on stdin (Claude Code statusline contract)",
+          "  try: agentline preview     # see a working render with no stdin",
+          "  try: agentline doctor      # diagnose host wiring",
+          "",
+        ].join("\n"),
+      );
       return 1;
     }
-    process.stderr.write(`agentline: render error: ${(err as Error).message}\n`);
+    process.stderr.write(
+      [
+        `agentline: render error: ${(err as Error).message}`,
+        "  try: agentline doctor          # diagnose host wiring",
+        "  try: agentline config          # edit configuration",
+        "  rebuild: agentline init --force --preset default",
+        "",
+      ].join("\n"),
+    );
     return 1;
   }
 }
@@ -58,16 +84,19 @@ function runHelp(): number {
       "Usage: agentline [<command>] [<options>]",
       "",
       "Commands:",
+      "  preview              render a sample statusline (no install, no stdin)",
+      "  init [--preset ...]  scaffold a config (--preset, --scope, --force)",
+      "  config               edit configuration in the TUI",
+      "  doctor [--fix]       diagnose + repair host wiring",
+      "  themes [--list]      inspect installed theme presets",
+      "  keys [--json]        list active keymap",
+      "  schema [--write]     print or write the config JSON Schema",
+      "  render [--fixture]   re-render a recorded stdin payload",
       "  (default)            read stdin JSON, render statusline, write to stdout",
-      "  render [--fixture]   re-render against a recorded payload (PR 18)",
-      "  config               TUI editor (PR 16)",
-      "  doctor [--fix]       diagnose + repair host wiring (PR 17)",
-      "  init [--minimal]     scaffold project config (PR 18)",
-      "  keys [--json]        list active keymap (PR 18)",
-      "  schema [--write]     print or write the config JSON Schema (PR 6)",
-      "  themes [--list]      inspect theme presets (PR 18)",
       "  version              print version",
       "  help                 print this message",
+      "",
+      "Pass -h/--help to any command for details. Start with `agentline preview`.",
       "",
     ].join("\n"),
   );
@@ -88,6 +117,23 @@ async function runConfigDispatch(): Promise<number> {
   return 0;
 }
 
+async function dispatch(
+  exec: () => Promise<number>,
+  errorPrefix?: string,
+): Promise<number> {
+  try {
+    return await exec();
+  } catch (err) {
+    if (err instanceof HelpRequestedError) {
+      process.stdout.write(err.body);
+      return 0;
+    }
+    const message = (err as Error).message;
+    process.stderr.write(errorPrefix ? `${errorPrefix}: ${message}\n` : `${message}\n`);
+    return 2;
+  }
+}
+
 async function main(): Promise<number> {
   const { command, rest } = parseArgs(process.argv);
   switch (command) {
@@ -102,47 +148,22 @@ async function main(): Promise<number> {
     case "-h":
       return runHelp();
     case "schema":
-      try {
-        return await runSchemaCommand(parseSchemaArgs(rest));
-      } catch (err) {
-        process.stderr.write(`${(err as Error).message}\n`);
-        return 2;
-      }
+      return dispatch(() => runSchemaCommand(parseSchemaArgs(rest)));
     case "doctor":
-      try {
-        return await runDoctorCommand(parseDoctorArgs(rest));
-      } catch (err) {
-        process.stderr.write(`${(err as Error).message}\n`);
-        return 2;
-      }
+      return dispatch(() => runDoctorCommand(parseDoctorArgs(rest)));
     case "config":
-      try {
-        return await runConfigDispatch();
-      } catch (err) {
-        process.stderr.write(`agentline: config error: ${(err as Error).message}\n`);
-        return 1;
-      }
+      return dispatch(runConfigDispatch, "agentline: config error");
     case "init":
-      try {
-        return await runInitCommand({ args: parseInitArgs(rest) });
-      } catch (err) {
-        process.stderr.write(`${(err as Error).message}\n`);
-        return 2;
-      }
+      return dispatch(() => runInitCommand({ args: parseInitArgs(rest) }));
     case "keys":
-      try {
-        return await runKeysCommand({ args: parseKeysArgs(rest) });
-      } catch (err) {
-        process.stderr.write(`${(err as Error).message}\n`);
-        return 2;
-      }
+      return dispatch(() => runKeysCommand({ args: parseKeysArgs(rest) }));
     case "themes":
-      try {
-        return await runThemesCommand({ args: parseThemesArgs(rest) });
-      } catch (err) {
-        process.stderr.write(`${(err as Error).message}\n`);
-        return 2;
-      }
+      return dispatch(() => runThemesCommand({ args: parseThemesArgs(rest) }));
+    case "preview":
+      return dispatch(
+        () => runPreviewCommand({ args: parsePreviewArgs(rest) }),
+        "agentline preview",
+      );
     default:
       process.stderr.write(`agentline: unknown command '${command}'\n`);
       runHelp();
