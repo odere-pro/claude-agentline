@@ -1,1 +1,0 @@
-- Promote `[Unreleased]` to `[0.1.0] – 2026-05-03`: aggregate every fragment dropped since the bootstrap PR into a dated `0.1.0` block (commits `ab0b894…044b5b0`), reset `[Unreleased]` for the next cycle, and bump `package.json#version`, `src/version.ts`, and the lock-file root `version` from `0.0.0` to `0.1.0` so `agentline version` and `npm pack` agree on the published release.
