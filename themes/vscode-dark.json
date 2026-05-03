@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agentline.dev/schemas/theme.schema.json",
+  "name": "vscode-dark",
+  "palette": {
+    "accent": "#569cd6",
+    "info": "#9cdcfe",
+    "success": "#4ec9b0",
+    "warning": "#dcdcaa",
+    "danger": "#f48771",
+    "muted": "#858585",
+    "git-clean": "#4ec9b0",
+    "git-dirty": "#e2c08d",
+    "tokens-low": "#4ec9b0",
+    "tokens-mid": "#dcdcaa",
+    "tokens-high": "#f48771",
+    "bg-section": "#1e1e1e",
+    "bg-emphasis": "#2d2d30"
+  },
+  "powerline": {
+    "caps.start": "",
+    "caps.end": ""
+  }
+}

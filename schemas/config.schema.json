@@ -1,0 +1,149 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/odere-pro/claude-agentline/schemas/config.schema.json",
+  "title": "agentline configuration",
+  "description": "Schema for agentline statusline configuration. See docs/plan/SPEC-v0.1.0.md §4.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "type": "integer", "minimum": 1, "default": 1 },
+    "theme": { "type": ["string", "null"], "default": null },
+    "lines": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/line" }
+    },
+    "global": { "$ref": "#/definitions/global" },
+    "powerline": { "$ref": "#/definitions/powerline" },
+    "terminalWidth": { "$ref": "#/definitions/terminalWidth" },
+    "keymap": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "default": {}
+    }
+  },
+  "required": ["version"],
+  "definitions": {
+    "colour": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "black",
+            "red",
+            "green",
+            "yellow",
+            "blue",
+            "magenta",
+            "cyan",
+            "white",
+            "bright-black",
+            "bright-red",
+            "bright-green",
+            "bright-yellow",
+            "bright-blue",
+            "bright-magenta",
+            "bright-cyan",
+            "bright-white"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^colour:([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
+        },
+        { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+      ]
+    },
+    "colourOrNull": {
+      "oneOf": [{ "$ref": "#/definitions/colour" }, { "type": "null" }]
+    },
+    "line": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widgets"],
+      "properties": {
+        "widgets": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/widget" }
+        }
+      }
+    },
+    "widget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "id": { "type": "string" },
+        "fg": { "$ref": "#/definitions/colourOrNull" },
+        "bg": { "$ref": "#/definitions/colourOrNull" },
+        "bold": { "type": "boolean", "default": false },
+        "italic": { "type": "boolean", "default": false },
+        "rawValue": { "type": "boolean", "default": false },
+        "merged": {
+          "type": "string",
+          "enum": ["off", "merge", "merge-no-padding"],
+          "default": "off"
+        },
+        "hidden": { "type": "boolean", "default": false },
+        "options": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "global": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "padding": { "type": "integer", "minimum": 0, "default": 1 },
+        "separator": { "type": "string", "default": "|" },
+        "inheritColors": { "type": "boolean", "default": false },
+        "bold": { "type": "boolean", "default": false },
+        "italic": { "type": "boolean", "default": false },
+        "minimalist": { "type": "boolean", "default": false },
+        "overrideFg": { "$ref": "#/definitions/colourOrNull", "default": null },
+        "overrideBg": { "$ref": "#/definitions/colourOrNull", "default": null }
+      }
+    },
+    "powerline": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "theme": { "type": ["string", "null"], "default": null },
+        "caps": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "start": { "type": "string", "default": "" },
+            "end": { "type": "string", "default": "" }
+          }
+        },
+        "autoAlign": { "type": "boolean", "default": false },
+        "continueColors": { "type": "boolean", "default": false },
+        "glyphs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "hardRight": { "type": "string" },
+            "softRight": { "type": "string" },
+            "hardLeft": { "type": "string" },
+            "softLeft": { "type": "string" }
+          }
+        }
+      }
+    },
+    "terminalWidth": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["full", "full-minus-40", "full-until-compact"],
+          "default": "full-minus-40"
+        },
+        "compactThreshold": { "type": "integer", "minimum": 1, "default": 60 }
+      }
+    }
+  }
+}

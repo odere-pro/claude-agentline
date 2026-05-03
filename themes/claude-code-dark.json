@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agentline.dev/schemas/theme.schema.json",
+  "name": "claude-code-dark",
+  "palette": {
+    "accent": "#cc785c",
+    "info": "#d4a27f",
+    "success": "#7fb069",
+    "warning": "#e6b450",
+    "danger": "#d84545",
+    "muted": "#8c857a",
+    "git-clean": "#7fb069",
+    "git-dirty": "#e6b450",
+    "tokens-low": "#7fb069",
+    "tokens-mid": "#e6b450",
+    "tokens-high": "#d84545",
+    "bg-section": "#1f1d1b",
+    "bg-emphasis": "#2d2a26"
+  },
+  "powerline": {
+    "caps.start": "",
+    "caps.end": ""
+  }
+}

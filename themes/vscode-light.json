@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agentline.dev/schemas/theme.schema.json",
+  "name": "vscode-light",
+  "palette": {
+    "accent": "#0451a5",
+    "info": "#267f99",
+    "success": "#16825d",
+    "warning": "#bf8803",
+    "danger": "#cd3131",
+    "muted": "#6c6c6c",
+    "git-clean": "#16825d",
+    "git-dirty": "#bf8803",
+    "tokens-low": "#16825d",
+    "tokens-mid": "#bf8803",
+    "tokens-high": "#cd3131",
+    "bg-section": "#f3f3f3",
+    "bg-emphasis": "#e7e7e7"
+  },
+  "powerline": {
+    "caps.start": "",
+    "caps.end": ""
+  }
+}
