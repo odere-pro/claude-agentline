@@ -13,7 +13,7 @@
 
 import { promises as fs } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 import { atomicWrite } from "../config/atomic.js";
 import { resolveConfigPaths } from "../config/paths.js";
@@ -52,8 +52,10 @@ export async function runInitCommand(input: InitInput): Promise<number> {
   try {
     body = await fs.readFile(templatePath, "utf8");
   } catch (err) {
+    // Show the template basename only — the absolute path lives inside
+    // the package install tree and isn't actionable for the user.
     process.stderr.write(
-      `agentline init: unable to read template ${templatePath}: ${(err as Error).message}\n`,
+      `agentline init: unable to read template ${basename(templatePath)}: ${(err as Error).message}\n`,
     );
     return 1;
   }

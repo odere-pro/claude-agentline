@@ -8,9 +8,15 @@
  *     not the merge layer.
  *   - `null` is a real value (e.g. `theme: null` clears an inherited theme).
  *   - `undefined` is a no-op (the layer didn't speak to the key).
+ *   - `__proto__`, `constructor`, and `prototype` keys are dropped before
+ *     the recursive copy so an external JSON layer cannot pollute
+ *     `Object.prototype`. AJV validation runs after merge, but defending
+ *     here keeps the merge function safe in isolation.
  */
 
 type Plain = Record<string, unknown>;
+
+const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 function isPlainObject(v: unknown): v is Plain {
   if (v === null || typeof v !== "object") return false;
@@ -26,6 +32,7 @@ export function deepMerge<T>(base: T, override: unknown): T {
   const out: Plain = { ...base };
   for (const [k, v] of Object.entries(override)) {
     if (v === undefined) continue;
+    if (FORBIDDEN_KEYS.has(k)) continue;
     out[k] = deepMerge(out[k], v);
   }
   return out as T;

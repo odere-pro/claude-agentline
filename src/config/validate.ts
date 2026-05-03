@@ -4,6 +4,13 @@
  * Validation is strict: unknown keys raise an error rather than silently
  * dropping (catches typos like `globel.padding`). The schema embeds at
  * build time via `src/schema/embedded.ts`.
+ *
+ * AJV is constructed with `strict: false` so the schema's per-widget
+ * `options` bag (intentionally `additionalProperties: true` for
+ * forward-compat — new widget types ship with new option keys) does
+ * not trip strict-mode warnings. The merge layer drops `__proto__`,
+ * `constructor`, and `prototype` keys before reaching this validator
+ * (see `src/config/merge.ts`).
  */
 
 import Ajv from "ajv";
