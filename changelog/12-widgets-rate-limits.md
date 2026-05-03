@@ -1,0 +1,1 @@
+Surface block / weekly quota usage and reset countdowns in the statusline: ship the eight rate-limit widgets — `session-usage`, `weekly-usage`, `block-timer`, `block-reset-timer`, `weekly-reset-timer`, `model-usage`, `effort-usage`, `compaction-counter` — reading the existing transcript snapshot and reusing the token / week / block axes.
