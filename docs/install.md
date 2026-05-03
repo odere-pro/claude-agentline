@@ -74,7 +74,7 @@ Every filesystem write is atomic (write-temp, `fsync`, `rename`). Re-running
 | Flag            | Behaviour                                                                                                         |
 | --------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `--dry-run`     | Print every action that would be taken; touch nothing.                                                            |
-| `--force`       | Overwrite an existing `statusLine` value even when it does not point at agentline.                                |
+| `--force`       | Back-compat alias; the default already overwrites a foreign `statusLine` (after backing it up).                   |
 | `--from-source` | `npm link` from the current checkout instead of installing the published tarball. Intended for repo contributors. |
 | `-h`, `--help`  | Show the script's own usage.                                                                                      |
 
@@ -85,6 +85,27 @@ Every filesystem write is atomic (write-temp, `fsync`, `rename`). Re-running
 | `CLAUDE_CONFIG_DIR`  | Overrides the parent of the agentline config directory. Default: `~/.config`.                      |
 | `CLAUDE_PROJECT_DIR` | Used by `agentline init --scope project` to decide where `.agentline.json` lives. Default: `$PWD`. |
 | `AGENTLINE_BIN`      | Read by `doctor.sh` and other wrappers to pick a specific bin. Useful in tests and CI.             |
+
+## What happens to my existing statusLine?
+
+If `~/.claude/settings.json` already has a `statusLine` (a custom shell
+command, another tool, anything), install does **not** discard it.
+Before writing agentline's value, it snapshots the prior `statusLine`
+to `${CLAUDE_CONFIG_DIR:-~/.config/agentline}/state/settings-backup.json`.
+The snapshot includes:
+
+- Whether `statusLine` was present at all (so uninstall knows to delete
+  the key vs. write a value back).
+- The full prior value (string or object form, whichever the host had).
+
+`scripts/uninstall.sh` reads that backup and either restores the prior
+`statusLine` value, or removes the key entirely if the host never had
+one. Then it deletes the backup. **The host returns to its exact
+pre-install state.**
+
+The backup is written once: re-running install does not overwrite it
+with agentline's own value, so even multiple installs/uninstalls
+round-trip cleanly.
 
 ## Manual install
 

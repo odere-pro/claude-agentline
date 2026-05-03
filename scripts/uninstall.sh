@@ -227,6 +227,27 @@ unwire_statusline() {
     al_log_info "no settings file; nothing to unwire"
     return 0
   fi
+
+  # If we recorded a backup at install time, restore the prior state from
+  # it. The backup is the source of truth for "what was there before
+  # agentline" — when present, even a foreign statusLine that we *did*
+  # overwrite is restored cleanly. When the backup is absent, fall back
+  # to the legacy "remove only if it points at agentline" behaviour.
+  if [ -f "${AL_STATUS_LINE_BACKUP}" ]; then
+    if [ "${DRY_RUN}" = "1" ]; then
+      al_log_info "would restore statusLine from backup ${AL_STATUS_LINE_BACKUP}"
+      return 0
+    fi
+    __new="$(restore_statusline_from_backup "${settings_file}" "${AL_STATUS_LINE_BACKUP}")"
+    atomic_write_via_node "${settings_file}" "${__new}"
+    rm -f -- "${AL_STATUS_LINE_BACKUP}"
+    if [ -d "${AL_STATE_DIR}" ] && [ -z "$(ls -A "${AL_STATE_DIR}" 2>/dev/null || true)" ]; then
+      rmdir "${AL_STATE_DIR}" 2>/dev/null || true
+    fi
+    al_log_info "restored statusLine from backup; removed ${AL_STATUS_LINE_BACKUP}"
+    return 0
+  fi
+
   __existing="$(read_existing_statusline "${settings_file}")"
   case "${__existing}" in
     "")
@@ -234,7 +255,7 @@ unwire_statusline() {
       return 0
       ;;
     "agentline")
-      al_log_info "removing agentline statusLine entry"
+      al_log_info "removing agentline statusLine entry (no backup found)"
       __new="$(strip_statusline_from_settings "${settings_file}")"
       atomic_write_via_node "${settings_file}" "${__new}"
       ;;
@@ -242,6 +263,39 @@ unwire_statusline() {
       al_log_warn "settings.json statusLine references another tool (${__existing#foreign:}); leaving untouched"
       ;;
   esac
+}
+
+# Read settings.json + the backup, write back the prior statusLine
+# (or delete the key when previousStatusLinePresent: false). Emits the
+# new settings.json contents on stdout so atomic_write_via_node can
+# rewrite the file in one fsync.
+restore_statusline_from_backup() {
+  __settings="$1"
+  __backup="$2"
+  AL_SETTINGS_FILE="${__settings}" \
+  AL_BACKUP_FILE="${__backup}" \
+  node - <<'JS'
+const fs = require('node:fs');
+const settings = process.env.AL_SETTINGS_FILE;
+const backup = process.env.AL_BACKUP_FILE;
+let parsed = {};
+try {
+  const raw = fs.readFileSync(settings, 'utf8');
+  const t = JSON.parse(raw);
+  if (t && typeof t === 'object' && !Array.isArray(t)) parsed = t;
+} catch { /* fresh */ }
+const b = JSON.parse(fs.readFileSync(backup, 'utf8'));
+if (b.version !== 1) {
+  process.stderr.write('agentline: backup has unsupported version ' + b.version + '\n');
+  process.exit(1);
+}
+if (b.previousStatusLinePresent) {
+  parsed.statusLine = b.previousStatusLine;
+} else {
+  delete parsed.statusLine;
+}
+process.stdout.write(JSON.stringify(parsed, null, 2) + '\n');
+JS
 }
 
 # ---------------- run ----------------

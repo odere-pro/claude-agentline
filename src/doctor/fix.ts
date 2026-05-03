@@ -10,6 +10,7 @@ import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { atomicWriteJson } from "../config/atomic.js";
 import { DEFAULT_CONFIG, type AgentlineConfig } from "../config/index.js";
+import { saveStatusLineBackup } from "../state/backup.js";
 import type { CheckResult } from "./types.js";
 
 interface FixCtx {
@@ -64,25 +65,26 @@ async function fixD02(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
   } catch {
     /* leave empty — D01 fix would have been applied first */
   }
-  // If a non-agentline statusLine is already present, refuse to overwrite.
-  const existing = parsed["statusLine"];
-  const existingCmd = typeof existing === "object" && existing !== null
-    ? (existing as Record<string, unknown>)["command"]
-    : existing;
-  if (typeof existingCmd === "string" && existingCmd.length > 0 && !/agentline/.test(existingCmd)) {
-    return {
-      ...r,
-      status: "warn",
-      message: `refusing to overwrite existing statusLine command (${existingCmd})`,
-      hint: "rerun install.sh with --force or edit settings.json by hand",
-    };
-  }
+  // Snapshot the prior `statusLine` before we overwrite it. The backup
+  // helper is idempotent (first install wins) so re-running --fix never
+  // clobbers the original pre-install value with our own freshly-written
+  // one. `scripts/uninstall.sh` reads the backup and restores the prior
+  // state on removal.
+  const previousStatusLinePresent = Object.prototype.hasOwnProperty.call(parsed, "statusLine");
+  const previousStatusLine = parsed["statusLine"];
+  const backup = await saveStatusLineBackup({
+    previousStatusLine,
+    previousStatusLinePresent,
+    env: ctx.env,
+  });
+
   parsed["statusLine"] = { type: "command", command: "npx -y @agentline/cli", padding: 0 };
   await atomicWriteJson(target, parsed, { mode: 0o600, dirMode: 0o700 });
+  const note = backup === "created" ? "; prior value backed up" : "";
   return {
     ...r,
     status: "fixed",
-    message: "wrote statusLine = `npx -y @agentline/cli`",
+    message: `wrote statusLine = \`npx -y @agentline/cli\`${note}`,
     fixed: true,
     hint: undefined,
   };
