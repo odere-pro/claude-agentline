@@ -1,0 +1,32 @@
+{
+  "$schema": "https://agentline.dev/schemas/config.schema.json",
+  "version": 1,
+  "theme": null,
+  "lines": [
+    {
+      "widgets": [
+        { "type": "model" },
+        { "type": "thinking-effort" }
+      ]
+    }
+  ],
+  "global": {
+    "padding": 1,
+    "separator": "|",
+    "inheritColors": false,
+    "bold": false,
+    "italic": false,
+    "minimalist": false,
+    "overrideFg": null,
+    "overrideBg": null
+  },
+  "powerline": {
+    "enabled": false,
+    "theme": null,
+    "caps": { "start": "", "end": "" },
+    "autoAlign": false,
+    "continueColors": false
+  },
+  "terminalWidth": { "mode": "full", "compactThreshold": 60 },
+  "keymap": {}
+}
