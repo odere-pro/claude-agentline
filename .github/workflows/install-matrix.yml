@@ -1,10 +1,18 @@
 # .github/workflows/install-matrix.yml
-# Smoke-runs `scripts/install.sh && scripts/uninstall.sh` on every supported
-# host × Node combination. The roundtrip must leave no diff (gate 07 will
-# enforce that contractually once T2 PR 20 ships the body).
-# Spec: §11.1
+# Smoke-runs the published tarball + `scripts/install.sh && scripts/uninstall.sh`
+# on every supported host × Node combination. Each cell:
+#   1. builds dist/cli.mjs
+#   2. packs the repo with `npm pack` (the artefact users would receive)
+#   3. installs that tarball into an isolated `--prefix` so the host's
+#      global node_modules tree is never touched
+#   4. pipes a canonical Claude Code statusline payload through the
+#      installed bin and asserts the expected stdout (gate 15)
+#   5. runs the install/uninstall roundtrip from the working tree against
+#      a temp HOME / CLAUDE_CONFIG_DIR (gates 07, 09, 10)
+# Spec: §1.2 N1, §11.1, §11.2 G15
 #
-# Same hard invariants as gates.yml.
+# Hard invariants: SHA-pinned actions, `permissions: read-all`, push-only
+# concurrency cancellation, `bash` everywhere (incl. Windows).
 
 name: install-matrix
 
@@ -40,25 +48,113 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Install (dry-run preview)
-        # Until T2 PR 17/20 fill the install body, --dry-run is the only
-        # behaviour to exercise. The skeleton exits 0; this step doubles as
-        # a sanity check that the lib loads under each host.
-        run: bash scripts/install.sh --dry-run
-
-      - name: Install (real)
-        run: bash scripts/install.sh
-
-      - name: Uninstall
-        run: bash scripts/uninstall.sh
-
-      - name: Verify clean tree
-        # Once gate-07 (roundtrip cleanliness) ships and T2 PR 20 fills the
-        # install body, this step will become the contract: install +
-        # uninstall must leave the working tree untouched.
+      - name: Install npm dependencies
         run: |
-          if ! git diff --quiet --exit-code; then
-            echo "::error::working tree changed after install + uninstall"
-            git --no-pager diff
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Build agentline bin
+        run: npm run build
+
+      - name: Pack tarball
+        id: pack
+        run: |
+          mkdir -p .ci-pack
+          tarball="$(npm pack --pack-destination=.ci-pack --json \
+            | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{const a=JSON.parse(d);process.stdout.write(a[0].filename)})')"
+          if [ -z "${tarball}" ] || [ ! -f ".ci-pack/${tarball}" ]; then
+            echo "::error::npm pack did not produce a tarball"
             exit 1
           fi
+          echo "tarball=$(pwd)/.ci-pack/${tarball}" >> "$GITHUB_OUTPUT"
+
+      - name: Install tarball into isolated prefix
+        id: prefix
+        run: |
+          prefix="$(pwd)/.ci-prefix"
+          mkdir -p "${prefix}"
+          npm install --global --prefix="${prefix}" --no-audit --no-fund "${{ steps.pack.outputs.tarball }}"
+          # POSIX hosts → <prefix>/bin/agentline; Windows runners → <prefix>/agentline.cmd.
+          for cand in "${prefix}/bin/agentline" "${prefix}/agentline" "${prefix}/bin/agentline.cmd" "${prefix}/agentline.cmd"; do
+            if [ -e "${cand}" ]; then
+              echo "bin=${cand}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "::error::agentline bin not found under ${prefix}"
+          find "${prefix}" -maxdepth 3 || true
+          exit 1
+
+      - name: Render smoke (gate 15)
+        run: |
+          expected='gate-15 · /agentline/gate-15'
+          actual="$(printf '%s' '{"model":"gate-15","cwd":"/agentline/gate-15"}' | "${{ steps.prefix.outputs.bin }}")"
+          # Trim a single trailing newline so the byte-comparison is shell-agnostic.
+          actual="${actual%$'\n'}"
+          if [ "${actual}" != "${expected}" ]; then
+            printf 'expected: %s\nactual:   %s\n' "${expected}" "${actual}"
+            exit 1
+          fi
+          echo "render smoke matched expected bytes"
+
+      - name: Install (dry-run preview)
+        env:
+          HOME: ${{ runner.temp }}/agentline-home
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/agentline-cfg
+        run: |
+          mkdir -p "$HOME" "$CLAUDE_CONFIG_DIR"
+          # Drop a no-op `agentline` shim onto PATH so install.sh skips
+          # `npm install -g` (we already proved the tarball works above).
+          shim_dir="$(pwd)/.ci-shim"
+          mkdir -p "${shim_dir}"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            printf '@echo off\r\nexit /b 0\r\n' > "${shim_dir}/agentline.cmd"
+          else
+            printf '#!/usr/bin/env bash\nexit 0\n' > "${shim_dir}/agentline"
+            chmod +x "${shim_dir}/agentline"
+          fi
+          export PATH="${shim_dir}:$PATH"
+          bash scripts/install.sh --dry-run
+
+      - name: Install (real)
+        env:
+          HOME: ${{ runner.temp }}/agentline-home
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/agentline-cfg
+        run: |
+          shim_dir="$(pwd)/.ci-shim"
+          export PATH="${shim_dir}:$PATH"
+          bash scripts/install.sh
+
+      - name: Uninstall
+        env:
+          HOME: ${{ runner.temp }}/agentline-home
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/agentline-cfg
+        run: |
+          shim_dir="$(pwd)/.ci-shim"
+          export PATH="${shim_dir}:$PATH"
+          bash scripts/uninstall.sh
+
+      - name: Verify clean working tree
+        run: |
+          # The install/uninstall roundtrip writes only into the temp HOME +
+          # CLAUDE_CONFIG_DIR overrides above; the repo working tree must be
+          # untouched. Ignore the .ci-* scratch dirs added by earlier steps.
+          if ! git diff --quiet --exit-code -- ':!.ci-pack' ':!.ci-prefix' ':!.ci-shim'; then
+            echo "::error::working tree changed after install + uninstall"
+            git --no-pager diff -- ':!.ci-pack' ':!.ci-prefix' ':!.ci-shim'
+            exit 1
+          fi
+
+      - name: Upload failure artefacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: install-matrix-${{ matrix.os }}-node${{ matrix.node }}
+          path: |
+            .ci-pack/*.tgz
+            tests/gates/.tmp
+          if-no-files-found: ignore
+          retention-days: 7
