@@ -1,0 +1,3 @@
+<!-- sha: 354d925 -->
+
+Give agentline a real configuration story: a layered loader merges built-in defaults, the user file, the per-project file, `AGENTLINE_*` env vars, and CLI flags (last layer wins, arrays replace wholesale). The merged tree is validated against a canonical JSON Schema so typos like `globel.padding` fail fast with every offending key listed. Persisted writes go through write-temp + fsync + rename so editor watchers always see one consistent state. The schema is embedded into the bin at build time so the render path needs zero filesystem reads. New `agentline schema [--write <dir>]` subcommand prints the schema or drops it into the user's editor config dir. Adds 33 unit tests (38 total passing).

@@ -56,9 +56,30 @@ Bullets with rationale for each deferral.
 ## Merge rules
 
 - All CI workflows green; one approving review; no unresolved comments; dependencies merged.
-- `[Unreleased]` entry added under the appropriate group in `CHANGELOG.md`.
+- Changelog fragment dropped under `changelog/<NN>-<slug>.md` (one bullet, no SHA prefix; the aggregator script promotes fragments into `CHANGELOG.md` at release time). See `changelog/README.md` for the full convention.
 - Branch from `main`; rebase (not merge) `main` into the branch when stale.
 - Squash-merge for `chore`, `docs`, `plan`, hotfix; merge-commit (no squash) for feature PRs to preserve internal sequence.
+
+## Author maintenance
+
+Once a PR is open, the author is responsible for keeping it green and
+mergeable until the reviewer hits merge:
+
+- **Check the PR's CI status before declaring it ready for review.** Use
+  `gh pr checks <num>` or open the PR page. A red status counts as "not
+  ready".
+- **If CI/CD is broken, fix it.** Investigate the failing step, push the
+  fix, and confirm the next run is green. Do not mark the PR ready, ping
+  reviewers, or move on to the next PR until CI is green.
+- **If the PR has merge conflicts with `main`, fix them.** Rebase the
+  branch on the latest `main`, resolve conflicts, re-run
+  `bash tests/gates/run-all.sh` locally, and force-push with
+  `--force-with-lease`. Conflicts on `changelog/` fragments should be
+  rare-to-impossible by design (one fragment file per PR); conflicts on
+  shared source files should be resolved by understanding both sides, not
+  by blanket-accepting either.
+- **Never bypass safety controls** (`--no-verify`, `--no-gpg-sign`,
+  disabling required checks) to land a PR. Fix the underlying problem.
 
 ## Forbidden
 
