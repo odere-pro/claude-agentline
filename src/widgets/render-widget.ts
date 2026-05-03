@@ -56,6 +56,7 @@ function applyOverrides(cell: Cell, config: WidgetConfig): Cell {
     ...(config.bold !== undefined ? { bold: config.bold } : cell.bold !== undefined ? { bold: cell.bold } : {}),
     ...(config.italic !== undefined ? { italic: config.italic } : cell.italic !== undefined ? { italic: cell.italic } : {}),
     ...(cell.hidden !== undefined ? { hidden: cell.hidden } : {}),
+    ...(cell.flex === true ? { flex: true } : {}),
   };
   return Object.freeze(next);
 }
