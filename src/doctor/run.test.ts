@@ -56,7 +56,7 @@ describe("runDoctor", () => {
     expect(exitCode).toBe(3);
   });
 
-  it("--fix repairs D01 by creating the Claude settings file (and chains into D02)", async () => {
+  it("--fix repairs D01 by creating the Claude Code settings file (and chains into D02)", async () => {
     const { report } = await runDoctor({
       fix: true,
       json: false,
