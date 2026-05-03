@@ -6,7 +6,8 @@
 # - Actions pinned by full commit SHA (not by tag/branch).
 # - `permissions: read-all` at the workflow level; widened per-job only
 #   when needed.
-# - `concurrency:` cancellation set on push triggers.
+# - `concurrency:` cancels stale PR runs only; main-branch pushes run
+#   to completion so the badge reflects every commit's status.
 # - `fail-fast: false` so one host's failure does not mask another's.
 # - Windows runs use Git Bash (`shell: bash`).
 # - Machine-readable artefacts uploaded on failure.
@@ -22,7 +23,10 @@ permissions: read-all
 
 concurrency:
   group: gates-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  # Only cancel in-progress runs for PR updates (force-push during review).
+  # Main-branch pushes must run to completion — otherwise the README badge
+  # stays stuck on whatever the last *uncancelled* run reported.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   gates:

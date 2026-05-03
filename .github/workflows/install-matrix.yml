@@ -11,8 +11,9 @@
 #      a temp HOME / CLAUDE_CONFIG_DIR (gates 07, 09, 10)
 # Spec: §1.2 N1, §11.1, §11.2 G15
 #
-# Hard invariants: SHA-pinned actions, `permissions: read-all`, push-only
-# concurrency cancellation, `bash` everywhere (incl. Windows).
+# Hard invariants: SHA-pinned actions, `permissions: read-all`,
+# PR-only concurrency cancellation (main pushes run to completion so
+# the badge reflects every commit), `bash` everywhere (incl. Windows).
 
 name: install-matrix
 
@@ -25,7 +26,10 @@ permissions: read-all
 
 concurrency:
   group: install-matrix-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  # Only cancel in-progress runs for PR updates (force-push during review).
+  # Main-branch pushes must run to completion — otherwise the README badge
+  # stays stuck on whatever the last *uncancelled* run reported.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   roundtrip:
