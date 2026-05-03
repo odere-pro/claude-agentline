@@ -66,6 +66,25 @@ jobs:
             choco install shellcheck -y --no-progress || true
           fi
 
+      - name: Install npm dependencies
+        # gate-01 invokes scripts/doctor.sh which needs a runnable bin.
+        # We install via lockfile (`npm ci`) for reproducibility, falling
+        # back to `npm install` if the lockfile drifts.
+        if: hashFiles('package.json') != ''
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Build agentline bin
+        # `dist/cli.mjs` is the runnable artefact gate-01's wrapper resolves
+        # before falling back to `npx`. Skip cleanly when there is no
+        # `package.json` (very early bootstrap commits).
+        if: hashFiles('package.json') != ''
+        run: npm run build
+
       - name: Run gates
         run: bash tests/gates/run-all.sh
 

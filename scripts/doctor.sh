@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# scripts/doctor.sh — skeleton; body lands in T2 PR 11.
-# Spec: §9.2, §10
+# scripts/doctor.sh — read-only wrapper over `agentline doctor`.
 #
-# Read-only wrapper over `agentline doctor`. Inspects host prerequisites,
-# the wired settings entry, the merged config, and Nerd Font availability.
-# This skeleton runs the prerequisite check (Node >=20) and exits 0 so
-# gate-01 passes from the moment it lands; richer checks arrive with the
-# binary itself.
+# Resolves the bin in this priority order:
+#   1. an explicit AGENTLINE_BIN env var (used by tests / gates),
+#   2. the local build at <repo>/dist/cli.mjs,
+#   3. an `agentline` on PATH (global install),
+#   4. `npx -y @agentline/cli` as the last fallback.
+#
+# Forwards every argument unchanged. Never mutates host state — to
+# repair, invoke `agentline doctor --fix` directly.
 
 set -Eeuo pipefail
 
@@ -14,54 +16,33 @@ THIS_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
 . "${THIS_DIR}/lib/common.sh"
 al_setup
+al_require_node
 
-FIX=0
+repo_root="$(cd "${THIS_DIR}/.." && pwd)"
 
-usage() {
-  cat <<'EOF'
-agentline doctor — diagnose the host's agentline integration.
+run_doctor() {
+  if [ -n "${AGENTLINE_BIN:-}" ] && [ -x "${AGENTLINE_BIN}" ]; then
+    "${AGENTLINE_BIN}" doctor "$@"
+    return
+  fi
 
-Usage:
-  scripts/doctor.sh [--fix]
+  local_bin="${repo_root}/dist/cli.mjs"
+  if [ -f "${local_bin}" ]; then
+    node "${local_bin}" doctor "$@"
+    return
+  fi
 
-Options:
-  --fix         Repair documented misconfigurations (delegated to the bin).
-  -h, --help    Show this help.
+  if command -v agentline >/dev/null 2>&1; then
+    agentline doctor "$@"
+    return
+  fi
 
-Read-only by default. Exits 0 on a healthy host, 1 otherwise.
-EOF
+  if command -v npx >/dev/null 2>&1; then
+    npx -y @agentline/cli doctor "$@"
+    return
+  fi
+
+  al_die "no agentline bin available (build the repo with \`npm run build\` or install \`@agentline/cli\` globally)" 2
 }
 
-while [ "$#" -gt 0 ]; do
-  case "$1" in
-    --fix) FIX=1 ;;
-    -h | --help)
-      usage
-      exit 0
-      ;;
-    *)
-      al_log_error "unknown option: $1"
-      usage >&2
-      exit 1
-      ;;
-  esac
-  shift
-done
-
-al_require_node
-al_log_info "platform: $(al_detect_os)"
-al_log_info "config dir: $(al_config_dir)"
-
-# Prefer the installed bin when available; fall back to the skeleton's own
-# yes/no so this script remains useful before the package is published.
-if command -v agentline >/dev/null 2>&1; then
-  if [ "${FIX}" = "1" ]; then
-    exec agentline doctor --fix
-  else
-    exec agentline doctor
-  fi
-fi
-
-al_log_info "agentline bin not yet on PATH; running skeleton checks only"
-al_log_info "doctor skeleton: host prerequisites OK (body lands in T2 PR 11)"
-exit 0
+run_doctor "$@"
