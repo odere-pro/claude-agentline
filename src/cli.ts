@@ -14,6 +14,7 @@
 
 import { readStdinPayload, StdinParseError } from "./stdin/index.js";
 import { AGENTLINE_VERSION } from "./version.js";
+import { parseSchemaArgs, runSchemaCommand } from "./schema/command.js";
 
 type ParsedArgs = {
   command: string;
@@ -90,11 +91,17 @@ async function main(): Promise<number> {
     case "--help":
     case "-h":
       return runHelp();
+    case "schema":
+      try {
+        return await runSchemaCommand(parseSchemaArgs(rest));
+      } catch (err) {
+        process.stderr.write(`${(err as Error).message}\n`);
+        return 2;
+      }
     case "config":
     case "doctor":
     case "init":
     case "keys":
-    case "schema":
     case "themes":
       return runUnimplemented(command);
     default:
