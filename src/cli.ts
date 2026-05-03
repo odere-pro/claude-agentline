@@ -12,10 +12,14 @@
  * path emits a one-line ASCII fallback so the host UI is never blank.
  */
 
-import { readStdinPayload, StdinParseError } from "./stdin/index.js";
+import { StdinParseError } from "./stdin/index.js";
 import { AGENTLINE_VERSION } from "./version.js";
 import { parseSchemaArgs, runSchemaCommand } from "./schema/command.js";
 import { parseDoctorArgs, runDoctorCommand } from "./doctor/command.js";
+import { parseInitArgs, runInitCommand } from "./init/command.js";
+import { parseKeysArgs, runKeysCommand } from "./keys/command.js";
+import { parseThemesArgs, runThemesCommand } from "./theme/command.js";
+import { parseRenderArgs, runRenderCommand } from "./render/fixture-command.js";
 
 type ParsedArgs = {
   command: string;
@@ -30,19 +34,15 @@ function parseArgs(argv: string[]): ParsedArgs {
   return { command: first, rest: args.slice(1) };
 }
 
-async function runRender(_rest: string[]): Promise<number> {
+async function runRender(rest: readonly string[]): Promise<number> {
   try {
-    const payload = await readStdinPayload(process.stdin);
-    const model = payload.model ?? "claude";
-    const cwdLabel = payload.cwd ? ` · ${payload.cwd}` : "";
-    process.stdout.write(`${model}${cwdLabel}\n`);
-    return 0;
+    return await runRenderCommand({ args: parseRenderArgs(rest) });
   } catch (err) {
     if (err instanceof StdinParseError) {
       process.stdout.write("agentline: invalid stdin\n");
       return 1;
     }
-    process.stdout.write("agentline: render error\n");
+    process.stderr.write(`agentline: render error: ${(err as Error).message}\n`);
     return 1;
   }
 }
@@ -74,9 +74,18 @@ function runHelp(): number {
   return 0;
 }
 
-function runUnimplemented(name: string): number {
-  process.stderr.write(`agentline: subcommand '${name}' not yet wired in this build\n`);
-  return 1;
+async function runConfigDispatch(): Promise<number> {
+  // Lazy-import the TUI bundle. tsup builds it as a separate
+  // `dist/tui.mjs` so Ink + React never hit cli.mjs's parse path
+  // (§1.2 N3). Use a runtime URL so the static analyser does not
+  // try to resolve `./tui.mjs` against the source tree (where
+  // `tui` is a directory, not a module file).
+  const moduleUrl = new URL("./tui.mjs", import.meta.url).href;
+  const tui = (await import(moduleUrl)) as {
+    runConfigCommand: () => Promise<{ saved: boolean }>;
+  };
+  await tui.runConfigCommand();
+  return 0;
 }
 
 async function main(): Promise<number> {
@@ -107,10 +116,33 @@ async function main(): Promise<number> {
         return 2;
       }
     case "config":
+      try {
+        return await runConfigDispatch();
+      } catch (err) {
+        process.stderr.write(`agentline: config error: ${(err as Error).message}\n`);
+        return 1;
+      }
     case "init":
+      try {
+        return await runInitCommand({ args: parseInitArgs(rest) });
+      } catch (err) {
+        process.stderr.write(`${(err as Error).message}\n`);
+        return 2;
+      }
     case "keys":
+      try {
+        return await runKeysCommand({ args: parseKeysArgs(rest) });
+      } catch (err) {
+        process.stderr.write(`${(err as Error).message}\n`);
+        return 2;
+      }
     case "themes":
-      return runUnimplemented(command);
+      try {
+        return await runThemesCommand({ args: parseThemesArgs(rest) });
+      } catch (err) {
+        process.stderr.write(`${(err as Error).message}\n`);
+        return 2;
+      }
     default:
       process.stderr.write(`agentline: unknown command '${command}'\n`);
       runHelp();

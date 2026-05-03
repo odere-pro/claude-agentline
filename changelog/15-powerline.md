@@ -1,0 +1,1 @@
+Render the statusline with Powerline triangles or the ASCII fallback: ship the Powerline transform (chevron insertion with adjoining-colour rule, autoAlign, continueColors, glyph overrides, Nerd-Font/ASCII selection) plus a plain-mode line composer that expands flex-separator slots to fill remaining width and treats them as a no-op when Powerline mode is enabled.

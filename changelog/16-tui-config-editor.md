@@ -1,0 +1,1 @@
+Edit your statusline interactively: ship the Ink-based `agentline config` TUI editor with live preview, atomic config writes, and the default keymap registry — and split the build into `dist/cli.mjs` + `dist/tui.mjs` so Ink and React never load on the render hot path.

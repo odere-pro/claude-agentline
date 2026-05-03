@@ -40,6 +40,8 @@ export {
 
 export { writeOnce, type WritableLike } from "./write.js";
 
+export { composeLines, type ComposeOptions } from "./compose.js";
+
 import { encodeSegments } from "./ansi.js";
 import {
   applyAccessibility,
