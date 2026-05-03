@@ -35,4 +35,24 @@ describe("deepMerge", () => {
     );
     expect(merged).toEqual({ a: 100, b: 20, c: 30 });
   });
+
+  it("does not mutate Object.prototype via __proto__ key", () => {
+    const malicious = JSON.parse('{"__proto__":{"polluted":"yes"}}');
+    deepMerge({}, malicious);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  it("drops constructor and prototype keys during merge", () => {
+    const malicious = JSON.parse('{"constructor":{"prototype":{"polluted":"yes"}},"prototype":{"polluted":"yes"}}');
+    const out = deepMerge<Record<string, unknown>>({}, malicious);
+    expect(out.constructor).toBe(Object);
+    expect(out.prototype).toBeUndefined();
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
+
+  it("drops __proto__ even when nested deep in override", () => {
+    const malicious = JSON.parse('{"global":{"__proto__":{"polluted":"yes"}}}');
+    deepMerge({ global: { padding: 1 } }, malicious);
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+  });
 });
