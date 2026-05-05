@@ -155,8 +155,32 @@ so a line with sixteen git widgets only spawns `git` once.
 The `command` widget is the only built-in that spawns a child process.
 The user owns the command string; it runs through `/bin/sh -c` (or
 `cmd.exe /c` on Windows). Caching is keyed on cmd + shell + cwd with a
-configurable `cacheTtlMs`. There is no PATH validation (a doctor check
-for `cmd` resolution is tracked as a follow-up).
+configurable `cacheTtlMs`.
+
+**Sandbox bounds (spec §7.8.3):**
+
+- `options.shell` is honoured only when it is one of `/bin/sh`,
+  `/bin/bash`, `/usr/bin/sh`, `/usr/bin/bash`, `/usr/local/bin/bash`,
+  `cmd.exe`, `powershell.exe`, `pwsh.exe`. Other values fall back to
+  the platform default — agentline never executes an arbitrary
+  user-supplied binary.
+- `options.cwd` (or the stdin `cwd` fallback) is accepted only when it
+  is an absolute path that exists and is a directory; otherwise the
+  subprocess inherits agentline's own cwd.
+- The forwarded environment is the standard PATH/HOME/LANG/TERM/etc.
+  allowlist plus every `LC_*` and `CLAUDE_*` variable, _minus_ any key
+  whose name ends in `_TOKEN`, `_KEY`, `_SECRET`, `_PASSWORD`, `_PASS`,
+  or `_AUTH`. Credential-shaped Claude integration vars never reach
+  the child.
+
+**Trust boundary on project config.** A `command` widget declared in
+`.agentline.json` (the project layer, §4.1) is dropped before merge
+unless you explicitly opt in by exporting
+`AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1`. When stripping fires the
+loader writes a one-line warning to stderr. The rationale: cloning a
+hostile repo and refreshing the statusline shouldn't be
+RCE-by-default. Keep `command` widgets in your user config (layer 2)
+unless you've reviewed the project file and want to opt in.
 
 ## Choosing widgets
 

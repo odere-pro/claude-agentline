@@ -91,4 +91,4 @@ Full reference → [install.md](../docs/install.md)
 | Stale pricing (D07)          | `npm install -g @agentline/cli@latest`            |
 | Powerline `>` instead of `❯` | D05: install a Nerd Font                          |
 
-More → [troubleshooting.md](../docs/troubleshooting.md)
+More → [troubleshooting.md](../docs/troubleshooting.md) · Full CLI reference → [cli.md](../docs/cli.md)

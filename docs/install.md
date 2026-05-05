@@ -185,12 +185,12 @@ replaying a recorded stdin payload (used by goldens and CI).
 
 ## CLI surface
 
-Every subcommand responds to `-h` / `--help`:
+Every subcommand responds to `-h` / `--help`. See [cli.md](./cli.md) for the complete flag-by-flag reference.
 
 | Command             | Purpose                                                         |
 | ------------------- | --------------------------------------------------------------- |
 | `agentline preview` | Render a sample bar (no install, no stdin). Headline command.   |
-| `agentline init`    | Scaffold a config from a preset. See flag table below.          |
+| `agentline init`    | Scaffold a config from a preset.                                |
 | `agentline config`  | Edit configuration in the TUI (Ink, lazy-loaded).               |
 | `agentline doctor`  | Diagnose host wiring; `--fix` repairs D01–D04.                  |
 | `agentline themes`  | List installed themes; `--show <name>` prints a palette.        |
@@ -198,16 +198,6 @@ Every subcommand responds to `-h` / `--help`:
 | `agentline schema`  | Print or `--write <dir>` the config JSON Schema.                |
 | `agentline render`  | Replay a recorded stdin payload (goldens, fixtures).            |
 | `(default)`         | Read stdin, render, write to stdout (the live statusline path). |
-
-`agentline init` flags:
-
-| Flag              | Effect                                                                              |
-| ----------------- | ----------------------------------------------------------------------------------- |
-| `--preset <name>` | One of `minimal`, `default`, `focus`, `power`. Default: `default`.                  |
-| `--scope <where>` | `user` writes the user config; `project` (default) writes `.claude/agentline.json`. |
-| `--target <path>` | Explicit override; takes precedence over `--scope`.                                 |
-| `--force`         | Overwrite an existing target.                                                       |
-| `--minimal`       | Deprecated alias for `--preset minimal`.                                            |
 
 ## Uninstall
 

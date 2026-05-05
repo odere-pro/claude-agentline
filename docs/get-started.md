@@ -22,6 +22,8 @@ npx @agentline/cli preview --all-themes  # compare all four shipped themes
 
 The `preview` command renders without a live Claude Code session. It is the fastest way to see what agentline looks like on your terminal.
 
+Full flag-by-flag reference for every command → [cli.md](./cli.md)
+
 ---
 
 ## Step 2 — Install
@@ -33,16 +35,7 @@ npm install -g @agentline/cli
 agentline install
 ```
 
-`agentline install` wires the binary into your **current project's** `.claude/settings.json` by default and prompts whether to also wire it globally into `~/.claude/settings.json`.
-
-Flags:
-
-| Flag           | Effect                                                              |
-| -------------- | ------------------------------------------------------------------- |
-| `--global`     | Wire into `~/.claude/settings.json` without prompting               |
-| `--local-only` | Wire the local project only; suppress the global prompt             |
-| `--force`      | Overwrite an existing `statusLine` that does not point at agentline |
-| `--dry-run`    | Print every action that would be taken; touch nothing               |
+`agentline install` wires the binary into your **current project's** `.claude/settings.json` and prompts whether to also wire it globally. See [install.md](./install.md) for all flags (`--global`, `--local-only`, `--force`, `--dry-run`).
 
 ### From source (development checkout)
 
@@ -51,12 +44,7 @@ git clone https://github.com/odere-pro/claude-agentline
 cd claude-agentline
 npm install && npm run build
 node dist/cli.mjs install --from-source
-```
-
-`--from-source` runs `npm link` so `agentline` appears on your PATH. After that point, use the CLI directly:
-
-```bash
-agentline install --from-source
+agentline install --from-source   # after npm link is in place
 ```
 
 ---

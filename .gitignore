@@ -34,7 +34,7 @@ Thumbs.db
 .env.*
 !.env.example
 .agentline.local.json
-.claude/settings.json
+.claude/
 
 # Logs
 logs/

@@ -63,6 +63,7 @@ Full walkthrough (doctor, presets, config) → [docs/get-started.md](./docs/get-
 | Topic               | File                                                 |
 | ------------------- | ---------------------------------------------------- |
 | Get started         | [docs/get-started.md](./docs/get-started.md)         |
+| CLI reference       | [docs/cli.md](./docs/cli.md)                         |
 | Install             | [docs/install.md](./docs/install.md)                 |
 | Configure           | [docs/config.md](./docs/config.md)                   |
 | Widgets (all 53)    | [docs/widgets.md](./docs/widgets.md)                 |

@@ -37,8 +37,11 @@ this order (each later layer overrides the earlier ones):
 1. **Built-in defaults** compiled into the binary.
 2. **User config** at
    `${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json`.
-3. **Project config** at `${CLAUDE_PROJECT_DIR:-$PWD}/.claude/agentline.json`,
-   when the file is present.
+3. **Project config** at `${CLAUDE_PROJECT_DIR:-$PWD}/.agentline.json`,
+   when the file is present. The project layer silently drops
+   `command` widgets unless
+   `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1` is set in the
+   environment — see [widgets.md](./widgets.md) for the rationale.
 4. **Environment variables** prefixed `AGENTLINE_` (dot-path mapping;
    see below).
 5. **Command-line flags** (`--config <path>` overrides the user config
@@ -59,8 +62,11 @@ agentline init --preset default --scope project     # scaffold .claude/agentline
 agentline init --preset minimal --scope user        # scaffold user config
 agentline init --force --preset default             # reset the project config to defaults
 agentline preview --config .claude/agentline.json   # render without a Claude session
+agentline preview --watch                           # live-reload preview on config save
 agentline schema --write .vscode/                   # drop the JSON schema for editor autocomplete
 ```
+
+Full flag reference for all commands → [cli.md](./cli.md)
 
 ---
 
@@ -177,6 +183,16 @@ AGENTLINE_POWERLINE_ENABLED=true
 Values are parsed as JSON when they look like JSON literals (`true`,
 `false`, numbers, quoted strings) and otherwise treated as plain
 strings. Setting an env var to the empty string clears the override.
+JSON values have `__proto__` / `constructor` / `prototype` keys
+stripped recursively before merge, so a malicious env layer cannot
+mutate `Object.prototype`.
+
+Two non-config-leaf env vars that affect loader behaviour:
+
+| Variable                                  | Effect                                                                                                                                             |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS` | Set to `1` to opt in to `command` widgets sourced from the project layer (`.agentline.json`). Otherwise project-layer `command` widgets are dropped before merge and a one-line warning is emitted to stderr. |
+| `AGENTLINE_TRANSCRIPT_ROOT`               | Override the directory tree the transcript reader is allowed to resolve under (default: `~/.claude`). Test-only; production should leave unset.   |
 
 ## Atomic writes
 

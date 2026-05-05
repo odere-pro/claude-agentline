@@ -1,196 +1,120 @@
 # Troubleshooting
 
-Start with `agentline doctor`. It runs all ten health checks and tells you exactly what is wrong:
+Always start with the health check — it names which check failed and what to do:
 
 ```bash
-agentline doctor          # report
-agentline doctor --fix    # report + auto-repair D01–D04
-agentline doctor --strict # exit non-zero on any warning (CI mode)
+agentline doctor          # full report
+agentline doctor --fix    # auto-repair D01–D04
 ```
+
+See [doctor.md](./doctor.md) for the complete check list (D01–D10).
 
 ---
 
-## Common symptoms
+## Statusline is not showing
 
-### Statusline is not showing
-
-**Check:**
+Look for `[XX]` on D01 (settings file) or D02 (statusLine wiring):
 
 ```bash
 agentline doctor
+agentline doctor --fix    # repairs the wiring
+agentline install         # re-wire if --fix is not enough
 ```
 
-Look for `[XX]` or `[!!]` on D01 (settings file) or D02 (statusLine wiring).
-
-**Fix:**
-
-```bash
-agentline doctor --fix
-```
-
-or re-run the install:
-
-```bash
-agentline install          # wires the local project
-agentline install --global # wires globally
-```
-
-Then restart Claude Code. The `statusLine` setting is read at startup.
+Restart Claude Code after wiring — the `statusLine` setting is read at startup.
 
 ---
 
-### Blank or garbled output
+## Blank or garbled output
 
-**Check:**
-
-```bash
-agentline preview
-```
-
-If `preview` itself looks wrong, the issue is in your terminal's colour support, not Claude Code.
-
-**Try:**
+Isolate whether the problem is Claude Code or the terminal:
 
 ```bash
-agentline preview --theme vscode-dark   # simpler palette
-NO_COLOR=1 agentline preview            # disable colour entirely
-COLORTERM= TERM=xterm-256color agentline preview   # simulate 256-colour mode
+agentline preview                              # renders without a live session
+agentline preview --theme vscode-dark          # simpler palette
+NO_COLOR=1 agentline preview                   # strip colour entirely
+COLORTERM= TERM=xterm-256color agentline preview   # simulate 256-colour
 ```
 
-agentline honours [`NO_COLOR`](https://no-color.org). Setting `NO_COLOR=1` in your Claude Code environment will produce a plain-text bar.
+agentline honours [`NO_COLOR`](https://no-color.org). See [themes.md](./themes.md#truecolor-and-degraded-terminals) for colour-depth details.
 
 ---
 
-### Wrong binary called
-
-**Check:**
+## `agentline: command not found`
 
 ```bash
-which agentline
-agentline version
+which agentline && agentline version   # confirm what is on PATH
+npm install -g @agentline/cli          # fix: from npm
+node dist/cli.mjs install --from-source  # fix: from source checkout
 ```
 
-**Fix:**
+See [install.md](./install.md) for the full install procedure.
 
-If the path is wrong or `agentline: command not found`:
+---
+
+## Config not loading
+
+D03 in `agentline doctor --strict` validates the config. Project config must be at `.agentline.json` at the project root (see [config.md](./config.md#file-locations)):
 
 ```bash
-# From npm
-npm install -g @agentline/cli
-
-# From source
-node dist/cli.mjs install --from-source
+agentline init --preset default --scope project   # scaffold a valid config
+agentline schema --write /tmp/                    # dump the schema for manual inspection
 ```
 
 ---
 
-### Config file not loading
+## Config validation error
 
-**Check:**
-
-```bash
-agentline doctor --strict
 ```
-
-D03 validates the user config. The project config path must be exactly `.claude/agentline.json` in the project root (not `.agentline.json` at the root, not anywhere else).
-
-**Config file locations:**
-
-| Scope   | Path                              |
-| ------- | --------------------------------- |
-| User    | `~/.config/agentline/config.json` |
-| Project | `.claude/agentline.json`          |
-
-**Fix:**
-
-```bash
-# Scaffold a valid project config
-agentline init --preset default --scope project
-
-# Or validate manually
-agentline schema --write /tmp/  # dump the schema, then check your file against it
-```
-
----
-
-### Config validation error
-
-```text
 agentline: config error at /lines/0/widgets/2/type: must be a known widget type
 ```
 
-Run `agentline doctor` for the friendlier version, or look up the widget name in [widgets.md](./widgets.md).
+`agentline doctor` prints a friendlier version with a file location. Look up the widget name in [widgets.md](./widgets.md).
 
 ---
 
-### Pricing table is stale (D07 warning)
-
-The `cost` widget uses a pricing table embedded at build time. D07 warns when it is older than 90 days.
-
-**Fix:** upgrade `@agentline/cli`:
+## Stale pricing / D07 warning
 
 ```bash
 npm install -g @agentline/cli@latest
 ```
 
----
-
-### Powerline chevrons show as `>` / `<` (D05 warning)
-
-agentline is using ASCII fallback because a Nerd Font is not installed.
-
-**Fix:** Install a Nerd Font and configure your terminal emulator to use it. `agentline doctor` prints the platform-specific install command when D05 fires.
+The `cost` widget uses an embedded pricing table refreshed monthly. Upgrade when D07 fires.
 
 ---
 
-### `command` widget shows `✗`
+## Powerline chevrons show as `>` / `<`
 
-The shell command in `options.cmd` failed or timed out. D09 reports which widget is at fault.
-
-**Check:**
-
-Run the command manually in your terminal. Common causes: the binary is not on PATH inside the Claude Code environment, or the command takes longer than `timeoutMs` (default 250 ms).
+Nerd Font missing. D05 prints the platform-specific install command when it fires.
 
 ---
 
-## Reset to defaults
+## `command` widget shows `✗`
 
-There is no dedicated `reset` command. Use `init --force`:
+Run `options.cmd` in your terminal directly. Common causes: binary not on PATH in the Claude Code environment, or command exceeds `timeoutMs` (default 250 ms). D09 names the offending widget.
+
+Other less obvious causes:
+
+- **`options.shell` was ignored.** The widget honours `shell` only when it is one of `/bin/sh`, `/bin/bash`, `/usr/bin/sh`, `/usr/bin/bash`, `/usr/local/bin/bash`, `cmd.exe`, `powershell.exe`, or `pwsh.exe`. Anything else falls back to the platform default.
+- **Credential env var missing.** Variables matching `*_TOKEN`, `*_KEY`, `*_SECRET`, `*_PASSWORD`, `*_PASS`, `*_AUTH` are stripped from the subprocess environment by design — surface secrets through a different channel.
+- **`options.cwd` was rejected.** It must be an absolute path that exists and is a directory; otherwise the subprocess inherits agentline's cwd.
+
+---
+
+## My project's `command` widget is missing / I see "dropped \`command\` widget(s) from project config" on stderr
+
+By default, `command` widgets declared in `.agentline.json` (the project layer) are dropped before merge so cloning a hostile repo and refreshing the statusline isn't RCE-by-default. Two ways forward:
+
+1. **Move the widget to your user config** (`${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`). User-layer `command` widgets always run.
+2. **Opt in for this shell session:** export `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1`. The warning stops and the project widget renders. Set it project-wide via your shell rc / direnv only after reviewing the project file.
+
+See [widgets.md](./widgets.md) for the trust-boundary rationale.
+
+---
+
+## Reset or uninstall
 
 ```bash
-# Reset project config to the default preset
-agentline init --force --preset default --scope project
-
-# Reset user config to the default preset
-agentline init --force --preset default --scope user
+agentline init --force --preset default    # reset config → see config.md#cli-commands
+agentline uninstall [--purge]              # full uninstall → see install.md#uninstall
 ```
-
----
-
-## Full uninstall
-
-```bash
-agentline uninstall          # remove binary + restore settings + remove default config/themes
-agentline uninstall --purge  # also remove user-edited config and themes
-```
-
-Both are idempotent. Add `--dry-run` to preview the actions before running.
-
----
-
-## Doctor check reference
-
-| ID  | Description                                            | Auto-fix |
-| --- | ------------------------------------------------------ | -------- |
-| D01 | `~/.claude/settings.json` exists                       | yes      |
-| D02 | `statusLine.command` resolves to a working agentline   | yes      |
-| D03 | user config present and matches schema                 | yes      |
-| D04 | every theme referenced by config is installed          | yes      |
-| D05 | Nerd Font installed when Powerline is enabled          | no       |
-| D06 | git binary on PATH when git widgets are enabled        | no       |
-| D07 | embedded pricing table fresher than 90 days            | no       |
-| D08 | `CLAUDE_CONFIG_DIR` (when set) is writable             | no       |
-| D09 | every `command` widget `cmd` resolves to an executable | no       |
-| D10 | render dry-run matches stored snapshot                 | no       |
-
-See [doctor.md](./doctor.md) for the full description of each check.
