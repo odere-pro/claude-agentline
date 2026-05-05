@@ -19,6 +19,7 @@ import { promises as fs } from "node:fs";
 
 import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { resolveConfigPaths } from "../config/paths.js";
+import { pathExists } from "../lib/fs.js";
 import {
   parseAccessibilityArgs,
   type AccessibilityFlags,
@@ -52,7 +53,7 @@ export interface RenderCommandArgs {
   readonly accessibility: AccessibilityFlags;
 }
 
-export interface RenderInput {
+export interface RenderCommandInput {
   readonly args: RenderCommandArgs;
   readonly stdin?: NodeJS.ReadableStream;
 }
@@ -64,7 +65,7 @@ const ACCESSIBILITY_FLAGS: ReadonlySet<string> = new Set([
   "--ascii",
 ]);
 
-export async function runRenderCommand(input: RenderInput): Promise<number> {
+export async function runRenderCommand(input: RenderCommandInput): Promise<number> {
   const { fixture } = input.args;
   let payload: string;
   if (fixture) {
@@ -179,21 +180,12 @@ async function maybeEmitFirstRunHint(): Promise<void> {
   if (!process.stderr.isTTY) return;
   if (process.env.AGENTLINE_QUIET === "1") return;
   const paths = resolveConfigPaths(process.env, process.cwd());
-  const hasUser = await fileExists(paths.userConfig);
-  const hasProject = await fileExists(paths.projectConfig);
+  const hasUser = await pathExists(paths.userConfig);
+  const hasProject = await pathExists(paths.projectConfig);
   if (hasUser || hasProject) return;
   process.stderr.write(
     "# agentline: using built-in defaults — `agentline init` to customise (silence with AGENTLINE_QUIET=1)\n",
   );
-}
-
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await fs.access(path);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 async function readAll(stream: NodeJS.ReadableStream): Promise<string> {

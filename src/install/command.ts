@@ -15,14 +15,11 @@ import { isHelpFlag, requestHelp } from "../cli/help.js";
 const HELP = `agentline install — wire @agentline/cli into Claude Code's statusline
 
 Usage:
-  agentline install [--from-source] [--global | --local-only] [--force] [--dry-run]
+  agentline install [--from-source] [--force] [--dry-run]
 
 Options:
   --from-source   npm link from the local checkout instead of installing from
                   the registry. Use when developing agentline itself.
-  --global        Also wire statusLine into $HOME/.claude/settings.json
-                  without prompting.
-  --local-only    Wire the local project only; skip the global prompt.
   --force         Overwrite an existing statusLine value even when it does
                   not point at agentline.
   --dry-run       Print every action that would be taken; touch nothing.
@@ -33,43 +30,34 @@ Steps performed:
   2. Seed user config from the default template (preserves existing).
   3. Seed shipped themes into the user themes directory.
   4. Install agentline skill files into $HOME/.claude/agents/.
-  5. Wire statusLine into .claude/settings.json (local, and optionally global).
-
-By default statusLine is wired into the current project's
-.claude/settings.json. You will be asked whether to also wire it globally
-into $HOME/.claude/settings.json.
+  5. Wire statusLine into $HOME/.claude/settings.json.
+  6. Write install manifest to track managed files.
 `;
 
 export interface InstallArgs {
   readonly fromSource: boolean;
-  readonly global: -1 | 0 | 1; // -1 = ask, 0 = local-only, 1 = also global
   readonly force: boolean;
   readonly dryRun: boolean;
 }
 
 export function parseInstallArgs(rest: readonly string[]): InstallArgs {
   let fromSource = false;
-  let global_: -1 | 0 | 1 = -1;
   let force = false;
   let dryRun = false;
   for (const arg of rest) {
     if (arg === "--from-source") fromSource = true;
-    else if (arg === "--global") global_ = 1;
-    else if (arg === "--local-only") global_ = 0;
     else if (arg === "--force") force = true;
     else if (arg === "--dry-run") dryRun = true;
     else if (isHelpFlag(arg)) requestHelp(HELP);
     else throw new Error(`agentline install: unknown argument '${arg}'`);
   }
-  return { fromSource, global: global_, force, dryRun };
+  return { fromSource, force, dryRun };
 }
 
 export async function runInstallCommand(args: InstallArgs): Promise<number> {
   const script = resolveScript("install.sh");
   const argv: string[] = [];
   if (args.fromSource) argv.push("--from-source");
-  if (args.global === 1) argv.push("--global");
-  if (args.global === 0) argv.push("--local-only");
   if (args.force) argv.push("--force");
   if (args.dryRun) argv.push("--dry-run");
 

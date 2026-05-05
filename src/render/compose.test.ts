@@ -28,8 +28,8 @@ describe("composeLines (plain mode)", () => {
     expect(text).toContain("a");
     expect(text).toContain("b");
     // separator may be configured; we assert structural shape only
-    expect(text.startsWith("a")).toBe(true);
-    expect(text.endsWith("b")).toBe(true);
+    expect(text).toMatch(/^a/);
+    expect(text).toMatch(/b$/);
   });
 
   it("respects merged='merge' (single-space, no separator)", () => {
@@ -74,8 +74,8 @@ describe("composeLines (plain mode)", () => {
     );
     const text = out[0]?.map((s) => s.text).join("") ?? "";
     expect(text.length).toBe(20);
-    expect(text.startsWith("L")).toBe(true);
-    expect(text.endsWith("R")).toBe(true);
+    expect(text).toMatch(/^L/);
+    expect(text).toMatch(/R$/);
     // Middle should be all the fill character (default ' ')
     expect(text.slice(1, -1)).toMatch(/^ +$/);
   });
@@ -95,9 +95,9 @@ describe("composeLines (plain mode)", () => {
     );
     const text = out[0]?.map((s) => s.text).join("") ?? "";
     expect(text.length).toBe(13);
-    expect(text.startsWith("A")).toBe(true);
+    expect(text).toMatch(/^A/);
     expect(text).toContain("B");
-    expect(text.endsWith("C")).toBe(true);
+    expect(text).toMatch(/C$/);
   });
 });
 

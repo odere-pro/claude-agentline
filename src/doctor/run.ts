@@ -13,11 +13,12 @@ import { runChecks } from "./checks.js";
 import { applyFixes } from "./fix.js";
 import { formatText, formatJson, summariseWorst } from "./format.js";
 import type { RunOptions, RunReport, CheckResult } from "./types.js";
+import { resolveEnv } from "../lib/env.js";
 
 export async function runDoctor(opts: RunOptions): Promise<{ report: RunReport; exitCode: number }> {
   const ctx = {
     home: opts.home ?? homedir(),
-    env: opts.env ?? process.env,
+    env: resolveEnv(opts),
     cwd: opts.cwd ?? process.cwd(),
   };
   let results = await runChecks({ ...opts, home: ctx.home, env: ctx.env, cwd: ctx.cwd });

@@ -6,6 +6,8 @@
  * produces a structured error the caller can render as an ASCII fallback.
  */
 
+import { pickString } from "../lib/object.js";
+
 const MAX_PAYLOAD_BYTES = 256 * 1024;
 
 export interface StdinPayload {
@@ -60,11 +62,6 @@ export async function readStdinPayload(stream: NodeJS.ReadableStream): Promise<S
     vimMode: pickString(raw, "vimMode"),
     transcriptPath: pickString(raw, "transcriptPath"),
   };
-}
-
-function pickString(obj: Record<string, unknown>, key: string): string | undefined {
-  const v = obj[key];
-  return typeof v === "string" ? v : undefined;
 }
 
 async function readBounded(stream: NodeJS.ReadableStream, limit: number): Promise<Buffer> {

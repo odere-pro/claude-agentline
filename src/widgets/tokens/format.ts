@@ -2,6 +2,15 @@
  * Shared formatting helpers for token / cost widgets.
  */
 
+/**
+ * Clamp a bar-width option to a sane integer in [1, 80].
+ * Returns `fallback` when the value is absent, non-finite, or non-positive.
+ */
+export function clampWidth(value: number | undefined, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return fallback;
+  return Math.min(Math.floor(value), 80);
+}
+
 const ROLE_THRESHOLDS = {
   low: 0.6,
   high: 0.8,

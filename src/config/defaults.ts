@@ -1,5 +1,7 @@
 import type { AgentlineConfig } from "./types.js";
 
+export const DEFAULT_COMPACT_THRESHOLD = 60;
+
 /**
  * Built-in defaults — layer 1 of the merge order (§4.1).
  *
@@ -31,7 +33,7 @@ export const DEFAULT_CONFIG: AgentlineConfig = {
   },
   terminalWidth: {
     mode: "full-minus-40",
-    compactThreshold: 60,
+    compactThreshold: DEFAULT_COMPACT_THRESHOLD,
   },
   keymap: {},
 };

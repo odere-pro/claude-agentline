@@ -25,6 +25,8 @@ import { basename, dirname, join } from "node:path";
 import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { atomicWrite } from "../config/atomic.js";
 import { resolveConfigPaths } from "../config/paths.js";
+import { resolveEnv } from "../lib/env.js";
+import { pathExists } from "../lib/fs.js";
 
 const HELP = `agentline init — scaffold a config file from a shipped preset
 
@@ -71,7 +73,7 @@ export interface InitInput {
 }
 
 export async function runInitCommand(input: InitInput): Promise<number> {
-  const env = input.env ?? process.env;
+  const env = resolveEnv(input);
   const cwd = input.cwd ?? process.cwd();
   const target = input.args.target ?? resolveTargetForScope(input.args.scope, env, cwd);
   const templateDir = input.templateDir ?? defaultTemplateDir();
@@ -210,11 +212,3 @@ function defaultTemplateDir(): string {
   return join(cliDir, "..", "templates");
 }
 
-async function pathExists(path: string): Promise<boolean> {
-  try {
-    await fs.access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}

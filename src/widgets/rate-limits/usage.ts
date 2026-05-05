@@ -25,7 +25,7 @@ import type { Cell } from "../cell.js";
 import type { WidgetContext } from "../context.js";
 import type { WidgetSettings } from "../widget.js";
 import { defineWidget } from "../widget.js";
-import { formatCount, tokenRole } from "../tokens/format.js";
+import { clampWidth, formatCount, tokenRole } from "../tokens/format.js";
 
 export type UsageDisplay = "percent" | "bar" | "short-bar";
 
@@ -52,11 +52,6 @@ const VALID_DISPLAY: ReadonlySet<UsageDisplay> = new Set<UsageDisplay>([
 function resolveDisplay(value: unknown): UsageDisplay {
   if (typeof value !== "string") return "percent";
   return VALID_DISPLAY.has(value as UsageDisplay) ? (value as UsageDisplay) : "percent";
-}
-
-function clampWidth(value: number | undefined, fallback: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return fallback;
-  return Math.min(Math.floor(value), 80);
 }
 
 function renderBar(ratio: number, width: number, filled: string, empty: string): string {

@@ -112,7 +112,7 @@ describe("scripts/install.sh", () => {
   });
 
   it("seeds config, themes, and wires statusLine on a fresh host", async () => {
-    await runScript(installSh, ["--global"], sb.env, sb.root);
+    await runScript(installSh, [], sb.env, sb.root);
 
     expect(await exists(join(sb.configDir, "config.json"))).toBe(true);
     expect(await exists(join(sb.configDir, "themes", "claude-code-dark.json"))).toBe(true);
@@ -125,11 +125,11 @@ describe("scripts/install.sh", () => {
   });
 
   it("is idempotent — second run yields the same on-disk tree", async () => {
-    await runScript(installSh, ["--global"], sb.env, sb.root);
+    await runScript(installSh, [], sb.env, sb.root);
     const tree1 = await snapshotTree(sb.root);
     const settings1 = await fs.readFile(join(sb.home, ".claude", "settings.json"), "utf8");
 
-    await runScript(installSh, ["--global"], sb.env, sb.root);
+    await runScript(installSh, [], sb.env, sb.root);
     const tree2 = await snapshotTree(sb.root);
     const settings2 = await fs.readFile(join(sb.home, ".claude", "settings.json"), "utf8");
 
@@ -156,7 +156,7 @@ describe("scripts/install.sh", () => {
       JSON.stringify({ statusLine: { command: "starship init bash" } }),
     );
 
-    await runScript(installSh, ["--global"], sb.env, sb.root);
+    await runScript(installSh, [], sb.env, sb.root);
     const after = (await readJson(settingsPath)) as { statusLine: { command: string } };
     expect(after.statusLine.command).toMatch(/agentline/);
     const backup = (await readJson(
@@ -174,7 +174,7 @@ describe("scripts/install.sh", () => {
       JSON.stringify({ statusLine: { command: "starship init bash" } }),
     );
 
-    await runScript(installSh, ["--force", "--global"], sb.env, sb.root);
+    await runScript(installSh, ["--force"], sb.env, sb.root);
     const after = (await readJson(settingsPath)) as { statusLine: { command: string } };
     expect(after.statusLine.command).toMatch(/agentline/);
   });
@@ -186,8 +186,8 @@ describe("scripts/install.sh", () => {
       settingsPath,
       JSON.stringify({ statusLine: { command: "starship init bash" } }),
     );
-    await runScript(installSh, ["--global"], sb.env, sb.root); // backs up starship
-    await runScript(installSh, ["--global"], sb.env, sb.root); // settings.json now has agentline
+    await runScript(installSh, [], sb.env, sb.root); // backs up starship
+    await runScript(installSh, [], sb.env, sb.root); // settings.json now has agentline
     const backup = (await readJson(
       join(sb.configDir, "state", "settings-backup.json"),
     )) as { previousStatusLine: { command: string } };
@@ -212,7 +212,7 @@ describe("scripts/uninstall.sh", () => {
   });
 
   it("install + uninstall round-trip leaves no agentline footprint", async () => {
-    await runScript(installSh, ["--global"], sb.env, sb.root);
+    await runScript(installSh, [], sb.env, sb.root);
     await runScript(uninstallSh, [], sb.env, sb.root);
 
     expect(await exists(join(sb.configDir, "config.json"))).toBe(false);

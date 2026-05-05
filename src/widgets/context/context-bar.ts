@@ -8,7 +8,7 @@ import { resolveRole } from "../../theme/index.js";
 import { aggregate } from "../../tokens/index.js";
 import type { Cell } from "../cell.js";
 import { defineWidget } from "../widget.js";
-import { tokenRole } from "../tokens/format.js";
+import { clampWidth, tokenRole } from "../tokens/format.js";
 
 interface Options {
   readonly label?: string;
@@ -20,11 +20,6 @@ interface Options {
 const DEFAULT_WIDTH = 12;
 const DEFAULT_FILLED = "█";
 const DEFAULT_EMPTY = "░";
-
-function clampWidth(value: number | undefined): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return DEFAULT_WIDTH;
-  return Math.min(Math.floor(value), 80);
-}
 
 export const contextBarWidget = defineWidget<Options>("context-bar", (ctx, settings) => {
   const snapshot = ctx.tokens;
@@ -39,7 +34,7 @@ export const contextBarWidget = defineWidget<Options>("context-bar", (ctx, setti
   });
   const used = totals.input + totals.cached;
   const ratio = snapshot.contextWindow > 0 ? used / snapshot.contextWindow : 0;
-  const width = clampWidth(settings.options.width);
+  const width = clampWidth(settings.options.width, DEFAULT_WIDTH);
   const filledChar = settings.options.filled ?? DEFAULT_FILLED;
   const emptyChar = settings.options.empty ?? DEFAULT_EMPTY;
   const filledCount = Math.min(width, Math.max(0, Math.round(ratio * width)));

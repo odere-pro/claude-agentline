@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { formatText, formatJson, summariseWorst } from "./format.js";
 import type { CheckResult, RunReport } from "./types.js";
 
+const ESC = "\x1b[";
+
 const sample: CheckResult[] = [
   { id: "D01", title: "settings present", status: "pass", message: "ok" },
   { id: "D02", title: "wired", status: "warn", message: "missing", hint: "do X" },
@@ -59,14 +61,14 @@ describe("formatText", () => {
     const report: RunReport = { results: sample, worst: "warn" };
     const colourised = formatText(report, { tty: true, env: {} });
     const plain = formatText(report, { tty: false, env: {} });
-    expect(colourised).toMatch(/\x1b\[32m\[ok\]/);
-    expect(plain).not.toMatch(/\x1b\[/);
+    expect(colourised).toContain(`${ESC}32m[ok]`);
+    expect(plain).not.toContain(ESC);
   });
 
   it("respects NO_COLOR=1 even on a TTY", () => {
     const report: RunReport = { results: sample, worst: "warn" };
     const out = formatText(report, { tty: true, env: { NO_COLOR: "1" } });
-    expect(out).not.toMatch(/\x1b\[/);
+    expect(out).not.toContain(ESC);
   });
 });
 

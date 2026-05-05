@@ -23,6 +23,8 @@ import { envLayer } from "./env.js";
 import { resolveConfigPaths, type ConfigPaths } from "./paths.js";
 import { validateConfig } from "./validate.js";
 import type { AgentlineConfig } from "./types.js";
+import { resolveEnv } from "../lib/env.js";
+import { isEnoent } from "../lib/fs.js";
 
 export interface LoadedConfig {
   config: AgentlineConfig;
@@ -44,12 +46,13 @@ export interface LoadOptions {
 }
 
 export async function loadConfig(options: LoadOptions = {}): Promise<LoadedConfig> {
-  const env = options.env ?? process.env;
+  const env = resolveEnv(options);
   const cwd = options.cwd ?? process.cwd();
   const paths = resolveConfigPaths(env, cwd);
 
   const userOverride = await readJsonIfExists(paths.userConfig);
-  const projectOverride = await readJsonIfExists(paths.projectConfig);
+  const rawProjectOverride = await readJsonIfExists(paths.projectConfig);
+  const projectOverride = stripUntrustedProjectWidgets(rawProjectOverride, env);
   const envOverride = envLayer(env);
   const flagOverride = options.flagOverrides ?? {};
 
@@ -73,24 +76,58 @@ export async function loadConfig(options: LoadOptions = {}): Promise<LoadedConfi
   };
 }
 
+// Project-layer config (`.agentline.json` in the cwd) is loaded automatically
+// when the user runs Claude Code in that directory. Allowing a project file
+// to declare a `command` widget would mean cloning a hostile repo and
+// running Claude Code with a statusline refresh = arbitrary code execution.
+// Strip `command` widgets unless the user explicitly opts in via
+// `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1`. Other widget types remain
+// untouched so the project layer keeps its day-to-day usefulness.
+function stripUntrustedProjectWidgets(
+  override: unknown,
+  env: NodeJS.ProcessEnv,
+): unknown {
+  if (env["AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS"] === "1") return override;
+  if (!override || typeof override !== "object" || Array.isArray(override)) return override;
+  const obj = override as Record<string, unknown>;
+  const lines = obj["lines"];
+  if (!Array.isArray(lines)) return override;
+  let stripped = false;
+  const nextLines = lines.map((line) => {
+    if (!line || typeof line !== "object" || Array.isArray(line)) return line;
+    const widgets = (line as Record<string, unknown>)["widgets"];
+    if (!Array.isArray(widgets)) return line;
+    const filtered = widgets.filter((w) => {
+      const isCommand =
+        w !== null &&
+        typeof w === "object" &&
+        !Array.isArray(w) &&
+        (w as Record<string, unknown>)["type"] === "command";
+      if (isCommand) stripped = true;
+      return !isCommand;
+    });
+    if (filtered.length === widgets.length) return line;
+    return { ...(line as Record<string, unknown>), widgets: filtered };
+  });
+  if (!stripped) return override;
+  if (process.stderr.isTTY) {
+    process.stderr.write(
+      "agentline: dropped `command` widget(s) from project config (untrusted source). " +
+        "Set AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1 to allow.\n",
+    );
+  }
+  return { ...obj, lines: nextLines };
+}
+
 async function readJsonIfExists(path: string): Promise<unknown> {
   try {
     const text = await fs.readFile(path, "utf8");
     return JSON.parse(text);
   } catch (err) {
-    if (isMissing(err)) return undefined;
+    if (isEnoent(err)) return undefined;
     if (err instanceof SyntaxError) {
       throw new Error(`agentline: ${path}: invalid JSON — ${err.message}`);
     }
     throw err;
   }
-}
-
-function isMissing(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code: string }).code === "ENOENT"
-  );
 }

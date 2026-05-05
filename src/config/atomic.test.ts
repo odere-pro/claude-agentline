@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -41,5 +41,21 @@ describe("atomicWriteJson", () => {
     await atomicWriteJson(target, { v: 1 });
     await atomicWriteJson(target, { v: 2 });
     expect(JSON.parse(await fs.readFile(target, "utf8"))).toEqual({ v: 2 });
+  });
+
+  it("cleans up the temp file and rethrows when rename fails", async () => {
+    const target = join(dir, "out.json");
+    const renameSpy = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValueOnce(Object.assign(new Error("EACCES"), { code: "EACCES" }));
+    try {
+      await expect(atomicWriteJson(target, { v: 1 })).rejects.toThrow("EACCES");
+    } finally {
+      renameSpy.mockRestore();
+    }
+    // The original target was never written, and the temp file must not linger.
+    const entries = await fs.readdir(dir);
+    expect(entries.filter((e) => e.endsWith(".tmp"))).toHaveLength(0);
+    await expect(fs.access(target)).rejects.toBeTruthy();
   });
 });

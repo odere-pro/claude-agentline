@@ -17,10 +17,29 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { existsSync, statSync } from "node:fs";
 import { isAbsolute } from "node:path";
 
 import type { Cell } from "../cell.js";
 import { defineWidget } from "../widget.js";
+
+// Allowlist of shells the command widget will spawn. Any other value in
+// `options.shell` falls back to DEFAULT_SHELL. Prevents project-config
+// or env-layer overrides from substituting a controlled binary.
+const SHELL_ALLOWLIST: ReadonlySet<string> = new Set([
+  "/bin/sh",
+  "/bin/bash",
+  "/usr/bin/sh",
+  "/usr/bin/bash",
+  "/usr/local/bin/bash",
+  "cmd.exe",
+  "powershell.exe",
+  "pwsh.exe",
+]);
+
+// Env-var keys that look credential-bearing — never forwarded to a
+// command-widget subprocess even when the prefix matches CLAUDE_*.
+const CREDENTIAL_KEY_RE = /(_TOKEN|_KEY|_SECRET|_PASSWORD|_PASS|_AUTH)$/i;
 
 export interface CommandOptions {
   readonly cmd?: string;
@@ -56,9 +75,25 @@ function clampPositive(value: unknown, fallback: number, max: number): number {
   return Math.min(Math.floor(value), max);
 }
 
+// Keys always forwarded to the subprocess (§7.8.3 sandbox contract).
+const ENV_PASSTHROUGH = new Set([
+  "PATH", "HOME", "USER", "USERNAME", "LOGNAME",
+  "LANG", "TERM", "TMPDIR", "TMP", "TEMP", "SHELL",
+  "USERPROFILE", "SYSTEMROOT", "WINDIR", "COMSPEC",
+]);
+
 function pickEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  const next: NodeJS.ProcessEnv = { ...env };
-  // CLAUDE_* vars are passed through verbatim — see spec §7.8.3
+  const next: NodeJS.ProcessEnv = {};
+  for (const [k, v] of Object.entries(env)) {
+    const allowed =
+      ENV_PASSTHROUGH.has(k) || k.startsWith("LC_") || k.startsWith("CLAUDE_");
+    if (!allowed) continue;
+    // Drop credential-shaped keys even when the family prefix matches.
+    // CLAUDE_API_KEY, CLAUDE_ANTHROPIC_TOKEN, etc. should never reach a
+    // user-supplied shell command.
+    if (CREDENTIAL_KEY_RE.test(k)) continue;
+    next[k] = v;
+  }
   return next;
 }
 
@@ -105,6 +140,10 @@ function runCommand(input: RunInput): string | null {
   }
 }
 
+// INTENTIONAL EXCEPTION: this render function performs synchronous I/O via execFileSync.
+// SPEC §7.8.3 explicitly requires subprocess execution for the `command` widget type —
+// it is the widget's sole purpose. The widget contract (no I/O in render) is suspended
+// here by spec design; all other widgets remain pure.
 export const commandWidget = defineWidget<CommandOptions>("command", (ctx, settings): Cell => {
   const cmd = typeof settings.options.cmd === "string" ? settings.options.cmd : "";
   if (!cmd) return { text: "", hidden: true };
@@ -116,14 +155,9 @@ export const commandWidget = defineWidget<CommandOptions>("command", (ctx, setti
   const cacheTtlMs = clampPositive(settings.options.cacheTtlMs, DEFAULT_CACHE_TTL_MS, 60 * 60 * 1000);
   const byteLimit = clampPositive(settings.options.byteLimit, DEFAULT_BYTE_LIMIT, 64 * 1024);
   const trim = settings.options.trim !== false;
-  const shell = typeof settings.options.shell === "string" && isAbsolute(settings.options.shell)
-    ? settings.options.shell
-    : (typeof settings.options.shell === "string" && /\.exe$/i.test(settings.options.shell)
-        ? settings.options.shell
-        : DEFAULT_SHELL);
-  const cwd = typeof settings.options.cwd === "string" && settings.options.cwd
-    ? settings.options.cwd
-    : ctx.stdin.cwd;
+  const requestedShell = typeof settings.options.shell === "string" ? settings.options.shell : "";
+  const shell = SHELL_ALLOWLIST.has(requestedShell) ? requestedShell : DEFAULT_SHELL;
+  const cwd = resolveCwd(settings.options.cwd, ctx.stdin.cwd);
 
   const cacheKey = `${shell}:${cwd ?? ""}:${cmd}`;
   const now = ctx.clock.now().getTime();
@@ -151,6 +185,22 @@ export const commandWidget = defineWidget<CommandOptions>("command", (ctx, setti
 
   return cellOf(value, onError);
 });
+
+// Validate a candidate cwd: must be a string, absolute, exist, and be a
+// directory. Falls back to undefined (subprocess inherits agentline's cwd)
+// when validation fails — better to spawn in a known directory than to
+// follow a potentially attacker-controlled path from stdin.
+function resolveCwd(opt: unknown, stdinCwd: string | undefined): string | undefined {
+  const candidate = typeof opt === "string" && opt ? opt : stdinCwd;
+  if (!candidate || !isAbsolute(candidate)) return undefined;
+  try {
+    if (!existsSync(candidate)) return undefined;
+    if (!statSync(candidate).isDirectory()) return undefined;
+  } catch {
+    return undefined;
+  }
+  return candidate;
+}
 
 function cellOf(value: string | null, onError: string): Cell {
   if (value === null) return { text: onError };

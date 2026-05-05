@@ -8,6 +8,7 @@
  */
 
 import type { CheckResult, RunReport, CheckStatus } from "./types.js";
+import { resolveEnv } from "../lib/env.js";
 
 const GLYPHS: Record<CheckStatus, string> = {
   pass: "[ok]",
@@ -39,7 +40,7 @@ export function summariseWorst(results: CheckResult[]): CheckStatus {
 }
 
 export function formatText(report: RunReport, options: FormatTextOptions = {}): string {
-  const env = options.env ?? process.env;
+  const env = resolveEnv(options);
   const useColour = colourEnabled(options.tty, env);
   const widestTitle = report.results.reduce((n, r) => Math.max(n, r.title.length), 0);
   const lines: string[] = [];

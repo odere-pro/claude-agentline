@@ -60,7 +60,23 @@ done
 config_dir="$(al_config_dir)"
 config_file="$(al_config_file)"
 themes_dir="$(al_themes_dir)"
+manifest_file="${AL_STATE_DIR}/manifest.json"
+
+# Prefer the settings file recorded in the manifest; fall back to the
+# default global path so uninstall works even if the manifest is absent.
 settings_file="$(al_claude_settings)"
+if [ -f "${manifest_file}" ]; then
+  __manifest_settings="$(AL_MANIFEST_FILE="${manifest_file}" node - 2>/dev/null <<'JS' || true
+try {
+  const m = JSON.parse(require('fs').readFileSync(process.env.AL_MANIFEST_FILE, 'utf8'));
+  if (m.statusLineSettings) process.stdout.write(m.statusLineSettings);
+} catch {}
+JS
+)"
+  if [ -n "${__manifest_settings}" ]; then
+    settings_file="${__manifest_settings}"
+  fi
+fi
 
 al_log_info "platform: $(al_detect_os)"
 al_log_info "config dir: ${config_dir}"
@@ -336,5 +352,18 @@ tidy_themes
 tidy_user_config
 tidy_skills
 unwire_statusline
+
+# Remove the install manifest last so all other steps can still read it.
+if [ -f "${manifest_file}" ]; then
+  if [ "${DRY_RUN}" = "1" ]; then
+    al_log_info "would remove manifest: ${manifest_file}"
+  else
+    rm -f -- "${manifest_file}"
+    al_log_info "removed manifest: ${manifest_file}"
+    if [ -d "${AL_STATE_DIR}" ] && [ -z "$(ls -A "${AL_STATE_DIR}" 2>/dev/null || true)" ]; then
+      rmdir "${AL_STATE_DIR}" 2>/dev/null || true
+    fi
+  fi
+fi
 
 al_log_info "uninstall complete"
