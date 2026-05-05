@@ -12,10 +12,11 @@
  *   - --all-themes           stack one render per shipped theme
  *   - --config <path>        preview against a specific config file
  *   - --minimal | --default  preview the shipped templates without writing them
+ *   - --watch/-w             re-render on config change (TTY only)
  *   - --no-color/--ascii/... accessibility flags (forwarded to the render)
  */
 
-import { promises as fs } from "node:fs";
+import { promises as fs, watch as fsWatch, type FSWatcher } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -40,7 +41,7 @@ const HELP = `agentline preview — render a sample statusline (no install, no s
 
 Usage:
   agentline preview [--theme <name>] [--config <path>] [--all-themes]
-                    [--minimal | --default] [--no-color | --ascii ...]
+                    [--minimal | --default] [--watch] [--no-color | --ascii ...]
 
 Options:
   --theme <name>       render with the named theme (user dir or builtin)
@@ -48,6 +49,7 @@ Options:
   --config <path>      render against a specific config file
   --minimal            preview the shipped minimal template
   --default            preview the shipped default template
+  --watch, -w          re-render on config file change (interactive terminal only)
   --no-color, --ascii  forward accessibility flags to the renderer
   -h, --help           show this message
 
@@ -65,6 +67,7 @@ export interface PreviewCommandArgs {
   readonly configPath?: string;
   readonly template?: PreviewTemplate;
   readonly accessibility: AccessibilityFlags;
+  readonly watch?: boolean;
 }
 
 export interface PreviewInput {
@@ -85,6 +88,8 @@ const ACCESSIBILITY_FLAGS: ReadonlySet<string> = new Set([
 ]);
 
 export async function runPreviewCommand(input: PreviewInput): Promise<number> {
+  if (input.args.watch) return runPreviewWatch(input);
+
   const env = input.env ?? process.env;
   const cwd = input.cwd ?? process.cwd();
 
@@ -259,11 +264,105 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
+async function runPreviewWatch(input: PreviewInput): Promise<number> {
+  if (!process.stdout.isTTY) {
+    process.stderr.write("agentline preview: --watch requires an interactive terminal\n");
+    return 1;
+  }
+
+  const env = input.env ?? process.env;
+  const cwd = input.cwd ?? process.cwd();
+  const configPath = await resolveConfigPath(input);
+
+  const redraw = async () => {
+    process.stdout.write("\x1b[H\x1b[2J");
+    const tokens = buildDemoTokens();
+    const git = loadPreviewGit(cwd, env);
+
+    if (input.args.mode === "all-themes") {
+      await renderAllThemes(input, configPath);
+    } else {
+      const theme = input.args.theme ? await loadThemeByName(input, input.args.theme) : null;
+      const out = await renderForFixture(PREVIEW_SAMPLE_PAYLOAD, {
+        ...(configPath !== undefined ? { configPath } : {}),
+        ...(theme !== null ? { theme } : {}),
+        flags: input.args.accessibility,
+        env,
+        tokens,
+        git,
+      });
+      process.stdout.write(out);
+    }
+
+    if (configPath) {
+      process.stderr.write(`# watching: ${configPath} — Ctrl+C to exit\n`);
+    }
+  };
+
+  // Enter alternate screen so Ctrl+C restores the previous terminal contents.
+  process.stdout.write("\x1b[?1049h");
+  try {
+    await redraw().catch((err: unknown) => {
+      process.stderr.write(`agentline preview: ${(err as Error).message}\n`);
+    });
+
+    if (configPath) {
+      attachConfigWatcher(configPath, () => {
+        redraw().catch((err: unknown) => {
+          process.stderr.write(`agentline preview: ${(err as Error).message}\n`);
+        });
+      });
+    }
+
+    await new Promise<void>((resolve) => {
+      process.on("SIGINT", resolve);
+    });
+  } finally {
+    process.stdout.write("\x1b[?1049l");
+  }
+  return 0;
+}
+
+function attachConfigWatcher(filePath: string, onChange: () => void): void {
+  let watcher: FSWatcher | null = null;
+  let debounce: ReturnType<typeof setTimeout> | null = null;
+
+  const fire = () => {
+    if (debounce !== null) clearTimeout(debounce);
+    debounce = setTimeout(onChange, 80);
+  };
+
+  const attach = () => {
+    try {
+      watcher = fsWatch(filePath, (event) => {
+        fire();
+        // Atomic writes (write-tmp + rename) emit a "rename" event on the
+        // watched path; re-attach the watcher so the next write is caught.
+        if (event === "rename") {
+          watcher?.close();
+          watcher = null;
+          setTimeout(attach, 100);
+        }
+      });
+      watcher.on("error", () => {
+        watcher?.close();
+        watcher = null;
+        setTimeout(attach, 500);
+      });
+    } catch {
+      setTimeout(attach, 500);
+    }
+  };
+
+  attach();
+}
+
 export function parsePreviewArgs(rest: readonly string[]): PreviewCommandArgs {
   let mode: PreviewMode = "single";
   let theme: string | undefined;
   let configPath: string | undefined;
   let template: PreviewTemplate | undefined;
+  let watchMode = false;
   const accessibilityArgv: string[] = [];
   for (let i = 0; i < rest.length; i += 1) {
     const arg = rest[i];
@@ -271,6 +370,8 @@ export function parsePreviewArgs(rest: readonly string[]): PreviewCommandArgs {
       requestHelp(HELP);
     } else if (arg === "--all-themes") {
       mode = "all-themes";
+    } else if (arg === "--watch" || arg === "-w") {
+      watchMode = true;
     } else if (arg === "--theme") {
       const next = rest[i + 1];
       if (!next || next.startsWith("-")) {
@@ -307,5 +408,6 @@ export function parsePreviewArgs(rest: readonly string[]): PreviewCommandArgs {
   if (theme !== undefined) (out as { theme: string }).theme = theme;
   if (configPath !== undefined) (out as { configPath: string }).configPath = configPath;
   if (template !== undefined) (out as { template: PreviewTemplate }).template = template;
+  if (watchMode) (out as { watch: boolean }).watch = true;
   return out;
 }

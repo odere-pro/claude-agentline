@@ -25,7 +25,7 @@ A standalone, fast, themeable Claude Code statusline. Reads the Claude Code stdi
 - **Two-layer config** — user global config layered under project-local `.claude/agentline.json`; only the keys you set override
 - **Single binary, no network at render time** — the pricing table, themes, and widget registry are all embedded
 - **`agentline doctor`** with auto-fix for the four most common wiring problems
-- **`agentline install` / `agentline uninstall`** — wires and unwires the Claude Code `statusLine` setting and installs/removes Claude skill files automatically
+- **`agentline install` / `agentline uninstall`** — wires and unwires the Claude Code `statusLine` setting and installs/removes agentline skill files automatically
 
 ---
 
@@ -38,7 +38,7 @@ npx @agentline/cli preview --all-themes  # try before installing
 
 npm install -g @agentline/cli
 agentline install   # wires local project; prompts for global
-# restart Claude Code → statusline appears
+# Restart Claude Code session — statusline appears at the next prompt
 ```
 
 **From source (local checkout):**
@@ -48,10 +48,7 @@ git clone https://github.com/odere-pro/claude-agentline
 cd claude-agentline
 npm install && npm run build
 node dist/cli.mjs install --from-source --local-only
-# restart Claude Code → statusline appears
-#
-# `--from-source` runs `npm link` so `agentline` is on your PATH from the checkout.
-# `--local-only` wires only the current project; omit it to be prompted for global wiring too.
+# Restart Claude Code session — statusline appears at the next prompt
 ```
 
 `--from-source` runs `npm link` so `agentline` is on your PATH from the checkout.

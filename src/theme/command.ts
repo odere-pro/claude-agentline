@@ -174,11 +174,16 @@ function formatTheme(
   path: string,
   palette: Readonly<Record<string, string>>,
 ): string {
+  const env = process.env;
+  const depth = detectColourDepth({ env });
   const lines = [`theme: ${name}`, `path:  ${path}`, "palette:"];
   const widest = THEME_ROLES.reduce((n, r) => Math.max(n, r.length), 0);
   for (const role of THEME_ROLES) {
-    const colour = palette[role] ?? "(unset)";
-    lines.push(`  ${role.padEnd(widest, " ")}  ${colour}`);
+    const hex = palette[role] ?? "(unset)";
+    const swatch = depth !== "none" && isColour(hex)
+      ? `${encodeSegments([{ text: "  ", bg: hex }], depth)}${SGR_RESET} `
+      : "   ";
+    lines.push(`  ${role.padEnd(widest, " ")}  ${swatch}${hex}`);
   }
   lines.push("");
   return lines.join("\n");
