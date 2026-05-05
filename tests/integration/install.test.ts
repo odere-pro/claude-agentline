@@ -65,8 +65,8 @@ async function teardown(sb: Sandbox): Promise<void> {
   await fs.rm(sb.root, { recursive: true, force: true });
 }
 
-async function runScript(script: string, args: string[], env: NodeJS.ProcessEnv) {
-  return execFileP("bash", [script, ...args], { env, timeout: 30000 });
+async function runScript(script: string, args: string[], env: NodeJS.ProcessEnv, cwd?: string) {
+  return execFileP("bash", [script, ...args], { env, timeout: 30000, ...(cwd !== undefined && { cwd }) });
 }
 
 async function readJson(path: string): Promise<unknown> {
@@ -112,7 +112,7 @@ describe("scripts/install.sh", () => {
   });
 
   it("seeds config, themes, and wires statusLine on a fresh host", async () => {
-    await runScript(installSh, [], sb.env);
+    await runScript(installSh, ["--global"], sb.env, sb.root);
 
     expect(await exists(join(sb.configDir, "config.json"))).toBe(true);
     expect(await exists(join(sb.configDir, "themes", "claude-code-dark.json"))).toBe(true);
@@ -125,11 +125,11 @@ describe("scripts/install.sh", () => {
   });
 
   it("is idempotent — second run yields the same on-disk tree", async () => {
-    await runScript(installSh, [], sb.env);
+    await runScript(installSh, ["--global"], sb.env, sb.root);
     const tree1 = await snapshotTree(sb.root);
     const settings1 = await fs.readFile(join(sb.home, ".claude", "settings.json"), "utf8");
 
-    await runScript(installSh, [], sb.env);
+    await runScript(installSh, ["--global"], sb.env, sb.root);
     const tree2 = await snapshotTree(sb.root);
     const settings2 = await fs.readFile(join(sb.home, ".claude", "settings.json"), "utf8");
 
@@ -138,12 +138,12 @@ describe("scripts/install.sh", () => {
   });
 
   it("preserves a user-edited config on re-run", async () => {
-    await runScript(installSh, [], sb.env);
+    await runScript(installSh, [], sb.env, sb.root);
     const userCfg = join(sb.configDir, "config.json");
     const edited = JSON.stringify({ version: 1, theme: "vscode-light", lines: [{ widgets: [{ type: "model" }] }] });
     await fs.writeFile(userCfg, edited);
 
-    await runScript(installSh, [], sb.env);
+    await runScript(installSh, [], sb.env, sb.root);
     const after = await fs.readFile(userCfg, "utf8");
     expect(after).toBe(edited);
   });
@@ -156,7 +156,7 @@ describe("scripts/install.sh", () => {
       JSON.stringify({ statusLine: { command: "starship init bash" } }),
     );
 
-    await runScript(installSh, [], sb.env);
+    await runScript(installSh, ["--global"], sb.env, sb.root);
     const after = (await readJson(settingsPath)) as { statusLine: { command: string } };
     expect(after.statusLine.command).toMatch(/agentline/);
     const backup = (await readJson(
@@ -174,7 +174,7 @@ describe("scripts/install.sh", () => {
       JSON.stringify({ statusLine: { command: "starship init bash" } }),
     );
 
-    await runScript(installSh, ["--force"], sb.env);
+    await runScript(installSh, ["--force", "--global"], sb.env, sb.root);
     const after = (await readJson(settingsPath)) as { statusLine: { command: string } };
     expect(after.statusLine.command).toMatch(/agentline/);
   });
@@ -186,8 +186,8 @@ describe("scripts/install.sh", () => {
       settingsPath,
       JSON.stringify({ statusLine: { command: "starship init bash" } }),
     );
-    await runScript(installSh, [], sb.env); // backs up starship
-    await runScript(installSh, [], sb.env); // settings.json now has agentline
+    await runScript(installSh, ["--global"], sb.env, sb.root); // backs up starship
+    await runScript(installSh, ["--global"], sb.env, sb.root); // settings.json now has agentline
     const backup = (await readJson(
       join(sb.configDir, "state", "settings-backup.json"),
     )) as { previousStatusLine: { command: string } };
@@ -196,7 +196,7 @@ describe("scripts/install.sh", () => {
 
   it("--dry-run touches no files", async () => {
     const before = await snapshotTree(sb.root);
-    await runScript(installSh, ["--dry-run"], sb.env);
+    await runScript(installSh, ["--dry-run"], sb.env, sb.root);
     const after = await snapshotTree(sb.root);
     expect(after).toEqual(before);
   });
@@ -212,8 +212,8 @@ describe("scripts/uninstall.sh", () => {
   });
 
   it("install + uninstall round-trip leaves no agentline footprint", async () => {
-    await runScript(installSh, [], sb.env);
-    await runScript(uninstallSh, [], sb.env);
+    await runScript(installSh, ["--global"], sb.env, sb.root);
+    await runScript(uninstallSh, [], sb.env, sb.root);
 
     expect(await exists(join(sb.configDir, "config.json"))).toBe(false);
     for (const t of ["claude-code-dark", "claude-code-light", "vscode-dark", "vscode-light"]) {
@@ -227,20 +227,20 @@ describe("scripts/uninstall.sh", () => {
   });
 
   it("preserves user-edited config (without --purge)", async () => {
-    await runScript(installSh, [], sb.env);
+    await runScript(installSh, [], sb.env, sb.root);
     const userCfg = join(sb.configDir, "config.json");
     await fs.writeFile(userCfg, JSON.stringify({ version: 1, theme: "vscode-light" }));
 
-    await runScript(uninstallSh, [], sb.env);
+    await runScript(uninstallSh, [], sb.env, sb.root);
     expect(await exists(userCfg)).toBe(true);
   });
 
   it("--purge removes user-edited config", async () => {
-    await runScript(installSh, [], sb.env);
+    await runScript(installSh, [], sb.env, sb.root);
     const userCfg = join(sb.configDir, "config.json");
     await fs.writeFile(userCfg, JSON.stringify({ version: 1, theme: "vscode-light" }));
 
-    await runScript(uninstallSh, ["--purge"], sb.env);
+    await runScript(uninstallSh, ["--purge"], sb.env, sb.root);
     expect(await exists(userCfg)).toBe(false);
   });
 
@@ -252,7 +252,7 @@ describe("scripts/uninstall.sh", () => {
       JSON.stringify({ statusLine: { command: "starship init bash" } }),
     );
 
-    await runScript(uninstallSh, [], sb.env);
+    await runScript(uninstallSh, [], sb.env, sb.root);
     const after = (await readJson(settingsPath)) as { statusLine: { command: string } };
     expect(after.statusLine.command).toBe("starship init bash");
   });
@@ -264,8 +264,8 @@ describe("scripts/uninstall.sh", () => {
       settingsPath,
       JSON.stringify({ statusLine: { command: "starship init bash" } }),
     );
-    await runScript(installSh, [], sb.env); // overwrite + back up
-    await runScript(uninstallSh, [], sb.env); // restore from backup
+    await runScript(installSh, [], sb.env, sb.root); // overwrite + back up
+    await runScript(uninstallSh, [], sb.env, sb.root); // restore from backup
     const after = (await readJson(settingsPath)) as { statusLine: { command: string } };
     expect(after.statusLine.command).toBe("starship init bash");
     expect(
@@ -277,25 +277,25 @@ describe("scripts/uninstall.sh", () => {
     await fs.mkdir(join(sb.home, ".claude"), { recursive: true });
     const settingsPath = join(sb.home, ".claude", "settings.json");
     await fs.writeFile(settingsPath, JSON.stringify({ otherSetting: 1 }));
-    await runScript(installSh, [], sb.env);
-    await runScript(uninstallSh, [], sb.env);
+    await runScript(installSh, [], sb.env, sb.root);
+    await runScript(uninstallSh, [], sb.env, sb.root);
     const after = (await readJson(settingsPath)) as Record<string, unknown>;
     expect(after).not.toHaveProperty("statusLine");
     expect(after.otherSetting).toBe(1);
   });
 
   it("is idempotent — running twice on a clean tree is a no-op", async () => {
-    await runScript(uninstallSh, [], sb.env);
+    await runScript(uninstallSh, [], sb.env, sb.root);
     const tree1 = await snapshotTree(sb.root);
-    await runScript(uninstallSh, [], sb.env);
+    await runScript(uninstallSh, [], sb.env, sb.root);
     const tree2 = await snapshotTree(sb.root);
     expect(tree2).toEqual(tree1);
   });
 
   it("--dry-run after install touches no files", async () => {
-    await runScript(installSh, [], sb.env);
+    await runScript(installSh, [], sb.env, sb.root);
     const before = await snapshotTree(sb.root);
-    await runScript(uninstallSh, ["--dry-run"], sb.env);
+    await runScript(uninstallSh, ["--dry-run"], sb.env, sb.root);
     const after = await snapshotTree(sb.root);
     expect(after).toEqual(before);
   });

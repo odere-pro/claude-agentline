@@ -33,6 +33,7 @@
   "files": [
     "dist/",
     "schemas/",
+    "scripts/",
     "themes/",
     "templates/",
     "LICENSE",

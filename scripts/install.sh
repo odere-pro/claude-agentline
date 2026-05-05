@@ -5,7 +5,9 @@
 #   1. install or link `@agentline/cli` (npm i -g, or `npm link` with --from-source)
 #   2. seed the user config from templates/default.config.json (no overwrite)
 #   3. seed themes/ to the same config dir
-#   4. wire `statusLine` into Claude Code's settings file when unset
+#   4. wire `statusLine` into the local project's .claude/settings.json (always)
+#   5. optionally wire `statusLine` into $HOME/.claude/settings.json (prompted, or
+#      --global / --local-only flags)
 # All filesystem writes go through atomic write-temp + rename.
 #
 # Spec: §10. Bash 3.2 friendly; no associative arrays / mapfile / Bash-4 features.
@@ -21,13 +23,15 @@ al_setup
 DRY_RUN=0
 FORCE=0
 FROM_SOURCE=0
+# -1 = ask interactively, 0 = local-only, 1 = also wire globally
+GLOBAL=-1
 
 usage() {
   cat <<'EOF'
 agentline install — wires @agentline/cli into Claude Code's statusline.
 
 Usage:
-  scripts/install.sh [--dry-run] [--force] [--from-source]
+  scripts/install.sh [--dry-run] [--force] [--from-source] [--global | --local-only]
 
 Options:
   --dry-run       Print the actions that would be taken; touch nothing.
@@ -35,7 +39,15 @@ Options:
                   already point at agentline.
   --from-source   `npm link` from the current checkout instead of installing
                   the published tarball. Intended for repo contributors.
+  --global        Also wire statusLine into $HOME/.claude/settings.json without
+                  prompting.
+  --local-only    Wire the local project only; skip the global prompt.
   -h, --help      Show this help.
+
+By default statusLine is wired into the current project's
+.claude/settings.json. You will be asked whether to also wire it globally
+into $HOME/.claude/settings.json. Pass --global to always do both, or
+--local-only to suppress the prompt.
 
 Exits 0 on success, 1 on unrecoverable error. Honours $CLAUDE_CONFIG_DIR.
 EOF
@@ -46,6 +58,8 @@ while [ "$#" -gt 0 ]; do
     --dry-run) DRY_RUN=1 ;;
     --force) FORCE=1 ;;
     --from-source) FROM_SOURCE=1 ;;
+    --global) GLOBAL=1 ;;
+    --local-only) GLOBAL=0 ;;
     -h | --help)
       usage
       exit 0
@@ -65,11 +79,17 @@ os="$(al_detect_os)"
 config_dir="$(al_config_dir)"
 config_file="$(al_config_file)"
 themes_dir="$(al_themes_dir)"
-settings_file="$(al_claude_settings)"
+# Local project settings — the primary wiring target.
+local_settings_file="${PWD}/.claude/settings.json"
+local_settings_backup="${AL_STATE_DIR}/local-settings-backup.json"
+# Global user settings — wired on request.
+global_settings_file="$(al_claude_settings)"
+global_settings_backup="${AL_STATUS_LINE_BACKUP}"
 
 al_log_info "platform: ${os}"
 al_log_info "config dir: ${config_dir}"
-al_log_info "claude settings target: ${settings_file}"
+al_log_info "local settings target: ${local_settings_file}"
+al_log_info "global settings target: ${global_settings_file}"
 
 if [ "${DRY_RUN}" = "1" ]; then
   al_log_info "dry-run: no filesystem changes will be applied"
@@ -208,14 +228,45 @@ seed_themes() {
   fi
 }
 
-# Step 4: wire statusLine into Claude Code's settings file.
+# Step 4: copy agents/agentline*.md skill files to $HOME/.claude/agents/.
+seed_skills() {
+  __src_dir="${REPO_ROOT}/agents"
+  if [ ! -d "${__src_dir}" ]; then
+    al_log_warn "agents/ not present in repo; skipping skill seed"
+    return 0
+  fi
+  __agents_dir="${AL_AGENTS_DIR}"
+  __copied=0
+  for __skill in "${__src_dir}"/agentline*.md; do
+    [ -e "${__skill}" ] || continue
+    __name="$(basename "${__skill}")"
+    __dest="${__agents_dir}/${__name}"
+    if [ -f "${__dest}" ]; then
+      al_log_info "skill already present: ${__dest}"
+      continue
+    fi
+    atomic_copy_via_node "${__skill}" "${__dest}"
+    __copied=$((__copied + 1))
+  done
+  if [ "${__copied}" -gt 0 ]; then
+    [ "${DRY_RUN}" = "1" ] || al_log_info "installed ${__copied} skill(s) into ${__agents_dir}"
+  else
+    al_log_info "agentline skills already present in ${__agents_dir}"
+  fi
+}
+
+# Step 5: wire statusLine into a Claude Code settings file.
+# Args: <target_settings_file> <backup_file>
 wire_statusline() {
+  __target_file="$1"
+  __backup_file="$2"
+
   __cmd="$(resolve_status_command)"
-  al_log_info "statusLine command: ${__cmd}"
+  al_log_info "wiring statusLine into ${__target_file}"
 
   __existing_block=""
-  if [ -f "${settings_file}" ]; then
-    __existing_block="$(read_existing_statusline "${settings_file}")"
+  if [ -f "${__target_file}" ]; then
+    __existing_block="$(read_existing_statusline "${__target_file}")"
   fi
 
   case "${__existing_block}" in
@@ -225,7 +276,7 @@ wire_statusline() {
   esac
 
   if [ "${__action}" = "noop" ]; then
-    al_log_info "statusLine already wired to agentline; nothing to do"
+    al_log_info "statusLine already wired to agentline in ${__target_file}; nothing to do"
     return 0
   fi
 
@@ -234,20 +285,20 @@ wire_statusline() {
   # the original with our own freshly-written value. uninstall.sh reads
   # this file to put the host back to its pre-install state.
   if [ "${DRY_RUN}" = "1" ]; then
-    al_log_info "would back up prior statusLine to ${AL_STATUS_LINE_BACKUP}"
+    al_log_info "would back up prior statusLine to ${__backup_file}"
   else
-    save_statusline_backup "${settings_file}" "${AL_STATUS_LINE_BACKUP}"
+    save_statusline_backup "${__target_file}" "${__backup_file}"
   fi
 
   if [ "${__action}" = "conflict" ] && [ "${FORCE}" != "1" ]; then
     al_log_info "backing up foreign statusLine before overwrite (uninstall will restore)"
   elif [ "${__action}" = "conflict" ]; then
-    al_log_info "force: overwriting existing statusLine"
+    al_log_info "force: overwriting existing statusLine in ${__target_file}"
   fi
 
-  __new_settings_json="$(merge_statusline_into_settings "${settings_file}" "${__cmd}")"
-  atomic_write_via_node "${settings_file}" "${__new_settings_json}"
-  [ "${DRY_RUN}" = "1" ] || al_log_info "wired statusLine into ${settings_file}"
+  __new_settings_json="$(merge_statusline_into_settings "${__target_file}" "${__cmd}")"
+  atomic_write_via_node "${__target_file}" "${__new_settings_json}"
+  [ "${DRY_RUN}" = "1" ] || al_log_info "wired statusLine into ${__target_file}"
 }
 
 # Resolve which command to wire — global bin if available, else npx fallback.
@@ -352,6 +403,34 @@ JS
 install_or_link_package
 seed_user_config
 seed_themes
-wire_statusline
+seed_skills
+
+# Always wire the local project settings first.
+wire_statusline "${local_settings_file}" "${local_settings_backup}"
+
+# Optionally wire the global user settings.
+if [ "${GLOBAL}" = "1" ]; then
+  wire_statusline "${global_settings_file}" "${global_settings_backup}"
+elif [ "${GLOBAL}" = "0" ]; then
+  al_log_info "global wire skipped (--local-only)"
+else
+  # GLOBAL=-1: ask interactively; skip silently in non-interactive environments.
+  if [ "${DRY_RUN}" = "1" ]; then
+    al_log_info "dry-run: would prompt — also wire globally in ${global_settings_file}?"
+  elif [ -t 0 ] && [ -t 1 ]; then
+    printf '\n[agentline] Also wire statusLine globally in %s? [y/N] ' "${global_settings_file}" >&2
+    read -r __global_reply </dev/tty || __global_reply=""
+    case "${__global_reply}" in
+      y|Y|yes|YES|Yes)
+        wire_statusline "${global_settings_file}" "${global_settings_backup}"
+        ;;
+      *)
+        al_log_info "global wire skipped"
+        ;;
+    esac
+  else
+    al_log_info "non-interactive: global wire skipped (pass --global to wire globally)"
+  fi
+fi
 
 al_log_info "install complete"

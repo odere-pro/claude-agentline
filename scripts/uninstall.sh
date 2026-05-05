@@ -222,6 +222,37 @@ tidy_user_config() {
   fi
 }
 
+tidy_skills() {
+  __src_dir="${REPO_ROOT}/agents"
+  __agents_dir="${AL_AGENTS_DIR}"
+  if [ ! -d "${__agents_dir}" ]; then
+    al_log_info "no agents dir; nothing to tidy"
+    return 0
+  fi
+  __removed=0
+  __preserved=0
+  for __dest in "${__agents_dir}"/agentline*.md; do
+    [ -e "${__dest}" ] || continue
+    __name="$(basename "${__dest}")"
+    __src="${__src_dir}/${__name}"
+    __same=0
+    if [ -f "${__src}" ]; then
+      [ "$(sha_of "${__dest}")" = "$(sha_of "${__src}")" ] && __same=1
+    fi
+    if [ "${__same}" = "1" ] || [ "${PURGE}" = "1" ]; then
+      if [ "${DRY_RUN}" = "1" ]; then
+        al_log_info "would remove skill: ${__dest}"
+      else
+        rm -f -- "${__dest}"
+      fi
+      __removed=$((__removed + 1))
+    else
+      __preserved=$((__preserved + 1))
+    fi
+  done
+  al_log_info "skills: ${__removed} removed, ${__preserved} preserved"
+}
+
 unwire_statusline() {
   if [ ! -f "${settings_file}" ]; then
     al_log_info "no settings file; nothing to unwire"
@@ -303,6 +334,7 @@ JS
 uninstall_global_package
 tidy_themes
 tidy_user_config
+tidy_skills
 unwire_statusline
 
 al_log_info "uninstall complete"

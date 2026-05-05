@@ -27,6 +27,12 @@ import {
   type AccessibilityFlags,
 } from "../render/accessibility.js";
 import { renderForFixture } from "../render/fixture-runner.js";
+import {
+  type TokensSnapshot,
+  PRICING_TABLE_VERSION,
+  type TranscriptEvent,
+} from "../tokens/index.js";
+import { loadGitSnapshot, type GitState } from "../git/index.js";
 
 import { PREVIEW_SAMPLE_PAYLOAD } from "./sample.js";
 
@@ -80,6 +86,7 @@ const ACCESSIBILITY_FLAGS: ReadonlySet<string> = new Set([
 
 export async function runPreviewCommand(input: PreviewInput): Promise<number> {
   const env = input.env ?? process.env;
+  const cwd = input.cwd ?? process.cwd();
 
   const configPath = await resolveConfigPath(input);
 
@@ -88,12 +95,16 @@ export async function runPreviewCommand(input: PreviewInput): Promise<number> {
   }
 
   const theme = input.args.theme ? await loadThemeByName(input, input.args.theme) : null;
+  const tokens = buildDemoTokens();
+  const git = loadPreviewGit(cwd, env);
 
   const out = await renderForFixture(PREVIEW_SAMPLE_PAYLOAD, {
     ...(configPath !== undefined ? { configPath } : {}),
     ...(theme !== null ? { theme } : {}),
     flags: input.args.accessibility,
     env,
+    tokens,
+    git,
   });
   process.stdout.write(out);
   emitTtyCaption(theme?.name, configPath);
@@ -105,6 +116,9 @@ async function renderAllThemes(
   configPath: string | undefined,
 ): Promise<number> {
   const env = input.env ?? process.env;
+  const cwd = input.cwd ?? process.cwd();
+  const tokens = buildDemoTokens();
+  const git = loadPreviewGit(cwd, env);
   const dirs = themeDirectories(input);
   const seen = new Set<string>();
   const themes: { name: string; path: string }[] = [];
@@ -128,6 +142,8 @@ async function renderAllThemes(
       theme,
       flags: input.args.accessibility,
       env,
+      tokens,
+      git,
     });
     process.stdout.write(`${t.name}:\n${out}`);
   }
@@ -191,6 +207,37 @@ function defaultBuiltinDir(): string {
 function defaultTemplateDir(): string {
   const cliDir = dirname(fileURLToPath(import.meta.url));
   return join(cliDir, "..", "templates");
+}
+
+function buildDemoTokens(): TokensSnapshot {
+  const now = Date.now();
+  const blockAnchor = now - 2 * 60 * 60 * 1000; // 2 h into the current block
+  const events: TranscriptEvent[] = [
+    {
+      timestamp: blockAnchor + 5_000,
+      model: "claude-sonnet-4-6",
+      inputTokens: 42_000,
+      outputTokens: 8_000,
+      cachedTokens: 18_000,
+      compaction: false,
+    },
+  ];
+  return Object.freeze({
+    events,
+    now,
+    sessionStart: blockAnchor + 5_000,
+    blockAnchor,
+    contextWindow: 200_000,
+    pricingVersion: PRICING_TABLE_VERSION,
+  });
+}
+
+function loadPreviewGit(cwd: string, env: NodeJS.ProcessEnv): GitState {
+  try {
+    return loadGitSnapshot({ cwd, env });
+  } catch {
+    return { available: false };
+  }
 }
 
 function emitTtyCaption(themeName: string | undefined, configPath: string | undefined): void {

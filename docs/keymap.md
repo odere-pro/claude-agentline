@@ -4,13 +4,14 @@ The keymap applies to **`agentline config`** — the Ink-based TUI editor
 for your statusline configuration. It does not affect the rendered
 statusline itself (which is non-interactive output).
 
-To enumerate every active binding from the running build (once the
-`keys` subcommand is wired):
+To enumerate every active binding from the running build:
 
 ```bash
-agentline keys          # human-readable
-agentline keys --json   # machine-readable, includes widget scopes
+agentline keys          # human-readable (planned for v0.2.0)
+agentline keys --json   # machine-readable, includes widget scopes (planned for v0.2.0)
 ```
+
+Until `agentline keys` ships, the full default binding table is below.
 
 ## Default bindings
 

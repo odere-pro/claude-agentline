@@ -28,6 +28,8 @@ fi
 
 # Where Claude Code reads its settings. The spec wires `statusLine` here.
 AL_CLAUDE_SETTINGS="${AL_HOME_DIR}/.claude/settings.json"
+# Where the host runtime loads agent/skill markdown files at startup.
+AL_AGENTS_DIR="${AL_HOME_DIR}/.claude/agents"
 
 # Where agentline persists merged user config. Honours XDG-ish overrides.
 AL_CONFIG_DIR_DEFAULT="${AL_HOME_DIR}/.config/agentline"
@@ -144,3 +146,4 @@ al_config_dir() { printf '%s' "${AL_CONFIG_DIR}"; }
 al_config_file() { printf '%s' "${AL_CONFIG_FILE}"; }
 al_themes_dir() { printf '%s' "${AL_THEMES_DIR}"; }
 al_claude_settings() { printf '%s' "${AL_CLAUDE_SETTINGS}"; }
+al_agents_dir() { printf '%s' "${AL_AGENTS_DIR}"; }

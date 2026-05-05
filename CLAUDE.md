@@ -6,7 +6,7 @@ This file is the agent's entry-point briefing for the `agentline` repository. It
 
 `agentline` is a **standalone CLI statusline tool**, distributed as the npm package `@agentline/cli`. The compiled bin reads JSON from stdin (Claude Code's statusline contract) and writes ANSI-styled output to stdout.
 
-It is **not** a Claude Code plugin. There is no `.claude-plugin/plugin.json`, no slash command, no hook, no agent/skill/rule shipped from this repo. Wiring into Claude Code is consumer-side: `scripts/install.sh` writes the bin invocation into the `statusLine` key of `~/.claude/settings.json`.
+It is **not** a Claude Code plugin. There is no `.claude-plugin/plugin.json`. Wiring into Claude Code is consumer-side: `agentline install` writes the bin invocation into the `statusLine` key of `~/.claude/settings.json` and copies Claude skill files from `.claude/agents/` into `~/.claude/agents/` so Claude Code can assist with configuration and troubleshooting. `agentline uninstall` reverses both steps.
 
 ## Where the spec lives
 
@@ -32,17 +32,19 @@ The normative spec is **`docs/plan/SPEC-v0.1.0.md`**. Treat it as authoritative.
 
 ## Non-goals (v0.1.0)
 
-Plugin distribution (`.claude-plugin/`, slash commands, hooks, agents, skills, rules), native binaries, Homebrew, curl-installer, Bun/Deno-tested runtimes, Powershell-native scripts, telemetry, remote update checks, dynamic-library / WASM widget plugins, marketplace listing automation. See `docs/plan/SPEC-v0.1.0.md` §13.
+Plugin distribution (`.claude-plugin/`), native binaries, Homebrew, curl-installer, Bun/Deno-tested runtimes, Powershell-native scripts, telemetry, remote update checks, dynamic-library / WASM widget plugins, marketplace listing automation. See `docs/plan/SPEC-v0.1.0.md` §13.
 
 ## Quick commands
 
-| Command                             | Purpose                     |
-| ----------------------------------- | --------------------------- |
-| `npm i && npm run build`            | Bootstrap and build         |
-| `npm test`                          | Unit tests                  |
-| `bash tests/gates/run-all.sh`       | Run all repo gates          |
-| `bash scripts/install.sh --dry-run` | Preview the install actions |
-| `bash scripts/doctor.sh`            | Diagnose host configuration |
+| Command                                   | Purpose                                  |
+| ----------------------------------------- | ---------------------------------------- |
+| `npm i && npm run build`                  | Bootstrap and build                      |
+| `npm test`                                | Unit tests                               |
+| `bash tests/gates/run-all.sh`             | Run all repo gates                       |
+| `node dist/cli.mjs install --from-source` | Wire statusline + install skills locally |
+| `npm run preview:watch`                   | Live-reload preview while editing config |
+| `bash scripts/install.sh --dry-run`       | Preview the install actions (legacy)     |
+| `bash scripts/doctor.sh`                  | Diagnose host configuration (legacy)     |
 
 ## When in doubt
 

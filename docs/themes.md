@@ -47,12 +47,14 @@ Colour values accept the same three forms as widget colours
 
 ## Shipped presets
 
-| Name                | Tone                                    |
-| ------------------- | --------------------------------------- |
-| `vscode-dark`       | dark, neutral (VS Code Default Dark+)   |
-| `vscode-light`      | light, neutral (VS Code Default Light+) |
-| `claude-code-dark`  | dark, warm (Claude brand)               |
-| `claude-code-light` | light, warm (Claude brand)              |
+Each swatch shows the 13 palette roles left to right (accent → info → success → warning → danger → muted → git-clean → git-dirty → tokens-low → tokens-mid → tokens-high → bg-section → bg-emphasis). Hover a square to see the role name.
+
+| Name                | Base            | Palette                                                                              |
+| ------------------- | --------------- | ------------------------------------------------------------------------------------ |
+| `claude-code-dark`  | dark warm brown | <img src="themes/claude-code-dark.svg" alt="claude-code-dark palette" height="16">   |
+| `claude-code-light` | warm beige      | <img src="themes/claude-code-light.svg" alt="claude-code-light palette" height="16"> |
+| `vscode-dark`       | dark grey       | <img src="themes/vscode-dark.svg" alt="vscode-dark palette" height="16">             |
+| `vscode-light`      | light grey      | <img src="themes/vscode-light.svg" alt="vscode-light palette" height="16">           |
 
 To browse, inspect, and preview themes:
 

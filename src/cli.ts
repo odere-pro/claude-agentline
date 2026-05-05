@@ -18,6 +18,8 @@ import { HelpRequestedError } from "./cli/help.js";
 import { parseSchemaArgs, runSchemaCommand } from "./schema/command.js";
 import { parseDoctorArgs, runDoctorCommand } from "./doctor/command.js";
 import { parseInitArgs, runInitCommand } from "./init/command.js";
+import { parseInstallArgs, runInstallCommand } from "./install/command.js";
+import { parseUninstallArgs, runUninstallCommand } from "./uninstall/command.js";
 import { parseKeysArgs, runKeysCommand } from "./keys/command.js";
 import { parseThemesArgs, runThemesCommand } from "./theme/command.js";
 import { parsePreviewArgs, runPreviewCommand } from "./preview/command.js";
@@ -84,6 +86,8 @@ function runHelp(): number {
       "Usage: agentline [<command>] [<options>]",
       "",
       "Commands:",
+      "  install              wire agentline into Claude Code's statusline",
+      "  uninstall            remove agentline from this host",
       "  preview              render a sample statusline (no install, no stdin)",
       "  init [--preset ...]  scaffold a config (--preset, --scope, --force)",
       "  config               edit configuration in the TUI",
@@ -96,7 +100,7 @@ function runHelp(): number {
       "  version              print version",
       "  help                 print this message",
       "",
-      "Pass -h/--help to any command for details. Start with `agentline preview`.",
+      "Pass -h/--help to any command for details. Start with `agentline install`.",
       "",
     ].join("\n"),
   );
@@ -153,6 +157,10 @@ async function main(): Promise<number> {
       return dispatch(() => runDoctorCommand(parseDoctorArgs(rest)));
     case "config":
       return dispatch(runConfigDispatch, "agentline: config error");
+    case "install":
+      return dispatch(() => runInstallCommand(parseInstallArgs(rest)), "agentline install");
+    case "uninstall":
+      return dispatch(() => runUninstallCommand(parseUninstallArgs(rest)), "agentline uninstall");
     case "init":
       return dispatch(() => runInitCommand({ args: parseInitArgs(rest) }));
     case "keys":

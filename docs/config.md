@@ -9,7 +9,7 @@ available via `agentline init --preset <name>`:
 - **`power`** (`templates/presets/power.config.json`) — full default plus `thinking-effort`, `weekly-usage`, `block-timer`. Everything.
 
 `agentline init` defaults to the `default` preset and writes
-`.agentline.json` in the current directory; pass `--scope user` to
+`.claude/agentline.json` in the current directory; pass `--scope user` to
 write the user config instead, or `--target <path>` for an explicit
 location. Existing targets are preserved unless `--force` is passed.
 
@@ -37,7 +37,7 @@ this order (each later layer overrides the earlier ones):
 1. **Built-in defaults** compiled into the binary.
 2. **User config** at
    `${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json`.
-3. **Project config** at `${CLAUDE_PROJECT_DIR:-$PWD}/.agentline.json`,
+3. **Project config** at `${CLAUDE_PROJECT_DIR:-$PWD}/.claude/agentline.json`,
    when the file is present.
 4. **Environment variables** prefixed `AGENTLINE_` (dot-path mapping;
    see below).
@@ -48,6 +48,21 @@ Layers 2 and 3 are partial overlays: a key absent at the project layer
 inherits the user value; a key absent at both layers inherits the
 built-in default. Arrays (`lines`, `lines[].widgets`) are replaced
 wholesale, not merged element-by-element — same rule as JSON Patch.
+
+## CLI commands
+
+The quickest way to work with config without editing JSON by hand:
+
+```bash
+agentline config                                    # open the interactive TUI editor
+agentline init --preset default --scope project     # scaffold .claude/agentline.json
+agentline init --preset minimal --scope user        # scaffold user config
+agentline init --force --preset default             # reset the project config to defaults
+agentline preview --config .claude/agentline.json   # render without a Claude session
+agentline schema --write .vscode/                   # drop the JSON schema for editor autocomplete
+```
+
+---
 
 ## Top-level shape
 

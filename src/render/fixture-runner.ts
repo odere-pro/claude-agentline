@@ -21,6 +21,8 @@ import { readStdinPayload } from "../stdin/index.js";
 
 import type { AccessibilityFlags } from "./accessibility.js";
 import { renderFromInputs } from "./pipeline.js";
+import type { TokensSnapshot } from "../tokens/index.js";
+import type { GitState } from "../git/index.js";
 
 export interface RenderForFixtureOptions {
   readonly config?: AgentlineConfig;
@@ -31,6 +33,8 @@ export interface RenderForFixtureOptions {
   readonly env?: NodeJS.ProcessEnv;
   readonly width?: number;
   readonly flags?: AccessibilityFlags;
+  readonly tokens?: TokensSnapshot;
+  readonly git?: GitState;
 }
 
 export async function renderForFixture(
@@ -50,6 +54,8 @@ export async function renderForFixture(
     ...(options.env !== undefined ? { env: options.env } : {}),
     ...(options.width !== undefined ? { width: options.width } : {}),
     ...(options.flags !== undefined ? { flags: options.flags } : {}),
+    ...(options.tokens !== undefined ? { tokens: options.tokens } : {}),
+    ...(options.git !== undefined ? { git: options.git } : {}),
   });
 }
 

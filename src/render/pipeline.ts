@@ -46,6 +46,8 @@ import { registerRateLimitWidgets } from "../widgets/rate-limits/index.js";
 import { registerGitWidgets } from "../widgets/git/index.js";
 import { registerTimeWidgets } from "../widgets/time/index.js";
 import { registerCustomWidgets } from "../widgets/custom/index.js";
+import type { TokensSnapshot } from "../tokens/index.js";
+import type { GitState } from "../git/index.js";
 import type { StdinPayload } from "../stdin/index.js";
 
 let registryReady = false;
@@ -71,6 +73,8 @@ export interface RenderInputs {
   readonly env?: NodeJS.ProcessEnv;
   readonly width?: number;
   readonly flags?: AccessibilityFlags;
+  readonly tokens?: TokensSnapshot;
+  readonly git?: GitState;
 }
 
 export function renderFromInputs(inputs: RenderInputs): string {
@@ -88,6 +92,8 @@ export function renderFromInputs(inputs: RenderInputs): string {
     theme: inputs.theme,
     clock,
     env,
+    ...(inputs.tokens !== undefined ? { tokens: inputs.tokens } : {}),
+    ...(inputs.git !== undefined ? { git: inputs.git } : {}),
   };
 
   const registry = defaultRegistry();
