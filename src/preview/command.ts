@@ -16,7 +16,6 @@
  *   - --no-color/--ascii/... accessibility flags (forwarded to the render)
  */
 
-import { watch as fsWatch, type FSWatcher } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -36,6 +35,7 @@ import {
 import { loadGitSnapshot, type GitState } from "../git/index.js";
 
 import { PREVIEW_SAMPLE_PAYLOAD } from "./sample.js";
+import { watchConfigFile, type Disposer } from "./watcher.js";
 import { resolveEnv } from "../lib/env.js";
 import { pathExists } from "../lib/fs.js";
 
@@ -312,6 +312,7 @@ async function runPreviewWatch(input: PreviewInput): Promise<number> {
 
   // Enter alternate screen so Ctrl+C restores the previous terminal contents.
   process.stdout.write("\x1b[?1049h");
+  let dispose: Disposer | null = null;
   try {
     await redraw().catch((err: unknown) => {
       process.stderr.write(`agentline preview: ${(err as Error).message}\n`);
@@ -319,7 +320,7 @@ async function runPreviewWatch(input: PreviewInput): Promise<number> {
 
     if (configPath) {
       let redrawInFlight = false;
-      attachConfigWatcher(configPath, () => {
+      dispose = watchConfigFile(configPath, () => {
         if (redrawInFlight) return;
         redrawInFlight = true;
         redraw()
@@ -336,47 +337,10 @@ async function runPreviewWatch(input: PreviewInput): Promise<number> {
       process.once("SIGINT", () => resolve());
     });
   } finally {
+    dispose?.();
     process.stdout.write("\x1b[?1049l");
   }
   return 0;
-}
-
-function attachConfigWatcher(filePath: string, onChange: () => void): void {
-  const DEBOUNCE_MS = 80;
-  const RENAME_REATTACH_DELAY_MS = 100;
-  const ERROR_REATTACH_DELAY_MS = 500;
-
-  let watcher: FSWatcher | null = null;
-  let debounce: ReturnType<typeof setTimeout> | null = null;
-
-  const fire = () => {
-    if (debounce !== null) clearTimeout(debounce);
-    debounce = setTimeout(onChange, DEBOUNCE_MS);
-  };
-
-  const attach = () => {
-    try {
-      watcher = fsWatch(filePath, (event) => {
-        fire();
-        // Atomic writes (write-tmp + rename) emit a "rename" event on the
-        // watched path; re-attach the watcher so the next write is caught.
-        if (event === "rename") {
-          watcher?.close();
-          watcher = null;
-          setTimeout(attach, RENAME_REATTACH_DELAY_MS);
-        }
-      });
-      watcher.on("error", () => {
-        watcher?.close();
-        watcher = null;
-        setTimeout(attach, ERROR_REATTACH_DELAY_MS);
-      });
-    } catch {
-      setTimeout(attach, ERROR_REATTACH_DELAY_MS);
-    }
-  };
-
-  attach();
 }
 
 interface ParseState {

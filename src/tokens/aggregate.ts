@@ -73,29 +73,33 @@ export function aggregateCost(input: AggregateInput): number {
   return cost;
 }
 
+/**
+ * Reset-axis windowing strategy table (§7.3, §8.4).
+ *
+ * Each axis owns the predicate that decides whether a transcript
+ * event belongs to the current window. Adding a new axis is a
+ * single-entry change — extend `ResetAxis`, add the matching
+ * filter here. `Record<ResetAxis, …>` keeps the table exhaustive
+ * at compile time, replacing the old switch.
+ */
+type AxisFilter = (ev: TranscriptEvent, input: AggregateInput) => boolean;
+
+const AXIS_FILTERS: Readonly<Record<ResetAxis, AxisFilter>> = Object.freeze({
+  session: (ev, input) =>
+    input.sessionStart === undefined ? true : ev.timestamp >= input.sessionStart,
+  block: (ev, input) => {
+    const anchor = resolveBlockAnchor(input);
+    const offset = (input.now - anchor) % FIVE_HOURS_MS;
+    return ev.timestamp >= input.now - offset;
+  },
+  day: (ev, input) => ev.timestamp >= startOfLocalDay(input.now),
+  week: (ev, input) => ev.timestamp >= startOfLocalWeek(input.now),
+  model: (ev, input) => input.model !== undefined && ev.model === input.model,
+  effort: (ev, input) => input.effort !== undefined && ev.effort === input.effort,
+});
+
 function withinWindow(ev: TranscriptEvent, input: AggregateInput): boolean {
-  switch (input.axis) {
-    case "session":
-      return input.sessionStart === undefined ? true : ev.timestamp >= input.sessionStart;
-    case "block": {
-      const anchor = resolveBlockAnchor(input);
-      const offset = (input.now - anchor) % FIVE_HOURS_MS;
-      const blockStart = input.now - offset;
-      return ev.timestamp >= blockStart;
-    }
-    case "day": {
-      const dayStart = startOfLocalDay(input.now);
-      return ev.timestamp >= dayStart;
-    }
-    case "week": {
-      const weekStart = startOfLocalWeek(input.now);
-      return ev.timestamp >= weekStart;
-    }
-    case "model":
-      return input.model !== undefined && ev.model === input.model;
-    case "effort":
-      return input.effort !== undefined && ev.effort === input.effort;
-  }
+  return AXIS_FILTERS[input.axis](ev, input);
 }
 
 function resolveBlockAnchor(input: AggregateInput): number {
