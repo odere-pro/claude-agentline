@@ -42,9 +42,7 @@ describe("parseInitArgs", () => {
   });
 
   it("rejects --preset combined with --minimal", () => {
-    expect(() => parseInitArgs(["--preset", "focus", "--minimal"])).toThrow(
-      /mutually exclusive/,
-    );
+    expect(() => parseInitArgs(["--preset", "focus", "--minimal"])).toThrow(/mutually exclusive/);
   });
 
   it("rejects unknown preset / scope / arg", () => {
@@ -150,7 +148,7 @@ describe("runInitCommand", () => {
     expect(written.marker).toBe("default");
   });
 
-  it("post-write hint mentions preview and doctor", async () => {
+  it("post-write hint mentions verify and doctor", async () => {
     const target = join(tmp, ".agentline.json");
     const writes: string[] = [];
     vi.spyOn(process.stdout, "write").mockImplementation((chunk: unknown) => {
@@ -162,7 +160,7 @@ describe("runInitCommand", () => {
       templateDir,
     });
     const out = writes.join("");
-    expect(out).toContain("agentline preview --config");
+    expect(out).toContain("agentline doctor");
     expect(out).toContain("agentline doctor --fix");
   });
 

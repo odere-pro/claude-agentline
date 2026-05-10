@@ -4,25 +4,27 @@ Complete flag-by-flag reference for every `agentline` subcommand. Intended as th
 
 Every subcommand accepts `-h` / `--help`. The default invocation (no subcommand, no flags) runs the render path.
 
+The top-level surface is intentionally small: **`install` · `uninstall` · `doctor` · `config`**. Everything configuration-adjacent (`init`, `theme`, `keys`, `schema`, the TUI editor) lives under `agentline config <sub>`.
+
 ---
 
 ## Command overview
 
-| Command                   | Purpose                                                | Writes to disk |
-| ------------------------- | ------------------------------------------------------ | -------------- |
-| _(default)_               | Read stdin JSON, render statusline, write to stdout    | no             |
-| [`preview`](#preview)     | Render a sample bar without a live Claude Code session | no             |
-| [`init`](#init)           | Scaffold a config file from a shipped preset           | **yes**        |
-| [`config`](#config)       | Edit configuration in the interactive TUI (Ink)        | **yes**        |
-| [`doctor`](#doctor)       | Diagnose host wiring; `--fix` repairs D01–D04          | with `--fix`   |
-| [`install`](#install)     | Wire `statusLine` and install skill files              | **yes**        |
-| [`uninstall`](#uninstall) | Undo install; restore pre-install state                | **yes**        |
-| [`themes`](#themes)       | Browse and inspect theme presets                       | no             |
-| [`keys`](#keys)           | List active keymap bindings                            | no             |
-| [`schema`](#schema)       | Print or write the config JSON Schema                  | with `--write` |
-| [`render`](#render)       | Replay a recorded stdin payload (fixtures/goldens)     | no             |
-| [`version`](#version)     | Print binary version                                   | no             |
-| [`help`](#help)           | Print the top-level command list                       | no             |
+| Command                           | Purpose                                                 | Writes to disk |
+| --------------------------------- | ------------------------------------------------------- | -------------- |
+| _(default)_                       | Read stdin JSON, render statusline, write to stdout     | no             |
+| [`install`](#install)             | Wire `statusLine` and install skill files               | **yes**        |
+| [`uninstall`](#uninstall)         | Undo install; restore pre-install state                 | **yes**        |
+| [`doctor`](#doctor)               | Diagnose host wiring; `--fix` repairs D01–D04           | with `--fix`   |
+| [`config`](#config)               | Open the TUI editor (no sub) or route to sub-subcommand | depends        |
+| [`config init`](#config-init)     | Scaffold a config file from a shipped preset            | **yes**        |
+| [`config theme`](#config-theme)   | Browse and inspect theme presets                        | no             |
+| [`config keys`](#config-keys)     | List TUI editor keymap bindings                         | no             |
+| [`config schema`](#config-schema) | Print or write the config JSON Schema                   | with `--write` |
+| [`version`](#version)             | Print binary version                                    | no             |
+| [`help`](#help)                   | Print the top-level command list                        | no             |
+
+The `render` subcommand is retained for the golden-snapshot harness and doctor's D10 check but is not listed in `agentline --help`; see [`render` (hidden)](#render-hidden) below.
 
 ---
 
@@ -37,176 +39,9 @@ Called by Claude Code on every prompt render. Claude Code pipes a JSON payload t
 
 **Stdin contract:** a single JSON object matching the Claude Code statusline contract. An empty payload (no bytes or whitespace-only) emits a one-line fallback and exits 1.
 
-**First-run hint:** when stderr is a TTY and no user/project config exists, agentline prints a one-time hint recommending `agentline init`. Suppress with `AGENTLINE_QUIET=1`.
+**First-run hint:** when stderr is a TTY and no user/project config exists, agentline prints a one-time hint recommending `agentline config init`. Suppress with `AGENTLINE_QUIET=1`.
 
 **Exit codes:** `0` success · `1` stdin parse error or empty stdin
-
----
-
-## preview
-
-```bash
-agentline preview [options]
-```
-
-Renders a representative statusline bar using a built-in sample payload. Produces byte-identical output to the live render path (same pipeline, different stdin source).
-
-| Flag              | Type   | Default                 | Description                                                  |
-| ----------------- | ------ | ----------------------- | ------------------------------------------------------------ |
-| `--theme <name>`  | string | —                       | Render with the named theme from the user dir or builtin set |
-| `--all-themes`    | flag   | off                     | Stack one render per shipped theme                           |
-| `--config <path>` | string | user config or template | Render against a specific config file                        |
-| `--minimal`       | flag   | off                     | Preview the shipped `minimal` template without writing it    |
-| `--default`       | flag   | off                     | Preview the shipped `default` template without writing it    |
-| `--watch` / `-w`  | flag   | off                     | Re-render when the config file changes (TTY only)            |
-| `--no-color`      | flag   | off                     | Disable colour output (also honoured via `NO_COLOR` env)     |
-| `--no-colour`     | flag   | off                     | Alias for `--no-color`                                       |
-| `--no-unicode`    | flag   | off                     | Disable unicode glyphs; fall back to ASCII                   |
-| `--ascii`         | flag   | off                     | Alias for `--no-unicode`                                     |
-| `-h` / `--help`   | flag   | —                       | Show command help                                            |
-
-**Config resolution order (when `--config` is absent):** user config (`~/.config/agentline/config.json`) if it exists, else the shipped `default` template.
-
-**`--watch` behaviour:**
-
-- Requires an interactive TTY on stdout; exits 1 otherwise.
-- Enters the terminal's alternate screen buffer on start; restores it on Ctrl+C.
-- Watches the resolved config file path using `fs.watch`. Re-attaches the watcher after atomic-write renames (write-tmp + rename pattern).
-- 80 ms debounce coalesces rapid editor saves into one render.
-
-**Mutual exclusions:** `--config` and `--minimal`/`--default` are mutually exclusive.
-
-**Exit codes:** `0` success · `1` no themes found (with `--all-themes`) or no TTY (with `--watch`)
-
-**Examples:**
-
-```bash
-agentline preview                            # uses saved config or default template
-agentline preview --all-themes               # compare all four shipped themes
-agentline preview --theme vscode-dark        # pin one theme
-agentline preview --config .claude/agentline.json --watch  # live dev loop
-agentline preview --minimal                  # snapshot the minimal preset
-NO_COLOR=1 agentline preview                 # test no-colour degradation
-COLORTERM= TERM=xterm-256color agentline preview  # simulate 256-colour
-```
-
----
-
-## init
-
-```bash
-agentline init [options]
-```
-
-Scaffolds a config file from a shipped preset. Writes atomically (write-temp + fsync + rename). Refuses to overwrite an existing target unless `--force` is passed.
-
-After a successful write, prints two next-step hints: `agentline preview` and `agentline doctor --fix`.
-
-| Flag              | Type   | Default   | Description                                                                             |
-| ----------------- | ------ | --------- | --------------------------------------------------------------------------------------- |
-| `--preset <name>` | enum   | `default` | One of `minimal` · `default` · `focus` · `power`                                        |
-| `--scope <where>` | enum   | `project` | `project` → `.claude/agentline.json` in CWD; `user` → `~/.config/agentline/config.json` |
-| `--target <path>` | string | —         | Explicit output path; takes precedence over `--scope`                                   |
-| `--force`         | flag   | off       | Overwrite an existing target                                                            |
-| `--minimal`       | flag   | off       | Deprecated alias for `--preset minimal`; mutually exclusive with `--preset`             |
-| `-h` / `--help`   | flag   | —         | Show command help                                                                       |
-
-**Presets:**
-
-| Name      | Contents                                                    |
-| --------- | ----------------------------------------------------------- |
-| `minimal` | model, git-branch, clock                                    |
-| `default` | model, git-branch, git-status, context, tokens, cost, clock |
-| `focus`   | model, git-branch, context-percentage, clock                |
-| `power`   | default + thinking-effort, weekly-usage, block-timer        |
-
-**Exit codes:** `0` success · `1` target already exists (without `--force`) or template file missing
-
-**Examples:**
-
-```bash
-agentline init                                        # default preset, project scope
-agentline init --preset minimal --scope user          # seed the user config
-agentline init --preset power --target ~/my.json      # explicit path
-agentline init --force --preset default               # reset project config to defaults
-```
-
----
-
-## config
-
-```bash
-agentline config
-```
-
-Opens the interactive TUI configuration editor (powered by Ink, lazy-loaded so the render path stays light). Reads the active layered config on entry, writes atomically on save.
-
-No command-line flags beyond `-h` / `--help`.
-
-**Side effects:** writes the user config (`~/.config/agentline/config.json`) atomically if the user saves.
-
-**Requires a TTY.** Running in a non-interactive context produces no output.
-
----
-
-## doctor
-
-```bash
-agentline doctor [options]
-```
-
-Runs ten health checks (D01–D10) against the host configuration. With `--fix`, auto-repairs D01–D04.
-
-| Flag            | Type | Default | Description                                                                |
-| --------------- | ---- | ------- | -------------------------------------------------------------------------- |
-| `--fix`         | flag | off     | Attempt to repair D01–D04 (settings file, statusLine, user config, themes) |
-| `--json`        | flag | off     | Machine-readable JSON output; suppresses the human formatter               |
-| `--strict`      | flag | off     | Promote unresolved warnings/failures to non-zero exit (for CI gates)       |
-| `-h` / `--help` | flag | —       | Show command help                                                          |
-
-**Checks:**
-
-| ID  | What it checks                   | Auto-fixable |
-| --- | -------------------------------- | ------------ |
-| D01 | `~/.claude/settings.json` exists | yes          |
-| D02 | `statusLine` wired to agentline  | yes          |
-| D03 | User/project config valid schema | yes (seed)   |
-| D04 | Theme files present              | yes (copy)   |
-| D05 | Nerd Font available (Powerline)  | no           |
-| D06 | `git` on PATH                    | no           |
-| D07 | Pricing table age ≤ 90 days      | no           |
-| D08 | `CLAUDE_CONFIG_DIR` writable     | no           |
-| D09 | `command` widget binary on PATH  | no           |
-| D10 | Render snapshot matches golden   | no           |
-
-**Glyphs in output:** `[ok]` passed · `[!!]` warning · `[XX]` failed · `[fx]` fixed · `[--]` skipped
-
-**Exit codes:**
-
-- Default mode: `0` always (warnings do not fail)
-- `--strict` mode: `0` all ok · `1` at least one warning or failure unresolved
-
-**`--json` output shape:**
-
-```json
-{
-  "checks": [
-    { "id": "D01", "status": "ok", "message": "settings file present" },
-    ...
-  ],
-  "fixed": ["D01", "D02"],
-  "exitCode": 0
-}
-```
-
-**Examples:**
-
-```bash
-agentline doctor                  # full health report
-agentline doctor --fix            # repair D01–D04
-agentline doctor --strict         # non-zero on any issue (CI)
-agentline doctor --json | jq .    # machine-readable
-```
 
 ---
 
@@ -286,13 +121,126 @@ agentline uninstall --dry-run    # preview actions
 
 ---
 
-## themes
+## doctor
 
 ```bash
-agentline themes [options]
+agentline doctor [options]
 ```
 
-Browse and inspect the installed theme presets. With no flags, renders a swatch table: one row per theme with 13 coloured blocks showing the palette.
+Runs ten health checks (D01–D10) against the host configuration. With `--fix`, auto-repairs D01–D04.
+
+| Flag            | Type | Default | Description                                                                |
+| --------------- | ---- | ------- | -------------------------------------------------------------------------- |
+| `--fix`         | flag | off     | Attempt to repair D01–D04 (settings file, statusLine, user config, themes) |
+| `--json`        | flag | off     | Machine-readable JSON output; suppresses the human formatter               |
+| `--strict`      | flag | off     | Promote unresolved warnings/failures to non-zero exit (for CI gates)       |
+| `-h` / `--help` | flag | —       | Show command help                                                          |
+
+**Checks:**
+
+| ID  | What it checks                   | Auto-fixable |
+| --- | -------------------------------- | ------------ |
+| D01 | `~/.claude/settings.json` exists | yes          |
+| D02 | `statusLine` wired to agentline  | yes          |
+| D03 | User/project config valid schema | yes (seed)   |
+| D04 | Theme files present              | yes (copy)   |
+| D05 | Nerd Font available (Powerline)  | no           |
+| D06 | `git` on PATH                    | no           |
+| D07 | Pricing table age ≤ 90 days      | no           |
+| D08 | `CLAUDE_CONFIG_DIR` writable     | no           |
+| D09 | `command` widget binary on PATH  | no           |
+| D10 | Render snapshot matches golden   | no           |
+
+**Glyphs in output:** `[ok]` passed · `[!!]` warning · `[XX]` failed · `[fx]` fixed · `[--]` skipped
+
+**Exit codes:**
+
+- Default mode: `0` always (warnings do not fail)
+- `--strict` mode: `0` all ok · `1` at least one warning or failure unresolved
+
+**Examples:**
+
+```bash
+agentline doctor                  # full health report
+agentline doctor --fix            # repair D01–D04
+agentline doctor --strict         # non-zero on any issue (CI)
+agentline doctor --json | jq .    # machine-readable
+```
+
+---
+
+## config
+
+```bash
+agentline config [<sub>] [options]
+```
+
+Configuration subgroup. With no subcommand, opens the interactive TUI editor; with a subcommand, dispatches to one of the four sub-subcommands below.
+
+| Subcommand                 | Purpose                                            |
+| -------------------------- | -------------------------------------------------- |
+| _(no sub)_, `edit`         | Open the TUI editor                                |
+| [`init`](#config-init)     | Scaffold a config file from a shipped preset       |
+| [`theme`](#config-theme)   | Browse and inspect theme presets (alias: `themes`) |
+| [`keys`](#config-keys)     | List TUI editor keymap bindings                    |
+| [`schema`](#config-schema) | Print or write the config JSON Schema              |
+
+```bash
+agentline config                  # open TUI editor (Ink-based)
+agentline config edit             # explicit alias for the bare form
+agentline config --help           # list the subgroup
+```
+
+The TUI editor is lazy-loaded (`dist/tui.mjs` is a separate bundle) so the render path stays light. Reads the active layered config on entry, writes atomically on save. Requires a TTY; non-interactive contexts produce no output.
+
+---
+
+### config init
+
+```bash
+agentline config init [options]
+```
+
+Scaffolds a config file from a shipped preset. Writes atomically (write-temp + fsync + rename). Refuses to overwrite an existing target unless `--force` is passed.
+
+| Flag              | Type   | Default   | Description                                                                             |
+| ----------------- | ------ | --------- | --------------------------------------------------------------------------------------- |
+| `--preset <name>` | enum   | `default` | One of `minimal` · `default` · `focus` · `power`                                        |
+| `--scope <where>` | enum   | `project` | `project` → `.claude/agentline.json` in CWD; `user` → `~/.config/agentline/config.json` |
+| `--target <path>` | string | —         | Explicit output path; takes precedence over `--scope`                                   |
+| `--force`         | flag   | off       | Overwrite an existing target                                                            |
+| `--minimal`       | flag   | off       | Deprecated alias for `--preset minimal`; mutually exclusive with `--preset`             |
+| `-h` / `--help`   | flag   | —         | Show command help                                                                       |
+
+**Presets:**
+
+| Name      | Contents                                                    |
+| --------- | ----------------------------------------------------------- |
+| `minimal` | model, git-branch, clock                                    |
+| `default` | model, git-branch, git-status, context, tokens, cost, clock |
+| `focus`   | model, git-branch, context-percentage, clock                |
+| `power`   | default + thinking-effort, weekly-usage, block-timer        |
+
+**Exit codes:** `0` success · `1` target already exists (without `--force`) or template file missing
+
+**Examples:**
+
+```bash
+agentline config init                                        # default preset, project scope
+agentline config init --preset minimal --scope user          # seed the user config
+agentline config init --preset power --target ~/my.json      # explicit path
+agentline config init --force --preset default               # reset project config
+```
+
+---
+
+### config theme
+
+```bash
+agentline config theme [options]
+```
+
+Browse and inspect the installed theme presets. With no flags, renders a swatch table: one row per theme with 13 coloured blocks showing the palette. Accepts `themes` (plural) as an alias.
 
 | Flag            | Type   | Default | Description                                                 |
 | --------------- | ------ | ------- | ----------------------------------------------------------- |
@@ -302,30 +250,29 @@ Browse and inspect the installed theme presets. With no flags, renders a swatch 
 
 **Theme search path:** user themes dir (`~/.config/agentline/themes/`) then builtin (`themes/` at the package root). User themes take precedence; names are deduplicated.
 
-**`--show` output:** theme name, file path, and one palette role per row with an inline colour swatch (when colour is available).
-
-**`--show` name validation:** `<name>` must match `^[a-zA-Z0-9._-]+$` and must not start with a dot. Names containing `/`, `..`, or other path-shaped characters are rejected with exit code `2`, so `agentline themes --show ../../etc/passwd` cannot escape the themes search path.
+**`--show` name validation:** `<name>` must match `^[a-zA-Z0-9._-]+$` and must not start with a dot. Names containing `/`, `..`, or other path-shaped characters are rejected with exit code `2`.
 
 **Swatch table (no flags):** in `none`-depth terminals (e.g. `NO_COLOR=1`), the swatch column falls back to two-character role abbreviations.
+
+**Switching the active theme:** set `"theme": "<name>"` in the config file (or via `agentline config`). This command is inspect-only; it never writes.
 
 **Exit codes:** `0` success · `1` no themes found or theme name not found (with `--show`) · `2` invalid `--show` name
 
 **Examples:**
 
 ```bash
-agentline themes                          # swatch table
-agentline themes --show claude-code-dark  # inspect one palette
-agentline themes --list                   # machine-readable name+path list
-agentline themes --list | grep vscode     # filter
-agentline preview --all-themes            # full live render per theme
+agentline config theme                          # swatch table
+agentline config theme --show claude-code-dark  # inspect one palette
+agentline config theme --list                   # machine-readable name+path list
+agentline config theme --list | grep vscode     # filter
 ```
 
 ---
 
-## keys
+### config keys
 
 ```bash
-agentline keys [options]
+agentline config keys [options]
 ```
 
 Lists active keymap bindings for the `agentline config` TUI editor. Reads the active config's `keymap` overrides if a config is present; falls back to defaults if loading fails.
@@ -346,17 +293,17 @@ Lists active keymap bindings for the `agentline config` TUI editor. Reads the ac
 **Examples:**
 
 ```bash
-agentline keys                   # human-readable table
-agentline keys --json            # JSON for scripting or gate coverage
-agentline keys --json | jq '.bindings[].action'
+agentline config keys                   # human-readable table
+agentline config keys --json            # JSON for scripting or gate coverage
+agentline config keys --json | jq '.bindings[].action'
 ```
 
 ---
 
-## schema
+### config schema
 
 ```bash
-agentline schema [options]
+agentline config schema [options]
 ```
 
 Prints the embedded JSON Schema for `agentline.json` config files, or writes it to a directory so editors can pick it up.
@@ -375,21 +322,23 @@ Prints the embedded JSON Schema for `agentline.json` config files, or writes it 
 **Examples:**
 
 ```bash
-agentline schema                       # print schema to stdout
-agentline schema | jq .definitions     # inspect definitions
-agentline schema --write .vscode/      # drop schema for VS Code
-agentline schema --write /tmp/         # ad-hoc inspection
+agentline config schema                       # print schema to stdout
+agentline config schema | jq .definitions     # inspect definitions
+agentline config schema --write .vscode/      # drop schema for VS Code
+agentline config schema --write /tmp/         # ad-hoc inspection
 ```
 
 ---
 
-## render
+## render (hidden)
 
 ```bash
 agentline render [options]
 ```
 
 Re-renders a recorded stdin payload from a file (instead of live stdin). Used by the golden-snapshot harness, doctor's D10 check, and CI pipelines. Produces byte-identical output to the default invocation given the same payload.
+
+Not listed in `agentline --help` — call it directly when you need fixture replay.
 
 | Flag                   | Type   | Default | Description                                                                  |
 | ---------------------- | ------ | ------- | ---------------------------------------------------------------------------- |
@@ -412,7 +361,6 @@ Re-renders a recorded stdin payload from a file (instead of live stdin). Used by
 **Examples:**
 
 ```bash
-agentline render                                    # same as default invocation
 agentline render --fixture tests/fixtures/payload.json
 agentline render --fixture payload.json \
   --config tests/configs/minimal.json \
@@ -454,7 +402,7 @@ Prints the top-level subcommand list and exits.
 
 ## Shared accessibility flags
 
-The following flags are accepted by `preview` and `render` and forwarded to the ANSI encoder:
+The following flags are accepted by `render` and forwarded to the ANSI encoder:
 
 | Flag           | Alias         | Effect                                           |
 | -------------- | ------------- | ------------------------------------------------ |
@@ -469,23 +417,23 @@ Colour-depth auto-detection reads `COLORTERM`, `TERM`, and `TERM_PROGRAM`. Detec
 
 ## Environment variables
 
-| Variable                                  | Scope         | Effect                                                                                                                                                                                                                          |
-| ----------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NO_COLOR`                                | global        | Disable colour output (equivalent to `--no-color`; takes precedence)                                                                                                                                                            |
-| `AGENTLINE_QUIET`                         | render path   | Set to `1` to suppress the first-run "using built-in defaults" hint on stderr                                                                                                                                                   |
-| `CLAUDE_CONFIG_DIR`                       | global        | Override the parent of the agentline config dir. Default: `~/.config`                                                                                                                                                           |
-| `CLAUDE_PROJECT_DIR`                      | init, install | Override the project root for project-scoped config path. Default: `$PWD`                                                                                                                                                       |
-| `AGENTLINE_BIN`                           | scripts       | Force a specific binary path in shell scripts and CI; useful for testing                                                                                                                                                        |
-| `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS` | config load   | Set to `1` to opt in to `command` widgets sourced from `.agentline.json` (the project layer). Without this, project-layer `command` widgets are silently dropped and a one-line warning is written to stderr. See `widgets.md`. |
-| `AGENTLINE_TRANSCRIPT_ROOT`               | render path   | Override the directory tree that `transcriptPath` is allowed to resolve under. Default is the user's `~/.claude` tree. Test-only; production should leave unset.                                                                |
-| `AGENTLINE_*`                             | render path   | Override any config leaf: dot-path in `UPPER_SNAKE_CASE`, prefixed `AGENTLINE_`                                                                                                                                                 |
+| Variable                                  | Scope                | Effect                                                                                                                                                                                                                          |
+| ----------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NO_COLOR`                                | global               | Disable colour output (equivalent to `--no-color`; takes precedence)                                                                                                                                                            |
+| `AGENTLINE_QUIET`                         | render path          | Set to `1` to suppress the first-run "using built-in defaults" hint on stderr                                                                                                                                                   |
+| `CLAUDE_CONFIG_DIR`                       | global               | Override the parent of the agentline config dir. Default: `~/.config`                                                                                                                                                           |
+| `CLAUDE_PROJECT_DIR`                      | config init, install | Override the project root for project-scoped config path. Default: `$PWD`                                                                                                                                                       |
+| `AGENTLINE_BIN`                           | scripts              | Force a specific binary path in shell scripts and CI; useful for testing                                                                                                                                                        |
+| `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS` | config load          | Set to `1` to opt in to `command` widgets sourced from `.agentline.json` (the project layer). Without this, project-layer `command` widgets are silently dropped and a one-line warning is written to stderr. See `widgets.md`. |
+| `AGENTLINE_TRANSCRIPT_ROOT`               | render path          | Override the directory tree that `transcriptPath` is allowed to resolve under. Default is the user's `~/.claude` tree. Test-only; production should leave unset.                                                                |
+| `AGENTLINE_*`                             | render path          | Override any config leaf: dot-path in `UPPER_SNAKE_CASE`, prefixed `AGENTLINE_`                                                                                                                                                 |
 
 **`AGENTLINE_*` override examples:**
 
 ```bash
-AGENTLINE_THEME=vscode-dark agentline preview
-AGENTLINE_GLOBAL_PADDING=0 agentline preview
-AGENTLINE_POWERLINE_ENABLED=true agentline preview
+AGENTLINE_THEME=vscode-dark           # change theme without editing config
+AGENTLINE_GLOBAL_PADDING=0            # tighter spacing
+AGENTLINE_POWERLINE_ENABLED=true      # force-enable powerline glyphs
 ```
 
 Values are parsed as JSON when they look like JSON literals (`true`, `false`, numbers, quoted strings), otherwise treated as plain strings. Setting a variable to the empty string clears the override.

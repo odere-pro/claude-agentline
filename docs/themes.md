@@ -56,21 +56,20 @@ Each swatch shows the 13 palette roles left to right (accent → info → succes
 | `vscode-dark`       | dark grey       | <img src="themes/vscode-dark.svg" alt="vscode-dark palette" height="16">             |
 | `vscode-light`      | light grey      | <img src="themes/vscode-light.svg" alt="vscode-light palette" height="16">           |
 
-To browse, inspect, and preview themes:
+To browse and inspect themes:
 
 ```bash
-agentline themes                         # swatch table — name + 13 palette blocks per theme
-agentline themes --list                  # tab-separated name<TAB>path (for scripts and CI)
-agentline themes --show vscode-dark      # pretty-print the resolved palette
-agentline preview --theme claude-code-dark   # render a sample bar with the named theme
-agentline preview --all-themes           # one render per shipped theme, stacked
+agentline config theme                         # swatch table — name + 13 palette blocks per theme
+agentline config theme --list                  # tab-separated name<TAB>path (for scripts and CI)
+agentline config theme --show vscode-dark      # pretty-print the resolved palette
 ```
 
-`agentline themes` (no flags) prints one row per theme with a swatch
+`agentline config theme` (no flags) prints one row per theme with a swatch
 of all 13 palette roles rendered through the same ANSI encoder the
 statusline uses, so what you see in the table is what you get on the
-bar. Combine with `agentline preview --all-themes` for actual rendered
-bars side-by-side; that's the recommended way to pick a theme.
+bar.
+
+To activate a theme, set `"theme": "<name>"` in your config (or use the TUI editor with `agentline config`) and restart your Claude Code session.
 
 ## Palette roles
 
@@ -157,7 +156,7 @@ advertises 16 or none, they are quantised to the nearest named colour.
 Set `NO_COLOR=1` to disable colours entirely; agentline honours the
 [no-color.org](https://no-color.org) convention.
 
-To preview how a theme degrades on a 256-colour host:
+To preview how a theme degrades on a 256-colour host, use the fixture-replay path:
 
 ```bash
 COLORTERM= TERM=xterm-256color agentline render --fixture demo.json

@@ -1,5 +1,5 @@
 /**
- * Body for `agentline init` (§9.1, §10).
+ * Body for `agentline config init` (§9.1, §10).
  *
  * Scaffolds a config file from a shipped preset. Idempotent: refuses
  * to overwrite an existing target unless `--force` is passed. Atomic
@@ -13,8 +13,8 @@
  *   --target <path>   explicit override; takes precedence over --scope
  *   --force           overwrite an existing target
  *
- * After a successful write the command prints two next-step hints
- * (preview + doctor wiring) so the user does not have to read docs
+ * After a successful write the command prints next-step hints
+ * (verify + doctor wiring) so the user does not have to read docs
  * to know what to do next.
  */
 
@@ -28,10 +28,10 @@ import { resolveConfigPaths } from "../config/paths.js";
 import { resolveEnv } from "../lib/env.js";
 import { pathExists } from "../lib/fs.js";
 
-const HELP = `agentline init — scaffold a config file from a shipped preset
+const HELP = `agentline config init — scaffold a config file from a shipped preset
 
 Usage:
-  agentline init [--preset <name>] [--scope <where>] [--target <path>] [--force]
+  agentline config init [--preset <name>] [--scope <where>] [--target <path>] [--force]
 
 Presets:
   minimal   model + git-branch + clock
@@ -48,7 +48,7 @@ Options:
   --force             overwrite an existing target
   -h, --help          show this message
 
-After writing, the command prints next-step hints for preview + doctor.
+After writing, the command prints next-step hints for verify + doctor.
 `;
 
 export type InitPreset = "minimal" | "default" | "focus" | "power";
@@ -83,7 +83,7 @@ export async function runInitCommand(input: InitInput): Promise<number> {
   const exists = await pathExists(target);
   if (exists && !input.args.force) {
     process.stderr.write(
-      `agentline init: ${target} already exists; pass --force to overwrite\n`,
+      `agentline config init: ${target} already exists; pass --force to overwrite\n`,
     );
     return 1;
   }
@@ -93,7 +93,7 @@ export async function runInitCommand(input: InitInput): Promise<number> {
     body = await fs.readFile(templatePath, "utf8");
   } catch (err) {
     process.stderr.write(
-      `agentline init: unable to read template ${basename(templatePath)}: ${(err as Error).message}\n`,
+      `agentline config init: unable to read template ${basename(templatePath)}: ${(err as Error).message}\n`,
     );
     return 1;
   }
@@ -101,7 +101,7 @@ export async function runInitCommand(input: InitInput): Promise<number> {
   process.stdout.write(
     [
       `agentline: wrote ${target} (preset: ${input.args.preset})`,
-      `  preview: agentline preview --config ${target}`,
+      `  verify: agentline doctor`,
       `  wire it up: agentline doctor --fix`,
       "",
     ].join("\n"),
@@ -109,11 +109,7 @@ export async function runInitCommand(input: InitInput): Promise<number> {
   return 0;
 }
 
-function resolveTargetForScope(
-  scope: InitScope,
-  env: NodeJS.ProcessEnv,
-  cwd: string,
-): string {
+function resolveTargetForScope(scope: InitScope, env: NodeJS.ProcessEnv, cwd: string): string {
   const paths = resolveConfigPaths(env, cwd);
   return scope === "user" ? paths.userConfig : paths.projectConfig;
 }
@@ -144,7 +140,9 @@ export function parseInitArgs(rest: readonly string[]): InitCommandArgs {
     } else if (arg === "--preset") {
       const next = rest[i + 1];
       if (!next || next.startsWith("-")) {
-        throw new Error("agentline init: --preset requires one of minimal|default|focus|power");
+        throw new Error(
+          "agentline config init: --preset requires one of minimal|default|focus|power",
+        );
       }
       assertPreset(next);
       preset = next;
@@ -158,7 +156,7 @@ export function parseInitArgs(rest: readonly string[]): InitCommandArgs {
     } else if (arg === "--scope") {
       const next = rest[i + 1];
       if (!next || next.startsWith("-")) {
-        throw new Error("agentline init: --scope requires one of user|project");
+        throw new Error("agentline config init: --scope requires one of user|project");
       }
       assertScope(next);
       scope = next;
@@ -172,18 +170,18 @@ export function parseInitArgs(rest: readonly string[]): InitCommandArgs {
     } else if (arg === "--target") {
       const next = rest[i + 1];
       if (!next || next.startsWith("-")) {
-        throw new Error("agentline init: --target requires a path");
+        throw new Error("agentline config init: --target requires a path");
       }
       target = next;
       i += 1;
     } else if (arg && arg.startsWith("--target=")) {
       target = arg.slice("--target=".length);
     } else if (arg) {
-      throw new Error(`agentline init: unknown argument '${arg}'`);
+      throw new Error(`agentline config init: unknown argument '${arg}'`);
     }
   }
   if (preset !== undefined && minimalAliasUsed) {
-    throw new Error("agentline init: --minimal and --preset are mutually exclusive");
+    throw new Error("agentline config init: --minimal and --preset are mutually exclusive");
   }
   const resolvedPreset: InitPreset = preset ?? (minimalAliasUsed ? "minimal" : "default");
   const out: InitCommandArgs = { preset: resolvedPreset, scope, force };
@@ -194,14 +192,14 @@ export function parseInitArgs(rest: readonly string[]): InitCommandArgs {
 function assertPreset(value: string): asserts value is InitPreset {
   if (!PRESETS.has(value as InitPreset)) {
     throw new Error(
-      `agentline init: unknown preset '${value}' (expected minimal|default|focus|power)`,
+      `agentline config init: unknown preset '${value}' (expected minimal|default|focus|power)`,
     );
   }
 }
 
 function assertScope(value: string): asserts value is InitScope {
   if (!SCOPES.has(value as InitScope)) {
-    throw new Error(`agentline init: unknown scope '${value}' (expected user|project)`);
+    throw new Error(`agentline config init: unknown scope '${value}' (expected user|project)`);
   }
 }
 
@@ -211,4 +209,3 @@ function defaultTemplateDir(): string {
   const cliDir = dirname(fileURLToPath(import.meta.url));
   return join(cliDir, "..", "templates");
 }
-

@@ -14,11 +14,12 @@ Use this skill when the user asks about:
 
 For deeper tasks, invoke the focused sub-skill:
 
-| Task                     | Sub-skill                 |
-| ------------------------ | ------------------------- |
-| Configure widgets/layout | `/agentline-configure`    |
-| Browse or author themes  | `/agentline-themes`       |
-| Debug statusline issues  | `/agentline-troubleshoot` |
+| Task                       | Sub-skill                 |
+| -------------------------- | ------------------------- |
+| Just installed — what now? | `/agentline-onboarding`   |
+| Configure widgets/layout   | `/agentline-configure`    |
+| Browse or author themes    | `/agentline-themes`       |
+| Debug statusline issues    | `/agentline-troubleshoot` |
 
 ---
 
@@ -37,13 +38,17 @@ Full check descriptions → [doctor.md](../docs/doctor.md)
 ## Configure
 
 ```bash
-agentline config                                  # interactive TUI editor
-agentline init --preset default --scope project   # scaffold .claude/agentline.json
-agentline preview --config .claude/agentline.json # preview without a session
-agentline preview --watch                         # live-reload on config save
+agentline config                                          # interactive TUI editor
+agentline config init --preset default --scope project    # scaffold .claude/agentline.json
+agentline config theme                                    # browse installed themes
+agentline config schema --write .                         # write JSON Schema for editor support
 ```
 
-Config paths: user `~/.config/agentline/config.json` · project `.claude/agentline.json`
+Or just edit the config JSON directly:
+
+- user → `~/.config/agentline/config.json`
+- project → `.claude/agentline.json` (overrides user)
+
 Presets: `minimal` · `default` · `focus` · `power`
 Full reference → [config.md](../docs/config.md)
 
@@ -52,8 +57,8 @@ Full reference → [config.md](../docs/config.md)
 ## Reset
 
 ```bash
-agentline init --force --preset default --scope project   # reset project config
-agentline init --force --preset default --scope user      # reset user config
+agentline config init --force --preset default --scope project   # reset project config
+agentline config init --force --preset default --scope user      # reset user config
 ```
 
 ---
@@ -61,11 +66,11 @@ agentline init --force --preset default --scope user      # reset user config
 ## Themes
 
 ```bash
-agentline themes                          # swatch table
-agentline themes --show claude-code-dark  # inspect palette
-agentline preview --all-themes            # render one bar per theme
+agentline config theme                          # swatch table
+agentline config theme --show claude-code-dark  # inspect palette
 ```
 
+Switch by setting `"theme": "<name>"` in the config file.
 Full reference → [themes.md](../docs/themes.md)
 
 ---
@@ -83,12 +88,12 @@ Full reference → [install.md](../docs/install.md)
 
 ## Quick fixes
 
-| Symptom                      | Action                                            |
-| ---------------------------- | ------------------------------------------------- |
-| Statusline not showing       | `agentline doctor --fix` then restart Claude Code |
-| Blank/garbled output         | `agentline preview --theme vscode-dark`           |
-| Config ignored               | Check path is `.claude/agentline.json`            |
-| Stale pricing (D07)          | `npm install -g @agentline/cli@latest`            |
-| Powerline `>` instead of `❯` | D05: install a Nerd Font                          |
+| Symptom                      | Action                                                |
+| ---------------------------- | ----------------------------------------------------- |
+| Statusline not showing       | `agentline doctor --fix` then restart Claude Code     |
+| Blank/garbled output         | switch theme to `vscode-dark`; run `agentline doctor` |
+| Config ignored               | Check path is `.claude/agentline.json`                |
+| Stale pricing (D07)          | `npm install -g @agentline/cli@latest`                |
+| Powerline `>` instead of `❯` | D05: install a Nerd Font                              |
 
 More → [troubleshooting.md](../docs/troubleshooting.md) · Full CLI reference → [cli.md](../docs/cli.md)

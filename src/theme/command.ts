@@ -1,5 +1,5 @@
 /**
- * Body for `agentline themes [--list | --show <name>]` (§9.1, §5.6).
+ * Body for `agentline config theme [--list | --show <name>]` (§9.1, §5.6).
  *
  *   - default              swatch table — name + 13 colour blocks per palette,
  *                          rendered with terminal colour-depth detection.
@@ -29,10 +29,10 @@ import {
   type Theme,
 } from "./index.js";
 
-const HELP = `agentline themes — browse and inspect theme presets
+const HELP = `agentline config theme — browse and inspect theme presets
 
 Usage:
-  agentline themes [--list | --show <name>]
+  agentline config theme [--list | --show <name>]
 
 Options:
   --list         tab-separated name<TAB>path rows (machine-readable)
@@ -67,14 +67,14 @@ export async function runThemesCommand(input: ThemesInput): Promise<number> {
 async function listAllThemes(input: ThemesInput): Promise<number> {
   const { rows, errors } = await collectThemes(input);
   if (rows.length === 0) {
-    process.stderr.write("agentline themes: no themes found on the search path\n");
+    process.stderr.write("agentline config theme: no themes found on the search path\n");
     return 1;
   }
   for (const row of rows) {
     process.stdout.write(`${row.name}\t${row.path}\n`);
   }
   for (const err of errors) {
-    process.stderr.write(`agentline themes: ${err.path}: ${err.message}\n`);
+    process.stderr.write(`agentline config theme: ${err.path}: ${err.message}\n`);
   }
   return 0;
 }
@@ -82,7 +82,7 @@ async function listAllThemes(input: ThemesInput): Promise<number> {
 async function tableThemes(input: ThemesInput): Promise<number> {
   const { rows, errors } = await collectThemes(input);
   if (rows.length === 0) {
-    process.stderr.write("agentline themes: no themes found on the search path\n");
+    process.stderr.write("agentline config theme: no themes found on the search path\n");
     return 1;
   }
   const env = resolveEnv(input);
@@ -100,17 +100,20 @@ async function tableThemes(input: ThemesInput): Promise<number> {
     process.stdout.write(`  ${row.name.padEnd(widestName, " ")}  ${swatch}\n`);
   }
   for (const err of errors) {
-    process.stderr.write(`agentline themes: ${err.path}: ${err.message}\n`);
+    process.stderr.write(`agentline config theme: ${err.path}: ${err.message}\n`);
   }
   process.stderr.write(
-    "\nTry `agentline preview --all-themes` to see one render per theme.\n",
+    "\nSet `theme` in your config to switch; run `agentline doctor` to verify.\n",
   );
   return 0;
 }
 
 async function collectThemes(
   input: ThemesInput,
-): Promise<{ rows: { name: string; path: string }[]; errors: { path: string; message: string }[] }> {
+): Promise<{
+  rows: { name: string; path: string }[];
+  errors: { path: string; message: string }[];
+}> {
   const dirs = themeDirectories(input);
   const seen = new Set<string>();
   const rows: { name: string; path: string }[] = [];
@@ -148,13 +151,13 @@ function renderSwatch(theme: Theme, depth: ReturnType<typeof detectColourDepth>)
 async function showTheme(input: ThemesInput): Promise<number> {
   const name = input.args.name;
   if (!name) {
-    process.stderr.write("agentline themes: --show requires a theme name\n");
+    process.stderr.write("agentline config theme: --show requires a theme name\n");
     return 2;
   }
-  // Reject path-shaped names so `agentline themes --show ../../etc/passwd`
+  // Reject path-shaped names so `agentline config theme --show ../../etc/passwd`
   // can't resolve outside the themes search path.
   if (!/^[a-zA-Z0-9._-]+$/.test(name) || name.startsWith(".")) {
-    process.stderr.write(`agentline themes: invalid theme name '${name}'\n`);
+    process.stderr.write(`agentline config theme: invalid theme name '${name}'\n`);
     return 2;
   }
   const env = resolveEnv(input);
@@ -167,13 +170,11 @@ async function showTheme(input: ThemesInput): Promise<number> {
       process.stdout.write(formatTheme(theme.name, path, theme.palette, env));
       return 0;
     } catch (err) {
-      process.stderr.write(
-        `agentline themes: ${path}: ${(err as Error).message}\n`,
-      );
+      process.stderr.write(`agentline config theme: ${path}: ${(err as Error).message}\n`);
       return 1;
     }
   }
-  process.stderr.write(`agentline themes: theme '${name}' not found\n`);
+  process.stderr.write(`agentline config theme: theme '${name}' not found\n`);
   return 1;
 }
 
@@ -188,9 +189,10 @@ function formatTheme(
   const widest = THEME_ROLES.reduce((n, r) => Math.max(n, r.length), 0);
   for (const role of THEME_ROLES) {
     const hex = palette[role] ?? "(unset)";
-    const swatch = depth !== "none" && isColour(hex)
-      ? `${encodeSegments([{ text: "  ", bg: hex }], depth)}${SGR_RESET} `
-      : "   ";
+    const swatch =
+      depth !== "none" && isColour(hex)
+        ? `${encodeSegments([{ text: "  ", bg: hex }], depth)}${SGR_RESET} `
+        : "   ";
     lines.push(`  ${role.padEnd(widest, " ")}  ${swatch}${hex}`);
   }
   lines.push("");
@@ -223,7 +225,7 @@ export function parseThemesArgs(rest: readonly string[]): ThemesCommandArgs {
       action = "show";
       const next = rest[i + 1];
       if (!next || next.startsWith("-")) {
-        throw new Error("agentline themes: --show requires a theme name");
+        throw new Error("agentline config theme: --show requires a theme name");
       }
       name = next;
       i += 1;
@@ -231,7 +233,7 @@ export function parseThemesArgs(rest: readonly string[]): ThemesCommandArgs {
       action = "show";
       name = arg.slice("--show=".length);
     } else if (arg) {
-      throw new Error(`agentline themes: unknown argument '${arg}'`);
+      throw new Error(`agentline config theme: unknown argument '${arg}'`);
     }
   }
   return name !== undefined ? { action, name } : { action };

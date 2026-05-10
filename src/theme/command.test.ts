@@ -142,7 +142,7 @@ describe("runThemesCommand", () => {
       builtinDir: tmp,
     });
     const stderrOut = stderr.mock.calls.map((c) => String(c[0])).join("");
-    expect(stderrOut).toContain("agentline preview --all-themes");
+    expect(stderrOut).toContain("agentline doctor");
   });
 
   it("table action fails when no themes found", async () => {

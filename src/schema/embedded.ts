@@ -3,7 +3,7 @@
  *
  * tsup's `loader` option turns a `.json` import into an ESM default export,
  * so this file is the single re-export point. Keeping the import here means
- * code paths importing the schema (validator, `agentline schema` command,
+ * code paths importing the schema (validator, `agentline config schema` command,
  * docs generator) all read the same bytes.
  */
 

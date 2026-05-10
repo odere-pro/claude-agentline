@@ -8,13 +8,18 @@ Use this skill when the user wants to pick, preview, or author a theme for their
 
 ---
 
-## Browse and preview
+## Browse and inspect
 
 ```bash
-agentline themes                          # swatch table: name + 13 palette colour blocks
-agentline themes --show vscode-dark       # inspect one theme's full palette
-agentline preview --all-themes            # render one live bar per theme, stacked
-agentline preview --theme claude-code-dark  # pin a single theme
+agentline config theme                          # swatch table: name + 13 palette colour blocks
+agentline config theme --show vscode-dark       # inspect one theme's full palette
+```
+
+To preview a theme live, set it in the config and restart the Claude Code session:
+
+```jsonc
+// ~/.config/agentline/config.json
+{ "theme": "vscode-dark" }
 ```
 
 ---
@@ -59,12 +64,12 @@ cp themes/vscode-dark.json \
   "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/themes/my-theme.json"
 
 # 2. edit — rename the "name" field to match the filename
-# 3. activate in config
-agentline config   # or set "theme": "my-theme" in .claude/agentline.json
+# 3. activate: set "theme": "my-theme" in ~/.config/agentline/config.json
+#    (or open the TUI editor: `agentline config`)
 
 # 4. verify
 agentline doctor
-agentline preview --theme my-theme
+agentline config theme --show my-theme
 ```
 
 Minimal theme file shape:
@@ -88,13 +93,6 @@ Only the roles you set override; unset roles fall back to built-in defaults.
 
 ## Degraded terminals
 
-Colour-depth detection is automatic. To test degradation:
-
-```bash
-NO_COLOR=1 agentline preview                           # no colour
-COLORTERM= TERM=xterm-256color agentline preview       # 256-colour
-```
-
-agentline honours [`NO_COLOR`](https://no-color.org).
+Colour-depth detection is automatic. agentline honours [`NO_COLOR`](https://no-color.org); set it in the environment to disable colour. To test degradation, set `NO_COLOR=1` or `COLORTERM= TERM=xterm-256color` in the Claude Code session env and restart.
 
 Full reference → [themes.md](../docs/themes.md)

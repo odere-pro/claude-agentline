@@ -1,32 +1,24 @@
 # Configuration
 
 `agentline` is configured by a JSON file. Four shipped presets are
-available via `agentline init --preset <name>`:
+available via `agentline config init --preset <name>`:
 
 - **`minimal`** (`templates/minimal.config.json`) — model, git-branch, clock. The smallest sensible bar.
 - **`default`** (`templates/default.config.json`) — model, git, context, tokens, cost, session usage, clock. The recommended starting point; what `scripts/install.sh` seeds on first run.
 - **`focus`** (`templates/presets/focus.config.json`) — model, git, context-percentage, clock. The "I'm trying to read code" bar.
 - **`power`** (`templates/presets/power.config.json`) — full default plus `thinking-effort`, `weekly-usage`, `block-timer`. Everything.
 
-`agentline init` defaults to the `default` preset and writes
+`agentline config init` defaults to the `default` preset and writes
 `.claude/agentline.json` in the current directory; pass `--scope user` to
 write the user config instead, or `--target <path>` for an explicit
 location. Existing targets are preserved unless `--force` is passed.
-
-To preview a preset before committing:
-
-```bash
-agentline preview --minimal     # the minimal preset
-agentline preview --default     # the default preset
-agentline preview --config <path>  # any config file
-```
 
 The canonical schema lives at `schemas/config.schema.json` and is also
 embedded in the binary so validation works offline. To drop a copy into
 your editor:
 
 ```bash
-agentline schema --write .vscode/
+agentline config schema --write .vscode/
 ```
 
 ## File locations
@@ -57,14 +49,14 @@ wholesale, not merged element-by-element — same rule as JSON Patch.
 The quickest way to work with config without editing JSON by hand:
 
 ```bash
-agentline config                                    # open the interactive TUI editor
-agentline init --preset default --scope project     # scaffold .claude/agentline.json
-agentline init --preset minimal --scope user        # scaffold user config
-agentline init --force --preset default             # reset the project config to defaults
-agentline preview --config .claude/agentline.json   # render without a Claude session
-agentline preview --watch                           # live-reload preview on config save
-agentline schema --write .vscode/                   # drop the JSON schema for editor autocomplete
+agentline config                                           # open the interactive TUI editor
+agentline config init --preset default --scope project     # scaffold .claude/agentline.json
+agentline config init --preset minimal --scope user        # scaffold user config
+agentline config init --force --preset default             # reset the project config to defaults
+agentline config schema --write .vscode/                   # drop the JSON schema for editor autocomplete
 ```
+
+To see a config change in the live statusline, restart the Claude Code session — the renderer is invoked once per prompt by Claude Code, not by a watcher.
 
 Full flag reference for all commands → [cli.md](./cli.md)
 
@@ -197,7 +189,7 @@ Two non-config-leaf env vars that affect loader behaviour:
 ## Atomic writes
 
 Every persisted config write — whether by `agentline config` (TUI),
-`agentline init`, `scripts/install.sh`, or `agentline doctor --fix` —
+`agentline config init`, `scripts/install.sh`, or `agentline doctor --fix` —
 follows the same recipe: write to a sibling temp file, `fsync`, then
 `rename` over the target. Editor watchers observe one consistent state
 and an interrupted write never leaves a half-written file.

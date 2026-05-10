@@ -59,9 +59,6 @@
   },
   "scripts": {
     "build": "tsup",
-    "preview": "node dist/cli.mjs preview --config .claude/agentline.json",
-    "preview:themes": "node dist/cli.mjs preview --all-themes --config .claude/agentline.json",
-    "preview:watch": "node dist/cli.mjs preview --watch --config .claude/agentline.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint \"src/**/*.ts\"",

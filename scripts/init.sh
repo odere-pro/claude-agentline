@@ -17,7 +17,7 @@ DRY_RUN=0
 
 usage() {
   cat <<'EOF'
-agentline init — seed `.agentline.json` in the current project.
+agentline config init — seed `.agentline.json` in the current project.
 
 Usage:
   scripts/init.sh [--dry-run]
