@@ -250,7 +250,7 @@ seed_skills() {
   fi
 }
 
-# Step 5: wire statusLine into ~/.claude/settings.json.
+# Step 5: wire statusLine into Claude Code settings.
 wire_statusline() {
   __target_file="$1"
   __backup_file="$2"

@@ -37,7 +37,7 @@ A standalone, fast, themeable Claude Code statusline. Reads the Claude Code stdi
 npx @agentline/cli preview --all-themes  # try before installing
 
 npm install -g @agentline/cli
-agentline install   # wires statusLine into ~/.claude/settings.json
+agentline install   # wires statusLine into Claude Code settings (backs up any prior value)
 # Restart Claude Code session — statusline appears at the next prompt
 ```
 
