@@ -35,7 +35,7 @@ npm install -g @agentline/cli
 agentline install
 ```
 
-`agentline install` wires the binary into your **current project's** `.claude/settings.json` and prompts whether to also wire it globally. See [install.md](./install.md) for all flags (`--global`, `--local-only`, `--force`, `--dry-run`).
+`agentline install` wires the binary into your global `~/.claude/settings.json` so every Claude Code session picks it up. Any prior `statusLine` is backed up before being overwritten. See [install.md](./install.md) for all flags (`--from-source`, `--force`, `--dry-run`).
 
 ### From source (development checkout)
 

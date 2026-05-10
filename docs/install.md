@@ -7,10 +7,11 @@ as `@agentline/cli`. Installing it is two steps:
 2. point Claude Code's `statusLine` setting at it.
 
 The blessed path is `npm i -g @agentline/cli && agentline install`.
-`agentline install` wires the Claude Code `statusLine` setting in your project and
-optionally globally; `agentline doctor --fix` handles the same repair step if
-you prefer to wire manually. The manual recipe at the bottom of this page does
-the same thing by hand if you would rather not run a command.
+`agentline install` wires the Claude Code `statusLine` setting in your
+global `~/.claude/settings.json` (backing up any prior value);
+`agentline doctor --fix` handles the same repair step if you prefer to
+wire manually. The manual recipe at the bottom of this page does the same
+thing by hand if you would rather not run a command.
 
 ## Try it before you install
 

@@ -37,7 +37,7 @@ A standalone, fast, themeable Claude Code statusline. Reads the Claude Code stdi
 npx @agentline/cli preview --all-themes  # try before installing
 
 npm install -g @agentline/cli
-agentline install   # wires local project; prompts for global
+agentline install   # wires statusLine into ~/.claude/settings.json
 # Restart Claude Code session — statusline appears at the next prompt
 ```
 
@@ -47,12 +47,11 @@ agentline install   # wires local project; prompts for global
 git clone https://github.com/odere-pro/claude-agentline
 cd claude-agentline
 npm install && npm run build
-node dist/cli.mjs install --from-source --local-only
+node dist/cli.mjs install --from-source
 # Restart Claude Code session — statusline appears at the next prompt
 ```
 
-`--from-source` runs `npm link` so `agentline` is on your PATH from the checkout.
-`--local-only` wires only the current project; omit it to be prompted for global wiring too.
+`--from-source` runs `npm link` so `agentline` is on your PATH from the checkout. Any prior `statusLine` value is backed up before being overwritten; `agentline uninstall` restores it.
 
 Full walkthrough (doctor, presets, config) → [docs/get-started.md](./docs/get-started.md)
 

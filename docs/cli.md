@@ -219,22 +219,18 @@ Wires agentline into Claude Code. Delegates to `scripts/install.sh`; flags are f
 | Flag              | Type              | Default   | Description                                                                           |
 | ----------------- | ----------------- | --------- | ------------------------------------------------------------------------------------- |
 | `--from-source`   | flag              | off       | `npm link` from the local checkout instead of installing from the registry            |
-| `--global`        | flag              | off       | Also wire `statusLine` into `$HOME/.claude/settings.json` without prompting           |
-| `--local-only`    | flag              | off       | Wire the local project only; skip the global prompt                                   |
 | `--force`         | flag              | off       | Overwrite an existing `statusLine` value even when it does not point at agentline     |
 | `--dry-run`       | flag              | off       | Print every action that would be taken; touch nothing                                 |
 | `-h` / `--help`   | flag              | —         | Show command help                                                                     |
 
-**Mutual exclusions:** `--global` and `--local-only` are mutually exclusive.
-
-**Default scope:** without `--global` or `--local-only`, the script wires the local project and prompts interactively about global wiring.
+**Scope:** install always wires the global `~/.claude/settings.json` (honours `$CLAUDE_CONFIG_DIR`). Per-project local wiring is not exposed by the v0.1.0 CLI.
 
 **Steps performed (in order):**
 1. Install `@agentline/cli` globally (or `npm link` with `--from-source`).
 2. Seed user config from the default template (preserves existing).
 3. Seed shipped themes into the user themes directory (preserves existing).
 4. Copy agentline skill files (`agentline*.md`) into `$HOME/.claude/agents/` (skips existing).
-5. Wire `statusLine` into `.claude/settings.json` (local) and optionally `~/.claude/settings.json` (global).
+5. Wire `statusLine` into `~/.claude/settings.json`, backing up any foreign prior value.
 
 **Existing `statusLine` preservation:** if `statusLine` already contains a foreign value, it is backed up to `${CLAUDE_CONFIG_DIR:-~/.config/agentline}/state/settings-backup.json` before being overwritten. `agentline uninstall` reads this backup to restore the original value.
 
@@ -243,10 +239,9 @@ Wires agentline into Claude Code. Delegates to `scripts/install.sh`; flags are f
 **Examples:**
 
 ```bash
-agentline install                          # local wire + prompt for global
-agentline install --global                 # local + global, no prompt
-agentline install --local-only             # local only, no prompt
-agentline install --from-source --local-only  # dev checkout
+agentline install                          # wire ~/.claude/settings.json
+agentline install --from-source            # dev checkout (npm link first)
+agentline install --force                  # overwrite a foreign statusLine
 agentline install --dry-run                # preview without touching files
 ```
 
