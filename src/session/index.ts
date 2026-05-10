@@ -8,6 +8,7 @@
  * `render()` (§1.2 N3 budget).
  */
 
+import { pickString, pickStringArray } from "../lib/object.js";
 import type { StdinPayload } from "../stdin/index.js";
 import { readAuthFile, type AuthLookupSource, type AuthSnapshot } from "./auth-file.js";
 
@@ -25,26 +26,6 @@ export interface ResolvedSessionFields {
   readonly thinkingEffort?: string;
   readonly vimMode?: string;
   readonly skills?: readonly string[];
-}
-
-function pickString(obj: Record<string, unknown> | undefined, key: string): string | undefined {
-  if (!obj) return undefined;
-  const v = obj[key];
-  return typeof v === "string" && v !== "" ? v : undefined;
-}
-
-function pickStringArray(
-  obj: Record<string, unknown> | undefined,
-  key: string,
-): string[] | undefined {
-  if (!obj) return undefined;
-  const v = obj[key];
-  if (!Array.isArray(v)) return undefined;
-  const out: string[] = [];
-  for (const entry of v) {
-    if (typeof entry === "string" && entry !== "") out.push(entry);
-  }
-  return out.length ? out : undefined;
 }
 
 function readUserBlock(payload: StdinPayload): Record<string, unknown> | undefined {

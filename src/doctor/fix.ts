@@ -10,6 +10,7 @@ import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { atomicWriteJson } from "../config/atomic.js";
 import { DEFAULT_CONFIG, type AgentlineConfig } from "../config/index.js";
+import { pathExists } from "../lib/fs.js";
 import { saveStatusLineBackup } from "../state/backup.js";
 import type { CheckResult } from "./types.js";
 
@@ -119,11 +120,3 @@ async function fixD04(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
   };
 }
 
-async function pathExists(p: string): Promise<boolean> {
-  try {
-    await fs.access(p);
-    return true;
-  } catch {
-    return false;
-  }
-}

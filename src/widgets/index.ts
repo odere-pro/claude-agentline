@@ -26,3 +26,23 @@ export {
   WidgetTypeMissingError,
   type RenderWidgetOptions,
 } from "./render-widget.js";
+
+import type { WidgetRegistry } from "./registry.js";
+import { registerSessionWidgets } from "./session/index.js";
+import { registerTokenWidgets } from "./tokens/index.js";
+import { registerContextWidgets } from "./context/index.js";
+import { registerRateLimitWidgets } from "./rate-limits/index.js";
+import { registerGitWidgets } from "./git/index.js";
+import { registerTimeWidgets } from "./time/index.js";
+import { registerCustomWidgets } from "./custom/index.js";
+
+/** Register every built-in widget family against the given registry. */
+export function registerAllBuiltins(registry: WidgetRegistry): void {
+  registerSessionWidgets(registry);
+  registerTokenWidgets(registry);
+  registerContextWidgets(registry);
+  registerRateLimitWidgets(registry);
+  registerGitWidgets(registry);
+  registerTimeWidgets(registry);
+  registerCustomWidgets(registry);
+}

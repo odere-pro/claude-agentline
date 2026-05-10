@@ -23,6 +23,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { atomicWriteJson } from "../config/atomic.js";
+import { isEnoent, pathExists } from "../lib/fs.js";
 import { AGENTLINE_VERSION } from "../version.js";
 
 export const STATUS_LINE_BACKUP_VERSION = 1 as const;
@@ -75,7 +76,7 @@ export async function saveStatusLineBackup(args: {
   readonly clock?: () => Date;
 }): Promise<"created" | "skipped"> {
   const target = args.backupFile ?? resolveBackupPaths(args.env).backupFile;
-  if (await fileExists(target)) return "skipped";
+  if (await pathExists(target)) return "skipped";
   const body: StatusLineBackup = {
     version: STATUS_LINE_BACKUP_VERSION,
     createdAt: (args.clock ?? (() => new Date()))().toISOString(),
@@ -101,7 +102,7 @@ export async function readStatusLineBackup(args: {
   try {
     raw = await fs.readFile(target, "utf8");
   } catch (err) {
-    if (isMissing(err)) return null;
+    if (isEnoent(err)) return null;
     throw err;
   }
   let parsed: unknown;
@@ -124,7 +125,7 @@ export async function deleteStatusLineBackup(args: {
   try {
     await fs.unlink(target);
   } catch (err) {
-    if (!isMissing(err)) throw err;
+    if (!isEnoent(err)) throw err;
   }
 }
 
@@ -150,23 +151,6 @@ function validateBackup(parsed: unknown, source: string): StatusLineBackup {
   };
 }
 
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await fs.access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function isMissing(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code: string }).code === "ENOENT"
-  );
-}
 
 /**
  * Path of the agentline state directory (parent of the backup file).

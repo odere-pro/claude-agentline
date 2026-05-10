@@ -18,6 +18,8 @@ import { HelpRequestedError } from "./cli/help.js";
 import { parseSchemaArgs, runSchemaCommand } from "./schema/command.js";
 import { parseDoctorArgs, runDoctorCommand } from "./doctor/command.js";
 import { parseInitArgs, runInitCommand } from "./init/command.js";
+import { parseInstallArgs, runInstallCommand } from "./install/command.js";
+import { parseUninstallArgs, runUninstallCommand } from "./uninstall/command.js";
 import { parseKeysArgs, runKeysCommand } from "./keys/command.js";
 import { parseThemesArgs, runThemesCommand } from "./theme/command.js";
 import { parsePreviewArgs, runPreviewCommand } from "./preview/command.js";
@@ -84,6 +86,8 @@ function runHelp(): number {
       "Usage: agentline [<command>] [<options>]",
       "",
       "Commands:",
+      "  install              wire agentline into Claude Code's statusline",
+      "  uninstall            remove agentline from this host",
       "  preview              render a sample statusline (no install, no stdin)",
       "  init [--preset ...]  scaffold a config (--preset, --scope, --force)",
       "  config               edit configuration in the TUI",
@@ -96,7 +100,7 @@ function runHelp(): number {
       "  version              print version",
       "  help                 print this message",
       "",
-      "Pass -h/--help to any command for details. Start with `agentline preview`.",
+      "Pass -h/--help to any command for details. Start with `agentline install`.",
       "",
     ].join("\n"),
   );
@@ -134,41 +138,48 @@ async function dispatch(
   }
 }
 
+/**
+ * Subcommand dispatch table (Command Map). Each entry owns its
+ * arg-parsing + run pair, plus an optional `errorPrefix` used when
+ * the run function throws something other than `HelpRequestedError`.
+ *
+ * Aliases (e.g. `--version` for `version`) share a single entry so
+ * the table stays the source of truth for "is this a known command?".
+ */
+type Subcommand = (rest: readonly string[]) => Promise<number>;
+
+const COMMANDS: Readonly<Record<string, Subcommand>> = Object.freeze({
+  render: runRender,
+  version: async () => runVersion(),
+  "--version": async () => runVersion(),
+  "-v": async () => runVersion(),
+  help: async () => runHelp(),
+  "--help": async () => runHelp(),
+  "-h": async () => runHelp(),
+  schema: (rest) => dispatch(() => runSchemaCommand(parseSchemaArgs([...rest]))),
+  doctor: (rest) => dispatch(() => runDoctorCommand(parseDoctorArgs([...rest]))),
+  config: () => dispatch(runConfigDispatch, "agentline: config error"),
+  install: (rest) =>
+    dispatch(() => runInstallCommand(parseInstallArgs(rest)), "agentline install"),
+  uninstall: (rest) =>
+    dispatch(() => runUninstallCommand(parseUninstallArgs(rest)), "agentline uninstall"),
+  init: (rest) => dispatch(() => runInitCommand({ args: parseInitArgs(rest) })),
+  keys: (rest) => dispatch(() => runKeysCommand({ args: parseKeysArgs(rest) })),
+  themes: (rest) => dispatch(() => runThemesCommand({ args: parseThemesArgs(rest) })),
+  preview: (rest) =>
+    dispatch(
+      () => runPreviewCommand({ args: parsePreviewArgs(rest) }),
+      "agentline preview",
+    ),
+});
+
 async function main(): Promise<number> {
   const { command, rest } = parseArgs(process.argv);
-  switch (command) {
-    case "render":
-      return runRender(rest);
-    case "version":
-    case "--version":
-    case "-v":
-      return runVersion();
-    case "help":
-    case "--help":
-    case "-h":
-      return runHelp();
-    case "schema":
-      return dispatch(() => runSchemaCommand(parseSchemaArgs(rest)));
-    case "doctor":
-      return dispatch(() => runDoctorCommand(parseDoctorArgs(rest)));
-    case "config":
-      return dispatch(runConfigDispatch, "agentline: config error");
-    case "init":
-      return dispatch(() => runInitCommand({ args: parseInitArgs(rest) }));
-    case "keys":
-      return dispatch(() => runKeysCommand({ args: parseKeysArgs(rest) }));
-    case "themes":
-      return dispatch(() => runThemesCommand({ args: parseThemesArgs(rest) }));
-    case "preview":
-      return dispatch(
-        () => runPreviewCommand({ args: parsePreviewArgs(rest) }),
-        "agentline preview",
-      );
-    default:
-      process.stderr.write(`agentline: unknown command '${command}'\n`);
-      runHelp();
-      return 1;
-  }
+  const handler = COMMANDS[command];
+  if (handler) return handler(rest);
+  process.stderr.write(`agentline: unknown command '${command}'\n`);
+  runHelp();
+  return 1;
 }
 
 main().then(

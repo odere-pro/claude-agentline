@@ -151,7 +151,7 @@ describe("runThemesCommand", () => {
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
       const code = await runThemesCommand({
         args: { action: "table" },
-        env: {},
+        env: { CLAUDE_CONFIG_DIR: empty },
         cwd: "/no-such-cwd",
         builtinDir: empty,
       });

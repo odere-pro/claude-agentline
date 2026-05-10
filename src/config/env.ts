@@ -35,10 +35,23 @@ export function envLayer(env: NodeJS.ProcessEnv = process.env): Plain {
 
 function decodeValue(raw: string): unknown {
   try {
-    return JSON.parse(raw);
+    return stripPrototypeKeys(JSON.parse(raw));
   } catch {
     return raw;
   }
+}
+
+const FORBIDDEN_KEYS: ReadonlySet<string> = new Set(["__proto__", "constructor", "prototype"]);
+
+function stripPrototypeKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripPrototypeKeys);
+  if (value === null || typeof value !== "object") return value;
+  const out: Plain = {};
+  for (const [k, v] of Object.entries(value as Plain)) {
+    if (FORBIDDEN_KEYS.has(k)) continue;
+    out[k] = stripPrototypeKeys(v);
+  }
+  return out;
 }
 
 function setDeep(target: Plain, path: string[], value: unknown): void {

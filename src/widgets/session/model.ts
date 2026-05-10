@@ -3,6 +3,7 @@
  * back to the raw id (or hides when stdin omits `model`).
  */
 
+import { resolveRole } from "../../theme/index.js";
 import type { Cell } from "../cell.js";
 import { defineWidget } from "../widget.js";
 
@@ -27,5 +28,6 @@ export const modelWidget = defineWidget<ModelOptions>("model", (ctx, settings): 
   const id = ctx.session?.model ?? ctx.stdin.model;
   if (!id) return { text: "", hidden: true };
   const label = settings.rawValue ? "" : (settings.options.label ?? "");
-  return { text: `${label}${modelDisplayName(id)}` };
+  const fg = resolveRole(ctx.theme, "accent");
+  return { text: `${label}${modelDisplayName(id)}`, fg };
 });

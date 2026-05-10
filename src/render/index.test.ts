@@ -2,13 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import { renderLine } from "./index.js";
 
+const ESC = "\x1b[";
+const RESET = `${ESC}0m`;
+
 describe("renderLine", () => {
   it("encodes coloured segments at the requested depth", () => {
     const out = renderLine([{ text: "x", fg: "red" }], {
       depth: "16",
       flags: { noColor: false, noUnicode: false },
     });
-    expect(out).toBe("\x1b[31mx\x1b[0m");
+    expect(out).toBe(`${ESC}31mx${RESET}`);
   });
 
   it("strips ANSI escapes when noColor is true", () => {

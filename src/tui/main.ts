@@ -22,6 +22,7 @@ import { loadConfig } from "../config/load.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import type { AgentlineConfig } from "../config/types.js";
 import { DEFAULT_KEY_BINDINGS, listBindings } from "../keys/index.js";
+import { resolveEnv } from "../lib/env.js";
 
 import { saveEditedConfig } from "./persist.js";
 import {
@@ -80,6 +81,7 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
     initialState(lines),
   );
   const [statusMessage, setStatusMessage] = useState<string>("");
+  const saveInFlight = React.useRef(false);
   const bindings = useMemo(
     () => listBindings(initialConfig.keymap as Record<string, string> | undefined),
     [initialConfig.keymap],
@@ -87,6 +89,8 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
   const widget = currentWidget(state);
 
   const onSave = useCallback(async () => {
+    if (saveInFlight.current) return;
+    saveInFlight.current = true;
     try {
       await saveEditedConfig({
         path,
@@ -98,6 +102,8 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
       onSaved(true);
     } catch (err) {
       setStatusMessage(`save failed: ${(err as Error).message}`);
+    } finally {
+      saveInFlight.current = false;
     }
   }, [initialConfig, onSaved, path, state.lines]);
 
@@ -108,6 +114,7 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
       return;
     }
     if (input === "S") {
+      if (saveInFlight.current) return;
       void onSave();
       return;
     }
@@ -228,7 +235,7 @@ async function resolveStartingConfig(
   input: RunConfigInput,
 ): Promise<{ config: AgentlineConfig; path: string }> {
   if (input.preloaded) return input.preloaded;
-  const env = input.env ?? process.env;
+  const env = resolveEnv(input);
   const paths = resolveConfigPaths(env);
   try {
     const loaded = await loadConfig({ env });

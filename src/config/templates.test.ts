@@ -49,12 +49,14 @@ describe("shipped config templates", () => {
     const types = cfg.lines[0]!.widgets.map((w) => w.type);
     expect(types).toEqual([
       "model",
+      "thinking-effort",
       "git-branch",
       "git-changes",
       "context-percentage",
       "tokens-total",
       "cost",
       "session-usage",
+      "block-reset-timer",
       "flex-separator",
       "clock",
     ]);

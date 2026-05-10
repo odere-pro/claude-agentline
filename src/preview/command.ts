@@ -12,10 +12,10 @@
  *   - --all-themes           stack one render per shipped theme
  *   - --config <path>        preview against a specific config file
  *   - --minimal | --default  preview the shipped templates without writing them
+ *   - --watch/-w             re-render on config change (TTY only)
  *   - --no-color/--ascii/... accessibility flags (forwarded to the render)
  */
 
-import { promises as fs } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,14 +27,23 @@ import {
   type AccessibilityFlags,
 } from "../render/accessibility.js";
 import { renderForFixture } from "../render/fixture-runner.js";
+import {
+  type TokensSnapshot,
+  PRICING_TABLE_VERSION,
+  type TranscriptEvent,
+} from "../tokens/index.js";
+import { loadGitSnapshot, type GitState } from "../git/index.js";
 
 import { PREVIEW_SAMPLE_PAYLOAD } from "./sample.js";
+import { watchConfigFile, type Disposer } from "./watcher.js";
+import { resolveEnv } from "../lib/env.js";
+import { pathExists } from "../lib/fs.js";
 
 const HELP = `agentline preview — render a sample statusline (no install, no stdin)
 
 Usage:
   agentline preview [--theme <name>] [--config <path>] [--all-themes]
-                    [--minimal | --default] [--no-color | --ascii ...]
+                    [--minimal | --default] [--watch] [--no-color | --ascii ...]
 
 Options:
   --theme <name>       render with the named theme (user dir or builtin)
@@ -42,6 +51,7 @@ Options:
   --config <path>      render against a specific config file
   --minimal            preview the shipped minimal template
   --default            preview the shipped default template
+  --watch, -w          re-render on config file change (interactive terminal only)
   --no-color, --ascii  forward accessibility flags to the renderer
   -h, --help           show this message
 
@@ -59,6 +69,7 @@ export interface PreviewCommandArgs {
   readonly configPath?: string;
   readonly template?: PreviewTemplate;
   readonly accessibility: AccessibilityFlags;
+  readonly watch?: boolean;
 }
 
 export interface PreviewInput {
@@ -79,7 +90,10 @@ const ACCESSIBILITY_FLAGS: ReadonlySet<string> = new Set([
 ]);
 
 export async function runPreviewCommand(input: PreviewInput): Promise<number> {
-  const env = input.env ?? process.env;
+  if (input.args.watch) return runPreviewWatch(input);
+
+  const env = resolveEnv(input);
+  const cwd = input.cwd ?? process.cwd();
 
   const configPath = await resolveConfigPath(input);
 
@@ -88,23 +102,48 @@ export async function runPreviewCommand(input: PreviewInput): Promise<number> {
   }
 
   const theme = input.args.theme ? await loadThemeByName(input, input.args.theme) : null;
+  const tokens = buildDemoTokens();
+  const git = loadPreviewGit(cwd, env);
 
-  const out = await renderForFixture(PREVIEW_SAMPLE_PAYLOAD, {
-    ...(configPath !== undefined ? { configPath } : {}),
-    ...(theme !== null ? { theme } : {}),
-    flags: input.args.accessibility,
-    env,
-  });
+  const out = await renderForFixture(
+    PREVIEW_SAMPLE_PAYLOAD,
+    buildRenderOptions({ configPath, theme, flags: input.args.accessibility, env, tokens, git }),
+  );
   process.stdout.write(out);
   emitTtyCaption(theme?.name, configPath);
   return 0;
+}
+
+interface PreviewRenderOptionsInput {
+  readonly configPath: string | undefined;
+  readonly theme: Theme | null;
+  readonly flags: AccessibilityFlags;
+  readonly env: NodeJS.ProcessEnv;
+  readonly tokens: TokensSnapshot;
+  readonly git: GitState;
+}
+
+// One source of truth for the conditional spreads previously duplicated
+// across runPreviewCommand, renderAllThemes, and buildRedrawFn.
+function buildRenderOptions(input: PreviewRenderOptionsInput): Parameters<typeof renderForFixture>[1] {
+  return {
+    ...(input.configPath !== undefined ? { configPath: input.configPath } : {}),
+    ...(input.theme !== null ? { theme: input.theme } : {}),
+    flags: input.flags,
+    env: input.env,
+    tokens: input.tokens,
+    git: input.git,
+  };
 }
 
 async function renderAllThemes(
   input: PreviewInput,
   configPath: string | undefined,
 ): Promise<number> {
-  const env = input.env ?? process.env;
+  const env = resolveEnv(input);
+  const cwd = input.cwd ?? process.cwd();
+  const tokens = buildDemoTokens();
+  const git = loadPreviewGit(cwd, env);
   const dirs = themeDirectories(input);
   const seen = new Set<string>();
   const themes: { name: string; path: string }[] = [];
@@ -123,12 +162,10 @@ async function renderAllThemes(
   }
   for (const t of themes) {
     const theme = await loadTheme(t.path);
-    const out = await renderForFixture(PREVIEW_SAMPLE_PAYLOAD, {
-      ...(configPath !== undefined ? { configPath } : {}),
-      theme,
-      flags: input.args.accessibility,
-      env,
-    });
+    const out = await renderForFixture(
+      PREVIEW_SAMPLE_PAYLOAD,
+      buildRenderOptions({ configPath, theme, flags: input.args.accessibility, env, tokens, git }),
+    );
     process.stdout.write(`${t.name}:\n${out}`);
   }
   return 0;
@@ -143,7 +180,7 @@ async function resolveConfigPath(input: PreviewInput): Promise<string | undefine
   // doubles as "show me what my real bar looks like". Fall back to the
   // shipped default template so a brand-new install still has a rich demo
   // instead of the bare DEFAULT_CONFIG (model-only).
-  const env = input.env ?? process.env;
+  const env = resolveEnv(input);
   const cwd = input.cwd ?? process.cwd();
   const userConfig = resolveConfigPaths(env, cwd).userConfig;
   if (await pathExists(userConfig)) return userConfig;
@@ -174,7 +211,7 @@ async function loadThemeByName(input: PreviewInput, name: string): Promise<Theme
 }
 
 function themeDirectories(input: PreviewInput): readonly string[] {
-  const env = input.env ?? process.env;
+  const env = resolveEnv(input);
   const cwd = input.cwd ?? process.cwd();
   const userThemes = join(resolveConfigPaths(env, cwd).userDir, "themes");
   const builtin = input.builtinDir ?? defaultBuiltinDir();
@@ -193,6 +230,37 @@ function defaultTemplateDir(): string {
   return join(cliDir, "..", "templates");
 }
 
+function buildDemoTokens(): TokensSnapshot {
+  const now = Date.now();
+  const blockAnchor = now - 2 * 60 * 60 * 1000; // 2 h into the current block
+  const events: TranscriptEvent[] = [
+    {
+      timestamp: blockAnchor + 5_000,
+      model: "claude-sonnet-4-6",
+      inputTokens: 42_000,
+      outputTokens: 8_000,
+      cachedTokens: 18_000,
+      compaction: false,
+    },
+  ];
+  return Object.freeze({
+    events,
+    now,
+    sessionStart: blockAnchor + 5_000,
+    blockAnchor,
+    contextWindow: 200_000,
+    pricingVersion: PRICING_TABLE_VERSION,
+  });
+}
+
+function loadPreviewGit(cwd: string, env: NodeJS.ProcessEnv): GitState {
+  try {
+    return loadGitSnapshot({ cwd, env });
+  } catch {
+    return { available: false };
+  }
+}
+
 function emitTtyCaption(themeName: string | undefined, configPath: string | undefined): void {
   if (!process.stderr.isTTY) return;
   const themeLabel = themeName ?? "built-in defaults";
@@ -203,62 +271,135 @@ function emitTtyCaption(themeName: string | undefined, configPath: string | unde
   );
 }
 
-async function pathExists(path: string): Promise<boolean> {
-  try {
-    await fs.access(path);
-    return true;
-  } catch {
-    return false;
+function buildRedrawFn(
+  input: PreviewInput,
+  configPath: string | undefined,
+  env: NodeJS.ProcessEnv,
+  cwd: string,
+): () => Promise<void> {
+  return async () => {
+    process.stdout.write("\x1b[H\x1b[2J");
+    const tokens = buildDemoTokens();
+    const git = loadPreviewGit(cwd, env);
+
+    if (input.args.mode === "all-themes") {
+      await renderAllThemes(input, configPath);
+    } else {
+      const theme = input.args.theme ? await loadThemeByName(input, input.args.theme) : null;
+      const out = await renderForFixture(
+        PREVIEW_SAMPLE_PAYLOAD,
+        buildRenderOptions({ configPath, theme, flags: input.args.accessibility, env, tokens, git }),
+      );
+      process.stdout.write(out);
+    }
+
+    if (configPath) {
+      process.stderr.write(`# watching: ${configPath} — Ctrl+C to exit\n`);
+    }
+  };
+}
+
+async function runPreviewWatch(input: PreviewInput): Promise<number> {
+  if (!process.stdout.isTTY) {
+    process.stderr.write("agentline preview: --watch requires an interactive terminal\n");
+    return 1;
   }
+
+  const env = resolveEnv(input);
+  const cwd = input.cwd ?? process.cwd();
+  const configPath = await resolveConfigPath(input);
+  const redraw = buildRedrawFn(input, configPath, env, cwd);
+
+  // Enter alternate screen so Ctrl+C restores the previous terminal contents.
+  process.stdout.write("\x1b[?1049h");
+  let dispose: Disposer | null = null;
+  try {
+    await redraw().catch((err: unknown) => {
+      process.stderr.write(`agentline preview: ${(err as Error).message}\n`);
+    });
+
+    if (configPath) {
+      let redrawInFlight = false;
+      dispose = watchConfigFile(configPath, () => {
+        if (redrawInFlight) return;
+        redrawInFlight = true;
+        redraw()
+          .catch((err: unknown) => {
+            process.stderr.write(`agentline preview: ${(err as Error).message}\n`);
+          })
+          .finally(() => {
+            redrawInFlight = false;
+          });
+      });
+    }
+
+    await new Promise<void>((resolve) => {
+      process.once("SIGINT", () => resolve());
+    });
+  } finally {
+    dispose?.();
+    process.stdout.write("\x1b[?1049l");
+  }
+  return 0;
+}
+
+interface ParseState {
+  mode: PreviewMode;
+  theme?: string;
+  configPath?: string;
+  template?: PreviewTemplate;
+  watchMode: boolean;
+  accessibilityArgv: string[];
+}
+
+function parsePreviewArgToken(
+  arg: string,
+  next: string | undefined,
+  state: ParseState,
+): boolean {
+  if (isHelpFlag(arg)) { requestHelp(HELP); return false; }
+  if (arg === "--all-themes") { state.mode = "all-themes"; return false; }
+  if (arg === "--watch" || arg === "-w") { state.watchMode = true; return false; }
+  if (arg === "--theme") {
+    if (!next || next.startsWith("-")) throw new Error("agentline preview: --theme requires a name");
+    state.theme = next;
+    return true;
+  }
+  if (arg.startsWith("--theme=")) { state.theme = arg.slice("--theme=".length); return false; }
+  if (arg === "--config") {
+    if (!next || next.startsWith("-")) throw new Error("agentline preview: --config requires a path");
+    state.configPath = next;
+    return true;
+  }
+  if (arg.startsWith("--config=")) { state.configPath = arg.slice("--config=".length); return false; }
+  if (arg === "--minimal") { state.template = "minimal"; return false; }
+  if (arg === "--default") { state.template = "default"; return false; }
+  if (ACCESSIBILITY_FLAGS.has(arg)) { state.accessibilityArgv.push(arg); return false; }
+  throw new Error(`agentline preview: unknown argument '${arg}'`);
 }
 
 export function parsePreviewArgs(rest: readonly string[]): PreviewCommandArgs {
-  let mode: PreviewMode = "single";
-  let theme: string | undefined;
-  let configPath: string | undefined;
-  let template: PreviewTemplate | undefined;
-  const accessibilityArgv: string[] = [];
+  const state: ParseState = { mode: "single", watchMode: false, accessibilityArgv: [] };
   for (let i = 0; i < rest.length; i += 1) {
     const arg = rest[i];
-    if (isHelpFlag(arg)) {
-      requestHelp(HELP);
-    } else if (arg === "--all-themes") {
-      mode = "all-themes";
-    } else if (arg === "--theme") {
-      const next = rest[i + 1];
-      if (!next || next.startsWith("-")) {
-        throw new Error("agentline preview: --theme requires a name");
-      }
-      theme = next;
-      i += 1;
-    } else if (arg && arg.startsWith("--theme=")) {
-      theme = arg.slice("--theme=".length);
-    } else if (arg === "--config") {
-      const next = rest[i + 1];
-      if (!next || next.startsWith("-")) {
-        throw new Error("agentline preview: --config requires a path");
-      }
-      configPath = next;
-      i += 1;
-    } else if (arg && arg.startsWith("--config=")) {
-      configPath = arg.slice("--config=".length);
-    } else if (arg === "--minimal") {
-      template = "minimal";
-    } else if (arg === "--default") {
-      template = "default";
-    } else if (arg && ACCESSIBILITY_FLAGS.has(arg)) {
-      accessibilityArgv.push(arg);
-    } else if (arg) {
-      throw new Error(`agentline preview: unknown argument '${arg}'`);
-    }
+    if (!arg) continue;
+    if (parsePreviewArgToken(arg, rest[i + 1], state)) i += 1;
   }
-  if (configPath !== undefined && template !== undefined) {
+  if (state.configPath !== undefined && state.template !== undefined) {
     throw new Error("agentline preview: --config and --minimal/--default are mutually exclusive");
   }
-  const accessibility = parseAccessibilityArgs(accessibilityArgv);
-  const out: PreviewCommandArgs = { mode, accessibility };
-  if (theme !== undefined) (out as { theme: string }).theme = theme;
-  if (configPath !== undefined) (out as { configPath: string }).configPath = configPath;
-  if (template !== undefined) (out as { template: PreviewTemplate }).template = template;
-  return out;
+  const accessibility = parseAccessibilityArgs(state.accessibilityArgv);
+  const result: {
+    mode: PreviewMode;
+    accessibility: AccessibilityFlags;
+    theme?: string;
+    configPath?: string;
+    template?: PreviewTemplate;
+    watch?: boolean;
+  } = { mode: state.mode, accessibility };
+  if (state.theme !== undefined) result.theme = state.theme;
+  if (state.configPath !== undefined) result.configPath = state.configPath;
+  if (state.template !== undefined) result.template = state.template;
+  if (state.watchMode) result.watch = true;
+  return result;
 }

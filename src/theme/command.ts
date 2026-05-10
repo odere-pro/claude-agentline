@@ -10,11 +10,12 @@
  *                          a colour bug.
  */
 
-import { promises as fs } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { isHelpFlag, requestHelp } from "../cli/help.js";
+import { resolveEnv } from "../lib/env.js";
+import { pathExists } from "../lib/fs.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import { detectColourDepth } from "../render/colour-depth.js";
 import { encodeSegments, SGR_RESET } from "../render/ansi.js";
@@ -84,7 +85,7 @@ async function tableThemes(input: ThemesInput): Promise<number> {
     process.stderr.write("agentline themes: no themes found on the search path\n");
     return 1;
   }
-  const env = input.env ?? process.env;
+  const env = resolveEnv(input);
   const depth = detectColourDepth({ env });
   const widestName = rows.reduce((n, r) => Math.max(n, r.name.length), 0);
   for (const row of rows) {
@@ -150,13 +151,20 @@ async function showTheme(input: ThemesInput): Promise<number> {
     process.stderr.write("agentline themes: --show requires a theme name\n");
     return 2;
   }
+  // Reject path-shaped names so `agentline themes --show ../../etc/passwd`
+  // can't resolve outside the themes search path.
+  if (!/^[a-zA-Z0-9._-]+$/.test(name) || name.startsWith(".")) {
+    process.stderr.write(`agentline themes: invalid theme name '${name}'\n`);
+    return 2;
+  }
+  const env = resolveEnv(input);
   const dirs = themeDirectories(input);
   for (const dir of dirs) {
     const path = join(dir, `${name}.json`);
     if (!(await pathExists(path))) continue;
     try {
       const theme = await loadTheme(path);
-      process.stdout.write(formatTheme(theme.name, path, theme.palette));
+      process.stdout.write(formatTheme(theme.name, path, theme.palette, env));
       return 0;
     } catch (err) {
       process.stderr.write(
@@ -173,19 +181,24 @@ function formatTheme(
   name: string,
   path: string,
   palette: Readonly<Record<string, string>>,
+  env: NodeJS.ProcessEnv,
 ): string {
+  const depth = detectColourDepth({ env });
   const lines = [`theme: ${name}`, `path:  ${path}`, "palette:"];
   const widest = THEME_ROLES.reduce((n, r) => Math.max(n, r.length), 0);
   for (const role of THEME_ROLES) {
-    const colour = palette[role] ?? "(unset)";
-    lines.push(`  ${role.padEnd(widest, " ")}  ${colour}`);
+    const hex = palette[role] ?? "(unset)";
+    const swatch = depth !== "none" && isColour(hex)
+      ? `${encodeSegments([{ text: "  ", bg: hex }], depth)}${SGR_RESET} `
+      : "   ";
+    lines.push(`  ${role.padEnd(widest, " ")}  ${swatch}${hex}`);
   }
   lines.push("");
   return lines.join("\n");
 }
 
 function themeDirectories(input: ThemesInput): readonly string[] {
-  const env = input.env ?? process.env;
+  const env = resolveEnv(input);
   const cwd = input.cwd ?? process.cwd();
   const userThemes = join(resolveConfigPaths(env, cwd).userDir, "themes");
   const builtin = input.builtinDir ?? defaultBuiltinDir();
@@ -197,15 +210,6 @@ function defaultBuiltinDir(): string {
   // at `dist/cli.mjs` so the path is `../themes/`.
   const cliDir = dirname(fileURLToPath(import.meta.url));
   return join(cliDir, "..", "themes");
-}
-
-async function pathExists(path: string): Promise<boolean> {
-  try {
-    await fs.access(path);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export function parseThemesArgs(rest: readonly string[]): ThemesCommandArgs {

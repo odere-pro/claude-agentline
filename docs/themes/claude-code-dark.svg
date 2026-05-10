@@ -1,0 +1,16 @@
+<svg width="208" height="16" xmlns="http://www.w3.org/2000/svg">
+  <title>claude-code-dark palette</title>
+  <rect x="0"   y="0" width="16" height="16" fill="#cc785c"><title>accent</title></rect>
+  <rect x="16"  y="0" width="16" height="16" fill="#d4a27f"><title>info</title></rect>
+  <rect x="32"  y="0" width="16" height="16" fill="#7fb069"><title>success</title></rect>
+  <rect x="48"  y="0" width="16" height="16" fill="#e6b450"><title>warning</title></rect>
+  <rect x="64"  y="0" width="16" height="16" fill="#d84545"><title>danger</title></rect>
+  <rect x="80"  y="0" width="16" height="16" fill="#8c857a"><title>muted</title></rect>
+  <rect x="96"  y="0" width="16" height="16" fill="#7fb069"><title>git-clean</title></rect>
+  <rect x="112" y="0" width="16" height="16" fill="#e6b450"><title>git-dirty</title></rect>
+  <rect x="128" y="0" width="16" height="16" fill="#7fb069"><title>tokens-low</title></rect>
+  <rect x="144" y="0" width="16" height="16" fill="#e6b450"><title>tokens-mid</title></rect>
+  <rect x="160" y="0" width="16" height="16" fill="#d84545"><title>tokens-high</title></rect>
+  <rect x="176" y="0" width="16" height="16" fill="#1f1d1b"><title>bg-section</title></rect>
+  <rect x="192" y="0" width="16" height="16" fill="#2d2a26"><title>bg-emphasis</title></rect>
+</svg>

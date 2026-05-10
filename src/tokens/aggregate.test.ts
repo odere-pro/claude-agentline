@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { aggregate, aggregateCost, blockEnd, blockStart, dayStart, weekStart } from "./aggregate.js";
+
+const FIXED_NOW = new Date("2026-04-28T12:00:00Z").getTime();
 import type { TranscriptEvent } from "./transcript.js";
 
 const ev = (overrides: Partial<TranscriptEvent>): TranscriptEvent => ({
@@ -37,7 +39,7 @@ describe("aggregate", () => {
   });
 
   it("axis=day filters by local midnight", () => {
-    const now = Date.now();
+    const now = FIXED_NOW;
     const oneDayAgo = now - 25 * 60 * 60 * 1000;
     const events = [ev({ timestamp: oneDayAgo, inputTokens: 99 }), ev({ timestamp: now, inputTokens: 5 })];
     const totals = aggregate({ events, axis: "day", now });
@@ -101,14 +103,14 @@ describe("axis helpers", () => {
   });
 
   it("dayStart returns the most recent local midnight", () => {
-    const start = dayStart(Date.now());
+    const start = dayStart(FIXED_NOW);
     const d = new Date(start);
     expect(d.getHours()).toBe(0);
     expect(d.getMinutes()).toBe(0);
   });
 
   it("weekStart returns Monday 00:00", () => {
-    const start = weekStart(Date.now());
+    const start = weekStart(FIXED_NOW);
     const d = new Date(start);
     expect(d.getDay()).toBe(1);
     expect(d.getHours()).toBe(0);

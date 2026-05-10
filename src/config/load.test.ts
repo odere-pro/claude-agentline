@@ -117,4 +117,25 @@ describe("loadConfig", () => {
       }),
     ).rejects.toThrow(/invalid JSON/);
   });
+
+  it("propagates non-SyntaxError fs errors unchanged", async () => {
+    // Make the user config file unreadable so fs.readFile throws EACCES;
+    // exercises the rethrow branch (not ENOENT, not SyntaxError).
+    const cfgPath = join(claudeCfgDir, "agentline", "config.json");
+    await fs.mkdir(join(claudeCfgDir, "agentline"), { recursive: true });
+    await fs.writeFile(cfgPath, JSON.stringify({ version: 1 }));
+    await fs.chmod(cfgPath, 0o000);
+    try {
+      await expect(
+        loadConfig({
+          env: { CLAUDE_CONFIG_DIR: claudeCfgDir, CLAUDE_PROJECT_DIR: projectDir },
+          cwd: projectDir,
+        }),
+        // Unreadable file: rethrown as-is rather than wrapped in the JSON
+        // helper. Match on permission-denied to avoid root-running CI flakes.
+      ).rejects.toThrow(/EACCES|permission/i);
+    } finally {
+      await fs.chmod(cfgPath, 0o600).catch(() => undefined);
+    }
+  });
 });

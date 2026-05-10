@@ -68,7 +68,7 @@ Homebrew tap, GitHub Releases native binaries, and curl-installer are explicitly
 
 - **O1.** **Stdin parse budget.** 4 ms p95 for a 32 KB stdin payload. Larger payloads are truncated at 256 KB and a `truncated` marker is emitted.
 - **O2.** **External command timeout (custom widgets).** Default 250 ms; per-widget overridable up to 2 000 ms. Timeouts render the widget's `onError` placeholder.
-- **O3.** **JSONL transcript cache.** Keyed by `(transcript_path, mtime, size)`; entries evicted after 5 hours or 32 MB total, whichever first.
+- **O3.** **JSONL transcript cache.** Keyed by `(transcript_path, mtime, size)`; entries evicted after 5 hours or 32 MB total, whichever first. Per-file reads are capped at **16 MB** (oversize transcripts render dependent widgets as empty / hidden). `transcript_path` MUST resolve under the user's `~/.claude` tree; reads outside that root are refused so a malformed stdin payload cannot be turned into an arbitrary-file-read primitive. Tests may override the allowed root with `AGENTLINE_TRANSCRIPT_ROOT`.
 - **O4.** **Schema migration.** When the on-disk schema version is older than the binary's, the binary auto-migrates and writes a backup to `<config>.bak`. Older binaries refuse newer schemas with a structured error.
 
 ### 1.5 Compatibility
@@ -215,6 +215,24 @@ Layered top-to-bottom (later overrides earlier):
 3. Project config: `${CLAUDE_PROJECT_DIR:-$PWD}/.agentline.json` if present.
 4. Environment variables prefixed `AGENTLINE_` (dot-path, e.g. `AGENTLINE_GLOBAL_PADDING=2`).
 5. Command-line flags.
+
+**Trust boundary on layer 3.** A `.agentline.json` is read whenever the
+user is `cd`'d into a directory that contains it, which makes it an
+attractive RCE surface for `command` widgets (§7.8.3). The loader
+silently strips `command` widgets sourced from layer 3 unless
+`AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1` is set in the environment;
+a one-line warning is emitted to stderr when stripping fires. Other
+widget types in the project layer are unaffected.
+
+**Prototype-pollution defence.** Every JSON-parse boundary that feeds
+into the merged config — the user / project files (handled inside
+`mergeAll`), the env layer's `AGENTLINE_X='{"…":…}'` decoder, and the
+`agentline render --config` fixture path — drops own-keys named
+`__proto__`, `constructor`, or `prototype` recursively before the
+result reaches AJV. AJV's strict top-level (`additionalProperties:
+false`) is the primary line of defence; the recursive strip closes the
+gap at carve-outs like `widgets[].options` and `palette` where
+`additionalProperties: true`.
 
 ### 4.2 Top-level schema
 
@@ -425,7 +443,7 @@ render(ctx: Context, opts: Options): Cell
 
 #### 7.2.1 Auth-file fallback
 
-When stdin omits a field, the bin reads `${CLAUDE_CONFIG_DIR}/auth.json` (or platform equivalent) read-only. Failure renders the field as hidden, never errors.
+When stdin omits a field, the bin reads `${CLAUDE_CONFIG_DIR}/auth.json` (or platform equivalent) read-only. Failure renders the field as hidden, never errors. The reader caps file size at **64 KB**; an oversize file (e.g. a symlink to `/dev/zero`) is treated as an unreadable auth file — same hidden-field behaviour as the missing-file case — so the render budget (§1.2 N3) is not blown.
 
 ### 7.3 Token & cost widgets
 
@@ -526,7 +544,12 @@ Renders empty space sized to fill remaining width. Multiple flex separators shar
 }
 ```
 
-`cmd` runs in a sandboxed subprocess with `agentline`'s environment plus `CLAUDE_*` vars. stderr is discarded; non-zero exit renders `onError`.
+`cmd` runs in a sandboxed subprocess. stderr is discarded; non-zero exit (or timeout, or spawn failure) renders `onError`. The sandbox carries the following bounds:
+
+- **Shell allowlist.** `options.shell` is honoured only when it matches one of `/bin/sh`, `/bin/bash`, `/usr/bin/sh`, `/usr/bin/bash`, `/usr/local/bin/bash`, `cmd.exe`, `powershell.exe`, `pwsh.exe`. Any other value silently falls back to the platform default (`/bin/sh` on Unix, `cmd.exe` on Windows) — the widget never spawns an arbitrary attacker-supplied binary.
+- **Cwd validation.** `options.cwd` (or, when unset, `stdin.cwd`) is accepted only when it is a non-empty absolute path that exists and is a directory. Anything else collapses to `undefined` so the subprocess inherits agentline's own cwd rather than following an attacker-controlled hint.
+- **Environment allowlist.** Only `PATH`, `HOME`, `USER`, `USERNAME`, `LOGNAME`, `LANG`, `TERM`, `TMPDIR`, `TMP`, `TEMP`, `SHELL`, `USERPROFILE`, `SYSTEMROOT`, `WINDIR`, `COMSPEC`, plus any `LC_*` and `CLAUDE_*` variables, are forwarded to the child. Inside that allowlist the loader still drops keys whose name ends in `_TOKEN`, `_KEY`, `_SECRET`, `_PASSWORD`, `_PASS`, or `_AUTH` so credential-shaped CLAUDE\_\* vars never leak into a user-supplied shell command.
+- **Project-config trust boundary.** A `command` widget declared in the project layer (`.agentline.json`, §4.1 layer 3) is dropped before merge unless `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1` is set in the environment. The intent is that cloning a hostile repo and refreshing the statusline is not RCE-by-default; users who genuinely want per-project commands keep them in their user config (layer 2) or set the trust env var explicitly.
 
 ### 7.9 Widget roles (theme palette keys)
 
