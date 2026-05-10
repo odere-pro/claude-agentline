@@ -42,8 +42,8 @@ Homebrew tap, GitHub Releases native binaries, and curl-installer are explicitly
 - **F10.** A TUI editor (`agentline config`) lets users add, reorder, recolour, and toggle widgets with live preview; configuration changes persist atomically (write-temp-then-rename).
 - **F11.** A doctor command (`agentline doctor [--fix]`) inspects host prerequisites, the wired settings entry, the merged config, and the Nerd Font availability; `--fix` repairs documented misconfigurations.
 - **F12.** A render dry-run (`agentline render --fixture <path>`) reproduces a line from a recorded stdin fixture; output is byte-identical to a real render under the same config.
-- **F13.** A keys command (`agentline keys [--json]`) prints the active keymap.
-- **F14.** A schema command (`agentline schema [--write]`) prints (or writes to disk) the JSON Schema for the configuration.
+- **F13.** A keys command (`agentline config keys [--json]`) prints the active keymap.
+- **F14.** A schema command (`agentline config schema [--write]`) prints (or writes to disk) the JSON Schema for the configuration.
 - **F15.** A live config-reload loop watches all files in the merged config set; changes apply within one render tick without dropping in-flight stdin reads.
 
 ### 1.2 Non-functional
@@ -302,13 +302,13 @@ Any other value is a schema error.
 
 ### 4.7 JSON Schema
 
-`schemas/config.schema.json` is the canonical source of truth. The bin embeds this schema at build time and validates the merged config on load. `agentline schema --write <dir>` writes the schema to disk so editors can pick it up; the schema's `$id` is a stable URL under the project's homepage.
+`schemas/config.schema.json` is the canonical source of truth. The bin embeds this schema at build time and validates the merged config on load. `agentline config schema --write <dir>` writes the schema to disk so editors can pick it up; the schema's `$id` is a stable URL under the project's homepage.
 
 ### 4.8 Defaults shipped
 
 `templates/default.config.json` is the config installed by `scripts/install.sh` when no user config exists. Its widget list is documented in §7.10.
 
-`templates/minimal.config.json` is a smaller alternative invoked by `agentline init --minimal`.
+`templates/minimal.config.json` is a smaller alternative invoked by `agentline config init --minimal`.
 
 ### 4.9 Atomic writes
 
@@ -392,7 +392,7 @@ The TUI editor (`agentline config`) renders a contextual key footer. Default key
 | `Space` | separator       | cycle char                                              |
 | `Esc`   | any             | back                                                    |
 
-`agentline keys [--json]` enumerates every binding with its widget scope.
+`agentline config keys [--json]` enumerates every binding with its widget scope.
 
 ### 5.6 Theme presets shipped at v0.1.0
 
@@ -614,17 +614,21 @@ A widget MUST declare its axis; mixed-axis sums are not supported.
 
 ### 9.1 Subcommands
 
-| Command                                    | Purpose                                                                   |
-| ------------------------------------------ | ------------------------------------------------------------------------- |
-| `agentline` (no args)                      | Read stdin, render, exit. Default behaviour wired into `statusLine`       |
-| `agentline render`                         | Same as no-args; `--fixture <path>` and `--config <path>` flags supported |
-| `agentline config`                         | TUI editor (Ink); writes config atomically. Lazy-imports Ink only here.   |
-| `agentline doctor [--fix] [--json]`        | Diagnose and (optionally) repair                                          |
-| `agentline init [--minimal]`               | Scaffold user config + theme directory                                    |
-| `agentline keys [--json]`                  | Print active keymap                                                       |
-| `agentline schema [--write <dir>]`         | Print or write JSON Schema                                                |
-| `agentline version`                        | Print version + build metadata                                            |
-| `agentline themes [--list\|--show <name>]` | Inspect themes                                                            |
+Top-level surface (intentionally small: four verbs plus the default render path). Everything configuration-adjacent lives under `agentline config <sub>`.
+
+| Command                                          | Purpose                                                                   |
+| ------------------------------------------------ | ------------------------------------------------------------------------- |
+| `agentline` (no args)                            | Read stdin, render, exit. Default behaviour wired into `statusLine`       |
+| `agentline render`                               | Same as no-args; `--fixture <path>` and `--config <path>` flags supported |
+| `agentline install`                              | Wire `statusLine` + install agentline skill files                         |
+| `agentline uninstall [--purge]`                  | Reverse install; restore prior `statusLine` from backup                   |
+| `agentline doctor [--fix] [--json]`              | Diagnose and (optionally) repair                                          |
+| `agentline config`                               | TUI editor (Ink); writes config atomically. Lazy-imports Ink only here.   |
+| `agentline config init [--preset <name>]`        | Scaffold user/project config from a shipped preset                        |
+| `agentline config theme [--list\|--show <name>]` | Inspect themes (alias: `themes`)                                          |
+| `agentline config keys [--json]`                 | Print active keymap                                                       |
+| `agentline config schema [--write <dir>]`        | Print or write JSON Schema                                                |
+| `agentline version`                              | Print version + build metadata                                            |
 
 ### 9.2 Doctor checks
 
@@ -698,13 +702,13 @@ Every gate ID below is a file `tests/gates/gate-NN-<topic>.sh`; orchestrated by 
 | 08   | Roundtrip preserves user-authored content                                                                               | this spec §10     |
 | 09   | Install-twice idempotent                                                                                                | this spec §10     |
 | 10   | `install.sh --dry-run` matches real run                                                                                 | this spec §10     |
-| 11   | `agentline schema` round-trips against `templates/*.json`                                                               | this spec §4.7    |
+| 11   | `agentline config schema` round-trips against `templates/*.json`                                                        | this spec §4.7    |
 | 12   | Render determinism: same fixture + frozen clock ⇒ byte-identical bytes                                                  | this spec §1.2 N7 |
 | 13   | Cold-start budget on reference host (`agentline render` ≤120 ms p95 with global install)                                | this spec §1.2 N2 |
 | 14   | No network at render time (verified via sandbox)                                                                        | this spec §1.2 N5 |
 | 15   | Published package smoke-runs on `{macos-13, macos-14, ubuntu-22.04, ubuntu-24.04, windows-2022}` × `{Node 20, Node 22}` | this spec §1.2 N1 |
 | 16   | Accessibility flags produce semantically equivalent output                                                              | this spec §1.2 N8 |
-| 17   | Keymap coverage: every documented binding renders in `agentline keys --json`                                            | this spec §5.5    |
+| 17   | Keymap coverage: every documented binding renders in `agentline config keys --json`                                     | this spec §5.5    |
 
 Gates dropped vs earlier drafts: plugin-manifest validity, YAML frontmatter, and `hooks/hooks.json` validity — none apply to a CLI-only distribution (§0.1).
 
