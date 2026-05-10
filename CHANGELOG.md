@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `a99a7a6` — Compress the CLI surface and add an onboarding skill: top-level is now four verbs — `install`, `uninstall`, `doctor`, `config` — plus the default render path; `init`, `theme`, `keys`, and `schema` move under `agentline config <sub>` so the top-level help stays small; bare `agentline config` still opens the TUI editor; `agentline preview` is removed entirely (install is reversible, so the trial path is "install, ask the in-session agent, uninstall to revert"); a new `agents/agentline-onboarding.md` skill ships alongside the four existing skills, so `agentline install` now seeds five `agentline*.md` skills into `$HOME/.claude/agents/` for in-session configuration with Claude Code without leaving the session. Breaking renames: `agentline init` → `agentline config init`, `agentline themes` → `agentline config theme`, `agentline keys` → `agentline config keys`, `agentline schema` → `agentline config schema`.
+
 ### Added
 
 - `56b3111` — Promote `[Unreleased]` to `[0.1.0] – 2026-05-03`: aggregate every fragment dropped since the bootstrap PR into a dated `0.1.0` block (commits `ab0b894…044b5b0`), reset `[Unreleased]` for the next cycle, and bump `package.json#version`, `src/version.ts`, and the lock-file root `version` from `0.0.0` to `0.1.0` so `agentline version` and `npm pack` agree on the published release.
