@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Gate 17: every §5.5 documented binding appears in `agentline keys --json`.
+# Gate 17: every §5.5 documented binding appears in `agentline config keys --json`.
 # Spec: §5.5, §11.2 G17
-# Pass: `agentline keys --json` exits 0, output is `{ "bindings": [...] }`,
+# Pass: `agentline config keys --json` exits 0, output is `{ "bindings": [...] }`,
 #       every §5.5 action is present, and every entry has the four required
 #       fields (key, action, scope, description).
 # Fail: command exits non-zero, output is malformed, any §5.5 action is
@@ -30,18 +30,18 @@ mkdir -p "${work_dir}"
 
 out_file="${work_dir}/keys.json"
 set +e
-node "${bin}" keys --json >"${out_file}" 2>"${work_dir}/stderr.txt"
+node "${bin}" config keys --json >"${out_file}" 2>"${work_dir}/stderr.txt"
 json_rc=$?
 set -e
 
 if [ "${json_rc}" -ne 0 ]; then
-  log_info "agentline keys --json exited ${json_rc}"
+  log_info "agentline config keys --json exited ${json_rc}"
   [ -s "${work_dir}/stderr.txt" ] && sed 's/^/    /' "${work_dir}/stderr.txt" >&2
-  fail_gate "agentline keys --json exited non-zero"
+  fail_gate "agentline config keys --json exited non-zero"
 fi
 
 if [ ! -s "${out_file}" ]; then
-  fail_gate "agentline keys --json produced no output"
+  fail_gate "agentline config keys --json produced no output"
 fi
 
 # ── Coverage check via inline Node script ────────────────────────────────────
@@ -137,16 +137,16 @@ fi
 # ── Human-readable output ────────────────────────────────────────────────────
 
 set +e
-node "${bin}" keys >"${work_dir}/keys_human.txt" 2>/dev/null
+node "${bin}" config keys >"${work_dir}/keys_human.txt" 2>/dev/null
 human_rc=$?
 set -e
 
 if [ "${human_rc}" -ne 0 ]; then
-  fail_gate "agentline keys (table format) exited non-zero"
+  fail_gate "agentline config keys (table format) exited non-zero"
 fi
 
 if [ ! -s "${work_dir}/keys_human.txt" ]; then
-  fail_gate "agentline keys (table format) produced no output"
+  fail_gate "agentline config keys (table format) produced no output"
 fi
 
 result_msg="$(cat "${work_dir}/check_out.txt")"

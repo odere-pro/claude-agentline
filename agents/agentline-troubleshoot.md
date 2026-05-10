@@ -29,18 +29,18 @@ Read the output. Each line has a check ID (D01–D10) and a glyph:
 
 ## Step 2 — match the failing check
 
-| Check | Problem                               | Fix                                             |
-| ----- | ------------------------------------- | ----------------------------------------------- |
-| D01   | `~/.claude/settings.json` missing     | `agentline doctor --fix`                        |
-| D02   | `statusLine` not wired to agentline   | `agentline doctor --fix` or `agentline install` |
-| D03   | user config missing or invalid schema | `agentline doctor --fix` or `agentline init`    |
-| D04   | theme file missing                    | `agentline doctor --fix`                        |
-| D05   | Nerd Font absent (Powerline only)     | install font; doctor prints the command         |
-| D06   | `git` not on PATH                     | install git                                     |
-| D07   | pricing table older than 90 days      | `npm install -g @agentline/cli@latest`          |
-| D08   | `CLAUDE_CONFIG_DIR` not writable      | fix directory permissions                       |
-| D09   | `command` widget `cmd` not found      | check the command is on PATH                    |
-| D10   | render snapshot mismatch              | file a bug; try `agentline preview` to confirm  |
+| Check | Problem                               | Fix                                                 |
+| ----- | ------------------------------------- | --------------------------------------------------- |
+| D01   | `~/.claude/settings.json` missing     | `agentline doctor --fix`                            |
+| D02   | `statusLine` not wired to agentline   | `agentline doctor --fix` or `agentline install`     |
+| D03   | user config missing or invalid schema | `agentline doctor --fix` or `agentline config init` |
+| D04   | theme file missing                    | `agentline doctor --fix`                            |
+| D05   | Nerd Font absent (Powerline only)     | install font; doctor prints the command             |
+| D06   | `git` not on PATH                     | install git                                         |
+| D07   | pricing table older than 90 days      | `npm install -g @agentline/cli@latest`              |
+| D08   | `CLAUDE_CONFIG_DIR` not writable      | fix directory permissions                           |
+| D09   | `command` widget `cmd` not found      | check the command is on PATH                        |
+| D10   | render snapshot mismatch              | file a bug; capture `agentline doctor` output       |
 
 ---
 
@@ -58,11 +58,17 @@ agentline install         # re-wire if --fix isn't enough
 ## Blank or garbled output
 
 ```bash
-agentline preview                               # isolate from Claude Code
-agentline preview --theme vscode-dark           # simpler palette
-NO_COLOR=1 agentline preview                    # no colour
-COLORTERM= TERM=xterm-256color agentline preview  # simulate 256-colour
+agentline doctor                          # check colour-depth + terminal capabilities
 ```
+
+If the issue is theme-related, try a simpler palette by editing the config:
+
+```jsonc
+// ~/.config/agentline/config.json
+{ "theme": "vscode-dark" }
+```
+
+Or disable colour entirely with `NO_COLOR=1` in your shell env, then restart Claude Code.
 
 ---
 
@@ -71,8 +77,8 @@ COLORTERM= TERM=xterm-256color agentline preview  # simulate 256-colour
 Project config must be at `.claude/agentline.json` (not `.agentline.json`):
 
 ```bash
-agentline doctor --strict   # D03 shows the exact problem
-agentline init --preset default --scope project   # scaffold a valid file
+agentline doctor --strict                              # D03 shows the exact problem
+agentline config init --preset default --scope project # scaffold a valid file
 ```
 
 ---
@@ -80,9 +86,9 @@ agentline init --preset default --scope project   # scaffold a valid file
 ## Reset everything
 
 ```bash
-agentline init --force --preset default --scope project   # reset project config
-agentline init --force --preset default --scope user      # reset user config
-agentline uninstall --purge && agentline install          # full wipe + reinstall
+agentline config init --force --preset default --scope project   # reset project config
+agentline config init --force --preset default --scope user      # reset user config
+agentline uninstall --purge && agentline install                 # full wipe + reinstall
 ```
 
 Full reference → [troubleshooting.md](../docs/troubleshooting.md) · [doctor.md](../docs/doctor.md)

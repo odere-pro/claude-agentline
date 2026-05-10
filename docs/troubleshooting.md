@@ -27,16 +27,14 @@ Restart Claude Code after wiring — the `statusLine` setting is read at startup
 
 ## Blank or garbled output
 
-Isolate whether the problem is Claude Code or the terminal:
+Run `agentline doctor` to check colour-depth detection and the active theme. If the issue looks like a palette problem, switch to a simpler theme by editing the config:
 
-```bash
-agentline preview                              # renders without a live session
-agentline preview --theme vscode-dark          # simpler palette
-NO_COLOR=1 agentline preview                   # strip colour entirely
-COLORTERM= TERM=xterm-256color agentline preview   # simulate 256-colour
+```jsonc
+// ~/.config/agentline/config.json
+{ "theme": "vscode-dark" }
 ```
 
-agentline honours [`NO_COLOR`](https://no-color.org). See [themes.md](./themes.md#truecolor-and-degraded-terminals) for colour-depth details.
+To strip colour entirely, set `NO_COLOR=1` in your shell environment and restart Claude Code. agentline honours [`NO_COLOR`](https://no-color.org). See [themes.md](./themes.md#truecolor-and-degraded-terminals) for colour-depth details.
 
 ---
 
@@ -57,8 +55,8 @@ See [install.md](./install.md) for the full install procedure.
 D03 in `agentline doctor --strict` validates the config. Project config must be at `.agentline.json` at the project root (see [config.md](./config.md#file-locations)):
 
 ```bash
-agentline init --preset default --scope project   # scaffold a valid config
-agentline schema --write /tmp/                    # dump the schema for manual inspection
+agentline config init --preset default --scope project   # scaffold a valid config
+agentline config schema --write /tmp/                    # dump the schema for manual inspection
 ```
 
 ---
@@ -115,6 +113,6 @@ See [widgets.md](./widgets.md) for the trust-boundary rationale.
 ## Reset or uninstall
 
 ```bash
-agentline init --force --preset default    # reset config → see config.md#cli-commands
+agentline config init --force --preset default    # reset config → see config.md#cli-commands
 agentline uninstall [--purge]              # full uninstall → see install.md#uninstall
 ```

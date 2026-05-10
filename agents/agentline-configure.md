@@ -22,13 +22,15 @@ Project config overrides user config key-by-key. Arrays (`lines`, `widgets`) rep
 ## Quick commands
 
 ```bash
-agentline config                                  # interactive TUI editor (recommended)
-agentline init --preset default --scope project   # scaffold .claude/agentline.json
-agentline init --preset minimal  --scope user     # scaffold user config
-agentline init --force --preset default           # reset project config to defaults
-agentline preview --config .claude/agentline.json # preview without a live session
-agentline preview --watch                         # live-reload preview on config save
+agentline config                                          # interactive TUI editor
+agentline config init --preset default --scope project    # scaffold .claude/agentline.json
+agentline config init --preset minimal  --scope user      # scaffold user config
+agentline config init --force --preset default            # reset project config to defaults
+agentline config theme                                    # browse installed themes
+agentline config schema --write .                         # emit JSON Schema for editor support
 ```
+
+For routine edits the in-session agent should write the config file directly (atomically) — no command needed. Restart the Claude Code session to see the change.
 
 ---
 
@@ -90,11 +92,11 @@ Dot-path in `UPPER_SNAKE_CASE`, prefixed `AGENTLINE_`.
 
 ## Reset
 
-No dedicated reset command — use `init --force`:
+No dedicated reset command — use `config init --force`:
 
 ```bash
-agentline init --force --preset default --scope project
-agentline init --force --preset default --scope user
+agentline config init --force --preset default --scope project
+agentline config init --force --preset default --scope user
 ```
 
 Full reference → [config.md](../docs/config.md)

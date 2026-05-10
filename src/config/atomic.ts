@@ -5,8 +5,8 @@
  * The temp file is created in the same directory as the target so the
  * rename is guaranteed to be atomic on the same filesystem.
  *
- * The render path NEVER calls into here (§1.2 N6); only `agentline config`,
- * `agentline init`, and `scripts/install.sh` persist state.
+ * The render path NEVER calls into here (§1.2 N6); only `agentline config`
+ * (TUI editor + sub-subcommands) and `scripts/install.sh` persist state.
  */
 
 import { promises as fs } from "node:fs";

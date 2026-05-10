@@ -20,10 +20,7 @@ import { promises as fs } from "node:fs";
 import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import { pathExists } from "../lib/fs.js";
-import {
-  parseAccessibilityArgs,
-  type AccessibilityFlags,
-} from "./accessibility.js";
+import { parseAccessibilityArgs, type AccessibilityFlags } from "./accessibility.js";
 import { renderForFixture } from "./fixture-runner.js";
 
 const HELP = `agentline render — re-render a recorded stdin payload
@@ -84,13 +81,13 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     process.stdout.write("agentline: empty stdin\n");
     if (!fixture) {
       process.stderr.write(
-        "agentline: no JSON received on stdin. try `agentline preview` to render without piping.\n",
+        "agentline: no JSON received on stdin. run `agentline doctor` to diagnose host wiring.\n",
       );
     }
     return 1;
   }
   // First-run hint: when this is a live render (no fixture, no --config)
-  // and the user has not saved a config yet, point them at `agentline init`.
+  // and the user has not saved a config yet, point them at `agentline config init`.
   // Suppressed for non-TTY stderr (so the host UI is unaffected) and when
   // AGENTLINE_QUIET=1 is set.
   if (!fixture && input.args.configPath === undefined) {
@@ -184,7 +181,7 @@ async function maybeEmitFirstRunHint(): Promise<void> {
   const hasProject = await pathExists(paths.projectConfig);
   if (hasUser || hasProject) return;
   process.stderr.write(
-    "# agentline: using built-in defaults — `agentline init` to customise (silence with AGENTLINE_QUIET=1)\n",
+    "# agentline: using built-in defaults — `agentline config init` to customise (silence with AGENTLINE_QUIET=1)\n",
   );
 }
 

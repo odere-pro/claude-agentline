@@ -1,5 +1,5 @@
 /**
- * Body for `agentline keys [--json]` (§9.1, §5.5).
+ * Body for `agentline config keys [--json]` (§9.1, §5.5).
  *
  * Reads the active keymap from the registry (default §5.5 table
  * with optional user `config.keymap` overrides) and prints either
@@ -12,10 +12,10 @@ import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { loadConfig } from "../config/load.js";
 import { listBindings, type KeyBinding } from "./bindings.js";
 
-const HELP = `agentline keys — list active keymap bindings
+const HELP = `agentline config keys — list active keymap bindings
 
 Usage:
-  agentline keys [--json]
+  agentline config keys [--json]
 
 Options:
   --json      emit machine-readable JSON
@@ -79,7 +79,7 @@ export function parseKeysArgs(rest: readonly string[]): KeysCommandArgs {
   for (const arg of rest) {
     if (arg === "--json") json = true;
     else if (isHelpFlag(arg)) requestHelp(HELP);
-    else if (arg) throw new Error(`agentline keys: unknown argument '${arg}'`);
+    else if (arg) throw new Error(`agentline config keys: unknown argument '${arg}'`);
   }
   return { json };
 }

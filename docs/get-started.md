@@ -1,90 +1,96 @@
 # Get started
 
-You will have `agentline` rendering in Claude Code in about two minutes. Follow the five steps below.
+`agentline` is a Claude Code statusline. The minimal flow is four steps: install, see the default, configure inside Claude Code, remove.
+
+The top-level CLI is intentionally small: `install` · `uninstall` · `doctor` · `config`. Everything else lives under `agentline config <sub>` — see `agentline config --help`.
 
 ---
 
-## Step 1 — Review the CLI
+## Step 1 — Install
 
-Check what commands are available before touching anything:
-
-```bash
-agentline --help
-```
-
-Or use `npx` to try it without installing:
-
-```bash
-npx @agentline/cli --help
-npx @agentline/cli preview           # render a sample bar right now
-npx @agentline/cli preview --all-themes  # compare all four shipped themes
-```
-
-The `preview` command renders without a live Claude Code session. It is the fastest way to see what agentline looks like on your terminal.
-
-Full flag-by-flag reference for every command → [cli.md](./cli.md)
-
----
-
-## Step 2 — Install
-
-### From npm (recommended)
-
-```bash
-npm install -g @agentline/cli
-agentline install
-```
-
-`agentline install` wires the binary into your global `~/.claude/settings.json` so every Claude Code session picks it up. Any prior `statusLine` is backed up before being overwritten. See [install.md](./install.md) for all flags (`--from-source`, `--force`, `--dry-run`).
-
-### From source (development checkout)
+### From source (today)
 
 ```bash
 git clone https://github.com/odere-pro/claude-agentline
 cd claude-agentline
 npm install && npm run build
 node dist/cli.mjs install --from-source
-agentline install --from-source   # after npm link is in place
 ```
+
+`--from-source` runs `npm link` so `agentline` is on your `PATH` from the checkout.
+
+### From npm (when published)
+
+```bash
+npm install -g @agentline/cli
+agentline install
+```
+
+Either way, install:
+
+1. Wires `statusLine` into `~/.claude/settings.json` (always global; backs up any prior value).
+2. Seeds the user config at `~/.config/agentline/config.json` from the default preset.
+3. Copies shipped themes into `~/.config/agentline/themes/`.
+4. Installs five skill files into `~/.claude/agents/` (`agentline.md`, `agentline-onboarding.md`, `agentline-configure.md`, `agentline-themes.md`, `agentline-troubleshoot.md`).
+5. Writes a manifest at `~/.config/agentline/state/manifest.json` so `agentline uninstall` is exact.
+
+See [install.md](./install.md) for `--force`, `--dry-run`, and `CLAUDE_CONFIG_DIR`.
 
 ---
 
-## Step 3 — Init and doctor
+## Step 2 — See the default
 
-Scaffold a project config and verify the wiring:
+Restart your Claude Code session. The statusline appears at the bottom of the prompt with the default preset (model, git-branch, context, tokens, cost, session-usage, clock).
 
-```bash
-agentline init --preset default --scope project
-agentline doctor
-```
-
-`agentline init` writes `.claude/agentline.json` in the current directory. The `default` preset includes model, git-branch, context, tokens, cost, and clock — a good starting point.
-
-If `doctor` shows warnings, run:
+If it doesn't render:
 
 ```bash
-agentline doctor --fix
+agentline doctor          # full health report (D01–D10)
+agentline doctor --fix    # auto-repair D01–D04
 ```
 
-`--fix` auto-repairs D01–D04 (settings file, statusLine wiring, user config, missing themes). Other checks are informational only. See [doctor.md](./doctor.md) for the full check list.
+See [doctor.md](./doctor.md) for the full check list.
 
 ---
 
-## Step 4 — See it in action
+## Step 3 — Configure inside Claude Code
 
-Restart your Claude Code session. The statusline appears at the bottom of the terminal.
+The five installed skills give any Claude Code session enough context to drive agentline configuration without leaving the session. Just ask:
 
-You do not need an active session to preview — run this at any time:
+- _"switch the theme to vscode-dark"_
+- _"add a context-percentage widget"_
+- _"remove the cost widget"_
+- _"reset my config to the minimal preset"_
+
+The agent edits `~/.config/agentline/config.json` (or the project-local `.claude/agentline.json`) directly. Restart the Claude Code session to see the change in the live statusline.
+
+Config-related CLI commands are still available if you prefer terminal-driven editing:
 
 ```bash
-agentline preview                    # sample bar with active config
-agentline preview --all-themes       # one bar per shipped theme, stacked
-agentline preview --theme vscode-dark  # pin a single theme
+agentline config                                          # interactive TUI editor
+agentline config init --preset minimal --scope user       # scaffold from a preset
+agentline config theme                                    # browse installed themes
+agentline config theme --show vscode-dark                 # inspect a palette
+agentline config schema --write .                         # emit JSON Schema for editor support
+agentline config keys --json                              # print the TUI editor keymap
 ```
+
+Full reference → [cli.md](./cli.md) and [config.md](./config.md)
 
 ---
 
-## Step 5 — Next steps
+## Step 4 — Remove
+
+```bash
+agentline uninstall          # restores prior statusLine, removes installed skills
+agentline uninstall --purge  # also removes user config + custom themes
+```
+
+The prior `statusLine` was backed up at install time and is restored from `~/.config/agentline/state/settings-backup.json`. The five skill files are removed from `~/.claude/agents/` only if they match the shipped versions (or unconditionally with `--purge`).
+
+---
+
+## Going further
 
 | What to do next                       | Where to look                              |
 | ------------------------------------- | ------------------------------------------ |

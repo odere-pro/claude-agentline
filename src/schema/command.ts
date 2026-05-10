@@ -1,5 +1,5 @@
 /**
- * Body for `agentline schema [--write <dir>]` (§9.1, §4.7).
+ * Body for `agentline config schema [--write <dir>]` (§9.1, §4.7).
  *
  * Without `--write`, prints the JSON Schema to stdout.
  * With `--write <dir>`, atomically writes the schema to
@@ -11,10 +11,10 @@ import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { atomicWrite } from "../config/atomic.js";
 import { configSchemaJson } from "./embedded.js";
 
-const HELP = `agentline schema — print or write the config JSON Schema
+const HELP = `agentline config schema — print or write the config JSON Schema
 
 Usage:
-  agentline schema [--write <dir>]
+  agentline config schema [--write <dir>]
 
 Options:
   --write <dir>  atomically write to <dir>/agentline.config.schema.json
@@ -49,14 +49,14 @@ export function parseSchemaArgs(rest: string[]): SchemaCommandArgs {
     } else if (arg === "--write") {
       const next = rest[i + 1];
       if (!next || next.startsWith("-")) {
-        throw new Error("agentline schema: --write requires a directory path");
+        throw new Error("agentline config schema: --write requires a directory path");
       }
       out.writeDir = next;
       i++;
     } else if (arg.startsWith("--write=")) {
       out.writeDir = arg.slice("--write=".length);
     } else {
-      throw new Error(`agentline schema: unknown argument '${arg}'`);
+      throw new Error(`agentline config schema: unknown argument '${arg}'`);
     }
   }
   return out;
