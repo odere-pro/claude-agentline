@@ -14,11 +14,11 @@ Use this skill when the user asks about:
 
 For deeper tasks, invoke the focused sub-skill:
 
-| Task                          | Sub-skill                  |
-| ----------------------------- | -------------------------- |
-| Configure widgets/layout      | `/agentline-configure`     |
-| Browse or author themes       | `/agentline-themes`        |
-| Debug statusline issues       | `/agentline-troubleshoot`  |
+| Task                     | Sub-skill                 |
+| ------------------------ | ------------------------- |
+| Configure widgets/layout | `/agentline-configure`    |
+| Browse or author themes  | `/agentline-themes`       |
+| Debug statusline issues  | `/agentline-troubleshoot` |
 
 ---
 

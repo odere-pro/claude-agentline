@@ -74,11 +74,11 @@ export function clearTranscriptCache(): void {
   totalBytes = 0;
 }
 
-// Defence-in-depth: Claude Code controls the stdin payload and is trusted,
-// but the JSONL reader will gladly parse any path it's handed (`/etc/shadow`
-// if readable). Constrain to a known transcript root so a malformed payload
-// can't turn this into an arbitrary-path read primitive. Tests can override
-// via AGENTLINE_TRANSCRIPT_ROOT.
+// Defence-in-depth: stdin is supplied by Claude Code and the payload is
+// trusted, but the JSONL reader will gladly parse any path it's handed
+// (`/etc/shadow` if readable). Constrain to a known transcript root so a
+// malformed payload can't turn this into an arbitrary-path read primitive.
+// Tests can override via AGENTLINE_TRANSCRIPT_ROOT.
 function isPermittedTranscriptPath(p: string): boolean {
   const abs = resolve(p);
   if (abs.includes(`${sep}..${sep}`) || abs.endsWith(`${sep}..`)) return false;

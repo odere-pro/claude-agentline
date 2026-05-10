@@ -189,10 +189,10 @@ mutate `Object.prototype`.
 
 Two non-config-leaf env vars that affect loader behaviour:
 
-| Variable                                  | Effect                                                                                                                                             |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Variable                                  | Effect                                                                                                                                                                                                        |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS` | Set to `1` to opt in to `command` widgets sourced from the project layer (`.agentline.json`). Otherwise project-layer `command` widgets are dropped before merge and a one-line warning is emitted to stderr. |
-| `AGENTLINE_TRANSCRIPT_ROOT`               | Override the directory tree the transcript reader is allowed to resolve under (default: `~/.claude`). Test-only; production should leave unset.   |
+| `AGENTLINE_TRANSCRIPT_ROOT`               | Override the directory tree the transcript reader is allowed to resolve under (default: `~/.claude`). Test-only; production should leave unset.                                                               |
 
 ## Atomic writes
 

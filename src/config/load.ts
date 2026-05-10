@@ -77,9 +77,9 @@ export async function loadConfig(options: LoadOptions = {}): Promise<LoadedConfi
 }
 
 // Project-layer config (`.agentline.json` in the cwd) is loaded automatically
-// when the user runs Claude Code in that directory. Allowing a project file
+// for Claude Code sessions started in that directory. Allowing a project file
 // to declare a `command` widget would mean cloning a hostile repo and
-// running Claude Code with a statusline refresh = arbitrary code execution.
+// triggering arbitrary code execution on the next statusline refresh.
 // Strip `command` widgets unless the user explicitly opts in via
 // `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1`. Other widget types remain
 // untouched so the project layer keeps its day-to-day usefulness.
