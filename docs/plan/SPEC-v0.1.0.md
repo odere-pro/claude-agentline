@@ -308,7 +308,7 @@ Any other value is a schema error.
 
 `templates/default.config.json` is the config installed by `scripts/install.sh` when no user config exists. Its widget list is documented in §7.10.
 
-`templates/minimal.config.json` is a smaller alternative invoked by `agentline config init --minimal`.
+`templates/minimal.config.json` is the slimmer alternative selected by `agentline config init --preset minimal`; `templates/presets/maximal.config.json` is the curated "everything on one line" preset selected by `--preset maximal`.
 
 ### 4.9 Atomic writes
 
@@ -616,19 +616,19 @@ A widget MUST declare its axis; mixed-axis sums are not supported.
 
 Top-level surface (intentionally small: four verbs plus the default render path). Everything configuration-adjacent lives under `agentline config <sub>`.
 
-| Command                                          | Purpose                                                                   |
-| ------------------------------------------------ | ------------------------------------------------------------------------- |
-| `agentline` (no args)                            | Read stdin, render, exit. Default behaviour wired into `statusLine`       |
-| `agentline render`                               | Same as no-args; `--fixture <path>` and `--config <path>` flags supported |
-| `agentline install`                              | Wire `statusLine` + install agentline skill files                         |
-| `agentline uninstall [--purge]`                  | Reverse install; restore prior `statusLine` from backup                   |
-| `agentline doctor [--fix] [--json]`              | Diagnose and (optionally) repair                                          |
-| `agentline config`                               | TUI editor (Ink); writes config atomically. Lazy-imports Ink only here.   |
-| `agentline config init [--preset <name>]`        | Scaffold user/project config from a shipped preset                        |
-| `agentline config theme [--list\|--show <name>]` | Inspect themes (alias: `themes`)                                          |
-| `agentline config keys [--json]`                 | Print active keymap                                                       |
-| `agentline config schema [--write <dir>]`        | Print or write JSON Schema                                                |
-| `agentline version`                              | Print version + build metadata                                            |
+| Command                                                        | Purpose                                                                          |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `agentline` (no args)                                          | Read stdin, render, exit. Default behaviour wired into `statusLine`              |
+| `agentline render`                                             | Same as no-args; `--fixture <path>` and `--config <path>` flags supported        |
+| `agentline install`                                            | Wire `statusLine` + install agentline skill files                                |
+| `agentline uninstall [--purge]`                                | Reverse install; restore prior `statusLine` from backup                          |
+| `agentline doctor [--fix] [--json]`                            | Diagnose and (optionally) repair                                                 |
+| `agentline config`                                             | TUI editor (Ink); writes config atomically. Lazy-imports Ink only here.          |
+| `agentline config init [--preset <name>]`                      | Scaffold user/project config from a shipped preset (`minimal\|default\|maximal`) |
+| `agentline config theme [--list\|--show <name>\|--set <name>]` | Inspect themes; `--set` writes `theme: "<name>"` into the config atomically      |
+| `agentline config keys [--json]`                               | Print active keymap                                                              |
+| `agentline config schema [--write <dir>]`                      | Print or write JSON Schema                                                       |
+| `agentline version`                                            | Print version + build metadata                                                   |
 
 ### 9.2 Doctor checks
 

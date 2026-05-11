@@ -104,7 +104,7 @@ async function checkD02(ctx: CheckCtx): Promise<CheckResult> {
       title: "statusLine wired to agentline",
       status: "warn",
       message: "settings.json has no `statusLine` entry",
-      hint: "run `agentline doctor --fix` to wire `npx -y @agentline/cli`",
+      hint: "run `agentline doctor --fix` to wire `npx -y @agentline/cli render`",
     };
   }
   const cmd = extractStatusLineCommand(sl);

@@ -6,8 +6,7 @@
  * write via the existing helper.
  *
  * Flag surface:
- *   --preset <name>   one of `minimal | default | focus | power`
- *   --minimal         deprecated alias for `--preset minimal`
+ *   --preset <name>   one of `minimal | default | maximal`
  *   --scope <where>   `user` (~/.config/agentline/config.json) or
  *                     `project` (default — `.agentline.json` in cwd)
  *   --target <path>   explicit override; takes precedence over --scope
@@ -34,14 +33,12 @@ Usage:
   agentline config init [--preset <name>] [--scope <where>] [--target <path>] [--force]
 
 Presets:
-  minimal   model + git-branch + clock
-  default   full bar (model + git + tokens + cost + session-usage + clock)
-  focus     model + git + context-percentage + clock
-  power     full default + thinking-effort, weekly-usage, block-timer
+  minimal   essentials only — model + context-length + block-reset-timer (5h)
+  default   balanced bar — model, git, context, tokens, cost, session usage, clock
+  maximal   curated everything — adds thinking-effort, weekly usage, weekly + 5h timers
 
 Options:
-  --preset <name>     one of minimal | default | focus | power (default: default)
-  --minimal           deprecated alias for --preset minimal
+  --preset <name>     one of minimal | default | maximal (default: default)
   --scope <where>     user (~/.config/agentline/config.json) or
                       project (.agentline.json — default)
   --target <path>     explicit override; takes precedence over --scope
@@ -51,10 +48,10 @@ Options:
 After writing, the command prints next-step hints for verify + doctor.
 `;
 
-export type InitPreset = "minimal" | "default" | "focus" | "power";
+export type InitPreset = "minimal" | "default" | "maximal";
 export type InitScope = "user" | "project";
 
-const PRESETS: ReadonlySet<InitPreset> = new Set(["minimal", "default", "focus", "power"]);
+const PRESETS: ReadonlySet<InitPreset> = new Set(["minimal", "default", "maximal"]);
 const SCOPES: ReadonlySet<InitScope> = new Set(["user", "project"]);
 
 export interface InitCommandArgs {
@@ -120,10 +117,8 @@ function templateFileFor(preset: InitPreset): string {
       return "minimal.config.json";
     case "default":
       return "default.config.json";
-    case "focus":
-      return "presets/focus.config.json";
-    case "power":
-      return "presets/power.config.json";
+    case "maximal":
+      return "presets/maximal.config.json";
   }
 }
 
@@ -132,7 +127,6 @@ export function parseInitArgs(rest: readonly string[]): InitCommandArgs {
   let scope: InitScope = "project";
   let force = false;
   let target: string | undefined;
-  let minimalAliasUsed = false;
   for (let i = 0; i < rest.length; i += 1) {
     const arg = rest[i];
     if (isHelpFlag(arg)) {
@@ -141,7 +135,7 @@ export function parseInitArgs(rest: readonly string[]): InitCommandArgs {
       const next = rest[i + 1];
       if (!next || next.startsWith("-")) {
         throw new Error(
-          "agentline config init: --preset requires one of minimal|default|focus|power",
+          "agentline config init: --preset requires one of minimal|default|maximal",
         );
       }
       assertPreset(next);
@@ -151,8 +145,6 @@ export function parseInitArgs(rest: readonly string[]): InitCommandArgs {
       const value = arg.slice("--preset=".length);
       assertPreset(value);
       preset = value;
-    } else if (arg === "--minimal") {
-      minimalAliasUsed = true;
     } else if (arg === "--scope") {
       const next = rest[i + 1];
       if (!next || next.startsWith("-")) {
@@ -180,10 +172,7 @@ export function parseInitArgs(rest: readonly string[]): InitCommandArgs {
       throw new Error(`agentline config init: unknown argument '${arg}'`);
     }
   }
-  if (preset !== undefined && minimalAliasUsed) {
-    throw new Error("agentline config init: --minimal and --preset are mutually exclusive");
-  }
-  const resolvedPreset: InitPreset = preset ?? (minimalAliasUsed ? "minimal" : "default");
+  const resolvedPreset: InitPreset = preset ?? "default";
   const out: InitCommandArgs = { preset: resolvedPreset, scope, force };
   if (target !== undefined) (out as { target: string }).target = target;
   return out;
@@ -192,7 +181,7 @@ export function parseInitArgs(rest: readonly string[]): InitCommandArgs {
 function assertPreset(value: string): asserts value is InitPreset {
   if (!PRESETS.has(value as InitPreset)) {
     throw new Error(
-      `agentline config init: unknown preset '${value}' (expected minimal|default|focus|power)`,
+      `agentline config init: unknown preset '${value}' (expected minimal|default|maximal)`,
     );
   }
 }

@@ -10,16 +10,12 @@ describe("parseInitArgs", () => {
     expect(parseInitArgs([])).toEqual({ preset: "default", scope: "project", force: false });
   });
 
-  it("--minimal alias is honoured (back-compat)", () => {
-    expect(parseInitArgs(["--minimal"])).toEqual({
-      preset: "minimal",
-      scope: "project",
-      force: false,
-    });
+  it("--minimal is no longer accepted (removed in the minimal|default|maximal restructure)", () => {
+    expect(() => parseInitArgs(["--minimal"])).toThrow(/unknown argument/);
   });
 
   it("--preset selects each shipped preset", () => {
-    for (const p of ["minimal", "default", "focus", "power"] as const) {
+    for (const p of ["minimal", "default", "maximal"] as const) {
       expect(parseInitArgs(["--preset", p])).toMatchObject({ preset: p });
       expect(parseInitArgs([`--preset=${p}`])).toMatchObject({ preset: p });
     }
@@ -41,12 +37,10 @@ describe("parseInitArgs", () => {
     expect(parseInitArgs(["--target=/x.json"])).toMatchObject({ target: "/x.json" });
   });
 
-  it("rejects --preset combined with --minimal", () => {
-    expect(() => parseInitArgs(["--preset", "focus", "--minimal"])).toThrow(/mutually exclusive/);
-  });
-
   it("rejects unknown preset / scope / arg", () => {
     expect(() => parseInitArgs(["--preset", "ultra"])).toThrow(/unknown preset/);
+    expect(() => parseInitArgs(["--preset", "focus"])).toThrow(/unknown preset/);
+    expect(() => parseInitArgs(["--preset", "power"])).toThrow(/unknown preset/);
     expect(() => parseInitArgs(["--scope", "global"])).toThrow(/unknown scope/);
     expect(() => parseInitArgs(["--bogus"])).toThrow(/unknown argument/);
   });
@@ -75,12 +69,8 @@ describe("runInitCommand", () => {
     );
     mkdirSync(join(templateDir, "presets"));
     writeFileSync(
-      join(templateDir, "presets", "focus.config.json"),
-      JSON.stringify({ version: 1, marker: "focus" }),
-    );
-    writeFileSync(
-      join(templateDir, "presets", "power.config.json"),
-      JSON.stringify({ version: 1, marker: "power" }),
+      join(templateDir, "presets", "maximal.config.json"),
+      JSON.stringify({ version: 1, marker: "maximal" }),
     );
   });
 
@@ -102,24 +92,24 @@ describe("runInitCommand", () => {
     expect(JSON.parse(readFileSync(target, "utf8")).marker).toBe("default");
   });
 
-  it("--preset focus writes the focus preset", async () => {
+  it("--preset minimal writes the minimal preset", async () => {
     const target = join(tmp, ".agentline.json");
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     await runInitCommand({
-      args: { preset: "focus", scope: "project", force: false, target },
+      args: { preset: "minimal", scope: "project", force: false, target },
       templateDir,
     });
-    expect(JSON.parse(readFileSync(target, "utf8")).marker).toBe("focus");
+    expect(JSON.parse(readFileSync(target, "utf8")).marker).toBe("minimal");
   });
 
-  it("--preset power writes the power preset", async () => {
+  it("--preset maximal writes the maximal preset", async () => {
     const target = join(tmp, ".agentline.json");
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     await runInitCommand({
-      args: { preset: "power", scope: "project", force: false, target },
+      args: { preset: "maximal", scope: "project", force: false, target },
       templateDir,
     });
-    expect(JSON.parse(readFileSync(target, "utf8")).marker).toBe("power");
+    expect(JSON.parse(readFileSync(target, "utf8")).marker).toBe("maximal");
   });
 
   it("scope=project → writes .agentline.json in the project dir", async () => {
