@@ -122,6 +122,44 @@ describe("scripts/install.sh", () => {
       statusLine?: { command?: string };
     };
     expect(settings.statusLine?.command).toMatch(/agentline/);
+    // The wired command must be the explicit `render` form so a future
+    // top-level subcommand can never mis-dispatch the statusline payload.
+    expect(settings.statusLine?.command).toMatch(/\brender\b/);
+  });
+
+  it("migrates a legacy bare-form `agentline` entry to the explicit `render` form", async () => {
+    await fs.mkdir(join(sb.home, ".claude"), { recursive: true });
+    const settingsPath = join(sb.home, ".claude", "settings.json");
+    // Simulate a host wired by an older agentline release: bare path, no
+    // `render` subcommand. Re-running install must rewrite this in place.
+    const legacy = "/usr/local/bin/agentline";
+    await fs.writeFile(
+      settingsPath,
+      JSON.stringify({ statusLine: { type: "command", command: legacy, padding: 0 } }),
+    );
+
+    await runScript(installSh, [], sb.env, sb.root);
+
+    const after = (await readJson(settingsPath)) as { statusLine: { command: string } };
+    expect(after.statusLine.command).toMatch(/agentline/);
+    expect(after.statusLine.command).toMatch(/\brender\b/);
+    // The migration is recognising our own prior wiring — the backup file
+    // must NOT capture the bare-form value as if it were a foreign
+    // pre-install statusLine to restore on uninstall.
+    const backupPath = join(sb.configDir, "state", "settings-backup.json");
+    if (await exists(backupPath)) {
+      const backup = (await readJson(backupPath)) as {
+        previousStatusLinePresent: boolean;
+        previousStatusLine: unknown;
+      };
+      const captured =
+        backup.previousStatusLine &&
+        typeof backup.previousStatusLine === "object" &&
+        "command" in backup.previousStatusLine
+          ? (backup.previousStatusLine as { command: string }).command
+          : undefined;
+      expect(captured).not.toBe(legacy);
+    }
   });
 
   it("is idempotent — second run yields the same on-disk tree", async () => {

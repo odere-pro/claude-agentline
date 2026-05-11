@@ -9,12 +9,13 @@
         { "type": "thinking-effort" },
         { "type": "git-branch" },
         { "type": "git-changes" },
-        { "type": "context-percentage" },
+        { "type": "context-length" },
         { "type": "tokens-total", "options": { "reset": "block" } },
         { "type": "cost", "options": { "reset": "block" } },
         { "type": "session-usage", "options": { "reset": "block" } },
         { "type": "weekly-usage", "options": { "reset": "week" } },
-        { "type": "block-timer" },
+        { "type": "block-reset-timer" },
+        { "type": "weekly-reset-timer" },
         { "type": "flex-separator" },
         { "type": "clock" }
       ]

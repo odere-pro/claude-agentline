@@ -264,9 +264,10 @@ wire_statusline() {
   fi
 
   case "${__existing_block}" in
-    "")            __action="set"      ;;
-    "agentline")   __action="noop"     ;;
-    *)             __action="conflict" ;;
+    "")                   __action="set"      ;;
+    "agentline:explicit") __action="noop"     ;;
+    "agentline:bare")     __action="migrate"  ;;
+    *)                    __action="conflict" ;;
   esac
 
   if [ "${__action}" = "noop" ]; then
@@ -274,10 +275,18 @@ wire_statusline() {
     return 0
   fi
 
-  if [ "${DRY_RUN}" = "1" ]; then
-    al_log_info "would back up prior statusLine to ${__backup_file}"
+  if [ "${__action}" = "migrate" ]; then
+    # Bare-form `agentline` from a pre-render-explicit install. Rewrite to
+    # the explicit `agentline render` form without backing up — the prior
+    # value was already ours, and overwriting our own snapshot would lose
+    # the genuine pre-install backup we want to preserve for uninstall.
+    al_log_info "migrating bare statusLine to explicit \`agentline render\` form"
   else
-    save_statusline_backup "${__target_file}" "${__backup_file}"
+    if [ "${DRY_RUN}" = "1" ]; then
+      al_log_info "would back up prior statusLine to ${__backup_file}"
+    else
+      save_statusline_backup "${__target_file}" "${__backup_file}"
+    fi
   fi
 
   if [ "${__action}" = "conflict" ] && [ "${FORCE}" != "1" ]; then
@@ -292,14 +301,17 @@ wire_statusline() {
 }
 
 # Resolve which command to wire. Verifies the binary exists as an executable
-# file at the resolved path; falls back to npx if not.
+# file at the resolved path; falls back to npx if not. Always appends `render`
+# so the configured command is unambiguous if a future top-level subcommand
+# ever collided with bare-invocation defaults (the bare form remains a
+# friendly shortcut for humans testing locally).
 resolve_status_command() {
   __bin="$(command -v agentline 2>/dev/null || true)"
   if [ -n "${__bin}" ] && [ -x "${__bin}" ]; then
-    printf '%s' "${__bin}"
+    printf '%s render' "${__bin}"
     return 0
   fi
-  printf 'npx -y @agentline/cli'
+  printf 'npx -y @agentline/cli render'
 }
 
 # Save a snapshot of the existing `statusLine` value to the backup file.
@@ -359,7 +371,13 @@ const sl = parsed && parsed.statusLine;
 if (sl == null || sl === '') { console.log(''); process.exit(0); }
 const cmd = (typeof sl === 'string') ? sl : (sl && typeof sl.command === 'string' ? sl.command : '');
 if (!cmd) { console.log(''); process.exit(0); }
-if (/agentline/.test(cmd)) { console.log('agentline'); process.exit(0); }
+if (/agentline/.test(cmd)) {
+  // Distinguish the explicit `... render` form from the legacy bare
+  // form so install can migrate older entries forward without prompting.
+  if (/\brender\b/.test(cmd)) { console.log('agentline:explicit'); process.exit(0); }
+  console.log('agentline:bare');
+  process.exit(0);
+}
 console.log('foreign:' + cmd);
 JS
 }

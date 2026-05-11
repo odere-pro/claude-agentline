@@ -6,12 +6,8 @@
     {
       "widgets": [
         { "type": "model" },
-        { "type": "thinking-effort" },
-        { "type": "git-branch" },
-        { "type": "context-percentage" },
-        { "type": "block-reset-timer" },
-        { "type": "flex-separator" },
-        { "type": "clock" }
+        { "type": "context-length" },
+        { "type": "block-reset-timer" }
       ]
     }
   ],

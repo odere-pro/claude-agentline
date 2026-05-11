@@ -79,13 +79,15 @@ async function fixD02(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
     env: ctx.env,
   });
 
-  parsed["statusLine"] = { type: "command", command: "npx -y @agentline/cli", padding: 0 };
+  // Explicit `render` subcommand: matches `agentline install`'s wired form
+  // and stays unambiguous against any future top-level subcommand.
+  parsed["statusLine"] = { type: "command", command: "npx -y @agentline/cli render", padding: 0 };
   await atomicWriteJson(target, parsed, { mode: 0o600, dirMode: 0o700 });
   const note = backup === "created" ? "; prior value backed up" : "";
   return {
     ...r,
     status: "fixed",
-    message: `wrote statusLine = \`npx -y @agentline/cli\`${note}`,
+    message: `wrote statusLine = \`npx -y @agentline/cli render\`${note}`,
     fixed: true,
     hint: undefined,
   };

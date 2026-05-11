@@ -31,10 +31,16 @@ type ParsedArgs = {
   rest: string[];
 };
 
+// Global flags handled at the top level (mirrors the convention used
+// with Claude Code: `--help`/`-h` and `--version`/`-v` are flags, not
+// subcommands). Recognised here so they aren't swept into `render`.
+const GLOBAL_FLAGS: ReadonlySet<string> = new Set(["--help", "-h", "--version", "-v"]);
+
 function parseArgs(argv: string[]): ParsedArgs {
   const args = argv.slice(2);
   if (args.length === 0) return { command: "render", rest: [] };
   const first = args[0]!;
+  if (GLOBAL_FLAGS.has(first)) return { command: first, rest: args.slice(1) };
   if (first.startsWith("-")) return { command: "render", rest: args };
   return { command: first, rest: args.slice(1) };
 }
@@ -83,16 +89,18 @@ function runVersion(): number {
 function runHelp(): number {
   process.stdout.write(
     [
-      "Usage: agentline [<command>] [<options>]",
+      "Usage: agentline                   read JSON on stdin, render statusline (default)",
+      "       agentline <command> [<options>]",
+      "",
+      "The default form is what Claude Code reads. Use the commands below to set it up.",
       "",
       "Commands:",
       "  install              wire agentline into Claude Code's statusline",
       "  uninstall            remove agentline + restore prior statusLine",
       "  doctor [--fix]       diagnose + repair host wiring",
       "  config [<sub>]       configuration subgroup (see `agentline config --help`)",
-      "  (default, stdin)     read JSON, render statusline, write to stdout",
-      "  version              print version",
-      "  help                 print this message",
+      "  version              print version (alias: -v, --version)",
+      "  help                 print this message (alias: -h, --help)",
       "",
       "Pass -h/--help to any command for details. Start with `agentline install`.",
       "",
@@ -104,16 +112,16 @@ function runHelp(): number {
 function runConfigHelp(): number {
   process.stdout.write(
     [
-      "Usage: agentline config [<sub>] [<options>]",
+      "Usage: agentline config                  open the TUI editor (default)",
+      "       agentline config <sub> [<options>]",
       "",
       "Subcommands:",
-      "  (no sub)             open the TUI editor",
       "  edit                 open the TUI editor",
       "  init [--preset ...]  scaffold a config file from a preset",
       "  theme [--list]       inspect installed theme presets",
       "  keys [--json]        list the TUI editor keymap",
       "  schema [--write]     print or write the config JSON Schema",
-      "  help                 print this message",
+      "  help                 print this message (alias: -h, --help)",
       "",
       "Pass -h/--help to any subcommand for details.",
       "",
