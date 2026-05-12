@@ -51,9 +51,7 @@ describe("validateConfig", () => {
     );
   });
 
-  it("rejects line with no widgets", () => {
-    expect(() =>
-      validateConfig({ ...DEFAULT_CONFIG, lines: [{ widgets: [] }] }),
-    ).toThrowError(ConfigValidationError);
+  it("accepts a line with no widgets (empty lines render blank)", () => {
+    expect(() => validateConfig({ ...DEFAULT_CONFIG, lines: [{ widgets: [] }] })).not.toThrow();
   });
 });

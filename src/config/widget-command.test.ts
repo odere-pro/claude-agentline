@@ -46,6 +46,14 @@ describe("runWidgetSubgroup", () => {
     await expect(runWidgetSubgroup(["remove"])).rejects.toThrow(/--at <index> is required/);
   });
 
+  it("routes `move` / `replace` / `set-option`", async () => {
+    await expect(runWidgetSubgroup(["move"])).rejects.toThrow(/--from-at <index> is required/);
+    await expect(runWidgetSubgroup(["replace"])).rejects.toThrow(/replacement <type> is required/);
+    await expect(runWidgetSubgroup(["set-option"])).rejects.toThrow(
+      /<key> and a <value> are required/,
+    );
+  });
+
   it("propagates a bad-argument error from a subcommand", async () => {
     await expect(runWidgetSubgroup(["list", "--nope"])).rejects.toThrow(/unknown argument/);
   });
