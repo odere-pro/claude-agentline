@@ -24,6 +24,7 @@ import { parseInstallArgs, runInstallCommand } from "./install/command.js";
 import { parseUninstallArgs, runUninstallCommand } from "./uninstall/command.js";
 import { parseKeysArgs, runKeysCommand } from "./keys/command.js";
 import { parseThemesArgs, runThemesCommand } from "./theme/command.js";
+import { runWidgetSubgroup } from "./config/widget-command.js";
 import { parseRenderArgs, runRenderCommand } from "./render/fixture-command.js";
 
 type ParsedArgs = {
@@ -119,6 +120,7 @@ function runConfigHelp(): number {
       "  edit                 open the TUI editor",
       "  init [--preset ...]  scaffold a config file from a preset",
       "  theme [--list]       inspect installed theme presets",
+      "  widget <sub>         inspect/edit the layout (list, catalog, …)",
       "  keys [--json]        list the TUI editor keymap",
       "  schema [--write]     print or write the config JSON Schema",
       "  help                 print this message (alias: -h, --help)",
@@ -160,9 +162,9 @@ async function dispatch(exec: () => Promise<number>, errorPrefix?: string): Prom
 
 /**
  * `agentline config` second-level dispatcher. Bare invocation opens the
- * TUI editor; named sub-subcommands (init, theme, keys, schema) route to
- * the existing parse+run helpers. Aliases: `themes` (plural) for `theme`,
- * `edit` as an explicit alias for the bare form.
+ * TUI editor; named sub-subcommands (init, theme, widget, keys, schema)
+ * route to their parse+run helpers. Aliases: `themes` (plural) for
+ * `theme`, `edit` as an explicit alias for the bare form.
  */
 async function runConfigSubgroup(rest: readonly string[]): Promise<number> {
   const sub = rest[0];
@@ -185,6 +187,8 @@ async function runConfigSubgroup(rest: readonly string[]): Promise<number> {
         () => runThemesCommand({ args: parseThemesArgs(subRest) }),
         "agentline config theme",
       );
+    case "widget":
+      return dispatch(() => runWidgetSubgroup(subRest), "agentline config widget");
     case "keys":
       return dispatch(
         () => runKeysCommand({ args: parseKeysArgs(subRest) }),
