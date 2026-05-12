@@ -362,31 +362,27 @@ Roles consumed by built-in widgets are listed in §7.9. A widget without an expl
 
 ### 5.5 Hot-keys
 
-The TUI editor (`agentline config`) renders a contextual key footer. Default keymap (override-able via `config.keymap`):
+The TUI editor (`agentline config`) renders a key footer. Default keymap (override-able via `config.keymap`):
 
-| Key     | Context         | Action                                                  |
-| ------- | --------------- | ------------------------------------------------------- |
-| `↑ ↓`   | list            | navigate                                                |
-| `← →`   | widget          | change type                                             |
-| `a`     | list            | add widget                                              |
-| `d`     | widget          | delete                                                  |
-| `r`     | widget          | toggle raw value                                        |
-| `m`     | widget          | cycle merge mode                                        |
-| `h`     | widget          | toggle hidden                                           |
-| `l`     | git widgets     | toggle clickable IDE link (VS Code / Cursor / IntelliJ) |
-| `t`     | widget          | toggle title/label                                      |
-| `p`     | widget          | cycle display variant                                   |
-| `s`     | widget          | toggle compact / short                                  |
-| `v`     | widget          | invert / cycle inversion                                |
-| `e`     | widget          | edit inline value                                       |
-| `u`     | context widgets | toggle used-vs-remaining                                |
-| `f`     | widget          | cycle format                                            |
-| `n`     | widget          | toggle Nerd Font glyph                                  |
-| `w`     | widget          | edit window/width                                       |
-| `Space` | separator       | cycle char                                              |
-| `Esc`   | any             | back                                                    |
+| Key     | Scope | Action                                           |
+| ------- | ----- | ------------------------------------------------ |
+| `← →`   | edit  | move the selection within the row                |
+| `↑ ↓`   | edit  | move the selection to the adjacent row           |
+| `⇧← ⇧→` | edit  | move the selected widget within its row          |
+| `⇧↑ ⇧↓` | edit  | move the selected widget to the adjacent row     |
+| `a`     | edit  | add a widget                                     |
+| `r`     | edit  | replace the selected widget                      |
+| `x`     | edit  | delete the selected widget                       |
+| `v`     | edit  | show / hide the selected widget                  |
+| `m`     | edit  | spacing to neighbour: full / single space / none |
+| `l`     | edit  | show / hide the widget's own label               |
+| `S`     | edit  | save                                             |
+| `q`     | any   | quit (prompts if there are unsaved changes)      |
+| `?`     | any   | toggle the help overlay                          |
 
-`agentline config keys [--json]` enumerates every binding with its widget scope.
+Scopes mirror the editor's modes; `picker` and `options` bindings join this
+table as those overlay components land. `agentline config keys [--json]`
+enumerates every binding with its scope.
 
 ### 5.6 Theme presets shipped at v0.1.0
 
