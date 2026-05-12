@@ -41,10 +41,10 @@ report_file="${work_dir}/report.txt"
 
 # Capture the embedded schema. A non-zero exit, an empty stdout, or
 # unparseable JSON all count as a failure to expose the schema.
-if ! node "${bin}" schema >"${schema_file}" 2>"${work_dir}/schema.stderr"; then
-  log_info "\`node dist/cli.mjs schema\` exited non-zero:"
+if ! node "${bin}" config schema >"${schema_file}" 2>"${work_dir}/schema.stderr"; then
+  log_info "\`node dist/cli.mjs config schema\` exited non-zero:"
   sed 's/^/    /' "${work_dir}/schema.stderr" >&2
-  fail_gate "schema subcommand crashed"
+  fail_gate "config schema subcommand crashed"
 fi
 if [ ! -s "${schema_file}" ]; then
   fail_gate "schema subcommand produced empty output"

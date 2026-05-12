@@ -42,8 +42,8 @@ Homebrew tap, GitHub Releases native binaries, and curl-installer are explicitly
 - **F10.** A TUI editor (`agentline config`) lets users add, reorder, recolour, and toggle widgets with live preview; configuration changes persist atomically (write-temp-then-rename).
 - **F11.** A doctor command (`agentline doctor [--fix]`) inspects host prerequisites, the wired settings entry, the merged config, and the Nerd Font availability; `--fix` repairs documented misconfigurations.
 - **F12.** A render dry-run (`agentline render --fixture <path>`) reproduces a line from a recorded stdin fixture; output is byte-identical to a real render under the same config.
-- **F13.** A keys command (`agentline keys [--json]`) prints the active keymap.
-- **F14.** A schema command (`agentline schema [--write]`) prints (or writes to disk) the JSON Schema for the configuration.
+- **F13.** A keys command (`agentline config keys [--json]`) prints the active keymap.
+- **F14.** A schema command (`agentline config schema [--write]`) prints (or writes to disk) the JSON Schema for the configuration.
 - **F15.** A live config-reload loop watches all files in the merged config set; changes apply within one render tick without dropping in-flight stdin reads.
 
 ### 1.2 Non-functional
@@ -68,7 +68,7 @@ Homebrew tap, GitHub Releases native binaries, and curl-installer are explicitly
 
 - **O1.** **Stdin parse budget.** 4 ms p95 for a 32 KB stdin payload. Larger payloads are truncated at 256 KB and a `truncated` marker is emitted.
 - **O2.** **External command timeout (custom widgets).** Default 250 ms; per-widget overridable up to 2 000 ms. Timeouts render the widget's `onError` placeholder.
-- **O3.** **JSONL transcript cache.** Keyed by `(transcript_path, mtime, size)`; entries evicted after 5 hours or 32 MB total, whichever first.
+- **O3.** **JSONL transcript cache.** Keyed by `(transcript_path, mtime, size)`; entries evicted after 5 hours or 32 MB total, whichever first. Per-file reads are capped at **16 MB** (oversize transcripts render dependent widgets as empty / hidden). `transcript_path` MUST resolve under the user's `~/.claude` tree; reads outside that root are refused so a malformed stdin payload cannot be turned into an arbitrary-file-read primitive. Tests may override the allowed root with `AGENTLINE_TRANSCRIPT_ROOT`.
 - **O4.** **Schema migration.** When the on-disk schema version is older than the binary's, the binary auto-migrates and writes a backup to `<config>.bak`. Older binaries refuse newer schemas with a structured error.
 
 ### 1.5 Compatibility
@@ -106,7 +106,6 @@ agentline/
 │   └── config.schema.json             § 4.7
 ├── scripts/
 │   ├── install.sh                     § 10
-│   ├── init.sh
 │   ├── doctor.sh
 │   ├── uninstall.sh
 │   └── lib/common.sh
@@ -119,7 +118,6 @@ agentline/
 │   │   ├── gate-01-doctor.sh
 │   │   ├── gate-02-no-absolute-paths.sh
 │   │   ├── gate-03-shellcheck.sh
-│   │   ├── gate-04-init-idempotency.sh
 │   │   ├── gate-05-markdown.sh
 │   │   ├── gate-06-trademark.sh
 │   │   ├── gate-07-roundtrip-clean.sh
@@ -208,13 +206,27 @@ Forbidden:
 
 ### 4.1 Layered merge order
 
-Layered top-to-bottom (later overrides earlier):
+agentline is configured globally only. Layered top-to-bottom (later
+overrides earlier):
 
 1. Built-in defaults (compiled into the bin).
 2. User config: `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`.
-3. Project config: `${CLAUDE_PROJECT_DIR:-$PWD}/.agentline.json` if present.
-4. Environment variables prefixed `AGENTLINE_` (dot-path, e.g. `AGENTLINE_GLOBAL_PADDING=2`).
-5. Command-line flags.
+3. Environment variables prefixed `AGENTLINE_` (dot-path, e.g. `AGENTLINE_GLOBAL_PADDING=2`).
+4. Command-line flags.
+
+There is no per-project config layer. A `.agentline.json` in the cwd
+is silently ignored by the loader; the editor and any programmatic
+mutator always read from and write to the user config.
+
+**Prototype-pollution defence.** Every JSON-parse boundary that feeds
+into the merged config — the user file (handled inside `mergeAll`),
+the env layer's `AGENTLINE_X='{"…":…}'` decoder, and the
+`agentline render --config` fixture path — drops own-keys named
+`__proto__`, `constructor`, or `prototype` recursively before the
+result reaches AJV. AJV's strict top-level (`additionalProperties:
+false`) is the primary line of defence; the recursive strip closes the
+gap at carve-outs like `widgets[].options` and `palette` where
+`additionalProperties: true`.
 
 ### 4.2 Top-level schema
 
@@ -284,13 +296,13 @@ Any other value is a schema error.
 
 ### 4.7 JSON Schema
 
-`schemas/config.schema.json` is the canonical source of truth. The bin embeds this schema at build time and validates the merged config on load. `agentline schema --write <dir>` writes the schema to disk so editors can pick it up; the schema's `$id` is a stable URL under the project's homepage.
+`schemas/config.schema.json` is the canonical source of truth. The bin embeds this schema at build time and validates the merged config on load. `agentline config schema --write <dir>` writes the schema to disk so editors can pick it up; the schema's `$id` is a stable URL under the project's homepage.
 
 ### 4.8 Defaults shipped
 
 `templates/default.config.json` is the config installed by `scripts/install.sh` when no user config exists. Its widget list is documented in §7.10.
 
-`templates/minimal.config.json` is a smaller alternative invoked by `agentline init --minimal`.
+`templates/minimal.config.json` is the slimmer alternative selected by `agentline config init --preset minimal`; `templates/presets/maximal.config.json` is the curated "everything on one line" preset selected by `--preset maximal`.
 
 ### 4.9 Atomic writes
 
@@ -374,7 +386,7 @@ The TUI editor (`agentline config`) renders a contextual key footer. Default key
 | `Space` | separator       | cycle char                                              |
 | `Esc`   | any             | back                                                    |
 
-`agentline keys [--json]` enumerates every binding with its widget scope.
+`agentline config keys [--json]` enumerates every binding with its widget scope.
 
 ### 5.6 Theme presets shipped at v0.1.0
 
@@ -425,7 +437,7 @@ render(ctx: Context, opts: Options): Cell
 
 #### 7.2.1 Auth-file fallback
 
-When stdin omits a field, the bin reads `${CLAUDE_CONFIG_DIR}/auth.json` (or platform equivalent) read-only. Failure renders the field as hidden, never errors.
+When stdin omits a field, the bin reads `${CLAUDE_CONFIG_DIR}/auth.json` (or platform equivalent) read-only. Failure renders the field as hidden, never errors. The reader caps file size at **64 KB**; an oversize file (e.g. a symlink to `/dev/zero`) is treated as an unreadable auth file — same hidden-field behaviour as the missing-file case — so the render budget (§1.2 N3) is not blown.
 
 ### 7.3 Token & cost widgets
 
@@ -526,7 +538,11 @@ Renders empty space sized to fill remaining width. Multiple flex separators shar
 }
 ```
 
-`cmd` runs in a sandboxed subprocess with `agentline`'s environment plus `CLAUDE_*` vars. stderr is discarded; non-zero exit renders `onError`.
+`cmd` runs in a sandboxed subprocess. stderr is discarded; non-zero exit (or timeout, or spawn failure) renders `onError`. The sandbox carries the following bounds:
+
+- **Shell allowlist.** `options.shell` is honoured only when it matches one of `/bin/sh`, `/bin/bash`, `/usr/bin/sh`, `/usr/bin/bash`, `/usr/local/bin/bash`, `cmd.exe`, `powershell.exe`, `pwsh.exe`. Any other value silently falls back to the platform default (`/bin/sh` on Unix, `cmd.exe` on Windows) — the widget never spawns an arbitrary attacker-supplied binary.
+- **Cwd validation.** `options.cwd` (or, when unset, `stdin.cwd`) is accepted only when it is a non-empty absolute path that exists and is a directory. Anything else collapses to `undefined` so the subprocess inherits agentline's own cwd rather than following an attacker-controlled hint.
+- **Environment allowlist.** Only `PATH`, `HOME`, `USER`, `USERNAME`, `LOGNAME`, `LANG`, `TERM`, `TMPDIR`, `TMP`, `TEMP`, `SHELL`, `USERPROFILE`, `SYSTEMROOT`, `WINDIR`, `COMSPEC`, plus any `LC_*` and `CLAUDE_*` variables, are forwarded to the child. Inside that allowlist the loader still drops keys whose name ends in `_TOKEN`, `_KEY`, `_SECRET`, `_PASSWORD`, `_PASS`, or `_AUTH` so credential-shaped CLAUDE\_\* vars never leak into a user-supplied shell command.
 
 ### 7.9 Widget roles (theme palette keys)
 
@@ -591,17 +607,21 @@ A widget MUST declare its axis; mixed-axis sums are not supported.
 
 ### 9.1 Subcommands
 
-| Command                                    | Purpose                                                                   |
-| ------------------------------------------ | ------------------------------------------------------------------------- |
-| `agentline` (no args)                      | Read stdin, render, exit. Default behaviour wired into `statusLine`       |
-| `agentline render`                         | Same as no-args; `--fixture <path>` and `--config <path>` flags supported |
-| `agentline config`                         | TUI editor (Ink); writes config atomically. Lazy-imports Ink only here.   |
-| `agentline doctor [--fix] [--json]`        | Diagnose and (optionally) repair                                          |
-| `agentline init [--minimal]`               | Scaffold user config + theme directory                                    |
-| `agentline keys [--json]`                  | Print active keymap                                                       |
-| `agentline schema [--write <dir>]`         | Print or write JSON Schema                                                |
-| `agentline version`                        | Print version + build metadata                                            |
-| `agentline themes [--list\|--show <name>]` | Inspect themes                                                            |
+Top-level surface (intentionally small: four verbs plus the default render path). Everything configuration-adjacent lives under `agentline config <sub>`.
+
+| Command                                                        | Purpose                                                                      |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `agentline` (no args)                                          | Read stdin, render, exit. Default behaviour wired into `statusLine`          |
+| `agentline render`                                             | Same as no-args; `--fixture <path>` and `--config <path>` flags supported    |
+| `agentline install`                                            | Wire `statusLine` + install agentline skill files                            |
+| `agentline uninstall [--purge]`                                | Reverse install; restore prior `statusLine` from backup                      |
+| `agentline doctor [--fix] [--json]`                            | Diagnose and (optionally) repair                                             |
+| `agentline config`                                             | TUI editor (Ink); writes config atomically. Lazy-imports Ink only here.      |
+| `agentline config init [--preset <name>]`                      | Scaffold the user config from a shipped preset (`minimal\|default\|maximal`) |
+| `agentline config theme [--list\|--show <name>\|--set <name>]` | Inspect themes; `--set` writes `theme: "<name>"` into the config atomically  |
+| `agentline config keys [--json]`                               | Print active keymap                                                          |
+| `agentline config schema [--write <dir>]`                      | Print or write JSON Schema                                                   |
+| `agentline version`                                            | Print version + build metadata                                               |
 
 ### 9.2 Doctor checks
 
@@ -636,7 +656,6 @@ Doctor runs every check in order and prints a structured report. `--fix` attempt
 | Script                  | Behaviour                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `scripts/install.sh`    | Idempotent. Verifies Node ≥20. Runs `npm i -g @agentline/cli@<pinned>` (or `npm link` when run from a checked-out repo with `--from-source`). Copies `templates/default.config.json` to `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` if absent. Copies `themes/*.json` to the same directory's `themes/` subfolder. Wires `statusLine` into `~/.claude/settings.json` if `statusLine` is unset, using `npx -y @agentline/cli` as the command (or the global bin path when global install succeeded); refuses to overwrite existing user values without `--force`. Supports `--dry-run`. |
-| `scripts/init.sh`       | Idempotent. Bootstraps `${CLAUDE_PROJECT_DIR}/.agentline.json` from `templates/minimal.config.json`. Pure filesystem; no network.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `scripts/doctor.sh`     | Read-only wrapper over `agentline doctor`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `scripts/uninstall.sh`  | Idempotent. Runs `npm uninstall -g @agentline/cli` (skipped if absent). Removes config files copied by `install.sh`. Preserves user-edited config (detected via SHA mismatch with the shipped template); only removes the user config if `--purge` is passed. Refuses to delete unrelated files. Removes the `statusLine` entry from `~/.claude/settings.json` only if it still points at agentline.                                                                                                                                                                                               |
 | `scripts/lib/common.sh` | Shared helpers: logging, OS detection, Node version check, `set -Eeuo pipefail`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -668,20 +687,19 @@ Every gate ID below is a file `tests/gates/gate-NN-<topic>.sh`; orchestrated by 
 | 01   | `scripts/doctor.sh` exits 0 on healthy host                                                                             | this spec §9.2    |
 | 02   | No `/Users/`, `/home/`, `~/.claude/` literals in shipped artefacts                                                      | this spec §1.2 N6 |
 | 03   | All `*.sh` pass `shellcheck -x`                                                                                         | this spec §10     |
-| 04   | `scripts/init.sh` run twice yields no diff                                                                              | this spec §10     |
 | 05   | `markdownlint-cli2` + `prettier --check` over `*.md`                                                                    | this spec §11.1   |
 | 06   | No third-party trademark misuse (allowlist)                                                                             | this spec §0.2    |
 | 07   | Roundtrip clean: `install.sh && uninstall.sh` leaves no diff                                                            | this spec §10     |
 | 08   | Roundtrip preserves user-authored content                                                                               | this spec §10     |
 | 09   | Install-twice idempotent                                                                                                | this spec §10     |
 | 10   | `install.sh --dry-run` matches real run                                                                                 | this spec §10     |
-| 11   | `agentline schema` round-trips against `templates/*.json`                                                               | this spec §4.7    |
+| 11   | `agentline config schema` round-trips against `templates/*.json`                                                        | this spec §4.7    |
 | 12   | Render determinism: same fixture + frozen clock ⇒ byte-identical bytes                                                  | this spec §1.2 N7 |
 | 13   | Cold-start budget on reference host (`agentline render` ≤120 ms p95 with global install)                                | this spec §1.2 N2 |
 | 14   | No network at render time (verified via sandbox)                                                                        | this spec §1.2 N5 |
 | 15   | Published package smoke-runs on `{macos-13, macos-14, ubuntu-22.04, ubuntu-24.04, windows-2022}` × `{Node 20, Node 22}` | this spec §1.2 N1 |
 | 16   | Accessibility flags produce semantically equivalent output                                                              | this spec §1.2 N8 |
-| 17   | Keymap coverage: every documented binding renders in `agentline keys --json`                                            | this spec §5.5    |
+| 17   | Keymap coverage: every documented binding renders in `agentline config keys --json`                                     | this spec §5.5    |
 
 Gates dropped vs earlier drafts: plugin-manifest validity, YAML frontmatter, and `hooks/hooks.json` validity — none apply to a CLI-only distribution (§0.1).
 

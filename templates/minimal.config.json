@@ -6,9 +6,8 @@
     {
       "widgets": [
         { "type": "model" },
-        { "type": "git-branch" },
-        { "type": "flex-separator" },
-        { "type": "clock" }
+        { "type": "context-length" },
+        { "type": "block-reset-timer" }
       ]
     }
   ],

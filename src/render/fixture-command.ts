@@ -17,11 +17,30 @@
 
 import { promises as fs } from "node:fs";
 
-import {
-  parseAccessibilityArgs,
-  type AccessibilityFlags,
-} from "./accessibility.js";
+import { isHelpFlag, requestHelp } from "../cli/help.js";
+import { resolveConfigPaths } from "../config/paths.js";
+import { pathExists } from "../lib/fs.js";
+import { parseAccessibilityArgs, type AccessibilityFlags } from "./accessibility.js";
 import { renderForFixture } from "./fixture-runner.js";
+
+const HELP = `agentline render — re-render a recorded stdin payload
+
+Usage:
+  agentline render [--fixture <path>] [--config <path>]
+                   [--frozen-clock <iso>] [--width <n>]
+                   [--no-color | --no-unicode | --ascii ...]
+
+Options:
+  --fixture <path>      read JSON payload from disk instead of stdin
+  --config <path>       pin a specific config file (golden harness)
+  --frozen-clock <iso>  inject a deterministic clock for byte-identical output
+  --width <n>           force terminal width
+  --no-color, --ascii   accessibility flags
+  -h, --help            show this message
+
+The default invocation (no \`render\` subcommand) reads stdin directly;
+this subcommand exists for replaying fixtures and goldens.
+`;
 
 export interface RenderCommandArgs {
   readonly fixture?: string;
@@ -31,7 +50,7 @@ export interface RenderCommandArgs {
   readonly accessibility: AccessibilityFlags;
 }
 
-export interface RenderInput {
+export interface RenderCommandInput {
   readonly args: RenderCommandArgs;
   readonly stdin?: NodeJS.ReadableStream;
 }
@@ -43,7 +62,7 @@ const ACCESSIBILITY_FLAGS: ReadonlySet<string> = new Set([
   "--ascii",
 ]);
 
-export async function runRenderCommand(input: RenderInput): Promise<number> {
+export async function runRenderCommand(input: RenderCommandInput): Promise<number> {
   const { fixture } = input.args;
   let payload: string;
   if (fixture) {
@@ -60,7 +79,19 @@ export async function runRenderCommand(input: RenderInput): Promise<number> {
   }
   if (!payload.trim()) {
     process.stdout.write("agentline: empty stdin\n");
+    if (!fixture) {
+      process.stderr.write(
+        "agentline: no JSON received on stdin. run `agentline doctor` to diagnose host wiring.\n",
+      );
+    }
     return 1;
+  }
+  // First-run hint: when this is a live render (no fixture, no --config)
+  // and the user has not saved a config yet, point them at `agentline config init`.
+  // Suppressed for non-TTY stderr (so the host UI is unaffected) and when
+  // AGENTLINE_QUIET=1 is set.
+  if (!fixture && input.args.configPath === undefined) {
+    await maybeEmitFirstRunHint();
   }
   const out = await renderForFixture(payload, {
     ...(input.args.configPath !== undefined ? { configPath: input.args.configPath } : {}),
@@ -82,7 +113,9 @@ export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {
   const accessibilityArgv: string[] = [];
   for (let i = 0; i < rest.length; i += 1) {
     const arg = rest[i];
-    if (arg === "--fixture") {
+    if (isHelpFlag(arg)) {
+      requestHelp(HELP);
+    } else if (arg === "--fixture") {
       const next = rest[i + 1];
       if (!next || next.startsWith("-")) {
         throw new Error("agentline render: --fixture requires a path");
@@ -138,6 +171,17 @@ export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {
     (out as { frozenClockISO: string }).frozenClockISO = frozenClockISO;
   if (width !== undefined) (out as { width: number }).width = width;
   return out;
+}
+
+async function maybeEmitFirstRunHint(): Promise<void> {
+  if (!process.stderr.isTTY) return;
+  if (process.env.AGENTLINE_QUIET === "1") return;
+  const paths = resolveConfigPaths(process.env);
+  const hasUser = await pathExists(paths.userConfig);
+  if (hasUser) return;
+  process.stderr.write(
+    "# agentline: using built-in defaults — `agentline config init` to customise (silence with AGENTLINE_QUIET=1)\n",
+  );
 }
 
 async function readAll(stream: NodeJS.ReadableStream): Promise<string> {

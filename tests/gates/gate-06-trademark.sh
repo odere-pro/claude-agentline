@@ -53,7 +53,7 @@ fi
 # Claude Code as the host runtime (the spec defines agentline as the
 # statusline of that runtime), while still flagging bare or marketing-y
 # uses of "Claude" or "Anthropic" that could imply endorsement.
-allowlist='(Claude Code statusline|Claude Code'\''s statusline|Claude Code reads|Claude Code contract|Claude Code stdin|Claude Code settings|Claude Code'\''s settings|Claude Code state|Claude Code'\''s state|wired into Claude Code|with Claude Code|of Claude Code|to Claude Code|from Claude Code|CLAUDE_(CONFIG_DIR|PROJECT_DIR)|honour Claude Code|by Claude Code|Anthropic\b.{0,40}\bnpm)'
+allowlist='(Claude Code statusline|Claude Code'\''s statusline|Claude Code reads|Claude Code contract|Claude Code stdin|Claude Code settings|Claude Code'\''s settings|Claude Code state|Claude Code'\''s state|wired into Claude Code|with Claude Code|of Claude Code|to Claude Code|from Claude Code|for Claude Code|for-Claude%20Code|inside Claude Code|CLAUDE_(CONFIG_DIR|PROJECT_DIR)|honour Claude Code|by Claude Code|Claude Code session|Claude Code version|Claude Code run|Claude Code.*statusLine|Restart Claude Code|Anthropic\b.{0,40}\bnpm|logo=anthropic)'
 
 set +e
 disallowed="$(printf '%s\n' "${raw_matches}" | grep -vE "${allowlist}" || true)"

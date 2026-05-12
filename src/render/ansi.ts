@@ -30,6 +30,25 @@ import type { Segment } from "./segment.js";
 
 export const SGR_RESET = "\x1b[0m";
 
+// xterm 256-colour protocol structural constants. Pulled out as named
+// exports so the arithmetic in rgbToAnsi256 / ansi256ToRgb reads as
+// "convert via the colour cube" rather than a wall of magic numbers.
+const ANSI_BASIC_COUNT = 16; // basic + bright palette occupies indices 0..15
+const ANSI_BRIGHT_OFFSET = 8; // bright variant of basic colour `i` is `i + 8`
+const ANSI_CUBE_BASE = 16; // 6×6×6 colour cube starts at index 16
+const ANSI_CUBE_SIDE = 6; // length of each axis of the cube
+const ANSI_CUBE_R_STRIDE = 36; // 6 × 6 — stride between successive R values
+const ANSI_CUBE_G_STRIDE = 6; // stride between successive G values
+const ANSI_CUBE_STEP = 51; // 255 / 5 — per-axis step in the cube
+const ANSI_GREY_BASE = 232; // greyscale ramp starts at 232
+const ANSI_GREY_TOP = 231; // last cube index when r=g=b is near-white
+const ANSI_GREY_FLOOR = 16; // first cube index when r=g=b is near-black
+const ANSI_GREY_OFFSET = 8; // 232 maps to grey level 8 (not 0)
+const ANSI_GREY_STEP = 10; // greyscale step between successive indices
+const ANSI_GREY_RAMP_DIVISOR = 247; // 255 - 8: divisor for cube greyscale interpolation
+const ANSI_GREY_RAMP_STEPS = 24; // 24 levels in the greyscale ramp
+const ANSI_BRIGHTNESS_MIDPOINT = 128; // perceived-brightness threshold for bright/dim flag
+
 const NAMED_BASE_INDEX: Record<string, number> = {
   black: 0,
   red: 1,
@@ -89,7 +108,7 @@ function normalise(parsed: ParsedColour): NormalisedColour {
       const named = NAMED_RGB[parsed.value];
       if (!named) throw new Error(`unknown named colour: ${parsed.value}`);
       const baseIndex = NAMED_BASE_INDEX[parsed.value.replace(NAMED_BRIGHT_PREFIX, "")];
-      const index256 = (named.bright ? 8 : 0) + (baseIndex ?? 0);
+      const index256 = (named.bright ? ANSI_BRIGHT_OFFSET : 0) + (baseIndex ?? 0);
       return {
         index256,
         rgb: { r: named.r, g: named.g, b: named.b },
@@ -99,12 +118,18 @@ function normalise(parsed: ParsedColour): NormalisedColour {
     }
     case "indexed": {
       const rgb = ansi256ToRgb(parsed.index);
-      const index16 = parsed.index < 16 ? parsed.index % 8 : nearest16Index(rgb);
+      // Indices 0..15 are the named palette; map them straight onto the
+      // 16-colour space (modulo strips the bright bit — the bright flag
+      // is captured separately below).
+      const index16 =
+        parsed.index < ANSI_BASIC_COUNT
+          ? parsed.index % ANSI_BRIGHT_OFFSET
+          : nearest16Index(rgb);
       return {
         index256: parsed.index,
         rgb,
         index16,
-        bright: parsed.index >= 8 && parsed.index < 16,
+        bright: parsed.index >= ANSI_BRIGHT_OFFSET && parsed.index < ANSI_BASIC_COUNT,
       };
     }
     case "hex": {
@@ -113,7 +138,7 @@ function normalise(parsed: ParsedColour): NormalisedColour {
         index256: rgbToAnsi256(rgb),
         rgb,
         index16: nearest16Index(rgb),
-        bright: brightnessFromRgb(rgb) >= 128,
+        bright: brightnessFromRgb(rgb) >= ANSI_BRIGHTNESS_MIDPOINT,
       };
     }
   }
@@ -121,32 +146,37 @@ function normalise(parsed: ParsedColour): NormalisedColour {
 
 function rgbToAnsi256(rgb: Rgb): number {
   if (rgb.r === rgb.g && rgb.g === rgb.b) {
-    if (rgb.r < 8) return 16;
-    if (rgb.r > 248) return 231;
-    return Math.round(((rgb.r - 8) / 247) * 24) + 232;
+    if (rgb.r < ANSI_GREY_OFFSET) return ANSI_GREY_FLOOR;
+    if (rgb.r > 255 - ANSI_GREY_OFFSET) return ANSI_GREY_TOP;
+    return (
+      Math.round(((rgb.r - ANSI_GREY_OFFSET) / ANSI_GREY_RAMP_DIVISOR) * ANSI_GREY_RAMP_STEPS) +
+      ANSI_GREY_BASE
+    );
   }
+  // 6×6×6 colour cube: stride 36 on R, 6 on G, 1 on B; per-axis values
+  // quantise the 0..255 range into 0..5.
   return (
-    16 +
-    36 * Math.round((rgb.r / 255) * 5) +
-    6 * Math.round((rgb.g / 255) * 5) +
-    Math.round((rgb.b / 255) * 5)
+    ANSI_CUBE_BASE +
+    ANSI_CUBE_R_STRIDE * Math.round((rgb.r / 255) * (ANSI_CUBE_SIDE - 1)) +
+    ANSI_CUBE_G_STRIDE * Math.round((rgb.g / 255) * (ANSI_CUBE_SIDE - 1)) +
+    Math.round((rgb.b / 255) * (ANSI_CUBE_SIDE - 1))
   );
 }
 
 function ansi256ToRgb(index: number): Rgb {
-  if (index < 16) {
+  if (index < ANSI_BASIC_COUNT) {
     const named = Object.values(NAMED_RGB)[index];
     return named ?? { r: 0, g: 0, b: 0 };
   }
-  if (index >= 232) {
-    const grey = 8 + (index - 232) * 10;
+  if (index >= ANSI_GREY_BASE) {
+    const grey = ANSI_GREY_OFFSET + (index - ANSI_GREY_BASE) * ANSI_GREY_STEP;
     return { r: grey, g: grey, b: grey };
   }
-  const offset = index - 16;
-  const r = Math.floor(offset / 36);
-  const g = Math.floor((offset % 36) / 6);
-  const b = offset % 6;
-  return { r: r * 51, g: g * 51, b: b * 51 };
+  const offset = index - ANSI_CUBE_BASE;
+  const r = Math.floor(offset / ANSI_CUBE_R_STRIDE);
+  const g = Math.floor((offset % ANSI_CUBE_R_STRIDE) / ANSI_CUBE_G_STRIDE);
+  const b = offset % ANSI_CUBE_G_STRIDE;
+  return { r: r * ANSI_CUBE_STEP, g: g * ANSI_CUBE_STEP, b: b * ANSI_CUBE_STEP };
 }
 
 function nearest16Index(rgb: Rgb): number {

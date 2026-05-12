@@ -1,0 +1,16 @@
+<svg width="208" height="16" xmlns="http://www.w3.org/2000/svg">
+  <title>vscode-light palette</title>
+  <rect x="0"   y="0" width="16" height="16" fill="#0451a5"><title>accent</title></rect>
+  <rect x="16"  y="0" width="16" height="16" fill="#267f99"><title>info</title></rect>
+  <rect x="32"  y="0" width="16" height="16" fill="#16825d"><title>success</title></rect>
+  <rect x="48"  y="0" width="16" height="16" fill="#bf8803"><title>warning</title></rect>
+  <rect x="64"  y="0" width="16" height="16" fill="#cd3131"><title>danger</title></rect>
+  <rect x="80"  y="0" width="16" height="16" fill="#6c6c6c"><title>muted</title></rect>
+  <rect x="96"  y="0" width="16" height="16" fill="#16825d"><title>git-clean</title></rect>
+  <rect x="112" y="0" width="16" height="16" fill="#bf8803"><title>git-dirty</title></rect>
+  <rect x="128" y="0" width="16" height="16" fill="#16825d"><title>tokens-low</title></rect>
+  <rect x="144" y="0" width="16" height="16" fill="#bf8803"><title>tokens-mid</title></rect>
+  <rect x="160" y="0" width="16" height="16" fill="#cd3131"><title>tokens-high</title></rect>
+  <rect x="176" y="0" width="16" height="16" fill="#f3f3f3"><title>bg-section</title></rect>
+  <rect x="192" y="0" width="16" height="16" fill="#e7e7e7"><title>bg-emphasis</title></rect>
+</svg>

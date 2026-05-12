@@ -5,20 +5,26 @@
  * (`src/config`, `src/doctor`, `src/render`, `src/tui`, …);
  * this file is dispatch-only.
  *
+ * Top-level surface (v0.1.0): install / uninstall / doctor / config.
+ * Configuration-adjacent commands (init, theme, keys, schema, the TUI
+ * editor) are second-level under `agentline config <sub>` so the
+ * top-level `--help` stays small.
+ *
  * The default invocation (no subcommand) runs the render path:
  * read stdin, render the merged statusline, write to stdout.
- * v0.1.0-pre: subcommand bodies are wired progressively over the
- * PR sequence in `docs/plan/PR-PLAN.md`. Until then the default
- * path emits a one-line ASCII fallback so the host UI is never blank.
  */
 
 import { StdinParseError } from "./stdin/index.js";
 import { AGENTLINE_VERSION } from "./version.js";
+import { HelpRequestedError } from "./cli/help.js";
 import { parseSchemaArgs, runSchemaCommand } from "./schema/command.js";
 import { parseDoctorArgs, runDoctorCommand } from "./doctor/command.js";
 import { parseInitArgs, runInitCommand } from "./init/command.js";
+import { parseInstallArgs, runInstallCommand } from "./install/command.js";
+import { parseUninstallArgs, runUninstallCommand } from "./uninstall/command.js";
 import { parseKeysArgs, runKeysCommand } from "./keys/command.js";
 import { parseThemesArgs, runThemesCommand } from "./theme/command.js";
+import { runWidgetSubgroup } from "./config/widget-command.js";
 import { parseRenderArgs, runRenderCommand } from "./render/fixture-command.js";
 
 type ParsedArgs = {
@@ -26,10 +32,16 @@ type ParsedArgs = {
   rest: string[];
 };
 
+// Global flags handled at the top level (mirrors the convention used
+// with Claude Code: `--help`/`-h` and `--version`/`-v` are flags, not
+// subcommands). Recognised here so they aren't swept into `render`.
+const GLOBAL_FLAGS: ReadonlySet<string> = new Set(["--help", "-h", "--version", "-v"]);
+
 function parseArgs(argv: string[]): ParsedArgs {
   const args = argv.slice(2);
   if (args.length === 0) return { command: "render", rest: [] };
   const first = args[0]!;
+  if (GLOBAL_FLAGS.has(first)) return { command: first, rest: args.slice(1) };
   if (first.startsWith("-")) return { command: "render", rest: args };
   return { command: first, rest: args.slice(1) };
 }
@@ -38,11 +50,34 @@ async function runRender(rest: readonly string[]): Promise<number> {
   try {
     return await runRenderCommand({ args: parseRenderArgs(rest) });
   } catch (err) {
+    if (err instanceof HelpRequestedError) {
+      process.stdout.write(err.body);
+      return 0;
+    }
     if (err instanceof StdinParseError) {
+      // stdout stays a single line because the host UI shows it inline
+      // as the statusline. Detail goes to stderr where a human reading
+      // the terminal can see what to do next.
       process.stdout.write("agentline: invalid stdin\n");
+      process.stderr.write(
+        [
+          `agentline: ${(err as Error).message}`,
+          "  expected: a JSON object on stdin (Claude Code statusline contract)",
+          "  try: agentline doctor      # diagnose host wiring",
+          "",
+        ].join("\n"),
+      );
       return 1;
     }
-    process.stderr.write(`agentline: render error: ${(err as Error).message}\n`);
+    process.stderr.write(
+      [
+        `agentline: render error: ${(err as Error).message}`,
+        "  try: agentline doctor              # diagnose host wiring",
+        "  try: agentline config              # edit configuration",
+        "  rebuild: agentline config init --force --preset default",
+        "",
+      ].join("\n"),
+    );
     return 1;
   }
 }
@@ -55,26 +90,49 @@ function runVersion(): number {
 function runHelp(): number {
   process.stdout.write(
     [
-      "Usage: agentline [<command>] [<options>]",
+      "Usage: agentline                   read JSON on stdin, render statusline (default)",
+      "       agentline <command> [<options>]",
+      "",
+      "The default form is what Claude Code reads. Use the commands below to set it up.",
       "",
       "Commands:",
-      "  (default)            read stdin JSON, render statusline, write to stdout",
-      "  render [--fixture]   re-render against a recorded payload (PR 18)",
-      "  config               TUI editor (PR 16)",
-      "  doctor [--fix]       diagnose + repair host wiring (PR 17)",
-      "  init [--minimal]     scaffold project config (PR 18)",
-      "  keys [--json]        list active keymap (PR 18)",
-      "  schema [--write]     print or write the config JSON Schema (PR 6)",
-      "  themes [--list]      inspect theme presets (PR 18)",
-      "  version              print version",
-      "  help                 print this message",
+      "  install              wire agentline into Claude Code's statusline",
+      "  uninstall            remove agentline + restore prior statusLine",
+      "  doctor [--fix]       diagnose + repair host wiring",
+      "  config [<sub>]       configuration subgroup (see `agentline config --help`)",
+      "  version              print version (alias: -v, --version)",
+      "  help                 print this message (alias: -h, --help)",
+      "",
+      "Pass -h/--help to any command for details. Start with `agentline install`.",
       "",
     ].join("\n"),
   );
   return 0;
 }
 
-async function runConfigDispatch(): Promise<number> {
+function runConfigHelp(): number {
+  process.stdout.write(
+    [
+      "Usage: agentline config                  open the TUI editor (default)",
+      "       agentline config <sub> [<options>]",
+      "",
+      "Subcommands:",
+      "  edit                 open the TUI editor",
+      "  init [--preset ...]  scaffold a config file from a preset",
+      "  theme [--list]       inspect installed theme presets",
+      "  widget <sub>         inspect/edit the layout (list, catalog, …)",
+      "  keys [--json]        list the TUI editor keymap",
+      "  schema [--write]     print or write the config JSON Schema",
+      "  help                 print this message (alias: -h, --help)",
+      "",
+      "Pass -h/--help to any subcommand for details.",
+      "",
+    ].join("\n"),
+  );
+  return 0;
+}
+
+async function runConfigEditor(): Promise<number> {
   // Lazy-import the TUI bundle. tsup builds it as a separate
   // `dist/tui.mjs` so Ink + React never hit cli.mjs's parse path
   // (§1.2 N3). Use a runtime URL so the static analyser does not
@@ -88,66 +146,102 @@ async function runConfigDispatch(): Promise<number> {
   return 0;
 }
 
-async function main(): Promise<number> {
-  const { command, rest } = parseArgs(process.argv);
-  switch (command) {
-    case "render":
-      return runRender(rest);
-    case "version":
-    case "--version":
-    case "-v":
-      return runVersion();
-    case "help":
-    case "--help":
-    case "-h":
-      return runHelp();
-    case "schema":
-      try {
-        return await runSchemaCommand(parseSchemaArgs(rest));
-      } catch (err) {
-        process.stderr.write(`${(err as Error).message}\n`);
-        return 2;
-      }
-    case "doctor":
-      try {
-        return await runDoctorCommand(parseDoctorArgs(rest));
-      } catch (err) {
-        process.stderr.write(`${(err as Error).message}\n`);
-        return 2;
-      }
-    case "config":
-      try {
-        return await runConfigDispatch();
-      } catch (err) {
-        process.stderr.write(`agentline: config error: ${(err as Error).message}\n`);
-        return 1;
-      }
+async function dispatch(exec: () => Promise<number>, errorPrefix?: string): Promise<number> {
+  try {
+    return await exec();
+  } catch (err) {
+    if (err instanceof HelpRequestedError) {
+      process.stdout.write(err.body);
+      return 0;
+    }
+    const message = (err as Error).message;
+    process.stderr.write(errorPrefix ? `${errorPrefix}: ${message}\n` : `${message}\n`);
+    return 2;
+  }
+}
+
+/**
+ * `agentline config` second-level dispatcher. Bare invocation opens the
+ * TUI editor; named sub-subcommands (init, theme, widget, keys, schema)
+ * route to their parse+run helpers. Aliases: `themes` (plural) for
+ * `theme`, `edit` as an explicit alias for the bare form.
+ */
+async function runConfigSubgroup(rest: readonly string[]): Promise<number> {
+  const sub = rest[0];
+  if (sub === undefined || sub === "edit") {
+    return dispatch(runConfigEditor, "agentline: config error");
+  }
+  if (sub === "-h" || sub === "--help" || sub === "help") {
+    return runConfigHelp();
+  }
+  const subRest = rest.slice(1);
+  switch (sub) {
     case "init":
-      try {
-        return await runInitCommand({ args: parseInitArgs(rest) });
-      } catch (err) {
-        process.stderr.write(`${(err as Error).message}\n`);
-        return 2;
-      }
-    case "keys":
-      try {
-        return await runKeysCommand({ args: parseKeysArgs(rest) });
-      } catch (err) {
-        process.stderr.write(`${(err as Error).message}\n`);
-        return 2;
-      }
+      return dispatch(
+        () => runInitCommand({ args: parseInitArgs(subRest) }),
+        "agentline config init",
+      );
+    case "theme":
     case "themes":
-      try {
-        return await runThemesCommand({ args: parseThemesArgs(rest) });
-      } catch (err) {
-        process.stderr.write(`${(err as Error).message}\n`);
-        return 2;
-      }
+      return dispatch(
+        () => runThemesCommand({ args: parseThemesArgs(subRest) }),
+        "agentline config theme",
+      );
+    case "widget":
+      return dispatch(() => runWidgetSubgroup(subRest), "agentline config widget");
+    case "keys":
+      return dispatch(
+        () => runKeysCommand({ args: parseKeysArgs(subRest) }),
+        "agentline config keys",
+      );
+    case "schema":
+      return dispatch(
+        () => runSchemaCommand(parseSchemaArgs([...subRest])),
+        "agentline config schema",
+      );
     default:
-      process.stderr.write(`agentline: unknown command '${command}'\n`);
-      runHelp();
+      process.stderr.write(`agentline config: unknown subcommand '${sub}'\n`);
+      runConfigHelp();
       return 1;
   }
+}
+
+/**
+ * Top-level subcommand dispatch table (Command Map). Each entry owns
+ * its arg-parsing + run pair, plus an optional `errorPrefix` used when
+ * the run function throws something other than `HelpRequestedError`.
+ *
+ * Aliases (e.g. `--version` for `version`) share a single entry so the
+ * table stays the source of truth for "is this a known command?".
+ *
+ * `render` stays in the table so `agentline render --fixture …` keeps
+ * working for ops/debug, but it is intentionally absent from the help
+ * screen — the default no-arg path is the canonical surface.
+ */
+type Subcommand = (rest: readonly string[]) => Promise<number>;
+
+const COMMANDS: Readonly<Record<string, Subcommand>> = Object.freeze({
+  render: runRender,
+  version: async () => runVersion(),
+  "--version": async () => runVersion(),
+  "-v": async () => runVersion(),
+  help: async () => runHelp(),
+  "--help": async () => runHelp(),
+  "-h": async () => runHelp(),
+  doctor: (rest) => dispatch(() => runDoctorCommand(parseDoctorArgs([...rest]))),
+  config: (rest) => runConfigSubgroup(rest),
+  install: (rest) => dispatch(() => runInstallCommand(parseInstallArgs(rest)), "agentline install"),
+  uninstall: (rest) =>
+    dispatch(() => runUninstallCommand(parseUninstallArgs(rest)), "agentline uninstall"),
+});
+
+async function main(): Promise<number> {
+  const { command, rest } = parseArgs(process.argv);
+  const handler = COMMANDS[command];
+  if (handler) return handler(rest);
+  process.stderr.write(`agentline: unknown command '${command}'\n`);
+  runHelp();
+  return 1;
 }
 
 main().then(

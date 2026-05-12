@@ -21,6 +21,8 @@ import { readStdinPayload } from "../stdin/index.js";
 
 import type { AccessibilityFlags } from "./accessibility.js";
 import { renderFromInputs } from "./pipeline.js";
+import type { TokensSnapshot } from "../tokens/index.js";
+import type { GitState } from "../git/index.js";
 
 export interface RenderForFixtureOptions {
   readonly config?: AgentlineConfig;
@@ -31,6 +33,8 @@ export interface RenderForFixtureOptions {
   readonly env?: NodeJS.ProcessEnv;
   readonly width?: number;
   readonly flags?: AccessibilityFlags;
+  readonly tokens?: TokensSnapshot;
+  readonly git?: GitState;
 }
 
 export async function renderForFixture(
@@ -50,6 +54,8 @@ export async function renderForFixture(
     ...(options.env !== undefined ? { env: options.env } : {}),
     ...(options.width !== undefined ? { width: options.width } : {}),
     ...(options.flags !== undefined ? { flags: options.flags } : {}),
+    ...(options.tokens !== undefined ? { tokens: options.tokens } : {}),
+    ...(options.git !== undefined ? { git: options.git } : {}),
   });
 }
 
@@ -57,11 +63,28 @@ async function resolveConfig(options: RenderForFixtureOptions): Promise<Agentlin
   if (options.config) return options.config;
   if (options.configPath) {
     const raw = await fs.readFile(options.configPath, "utf8");
-    const parsed = JSON.parse(raw) as unknown;
+    const parsed = stripPrototypeKeys(JSON.parse(raw));
     validateConfig(parsed);
     return parsed as AgentlineConfig;
   }
   return DEFAULT_CONFIG;
+}
+
+const FORBIDDEN_KEYS: ReadonlySet<string> = new Set(["__proto__", "constructor", "prototype"]);
+
+// AJV blocks unknown top-level keys, but `widgets[].options` and `palette`
+// declare additionalProperties: true so a `__proto__` nested under those
+// would survive validation. Strip recursively before validate to keep the
+// merge layer's defence in depth (merge.ts) symmetric on the fixture path.
+function stripPrototypeKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripPrototypeKeys);
+  if (value === null || typeof value !== "object") return value;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (FORBIDDEN_KEYS.has(k)) continue;
+    out[k] = stripPrototypeKeys(v);
+  }
+  return out;
 }
 
 function resolveClock(options: RenderForFixtureOptions): Clock {

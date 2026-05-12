@@ -28,12 +28,22 @@ fi
 
 # Where Claude Code reads its settings. The spec wires `statusLine` here.
 AL_CLAUDE_SETTINGS="${AL_HOME_DIR}/.claude/settings.json"
+# Where the host runtime loads agent/skill markdown files at startup.
+AL_AGENTS_DIR="${AL_HOME_DIR}/.claude/agents"
 
 # Where agentline persists merged user config. Honours XDG-ish overrides.
 AL_CONFIG_DIR_DEFAULT="${AL_HOME_DIR}/.config/agentline"
 AL_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-${AL_CONFIG_DIR_DEFAULT}}"
 AL_CONFIG_FILE="${AL_CONFIG_DIR}/config.json"
 AL_THEMES_DIR="${AL_CONFIG_DIR}/themes"
+# Pre-install snapshot of the user's `statusLine`. Written by install (so
+# the prior value survives an overwrite) and read by uninstall (so the
+# host returns to its pre-install state). First install wins — re-runs
+# never clobber the original.
+# shellcheck disable=SC2034 # consumed by sourced install.sh / uninstall.sh
+AL_STATE_DIR="${AL_CONFIG_DIR}/state"
+# shellcheck disable=SC2034 # consumed by sourced install.sh / uninstall.sh
+AL_STATUS_LINE_BACKUP="${AL_STATE_DIR}/settings-backup.json"
 
 # Logging — every line goes to stderr so stdout stays clean for tools that
 # pipe `agentline` output.
@@ -136,3 +146,4 @@ al_config_dir() { printf '%s' "${AL_CONFIG_DIR}"; }
 al_config_file() { printf '%s' "${AL_CONFIG_FILE}"; }
 al_themes_dir() { printf '%s' "${AL_THEMES_DIR}"; }
 al_claude_settings() { printf '%s' "${AL_CLAUDE_SETTINGS}"; }
+al_agents_dir() { printf '%s' "${AL_AGENTS_DIR}"; }

@@ -1,15 +1,22 @@
 # Doctor
 
 `agentline doctor` is the host-health check. It runs every check in
-order, prints a structured report, and exits 0 when nothing needs your
-attention.
+order, prints an aligned status table, and exits 0 when nothing needs
+your attention.
 
 ```bash
-agentline doctor          # report
+agentline doctor          # report (TTY: coloured glyphs; pipe: plain ASCII)
 agentline doctor --fix    # report + repair the auto-fixable checks
 agentline doctor --json   # machine-readable output (no formatter)
 agentline doctor --strict # warnings exit non-zero (use in CI)
 ```
+
+Titles pad to a uniform column width so messages line up across rows.
+Glyphs (`[ok]` / `[!!]` / `[XX]` / `[fx]` / `[--]`) colourise on a
+TTY; piped output stays plain ASCII so it greps cleanly. Set
+`NO_COLOR=1` to suppress colour even on a TTY. When fail/warn rows
+mention `--fix`, the formatter appends a `next: agentline doctor
+--fix` line naming how many checks would be repaired.
 
 Reporting and repair are deliberately separate code paths: without
 `--fix`, doctor will not mutate your host. The `scripts/doctor.sh`

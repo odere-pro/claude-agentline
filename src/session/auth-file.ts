@@ -11,9 +11,11 @@
  * (§1.2 N5).
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+
+const MAX_AUTH_FILE_BYTES = 64 * 1024;
 
 export interface AuthSnapshot {
   readonly email?: string;
@@ -34,9 +36,14 @@ export function resolveAuthFilePath(source: AuthLookupSource): string {
 }
 
 export function readAuthFile(source: AuthLookupSource): AuthSnapshot | null {
+  const target = resolveAuthFilePath(source);
   let raw: string;
   try {
-    raw = readFileSync(resolveAuthFilePath(source), "utf8");
+    // Bound the read so a symlink to a huge file can't pin the render
+    // path. The auth file ships as a small JSON object; 64 KB is ample.
+    const stat = statSync(target);
+    if (stat.size > MAX_AUTH_FILE_BYTES) return null;
+    raw = readFileSync(target, "utf8");
   } catch {
     return null;
   }

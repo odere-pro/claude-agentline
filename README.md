@@ -1,135 +1,101 @@
 # agentline
 
+[![for Claude Code](https://img.shields.io/badge/for-Claude%20Code-cc785c?logo=anthropic&logoColor=white)](https://docs.anthropic.com/claude/docs/claude-code)
+[![type: CLI](https://img.shields.io/badge/type-CLI-5b8def?logo=gnubash&logoColor=white)](#get-started)
+[![node ≥20](https://img.shields.io/badge/node-%E2%89%A520-43853d?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![status: pre-release](https://img.shields.io/badge/status-pre--release-blue)](./CHANGELOG.md)
+[![license: MIT](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 [![gates](https://github.com/odere-pro/claude-agentline/actions/workflows/gates.yml/badge.svg?branch=main)](https://github.com/odere-pro/claude-agentline/actions/workflows/gates.yml)
 [![install-matrix](https://github.com/odere-pro/claude-agentline/actions/workflows/install-matrix.yml/badge.svg?branch=main)](https://github.com/odere-pro/claude-agentline/actions/workflows/install-matrix.yml)
-[![npm](https://img.shields.io/npm/v/@agentline/cli.svg)](https://www.npmjs.com/package/@agentline/cli)
-[![node](https://img.shields.io/node/v/@agentline/cli.svg)](https://nodejs.org/)
-[![license](https://img.shields.io/npm/l/@agentline/cli.svg)](./LICENSE)
 
-A standalone, fast, themeable Claude Code statusline. Reads the
-Claude Code stdin payload, renders an ANSI-styled line, exits. No
-network at render time, no native modules, no plugin scaffolding.
+A standalone, fast, themeable Claude Code statusline. Reads the Claude Code stdin payload, renders an ANSI-styled line, exits. No network at render time, no native modules, no plugin scaffolding.
 
-## Install
+---
 
-```bash
-npm install -g @agentline/cli
-agentline doctor --fix
-```
+## Features
 
-That installs the binary, creates Claude Code's settings file if it
-does not exist, and writes a working `statusLine` entry that points
-at agentline.
+- **53 widgets** across seven families — model, git, tokens, cost, context, rate-limits, clock, and a fully custom shell-command widget
+- **4 shipped themes** with full truecolor / 256-colour / 16-colour degradation
+- **Two-layer config** — user global config layered under project-local `.claude/agentline.json`; only the keys you set override
+- **Single binary, no network at render time** — the pricing table, themes, and widget registry are all embedded
+- **`agentline doctor`** with auto-fix for the four most common wiring problems
+- **In-session config via skills** — `install` seeds five skill files into the Claude Code agents directory so any Claude Code session can switch theme, add or remove widgets, or diagnose without leaving the prompt
+- **`agentline install` / `agentline uninstall`** — wires and unwires the Claude Code `statusLine` setting; uninstall restores any prior value from backup
 
-For a guided install with theme + config seeding from a checkout:
+---
+
+## Get started
+
+The CLI surface is small on purpose: `install` · `uninstall` · `doctor` · `config`. Everything else lives under `agentline config <sub>`.
+
+### 1 — install
+
+**From source (today):**
 
 ```bash
 git clone https://github.com/odere-pro/claude-agentline
 cd claude-agentline
-bash scripts/install.sh
+npm install && npm run build
+node dist/cli.mjs install --from-source
 ```
 
-Both flows are idempotent. Re-running them on a tree that is already
-set up is a byte-for-byte no-op. Pass `--dry-run` to preview every
-action without touching disk.
-
-Full install + uninstall reference: [docs/install.md](./docs/install.md).
-
-## Configure
-
-After install, your config lives at
-`${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`. Edit it by
-hand, or launch the TUI editor:
+**From npm (when published):**
 
 ```bash
-agentline config
+npm install -g @agentline/cli
+agentline install
 ```
 
-The shipped default renders model, git, context, tokens, cost, session
-usage, and a clock. To pin a project to a smaller line:
+Either path wires the Claude Code settings file (backing up any prior `statusLine`) and copies five `agentline*.md` skill files into the Claude Code agents directory. Honours `$CLAUDE_CONFIG_DIR`.
+
+### 2 — see the default
+
+Restart Claude Code. The statusline appears at the bottom of the prompt.
+
+### 3 — configure inside Claude Code
+
+In a fresh session, ask the agent:
+
+> "switch the theme to vscode-dark"
+> "add a context-percentage widget"
+> "remove the cost widget"
+
+The installed skills (`agentline.md`, `agentline-onboarding.md`, `agentline-configure.md`, `agentline-themes.md`, `agentline-troubleshoot.md`) give the agent the schema, paths, and guardrails it needs to edit `~/.config/agentline/config.json` for you. Restart the session to see the change.
+
+### 4 — remove
 
 ```bash
-bash scripts/init.sh
+agentline uninstall          # restores prior statusLine, removes installed skills
+agentline uninstall --purge  # also removes user config + custom themes
 ```
 
-That seeds `${CLAUDE_PROJECT_DIR:-$PWD}/.agentline.json` from
-`templates/minimal.config.json`. Project config is layered on top of
-the user config; only the keys you set override.
+Full walkthrough (doctor, presets, TUI editor, JSON Schema) → [docs/get-started.md](./docs/get-started.md)
 
-Full configuration reference: [docs/config.md](./docs/config.md).
+---
 
-## Themes
+## Docs
 
-Four presets are shipped:
+| Topic            | File                                                 |
+| ---------------- | ---------------------------------------------------- |
+| Get started      | [docs/get-started.md](./docs/get-started.md)         |
+| CLI reference    | [docs/cli.md](./docs/cli.md)                         |
+| Install          | [docs/install.md](./docs/install.md)                 |
+| Configure        | [docs/config.md](./docs/config.md)                   |
+| Widgets (all 53) | [docs/widgets.md](./docs/widgets.md)                 |
+| Themes           | [docs/themes.md](./docs/themes.md)                   |
+| TUI editor keys  | [docs/keymap.md](./docs/keymap.md)                   |
+| Doctor checks    | [docs/doctor.md](./docs/doctor.md)                   |
+| Troubleshooting  | [docs/troubleshooting.md](./docs/troubleshooting.md) |
 
-- `vscode-dark`
-- `vscode-light`
-- `claude-code-dark` (default)
-- `claude-code-light`
-
-Pick one in your config, or drop a custom theme into
-`${CLAUDE_CONFIG_DIR:-~/.config}/agentline/themes/`. See
-[docs/themes.md](./docs/themes.md).
-
-## Verify
-
-```bash
-agentline version
-agentline doctor          # report
-agentline doctor --fix    # report + repair the auto-fixable checks
-agentline doctor --strict # warnings exit non-zero (CI mode)
-```
-
-The doctor runs ten checks (D01–D10) covering the settings file, the
-`statusLine` wiring, your config, theme installation, the Nerd Font
-when Powerline is enabled, the git binary, the embedded pricing
-table, and more. Full check list:
-[docs/doctor.md](./docs/doctor.md).
-
-## Documentation
-
-- [docs/install.md](./docs/install.md) — install, manual recipe,
-  uninstall, troubleshooting.
-- [docs/config.md](./docs/config.md) — file locations, layered merge,
-  schema, env-var overrides, atomic writes.
-- [docs/widgets.md](./docs/widgets.md) — built-in widget catalogue with
-  reset axes.
-- [docs/themes.md](./docs/themes.md) — theme file shape, palette
-  roles, Powerline.
-- [docs/keymap.md](./docs/keymap.md) — TUI editor bindings and
-  overrides.
-- [docs/doctor.md](./docs/doctor.md) — D01–D10 checks, exit codes.
-
-The normative spec is [docs/plan/SPEC-v0.1.0.md](./docs/plan/SPEC-v0.1.0.md).
+---
 
 ## Requirements
 
-- Node.js 20 LTS or newer.
-- macOS, Linux, or Windows under Git Bash / WSL.
-- Claude Code's settings file present (Claude Code has been run at
-  least once).
+- Node.js 20 LTS or newer
+- macOS, Linux, or Windows under Git Bash / WSL
+- Claude Code run at least once (settings file must exist)
 
-## Non-goals (v0.1.0)
-
-agentline is **CLI-only** at v0.1.0. There is no slash command, no
-hook, no agent / skill / rule scaffolding. Installation wires the
-binary into Claude Code's `statusLine` setting and nothing else. See
-SPEC §13 for the full out-of-scope list (native binaries, Homebrew,
-curl-installer, telemetry, remote update checks, plugin distribution).
-
-## Contributing
-
-The PR conventions, branch naming, and changelog-fragment workflow
-live at [docs/plan/PR-CONVENTIONS.md](./docs/plan/PR-CONVENTIONS.md)
-and [CONTRIBUTING.md](./CONTRIBUTING.md). Every gate that has to pass
-on every PR is enumerated in SPEC §11.2.
-
-```bash
-npm install
-npm test
-npm run build
-bash tests/gates/run-all.sh
-```
+---
 
 ## License
 

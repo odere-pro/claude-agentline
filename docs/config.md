@@ -1,39 +1,63 @@
 # Configuration
 
-`agentline` is configured by a JSON file. Two templates are shipped:
+`agentline` is configured by a JSON file. Four shipped presets are
+available via `agentline config init --preset <name>`:
 
-- `templates/default.config.json` — what `scripts/install.sh` writes for
-  a new user; the recommended starting point.
-- `templates/minimal.config.json` — what `scripts/init.sh` writes for a
-  per-project pin (model + git + clock).
+- **`minimal`** (`templates/minimal.config.json`) — model, git-branch, clock. The smallest sensible bar.
+- **`default`** (`templates/default.config.json`) — model, git, context, tokens, cost, session usage, clock. The recommended starting point; what `scripts/install.sh` seeds on first run.
+- **`focus`** (`templates/presets/focus.config.json`) — model, git, context-percentage, clock. The "I'm trying to read code" bar.
+- **`power`** (`templates/presets/power.config.json`) — full default plus `thinking-effort`, `weekly-usage`, `block-timer`. Everything.
+
+`agentline config init` defaults to the `default` preset and writes
+`.claude/agentline.json` in the current directory; pass `--scope user` to
+write the user config instead, or `--target <path>` for an explicit
+location. Existing targets are preserved unless `--force` is passed.
 
 The canonical schema lives at `schemas/config.schema.json` and is also
 embedded in the binary so validation works offline. To drop a copy into
 your editor:
 
 ```bash
-agentline schema --write .vscode/
+agentline config schema --write .vscode/
 ```
 
 ## File locations
 
-`agentline` reads configuration from up to three layered sources, in
+agentline is configured globally only — there is no per-project
+config layer. A `.agentline.json` in the cwd is silently ignored.
+
+`agentline` reads configuration from up to four layered sources, in
 this order (each later layer overrides the earlier ones):
 
 1. **Built-in defaults** compiled into the binary.
 2. **User config** at
    `${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json`.
-3. **Project config** at `${CLAUDE_PROJECT_DIR:-$PWD}/.agentline.json`,
-   when the file is present.
-4. **Environment variables** prefixed `AGENTLINE_` (dot-path mapping;
+3. **Environment variables** prefixed `AGENTLINE_` (dot-path mapping;
    see below).
-5. **Command-line flags** (`--config <path>` overrides the user config
+4. **Command-line flags** (`--config <path>` overrides the user config
    path entirely).
 
-Layers 2 and 3 are partial overlays: a key absent at the project layer
-inherits the user value; a key absent at both layers inherits the
+Layer 2 is a partial overlay: a key absent in user config inherits the
 built-in default. Arrays (`lines`, `lines[].widgets`) are replaced
 wholesale, not merged element-by-element — same rule as JSON Patch.
+
+## CLI commands
+
+The quickest way to work with config without editing JSON by hand:
+
+```bash
+agentline config                              # open the interactive TUI editor
+agentline config init --preset default        # scaffold the user config
+agentline config init --preset minimal        # scaffold a minimal user config
+agentline config init --force --preset default  # reset the user config to defaults
+agentline config schema --write .vscode/      # drop the JSON schema for editor autocomplete
+```
+
+To see a config change in the live statusline, restart the Claude Code session — the renderer is invoked once per prompt by Claude Code, not by a watcher.
+
+Full flag reference for all commands → [cli.md](./cli.md)
+
+---
 
 ## Top-level shape
 
@@ -148,11 +172,20 @@ AGENTLINE_POWERLINE_ENABLED=true
 Values are parsed as JSON when they look like JSON literals (`true`,
 `false`, numbers, quoted strings) and otherwise treated as plain
 strings. Setting an env var to the empty string clears the override.
+JSON values have `__proto__` / `constructor` / `prototype` keys
+stripped recursively before merge, so a malicious env layer cannot
+mutate `Object.prototype`.
+
+One non-config-leaf env var affects loader behaviour:
+
+| Variable                    | Effect                                                                                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENTLINE_TRANSCRIPT_ROOT` | Override the directory tree the transcript reader is allowed to resolve under (default: `~/.claude`). Test-only; production should leave unset. |
 
 ## Atomic writes
 
 Every persisted config write — whether by `agentline config` (TUI),
-`scripts/install.sh`, `scripts/init.sh`, or `agentline doctor --fix` —
+`agentline config init`, `scripts/install.sh`, or `agentline doctor --fix` —
 follows the same recipe: write to a sibling temp file, `fsync`, then
 `rename` over the target. Editor watchers observe one consistent state
 and an interrupted write never leaves a half-written file.

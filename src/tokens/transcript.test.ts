@@ -6,15 +6,25 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { clearTranscriptCache, readTranscript } from "./transcript.js";
 
+const FIXED_NOW = new Date("2026-04-28T12:00:00Z").getTime();
+const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
+
 let tmp: string;
+let prevRoot: string | undefined;
 
 beforeEach(() => {
   tmp = mkdtempSync(path.join(os.tmpdir(), "agentline-transcript-"));
+  // Tests use OS tmp dir, which is outside the default ~/.claude root
+  // permitted by isPermittedTranscriptPath. Override for the test scope.
+  prevRoot = process.env.AGENTLINE_TRANSCRIPT_ROOT;
+  process.env.AGENTLINE_TRANSCRIPT_ROOT = tmp;
   clearTranscriptCache();
 });
 
 afterEach(() => {
   rmSync(tmp, { recursive: true, force: true });
+  if (prevRoot === undefined) delete process.env.AGENTLINE_TRANSCRIPT_ROOT;
+  else process.env.AGENTLINE_TRANSCRIPT_ROOT = prevRoot;
 });
 
 function writeTranscript(filename: string, lines: unknown[]): string {
@@ -25,11 +35,11 @@ function writeTranscript(filename: string, lines: unknown[]): string {
 
 describe("readTranscript", () => {
   it("returns [] for missing transcript path", () => {
-    expect(readTranscript(path.join(tmp, "missing.jsonl"), 0)).toEqual([]);
+    expect(readTranscript(path.join(tmp, "missing.jsonl"), FIXED_NOW)).toEqual([]);
   });
 
   it("returns [] when transcriptPath is undefined", () => {
-    expect(readTranscript(undefined, 0)).toEqual([]);
+    expect(readTranscript(undefined, FIXED_NOW)).toEqual([]);
   });
 
   it("parses input/output/cached tokens", () => {
@@ -40,7 +50,7 @@ describe("readTranscript", () => {
         model: "claude-opus-4-7",
       },
     ]);
-    const events = readTranscript(file, Date.now());
+    const events = readTranscript(file, FIXED_NOW);
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({
       inputTokens: 10,
@@ -57,14 +67,14 @@ describe("readTranscript", () => {
         message: { usage: { cache_read_input_tokens: 3, cache_creation_input_tokens: 7 } },
       },
     ]);
-    const events = readTranscript(file, Date.now());
+    const events = readTranscript(file, FIXED_NOW);
     expect(events[0]?.cachedTokens).toBe(10);
   });
 
   it("ignores malformed lines silently", () => {
     const file = path.join(tmp, "c.jsonl");
     writeFileSync(file, '{"valid": true, "timestamp": "2026-05-01T00:00:00Z"}\n{not json\n\n');
-    const events = readTranscript(file, Date.now());
+    const events = readTranscript(file, FIXED_NOW);
     expect(events).toHaveLength(1);
   });
 
@@ -73,7 +83,7 @@ describe("readTranscript", () => {
       { message: { usage: { input_tokens: 99 } } },
       { timestamp: "2026-05-01T00:00:00Z", message: { usage: { input_tokens: 5 } } },
     ]);
-    const events = readTranscript(file, Date.now());
+    const events = readTranscript(file, FIXED_NOW);
     expect(events).toHaveLength(1);
   });
 
@@ -81,7 +91,7 @@ describe("readTranscript", () => {
     const file = writeTranscript("e.jsonl", [
       { timestamp: "2026-05-01T00:00:00Z", type: "compaction" },
     ]);
-    const events = readTranscript(file, Date.now());
+    const events = readTranscript(file, FIXED_NOW);
     expect(events[0]?.compaction).toBe(true);
   });
 
@@ -89,8 +99,8 @@ describe("readTranscript", () => {
     const file = writeTranscript("cache.jsonl", [
       { timestamp: "2026-05-01T00:00:00Z", message: { usage: { input_tokens: 1 } } },
     ]);
-    const first = readTranscript(file, Date.now());
-    const second = readTranscript(file, Date.now());
+    const first = readTranscript(file, FIXED_NOW);
+    const second = readTranscript(file, FIXED_NOW);
     expect(second).toBe(first);
   });
 
@@ -98,7 +108,7 @@ describe("readTranscript", () => {
     const file = writeTranscript("change.jsonl", [
       { timestamp: "2026-05-01T00:00:00Z", message: { usage: { input_tokens: 1 } } },
     ]);
-    const before = readTranscript(file, Date.now());
+    const before = readTranscript(file, FIXED_NOW);
     writeFileSync(
       file,
       JSON.stringify({ timestamp: "2026-05-01T00:00:01Z", message: { usage: { input_tokens: 2 } } }) +
@@ -106,8 +116,36 @@ describe("readTranscript", () => {
         JSON.stringify({ timestamp: "2026-05-01T00:00:02Z", message: { usage: { input_tokens: 3 } } }) +
         "\n",
     );
-    const after = readTranscript(file, Date.now() + 1000);
+    const after = readTranscript(file, FIXED_NOW + 1000);
     expect(after).not.toBe(before);
     expect(after).toHaveLength(2);
+  });
+
+  it("evicts an entry whose lastUsed is older than 5 hours", () => {
+    const file = writeTranscript("evict.jsonl", [
+      { timestamp: "2026-05-01T00:00:00Z", message: { usage: { input_tokens: 1 } } },
+    ]);
+    const first = readTranscript(file, FIXED_NOW);
+    // Advance well past the eviction threshold; the next read should
+    // re-parse the file (different reference) instead of returning the
+    // cached events array.
+    const second = readTranscript(file, FIXED_NOW + FIVE_HOURS_MS + 1);
+    expect(second).not.toBe(first);
+    expect(second).toHaveLength(1);
+  });
+
+  it("rejects paths outside the permitted transcript root", () => {
+    // Point the override at a sibling root so files in `tmp` are out of bounds.
+    const sibling = mkdtempSync(path.join(os.tmpdir(), "agentline-sibling-"));
+    process.env.AGENTLINE_TRANSCRIPT_ROOT = sibling;
+    try {
+      const outside = writeTranscript("outside.jsonl", [
+        { timestamp: "2026-05-01T00:00:00Z" },
+      ]);
+      expect(readTranscript(outside, FIXED_NOW)).toEqual([]);
+    } finally {
+      rmSync(sibling, { recursive: true, force: true });
+      process.env.AGENTLINE_TRANSCRIPT_ROOT = tmp;
+    }
   });
 });

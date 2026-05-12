@@ -16,10 +16,19 @@ import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { loadConfig, type AgentlineConfig } from "../config/index.js";
+import { resolveEnv } from "../lib/env.js";
+import { pathExists } from "../lib/fs.js";
 import { runEmbeddedRenderFixture } from "./fixture.js";
 import type { CheckResult, RunOptions } from "./types.js";
 
 const execFileP = promisify(execFile);
+
+const EXEC_TIMEOUTS = {
+  gitVersion: 2000,
+  binaryLookup: 1500,
+  fcList: 2500,
+  systemProfiler: 5000,
+} as const;
 
 interface CheckCtx {
   home: string;
@@ -34,13 +43,13 @@ interface CheckCtx {
 export async function runChecks(opts: RunOptions): Promise<CheckResult[]> {
   const ctx: CheckCtx = {
     home: opts.home ?? homedir(),
-    env: opts.env ?? process.env,
+    env: resolveEnv(opts),
     cwd: opts.cwd ?? process.cwd(),
     config: null,
     configError: null,
   };
   try {
-    const loaded = await loadConfig({ env: ctx.env, cwd: ctx.cwd });
+    const loaded = await loadConfig({ env: ctx.env });
     ctx.config = loaded.config;
   } catch (err) {
     ctx.configError = err as Error;
@@ -63,7 +72,7 @@ export async function runChecks(opts: RunOptions): Promise<CheckResult[]> {
 /** D01 — Claude Code settings file (under the user's home `.claude` dir) exists. */
 async function checkD01(ctx: CheckCtx): Promise<CheckResult> {
   const settings = settingsPath(ctx.home);
-  if (await fileExists(settings)) {
+  if (await pathExists(settings)) {
     return ok("D01", "Claude Code settings file present", `found ${settings}`);
   }
   return {
@@ -95,7 +104,7 @@ async function checkD02(ctx: CheckCtx): Promise<CheckResult> {
       title: "statusLine wired to agentline",
       status: "warn",
       message: "settings.json has no `statusLine` entry",
-      hint: "run `agentline doctor --fix` to wire `npx -y @agentline/cli`",
+      hint: "run `agentline doctor --fix` to wire `npx -y @agentline/cli render`",
     };
   }
   const cmd = extractStatusLineCommand(sl);
@@ -144,7 +153,7 @@ async function checkD04(ctx: CheckCtx): Promise<CheckResult> {
   const missing: string[] = [];
   for (const name of wanted) {
     const path = join(themesDir, `${name}.json`);
-    if (!(await fileExists(path))) missing.push(name);
+    if (!(await pathExists(path))) missing.push(name);
   }
   if (missing.length === 0) {
     return ok("D04", "Referenced themes installed", `themes ok: ${wanted.join(", ")}`);
@@ -182,7 +191,7 @@ async function checkD06(ctx: CheckCtx): Promise<CheckResult> {
     return ok("D06", "git on PATH", "no git widget enabled — skipped");
   }
   try {
-    await execFileP("git", ["--version"], { timeout: 2000 });
+    await execFileP("git", ["--version"], { timeout: EXEC_TIMEOUTS.gitVersion });
     return ok("D06", "git on PATH", "git binary resolved");
   } catch {
     return {
@@ -197,14 +206,15 @@ async function checkD06(ctx: CheckCtx): Promise<CheckResult> {
 
 /** D07 — Pricing table fresher than now − 90 days. Reports only. */
 async function checkD07(_ctx: CheckCtx): Promise<CheckResult> {
-  // The pricing table ships with the bin (when `src/tokens/pricing.ts` lands).
-  // Until then this check skips with a clear message.
+  // `src/tokens/pricing.ts` exists, but the freshness-check logic (staleness
+  // threshold, version date comparison) is not yet implemented. This check
+  // remains skipped until D07 is fully wired.
   return {
     id: "D07",
     title: "Pricing table fresh (≤90 days)",
     status: "skip",
-    message: "pricing table not present in this build",
-    hint: "ships with the cost / tokens widget family",
+    message: "pricing freshness check not yet implemented",
+    hint: "check implementation deferred; pricing.ts is present but staleness logic is pending",
   };
 }
 
@@ -273,15 +283,6 @@ function ok(id: string, title: string, message: string): CheckResult {
   return { id, title, status: "pass", message };
 }
 
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await fs.access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function readJsonOrNull(path: string): Promise<unknown> {
   try {
     const text = await fs.readFile(path, "utf8");
@@ -331,7 +332,7 @@ async function commandResolves(cmd: string, env: NodeJS.ProcessEnv): Promise<boo
   const exe = cmd.trim().split(/\s+/)[0];
   if (!exe || /^(if|for|while|cd|echo|test|true|false)$/.test(exe)) return true;
   try {
-    await execFileP(process.platform === "win32" ? "where" : "which", [exe], { timeout: 1500, env });
+    await execFileP(process.platform === "win32" ? "where" : "which", [exe], { timeout: EXEC_TIMEOUTS.binaryLookup, env });
     return true;
   } catch {
     return false;
@@ -344,11 +345,11 @@ async function detectNerdFont(): Promise<boolean> {
   // on Windows. Failure to find one is reported as warn, never fatal.
   try {
     if (process.platform === "linux") {
-      const { stdout } = await execFileP("fc-list", [], { timeout: 2500 });
+      const { stdout } = await execFileP("fc-list", [], { timeout: EXEC_TIMEOUTS.fcList });
       return /nerd font/i.test(stdout);
     }
     if (process.platform === "darwin") {
-      const { stdout } = await execFileP("system_profiler", ["SPFontsDataType"], { timeout: 5000 });
+      const { stdout } = await execFileP("system_profiler", ["SPFontsDataType"], { timeout: EXEC_TIMEOUTS.systemProfiler });
       return /nerd font/i.test(stdout);
     }
   } catch {

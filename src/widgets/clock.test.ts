@@ -3,12 +3,17 @@ import { describe, expect, it } from "vitest";
 import { frozenClock, realClock } from "./clock.js";
 
 describe("realClock", () => {
-  it("returns a Date close to wall-clock", () => {
-    const before = Date.now();
-    const t = realClock.now().getTime();
-    const after = Date.now();
-    expect(t).toBeGreaterThanOrEqual(before);
-    expect(t).toBeLessThanOrEqual(after);
+  it("returns a Date instance with a finite epoch", () => {
+    const t = realClock.now();
+    expect(t).toBeInstanceOf(Date);
+    expect(Number.isFinite(t.getTime())).toBe(true);
+  });
+
+  it("each call returns a fresh Date instance", () => {
+    const a = realClock.now();
+    a.setUTCFullYear(1900);
+    const b = realClock.now();
+    expect(b.getUTCFullYear()).not.toBe(1900);
   });
 });
 

@@ -38,29 +38,18 @@ import type { Clock } from "../widgets/clock.js";
 import type { WidgetContext } from "../widgets/context.js";
 import { realClock } from "../widgets/clock.js";
 import { renderWidget } from "../widgets/render-widget.js";
-import { defaultRegistry } from "../widgets/registry.js";
-import { registerSessionWidgets } from "../widgets/session/index.js";
-import { registerTokenWidgets } from "../widgets/tokens/index.js";
-import { registerContextWidgets } from "../widgets/context/index.js";
-import { registerRateLimitWidgets } from "../widgets/rate-limits/index.js";
-import { registerGitWidgets } from "../widgets/git/index.js";
-import { registerTimeWidgets } from "../widgets/time/index.js";
-import { registerCustomWidgets } from "../widgets/custom/index.js";
+import { defaultRegistry, registerAllBuiltins } from "../widgets/index.js";
+import type { TokensSnapshot } from "../tokens/index.js";
+import type { GitState } from "../git/index.js";
 import type { StdinPayload } from "../stdin/index.js";
-
-let registryReady = false;
+import { resolveEnv } from "../lib/env.js";
 
 function ensureRegistry(): void {
-  if (registryReady) return;
   const reg = defaultRegistry();
-  registerSessionWidgets(reg);
-  registerTokenWidgets(reg);
-  registerContextWidgets(reg);
-  registerRateLimitWidgets(reg);
-  registerGitWidgets(reg);
-  registerTimeWidgets(reg);
-  registerCustomWidgets(reg);
-  registryReady = true;
+  // size() > 0 means the registry was already populated; this stays
+  // coherent with resetDefaultRegistry() which clears the singleton.
+  if (reg.size() > 0) return;
+  registerAllBuiltins(reg);
 }
 
 export interface RenderInputs {
@@ -71,11 +60,13 @@ export interface RenderInputs {
   readonly env?: NodeJS.ProcessEnv;
   readonly width?: number;
   readonly flags?: AccessibilityFlags;
+  readonly tokens?: TokensSnapshot;
+  readonly git?: GitState;
 }
 
 export function renderFromInputs(inputs: RenderInputs): string {
   ensureRegistry();
-  const env = inputs.env ?? process.env;
+  const env = resolveEnv(inputs);
   const flags = honourNoColorEnv(
     inputs.flags ?? { noColor: false, noUnicode: false },
     env,
@@ -88,6 +79,8 @@ export function renderFromInputs(inputs: RenderInputs): string {
     theme: inputs.theme,
     clock,
     env,
+    ...(inputs.tokens !== undefined ? { tokens: inputs.tokens } : {}),
+    ...(inputs.git !== undefined ? { git: inputs.git } : {}),
   };
 
   const registry = defaultRegistry();

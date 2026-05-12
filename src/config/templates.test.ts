@@ -2,7 +2,7 @@
  * Round-trip tests for the shipped templates (`templates/*.json`).
  *
  * Each template is the source of truth for what `scripts/install.sh`
- * (default) and `agentline init --minimal` write to a fresh user
+ * (default) and `agentline config init --minimal` write to a fresh user
  * config dir. The tests assert that:
  *
  *   1. Each template parses as JSON.
@@ -49,12 +49,14 @@ describe("shipped config templates", () => {
     const types = cfg.lines[0]!.widgets.map((w) => w.type);
     expect(types).toEqual([
       "model",
+      "thinking-effort",
       "git-branch",
       "git-changes",
       "context-percentage",
       "tokens-total",
       "cost",
       "session-usage",
+      "block-reset-timer",
       "flex-separator",
       "clock",
     ]);

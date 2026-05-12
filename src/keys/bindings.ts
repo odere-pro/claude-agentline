@@ -4,18 +4,12 @@
  * Each binding declares the visible key, its action id (used by the
  * TUI dispatcher), the scope it applies in, and a human-readable
  * description. The registry is the single source of truth: the TUI
- * footer reads from here, `agentline keys [--json]` enumerates from
+ * footer reads from here, `agentline config keys [--json]` enumerates from
  * here (PR 18), and gate-17 (keymap coverage) verifies that every
  * §5.5 row is represented.
  */
 
-export type KeyScope =
-  | "list"
-  | "widget"
-  | "git widgets"
-  | "context widgets"
-  | "separator"
-  | "any";
+export type KeyScope = "list" | "widget" | "git widgets" | "context widgets" | "separator" | "any";
 
 export interface KeyBinding {
   readonly key: string;

@@ -125,7 +125,7 @@ describe("runDoctor", () => {
     expect(settings.statusLine.command).toMatch(/agentline/);
   });
 
-  it("--fix refuses to overwrite a foreign statusLine command", async () => {
+  it("--fix overwrites a foreign statusLine and backs up the prior value", async () => {
     await fs.mkdir(join(home, ".claude"), { recursive: true });
     await fs.writeFile(
       join(home, ".claude", "settings.json"),
@@ -140,11 +140,54 @@ describe("runDoctor", () => {
       cwd: cfgDir,
     });
     const d02 = report.results.find((r) => r.id === "D02");
-    expect(d02?.status).toBe("warn");
+    expect(d02?.status).toBe("fixed");
+    expect(d02?.message).toMatch(/backed up/);
     const settings = JSON.parse(
       await fs.readFile(join(home, ".claude", "settings.json"), "utf8"),
     );
-    expect(settings.statusLine.command).toBe("starship init bash");
+    expect(settings.statusLine.command).toMatch(/agentline/);
+    const backup = JSON.parse(
+      await fs.readFile(
+        join(cfgDir, "state", "settings-backup.json"),
+        "utf8",
+      ),
+    );
+    expect(backup.previousStatusLinePresent).toBe(true);
+    expect(backup.previousStatusLine).toEqual({ command: "starship init bash" });
+  });
+
+  it("--fix re-run does NOT clobber the original backup with agentline's own value", async () => {
+    await fs.mkdir(join(home, ".claude"), { recursive: true });
+    await fs.writeFile(
+      join(home, ".claude", "settings.json"),
+      JSON.stringify({ statusLine: { command: "starship init bash" } }),
+    );
+    // First run: backs up starship.
+    await runDoctor({
+      fix: true,
+      json: false,
+      strict: false,
+      home,
+      env: { CLAUDE_CONFIG_DIR: cfgDir },
+      cwd: cfgDir,
+    });
+    // Second run: settings.json now points at agentline. The backup MUST
+    // still hold starship — first install wins.
+    await runDoctor({
+      fix: true,
+      json: false,
+      strict: false,
+      home,
+      env: { CLAUDE_CONFIG_DIR: cfgDir },
+      cwd: cfgDir,
+    });
+    const backup = JSON.parse(
+      await fs.readFile(
+        join(cfgDir, "state", "settings-backup.json"),
+        "utf8",
+      ),
+    );
+    expect(backup.previousStatusLine).toEqual({ command: "starship init bash" });
   });
 
   it("D10 render fixture passes against the embedded snapshot", async () => {

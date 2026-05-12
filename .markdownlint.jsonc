@@ -10,7 +10,7 @@
   "MD024": { "siblings_only": true },
   "MD026": { "punctuation": ".,;:!" },
   "MD029": { "style": "ordered" },
-  "MD033": { "allowed_elements": ["br", "kbd", "details", "summary"] },
+  "MD033": { "allowed_elements": ["br", "kbd", "details", "summary", "img"] },
   "MD040": false,
   "MD041": false,
   "MD046": { "style": "fenced" },

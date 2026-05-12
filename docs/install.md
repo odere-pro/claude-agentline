@@ -6,9 +6,12 @@ as `@agentline/cli`. Installing it is two steps:
 1. put the `agentline` binary on `PATH`,
 2. point Claude Code's `statusLine` setting at it.
 
-The bundled `scripts/install.sh` does both for you. The manual recipe at
-the bottom of this page does the same thing by hand if you would rather
-not run a script.
+The blessed path is `npm i -g @agentline/cli && agentline install`.
+`agentline install` wires the Claude Code `statusLine` setting in your
+global `~/.claude/settings.json` (backing up any prior value);
+`agentline doctor --fix` handles the same repair step if you prefer to
+wire manually. The manual recipe at the bottom of this page does the same
+thing by hand if you would rather not run a command.
 
 ## Requirements
 
@@ -21,7 +24,18 @@ not run a script.
 
 ## One-command install
 
-From a checked-out clone:
+The shortest path:
+
+```bash
+npm install -g @agentline/cli
+agentline doctor --fix
+```
+
+`doctor --fix` creates `~/.claude/settings.json` if it's missing,
+seeds the user config + themes, and writes a working `statusLine`
+entry. It's idempotent — re-running on a configured tree is a no-op.
+
+For a checkout-based install (used during development):
 
 ```bash
 bash scripts/install.sh
@@ -50,17 +64,37 @@ Every filesystem write is atomic (write-temp, `fsync`, `rename`). Re-running
 | Flag            | Behaviour                                                                                                         |
 | --------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `--dry-run`     | Print every action that would be taken; touch nothing.                                                            |
-| `--force`       | Overwrite an existing `statusLine` value even when it does not point at agentline.                                |
+| `--force`       | Back-compat alias; the default already overwrites a foreign `statusLine` (after backing it up).                   |
 | `--from-source` | `npm link` from the current checkout instead of installing the published tarball. Intended for repo contributors. |
 | `-h`, `--help`  | Show the script's own usage.                                                                                      |
 
 ### Environment overrides
 
-| Variable             | Effect                                                                                 |
-| -------------------- | -------------------------------------------------------------------------------------- |
-| `CLAUDE_CONFIG_DIR`  | Overrides the parent of the agentline config directory. Default: `~/.config`.          |
-| `CLAUDE_PROJECT_DIR` | Used by `init.sh` to decide where `.agentline.json` lives. Default: `$PWD`.            |
-| `AGENTLINE_BIN`      | Read by `doctor.sh` and other wrappers to pick a specific bin. Useful in tests and CI. |
+| Variable            | Effect                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| `CLAUDE_CONFIG_DIR` | Overrides the parent of the agentline config directory. Default: `~/.config`.          |
+| `AGENTLINE_BIN`     | Read by `doctor.sh` and other wrappers to pick a specific bin. Useful in tests and CI. |
+
+## What happens to my existing statusLine?
+
+If `~/.claude/settings.json` already has a `statusLine` (a custom shell
+command, another tool, anything), install does **not** discard it.
+Before writing agentline's value, it snapshots the prior `statusLine`
+to `${CLAUDE_CONFIG_DIR:-~/.config/agentline}/state/settings-backup.json`.
+The snapshot includes:
+
+- Whether `statusLine` was present at all (so uninstall knows to delete
+  the key vs. write a value back).
+- The full prior value (string or object form, whichever the host had).
+
+`scripts/uninstall.sh` reads that backup and either restores the prior
+`statusLine` value, or removes the key entirely if the host never had
+one. Then it deletes the backup. **The host returns to its exact
+pre-install state.**
+
+The backup is written once: re-running install does not overwrite it
+with agentline's own value, so even multiple installs/uninstalls
+round-trip cleanly.
 
 ## Manual install
 
@@ -88,22 +122,20 @@ agentline doctor --fix
 (see [doctor.md](./doctor.md)); calling it after the manual `cp` steps
 adds the `statusLine` entry to `~/.claude/settings.json` for you.
 
-## Per-project init
-
-To pin a project to a smaller config (for example, in a repo where you
-want only model + git on the statusline):
+## Pick a preset
 
 ```bash
-bash scripts/init.sh
+agentline config init --preset minimal      # essentials only
+agentline config init --preset default      # balanced (default if --preset omitted)
+agentline config init --preset maximal      # curated everything
 ```
 
-That seeds `${CLAUDE_PROJECT_DIR:-$PWD}/.agentline.json` from
-`templates/minimal.config.json`. The file is layered on top of the user
-config (§4.1 of the spec): only the keys you set in `.agentline.json`
-override the user defaults; everything else passes through.
+Available presets: `minimal | default | maximal`. All forms write to
+the user config at `${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json`
+— agentline is configured globally.
 
-`scripts/init.sh` is idempotent: if `.agentline.json` already exists, the
-script reports the existing path and exits 0 without touching it.
+`agentline config init` refuses to overwrite an existing target unless
+`--force` is passed, so re-running it on a configured tree is safe.
 
 ## Verify
 
@@ -118,12 +150,27 @@ agentline doctor
 `--strict` to make warnings exit non-zero — handy in CI. See
 [doctor.md](./doctor.md) for the full check list.
 
-To preview the rendered statusline against a recorded payload (no live
-Claude Code session required) once the renderer is wired:
+To see your live statusline, restart your Claude Code session — the renderer is invoked once per prompt. For deterministic offline replay (used by goldens and CI):
 
 ```bash
 agentline render --fixture path/to/payload.json
 ```
+
+## CLI surface
+
+Every subcommand responds to `-h` / `--help`. See [cli.md](./cli.md) for the complete flag-by-flag reference.
+
+| Command                   | Purpose                                                          |
+| ------------------------- | ---------------------------------------------------------------- |
+| `agentline install`       | Wire `statusLine` and install skill files (this page).           |
+| `agentline uninstall`     | Restore prior `statusLine`; remove installed skills.             |
+| `agentline doctor`        | Diagnose host wiring; `--fix` repairs D01–D04.                   |
+| `agentline config`        | Open the TUI editor (Ink, lazy-loaded) — or route to subgroup.   |
+| `agentline config init`   | Scaffold a config from a preset.                                 |
+| `agentline config theme`  | List installed themes; `--show <name>` prints a palette.         |
+| `agentline config keys`   | List active TUI editor keymap bindings (`--json` for scripting). |
+| `agentline config schema` | Print or `--write <dir>` the config JSON Schema.                 |
+| `(default)`               | Read stdin, render, write to stdout (the live statusline path).  |
 
 ## Uninstall
 
@@ -161,6 +208,10 @@ against the pre-install state.
   permissive: even if your config fails to validate, it prints a
   one-line ASCII fallback so your shell prompt is never blank. Run
   `agentline doctor --strict` to surface the underlying error.
+- **a stderr "using built-in defaults" hint appears once** — that's
+  the first-run nudge; it fires on a TTY when no user/project config
+  exists and recommends `agentline config init`. Set `AGENTLINE_QUIET=1` to
+  silence it permanently.
 
 For anything else, open an issue:
 <https://github.com/odere-pro/claude-agentline/issues>.

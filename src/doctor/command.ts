@@ -7,7 +7,20 @@
  * unresolved warnings/failures become non-zero (used by CI gates).
  */
 
+import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { runDoctor, renderReport } from "./run.js";
+
+const HELP = `agentline doctor — diagnose and (optionally) repair host wiring
+
+Usage:
+  agentline doctor [--fix] [--json] [--strict]
+
+Options:
+  --fix       repair D01-D04 (statusLine wiring, config seed, themes copy)
+  --json      machine-readable report (for CI / scripting)
+  --strict    promote warnings/failures to non-zero exit (used by gates)
+  -h, --help  show this message
+`;
 
 export interface DoctorArgs {
   fix: boolean;
@@ -21,11 +34,8 @@ export function parseDoctorArgs(rest: string[]): DoctorArgs {
     if (arg === "--fix") args.fix = true;
     else if (arg === "--json") args.json = true;
     else if (arg === "--strict") args.strict = true;
-    else if (arg === "--help" || arg === "-h") {
-      // Caller handles --help via runHelp; here we just no-op so a stray flag doesn't crash.
-    } else {
-      throw new Error(`agentline doctor: unknown argument '${arg}'`);
-    }
+    else if (isHelpFlag(arg)) requestHelp(HELP);
+    else throw new Error(`agentline doctor: unknown argument '${arg}'`);
   }
   return args;
 }

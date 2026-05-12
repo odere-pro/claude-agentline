@@ -3,13 +3,15 @@
  *
  * Order, weakest to strongest:
  *   1. Built-in defaults (`DEFAULT_CONFIG`).
- *   2. User config:   ${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json
- *   3. Project config: ${CLAUDE_PROJECT_DIR:-$PWD}/.agentline.json (if present).
- *   4. Environment vars prefixed `AGENTLINE_` (`envLayer`).
- *   5. CLI flag overrides (passed in by the caller).
+ *   2. User config: `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`.
+ *   3. Environment vars prefixed `AGENTLINE_` (`envLayer`).
+ *   4. CLI flag overrides (passed in by the caller).
  *
  * The merged tree is then validated against the JSON Schema (§4.7).
  * Missing files are silently skipped — only present files contribute.
+ *
+ * agentline is configured globally only — there is no per-project
+ * config layer. A `.agentline.json` in the cwd is silently ignored.
  *
  * The render path imports this synchronously-callable wrapper so it can
  * proceed without awaiting filesystem I/O when no user config exists.
@@ -23,6 +25,8 @@ import { envLayer } from "./env.js";
 import { resolveConfigPaths, type ConfigPaths } from "./paths.js";
 import { validateConfig } from "./validate.js";
 import type { AgentlineConfig } from "./types.js";
+import { resolveEnv } from "../lib/env.js";
+import { isEnoent } from "../lib/fs.js";
 
 export interface LoadedConfig {
   config: AgentlineConfig;
@@ -30,13 +34,11 @@ export interface LoadedConfig {
   /** Layers actually consulted (omits non-existent files). */
   sources: {
     user: boolean;
-    project: boolean;
   };
 }
 
 export interface LoadOptions {
   env?: NodeJS.ProcessEnv;
-  cwd?: string;
   /** Final-layer overrides (typically from `--key=value` flags). */
   flagOverrides?: Record<string, unknown>;
   /** Skip validation — for tests only. */
@@ -44,19 +46,16 @@ export interface LoadOptions {
 }
 
 export async function loadConfig(options: LoadOptions = {}): Promise<LoadedConfig> {
-  const env = options.env ?? process.env;
-  const cwd = options.cwd ?? process.cwd();
-  const paths = resolveConfigPaths(env, cwd);
+  const env = resolveEnv(options);
+  const paths = resolveConfigPaths(env);
 
   const userOverride = await readJsonIfExists(paths.userConfig);
-  const projectOverride = await readJsonIfExists(paths.projectConfig);
   const envOverride = envLayer(env);
   const flagOverride = options.flagOverrides ?? {};
 
   const merged = mergeAll<AgentlineConfig>(
     structuredClone(DEFAULT_CONFIG),
     userOverride,
-    projectOverride,
     envOverride,
     flagOverride,
   );
@@ -68,7 +67,6 @@ export async function loadConfig(options: LoadOptions = {}): Promise<LoadedConfi
     paths,
     sources: {
       user: userOverride !== undefined,
-      project: projectOverride !== undefined,
     },
   };
 }
@@ -78,19 +76,10 @@ async function readJsonIfExists(path: string): Promise<unknown> {
     const text = await fs.readFile(path, "utf8");
     return JSON.parse(text);
   } catch (err) {
-    if (isMissing(err)) return undefined;
+    if (isEnoent(err)) return undefined;
     if (err instanceof SyntaxError) {
       throw new Error(`agentline: ${path}: invalid JSON — ${err.message}`);
     }
     throw err;
   }
-}
-
-function isMissing(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code: string }).code === "ENOENT"
-  );
 }

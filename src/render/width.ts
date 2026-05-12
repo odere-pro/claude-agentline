@@ -12,6 +12,10 @@
  * subprocesses to detect width (§1.2 N3).
  */
 
+import { DEFAULT_COMPACT_THRESHOLD } from "../config/defaults.js";
+
+export { DEFAULT_COMPACT_THRESHOLD };
+
 export const FALLBACK_WIDTH = 80;
 
 export type WidthMode = "full" | "full-minus-40" | "full-until-compact";
@@ -50,7 +54,7 @@ export interface WidthModeOptions {
   readonly compactThreshold: number;
 }
 
-export const DEFAULT_COMPACT_THRESHOLD = 60;
+const COMPACT_OVERHEAD_COLUMNS = 40;
 
 export function applyWidthMode(
   detectedWidth: number,
@@ -69,7 +73,7 @@ export function applyWidthMode(
       };
     case "full-minus-40":
       return {
-        effectiveWidth: Math.max(1, detectedWidth - 40),
+        effectiveWidth: Math.max(1, detectedWidth - COMPACT_OVERHEAD_COLUMNS),
         isCompact: detectedWidth < compactThreshold,
         detectedWidth,
       };

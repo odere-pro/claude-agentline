@@ -47,22 +47,29 @@ Colour values accept the same three forms as widget colours
 
 ## Shipped presets
 
-| Name                | Tone                                    |
-| ------------------- | --------------------------------------- |
-| `vscode-dark`       | dark, neutral (VS Code Default Dark+)   |
-| `vscode-light`      | light, neutral (VS Code Default Light+) |
-| `claude-code-dark`  | dark, warm (Claude brand)               |
-| `claude-code-light` | light, warm (Claude brand)              |
+Each swatch shows the 13 palette roles left to right (accent → info → success → warning → danger → muted → git-clean → git-dirty → tokens-low → tokens-mid → tokens-high → bg-section → bg-emphasis). Hover a square to see the role name.
 
-To inspect a preset (once the `themes` subcommand is wired):
+| Name                | Base            | Palette                                                                              |
+| ------------------- | --------------- | ------------------------------------------------------------------------------------ |
+| `claude-code-dark`  | dark warm brown | <img src="themes/claude-code-dark.svg" alt="claude-code-dark palette" height="16">   |
+| `claude-code-light` | warm beige      | <img src="themes/claude-code-light.svg" alt="claude-code-light palette" height="16"> |
+| `vscode-dark`       | dark grey       | <img src="themes/vscode-dark.svg" alt="vscode-dark palette" height="16">             |
+| `vscode-light`      | light grey      | <img src="themes/vscode-light.svg" alt="vscode-light palette" height="16">           |
+
+To browse and inspect themes:
 
 ```bash
-agentline themes --list
-agentline themes --show vscode-dark
+agentline config theme                         # swatch table — name + 13 palette blocks per theme
+agentline config theme --list                  # tab-separated name<TAB>path (for scripts and CI)
+agentline config theme --show vscode-dark      # pretty-print the resolved palette
 ```
 
-Until then the shipped JSON files are the source of truth — they are
-small enough to read directly.
+`agentline config theme` (no flags) prints one row per theme with a swatch
+of all 13 palette roles rendered through the same ANSI encoder the
+statusline uses, so what you see in the table is what you get on the
+bar.
+
+To activate a theme, set `"theme": "<name>"` in your config (or use the TUI editor with `agentline config`) and restart your Claude Code session.
 
 ## Palette roles
 
@@ -149,7 +156,7 @@ advertises 16 or none, they are quantised to the nearest named colour.
 Set `NO_COLOR=1` to disable colours entirely; agentline honours the
 [no-color.org](https://no-color.org) convention.
 
-To preview how a theme degrades on a 256-colour host:
+To preview how a theme degrades on a 256-colour host, use the fixture-replay path:
 
 ```bash
 COLORTERM= TERM=xterm-256color agentline render --fixture demo.json
