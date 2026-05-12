@@ -25,6 +25,7 @@ import { DEFAULT_KEY_BINDINGS, listBindings } from "../keys/index.js";
 import { resolveEnv } from "../lib/env.js";
 
 import { saveEditedConfig } from "./persist.js";
+import { Preview } from "./preview.js";
 import {
   currentWidget,
   initialState,
@@ -138,6 +139,11 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
     { flexDirection: "column" },
     React.createElement(Text, { bold: true }, "agentline config"),
     React.createElement(Text, { dimColor: true }, `editing ${path}`),
+    React.createElement(
+      Box,
+      { marginTop: 1 },
+      React.createElement(Preview, { base: initialConfig, lines: state.lines, width: previewWidth() }),
+    ),
     React.createElement(Box, { flexDirection: "column", marginTop: 1 }, ...renderWidgets(state)),
     React.createElement(Box, { marginTop: 1 }, React.createElement(Text, null, footerText(bindings))),
     state.dirty
@@ -151,6 +157,12 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
       ? React.createElement(Text, { color: "green" }, ` ${statusMessage} `)
       : null,
   );
+}
+
+/** Width to compose the preview against — the terminal width, minus the box chrome. */
+function previewWidth(): number {
+  const columns = process.stdout.columns;
+  return Math.max(20, (typeof columns === "number" && columns > 0 ? columns : 120) - 4);
 }
 
 function renderWidgets(state: EditorState): React.ReactElement[] {
