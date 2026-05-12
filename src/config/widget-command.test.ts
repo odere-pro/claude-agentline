@@ -35,6 +35,17 @@ describe("runWidgetSubgroup", () => {
     expect(String(stderr.mock.calls[0]?.[0] ?? "")).toContain("unknown subcommand 'bogus'");
   });
 
+  it("routes `add` (arg-parse and mutation errors surface)", async () => {
+    await expect(runWidgetSubgroup(["add"])).rejects.toThrow(/<type> is required/);
+    await expect(runWidgetSubgroup(["add", "no-such-widget"])).rejects.toThrow(
+      /unknown widget type/,
+    );
+  });
+
+  it("routes `remove` (requires --at)", async () => {
+    await expect(runWidgetSubgroup(["remove"])).rejects.toThrow(/--at <index> is required/);
+  });
+
   it("propagates a bad-argument error from a subcommand", async () => {
     await expect(runWidgetSubgroup(["list", "--nope"])).rejects.toThrow(/unknown argument/);
   });
