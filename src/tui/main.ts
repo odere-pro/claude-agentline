@@ -21,7 +21,7 @@ import { DEFAULT_CONFIG } from "../config/defaults.js";
 import { loadConfig } from "../config/load.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import type { AgentlineConfig } from "../config/types.js";
-import { DEFAULT_KEY_BINDINGS, listBindings } from "../keys/index.js";
+import { listBindings } from "../keys/index.js";
 import { resolveEnv } from "../lib/env.js";
 
 import { saveEditedConfig } from "./persist.js";
@@ -82,6 +82,7 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
     initialState(lines),
   );
   const [statusMessage, setStatusMessage] = useState<string>("");
+  const [showHelp, setShowHelp] = useState(false);
   const saveInFlight = React.useRef(false);
   const bindings = useMemo(
     () => listBindings(initialConfig.keymap as Record<string, string> | undefined),
@@ -109,6 +110,11 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
   }, [initialConfig, onSaved, path, state.lines]);
 
   useInput((input, key) => {
+    if (showHelp) {
+      setShowHelp(false);
+      return;
+    }
+    if (input === "?") return setShowHelp(true);
     if (key.escape || input === "q") {
       onSaved(false);
       exit();
@@ -119,19 +125,21 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
       void onSave();
       return;
     }
-    if (key.upArrow) return dispatch({ type: "navigate", delta: -1 });
-    if (key.downArrow) return dispatch({ type: "navigate", delta: 1 });
-    if (key.leftArrow) return dispatch({ type: "select-widget", delta: -1 });
-    if (key.rightArrow) return dispatch({ type: "select-widget", delta: 1 });
-    if (input === "a") {
-      const next = nextRotatingType(widget?.type);
-      return dispatch({ type: "add", widgetType: next });
-    }
-    if (input === "d") return dispatch({ type: "delete" });
-    if (input === "h") return dispatch({ type: "toggle-hidden" });
-    if (input === "r") return dispatch({ type: "toggle-raw" });
+    if (key.leftArrow)
+      return dispatch(key.shift ? { type: "move-widget", dx: -1 } : { type: "move-cursor", dx: -1 });
+    if (key.rightArrow)
+      return dispatch(key.shift ? { type: "move-widget", dx: 1 } : { type: "move-cursor", dx: 1 });
+    if (key.upArrow)
+      return dispatch(key.shift ? { type: "move-widget", dy: -1 } : { type: "move-cursor", dy: -1 });
+    if (key.downArrow)
+      return dispatch(key.shift ? { type: "move-widget", dy: 1 } : { type: "move-cursor", dy: 1 });
+    if (input === "a") return dispatch({ type: "add", widgetType: nextRotatingType(widget?.type) });
+    if (input === "r")
+      return dispatch({ type: "set-type", widgetType: nextRotatingType(widget?.type) });
+    if (input === "x") return dispatch({ type: "delete" });
+    if (input === "v") return dispatch({ type: "toggle-hidden" });
     if (input === "m") return dispatch({ type: "cycle-merge" });
-    if (input === "t") return dispatch({ type: "set-type", widgetType: rotateType(widget) });
+    if (input === "l") return dispatch({ type: "toggle-raw" });
   });
 
   return React.createElement(
@@ -145,7 +153,7 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
       React.createElement(Preview, { base: initialConfig, lines: state.lines, width: previewWidth() }),
     ),
     React.createElement(Box, { flexDirection: "column", marginTop: 1 }, ...renderWidgets(state)),
-    React.createElement(Box, { marginTop: 1 }, React.createElement(Text, null, footerText(bindings))),
+    React.createElement(Box, { marginTop: 1 }, React.createElement(Text, { dimColor: true }, footerText(bindings))),
     state.dirty
       ? React.createElement(
           Text,
@@ -156,6 +164,20 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
     statusMessage
       ? React.createElement(Text, { color: "green" }, ` ${statusMessage} `)
       : null,
+    showHelp ? helpOverlay(bindings) : null,
+  );
+}
+
+function helpOverlay(
+  bindings: readonly { key: string; description: string }[],
+): React.ReactElement {
+  return React.createElement(
+    Box,
+    { flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, marginTop: 1 },
+    React.createElement(Text, { bold: true }, "keys (press any key to close)"),
+    ...bindings.map((b) =>
+      React.createElement(Text, { key: b.description }, `  ${b.key.padEnd(10, " ")}  ${b.description}`),
+    ),
   );
 }
 
@@ -166,63 +188,73 @@ function previewWidth(): number {
 }
 
 function renderWidgets(state: EditorState): React.ReactElement[] {
-  const line = state.lines[0];
-  if (!line || line.widgets.length === 0) {
-    return [
+  const out: React.ReactElement[] = [];
+  state.lines.forEach((line, lineIdx) => {
+    const onLine = state.cursor.line === lineIdx;
+    out.push(
       React.createElement(
         Text,
-        { dimColor: true, key: "empty" },
-        "(no widgets — press a to add)",
+        { key: `line${lineIdx}`, color: onLine ? "cyan" : undefined, dimColor: !onLine },
+        `line ${lineIdx}${onLine ? "  ◂" : ""}`,
       ),
-    ];
-  }
-  return line.widgets.map((w, idx) => {
-    const selected = idx === state.cursor.widget;
-    const flags = [
-      w.hidden ? "hidden" : null,
-      w.rawValue ? "raw" : null,
-      w.merged && w.merged !== "off" ? `merged=${w.merged}` : null,
-    ]
-      .filter(Boolean)
-      .join(" ");
-    return React.createElement(
-      Text,
-      { key: `${idx}:${w.type}`, color: selected ? "cyan" : undefined },
-      `${selected ? "▸ " : "  "}${w.type}${flags ? `  · ${flags}` : ""}`,
     );
+    if (line.widgets.length === 0) {
+      out.push(
+        React.createElement(
+          Text,
+          { key: `line${lineIdx}-empty`, dimColor: true },
+          "    (empty — press a to add a widget here)",
+        ),
+      );
+      return;
+    }
+    line.widgets.forEach((w, idx) => {
+      const selected = onLine && idx === state.cursor.widget;
+      const flags = [
+        w.hidden ? "hidden" : null,
+        w.rawValue ? "no label" : null,
+        w.merged && w.merged !== "off" ? w.merged : null,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      out.push(
+        React.createElement(
+          Text,
+          { key: `line${lineIdx}-w${idx}`, color: selected ? "cyan" : undefined },
+          `  ${selected ? "▸ " : "  "}${String(idx).padStart(2, " ")}  ${w.type}${flags ? `  [${flags}]` : ""}`,
+        ),
+      );
+    });
   });
+  return out;
 }
 
+/** Compact one-line footer of the edit-mode keys, drawn from the active keymap. */
 function footerText(bindings: readonly { key: string; description: string }[]): string {
-  const subset = bindings
-    .filter((b) =>
-      [
-        "navigate",
-        "add",
-        "delete",
-        "toggle-hidden",
-        "toggle-raw",
-        "cycle-merge",
-        "back",
-      ].includes(
-        DEFAULT_KEY_BINDINGS.find((d) => d.description === b.description)?.action ?? "",
-      ),
-    )
-    .map((b) => `${b.key} ${b.description}`)
-    .join("  ");
-  return `${subset}  S save`;
+  const short: Record<string, string> = {
+    "move the selection within the row": "move",
+    "move the selection to the adjacent row": "row",
+    "move the selected widget within its row": "move widget",
+    "move the selected widget to the adjacent row": "widget→row",
+    "add a widget": "add",
+    "replace the selected widget": "replace",
+    "delete the selected widget": "delete",
+    "show / hide the selected widget": "hide",
+    "spacing to neighbour: full / single space / none": "spacing",
+    "show / hide the widget's own label": "label",
+    save: "save",
+    "quit (prompts if there are unsaved changes)": "quit",
+    "toggle the help overlay": "help",
+  };
+  return bindings.map((b) => `${b.key} ${short[b.description] ?? b.description}`).join(" · ");
 }
 
+// Placeholder widget chooser until the picker overlay lands: `a` / `r`
+// cycle through a small curated set rather than offering all 53 widgets.
 function nextRotatingType(current: string | undefined): string {
-  if (!current) {
-    return ROTATING_TYPES[0] ?? "model";
-  }
+  if (!current) return ROTATING_TYPES[0] ?? "model";
   const idx = ROTATING_TYPES.indexOf(current);
   return ROTATING_TYPES[(idx + 1) % ROTATING_TYPES.length] ?? "model";
-}
-
-function rotateType(widget: { type: string } | undefined): string {
-  return nextRotatingType(widget?.type);
 }
 
 function mountEditor(config: AgentlineConfig, path: string): {

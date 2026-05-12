@@ -1,15 +1,18 @@
 /**
  * Default keymap registry (§5.5).
  *
- * Each binding declares the visible key, its action id (used by the
- * TUI dispatcher), the scope it applies in, and a human-readable
- * description. The registry is the single source of truth: the TUI
- * footer reads from here, `agentline config keys [--json]` enumerates from
- * here (PR 18), and gate-17 (keymap coverage) verifies that every
- * §5.5 row is represented.
+ * Each binding declares the visible key, its action id (used by the TUI
+ * dispatcher), the scope it applies in, and a human-readable description.
+ * The registry is the single source of truth: the TUI footer reads from
+ * here, `agentline config keys [--json]` enumerates from here, and gate-17
+ * (keymap coverage) verifies that every §5.5 row is represented.
+ *
+ * Scopes mirror the editor's modes — `edit` is the layout view; `picker`
+ * and `options` belong to the overlay components and are added as those
+ * land. `any` applies regardless of mode.
  */
 
-export type KeyScope = "list" | "widget" | "git widgets" | "context widgets" | "separator" | "any";
+export type KeyScope = "edit" | "picker" | "options" | "any";
 
 export interface KeyBinding {
   readonly key: string;
@@ -19,35 +22,19 @@ export interface KeyBinding {
 }
 
 export const DEFAULT_KEY_BINDINGS: readonly KeyBinding[] = Object.freeze([
-  { key: "↑ ↓", action: "navigate", scope: "list", description: "navigate" },
-  { key: "← →", action: "change-type", scope: "widget", description: "change type" },
-  { key: "a", action: "add", scope: "list", description: "add widget" },
-  { key: "d", action: "delete", scope: "widget", description: "delete" },
-  { key: "r", action: "toggle-raw", scope: "widget", description: "toggle raw value" },
-  { key: "m", action: "cycle-merge", scope: "widget", description: "cycle merge mode" },
-  { key: "h", action: "toggle-hidden", scope: "widget", description: "toggle hidden" },
-  {
-    key: "l",
-    action: "toggle-link",
-    scope: "git widgets",
-    description: "toggle clickable IDE link (VS Code / Cursor / IntelliJ)",
-  },
-  { key: "t", action: "toggle-title", scope: "widget", description: "toggle title/label" },
-  { key: "p", action: "cycle-display", scope: "widget", description: "cycle display variant" },
-  { key: "s", action: "toggle-compact", scope: "widget", description: "toggle compact / short" },
-  { key: "v", action: "cycle-inversion", scope: "widget", description: "invert / cycle inversion" },
-  { key: "e", action: "edit-inline", scope: "widget", description: "edit inline value" },
-  {
-    key: "u",
-    action: "toggle-used-remaining",
-    scope: "context widgets",
-    description: "toggle used-vs-remaining",
-  },
-  { key: "f", action: "cycle-format", scope: "widget", description: "cycle format" },
-  { key: "n", action: "toggle-nerd", scope: "widget", description: "toggle Nerd Font glyph" },
-  { key: "w", action: "edit-window", scope: "widget", description: "edit window/width" },
-  { key: "Space", action: "cycle-char", scope: "separator", description: "cycle char" },
-  { key: "Esc", action: "back", scope: "any", description: "back" },
+  { key: "← →", action: "move-cursor", scope: "edit", description: "move the selection within the row" },
+  { key: "↑ ↓", action: "move-cursor-row", scope: "edit", description: "move the selection to the adjacent row" },
+  { key: "⇧← ⇧→", action: "move-widget", scope: "edit", description: "move the selected widget within its row" },
+  { key: "⇧↑ ⇧↓", action: "move-widget-row", scope: "edit", description: "move the selected widget to the adjacent row" },
+  { key: "a", action: "add", scope: "edit", description: "add a widget" },
+  { key: "r", action: "replace", scope: "edit", description: "replace the selected widget" },
+  { key: "x", action: "delete", scope: "edit", description: "delete the selected widget" },
+  { key: "v", action: "toggle-visible", scope: "edit", description: "show / hide the selected widget" },
+  { key: "m", action: "cycle-spacing", scope: "edit", description: "spacing to neighbour: full / single space / none" },
+  { key: "l", action: "toggle-label", scope: "edit", description: "show / hide the widget's own label" },
+  { key: "S", action: "save", scope: "edit", description: "save" },
+  { key: "q", action: "quit", scope: "any", description: "quit (prompts if there are unsaved changes)" },
+  { key: "?", action: "help", scope: "any", description: "toggle the help overlay" },
 ] as const) as readonly KeyBinding[];
 
 export function listBindings(
