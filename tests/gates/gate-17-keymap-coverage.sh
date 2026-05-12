@@ -71,6 +71,7 @@ const bindings = root.bindings;
 
 // §5.5 – every documented action id must appear exactly once
 const SPEC_ACTIONS = [
+  // edit
   "move-cursor",
   "move-cursor-row",
   "move-widget",
@@ -78,10 +79,19 @@ const SPEC_ACTIONS = [
   "add",
   "replace",
   "delete",
-  "toggle-visible",
-  "cycle-spacing",
-  "toggle-label",
+  "options",
   "save",
+  // picker
+  "picker-filter",
+  "picker-navigate",
+  "picker-confirm",
+  "picker-cancel",
+  // options sheet
+  "toggle-visible",
+  "toggle-label",
+  "cycle-spacing",
+  "options-close",
+  // any
   "quit",
   "help",
 ];
