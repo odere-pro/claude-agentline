@@ -24,28 +24,19 @@ import type { AgentlineConfig } from "../config/types.js";
 import { listBindings } from "../keys/index.js";
 import { resolveEnv } from "../lib/env.js";
 
-import { saveEditedConfig } from "./persist.js";
-import { Preview } from "./preview.js";
-import {
-  currentWidget,
-  initialState,
-  reduce,
-  type EditorAction,
-  type EditorState,
-} from "./state.js";
+import { defaultRegistry, registerAllBuiltins, type WidgetMetaEntry } from "../widgets/index.js";
 
-const ROTATING_TYPES: readonly string[] = [
-  "model",
-  "git-branch",
-  "git-changes",
-  "context-percentage",
-  "tokens-total",
-  "cost",
-  "session-usage",
-  "flex-separator",
-  "clock",
-  "separator",
-];
+import { saveEditedConfig } from "./persist.js";
+import { Picker, selectedEntry } from "./picker.js";
+import { Preview } from "./preview.js";
+import { initialState, reduce, type EditorAction, type EditorState } from "./state.js";
+
+/** The catalogued built-in widgets, populating the default registry once. */
+function builtinWidgetEntries(): readonly WidgetMetaEntry[] {
+  const registry = defaultRegistry();
+  if (registry.size() === 0) registerAllBuiltins(registry);
+  return registry.listMeta();
+}
 
 export interface RunConfigInput {
   readonly env?: NodeJS.ProcessEnv;
@@ -83,12 +74,19 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
   );
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [showHelp, setShowHelp] = useState(false);
+  const [pickerQuery, setPickerQuery] = useState("");
+  const [pickerHighlight, setPickerHighlight] = useState(0);
   const saveInFlight = React.useRef(false);
   const bindings = useMemo(
     () => listBindings(initialConfig.keymap as Record<string, string> | undefined),
     [initialConfig.keymap],
   );
-  const widget = currentWidget(state);
+  const widgetEntries = useMemo(() => builtinWidgetEntries(), []);
+
+  const resetPicker = useCallback(() => {
+    setPickerQuery("");
+    setPickerHighlight(0);
+  }, []);
 
   const onSave = useCallback(async () => {
     if (saveInFlight.current) return;
@@ -114,6 +112,30 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
       setShowHelp(false);
       return;
     }
+    if (state.mode === "picker") {
+      if (key.escape) {
+        dispatch({ type: "close-picker" });
+        resetPicker();
+        return;
+      }
+      if (key.return) {
+        const picked = selectedEntry(widgetEntries, pickerQuery, pickerHighlight);
+        dispatch(picked ? { type: "apply-picker", widgetType: picked.type } : { type: "close-picker" });
+        resetPicker();
+        return;
+      }
+      if (key.upArrow) return setPickerHighlight((h) => Math.max(0, h - 1));
+      if (key.downArrow) return setPickerHighlight((h) => h + 1);
+      if (key.backspace || key.delete) {
+        setPickerQuery((q) => q.slice(0, -1));
+        return setPickerHighlight(0);
+      }
+      if (input.length === 1 && input >= " " && !key.ctrl && !key.meta) {
+        setPickerQuery((q) => q + input);
+        return setPickerHighlight(0);
+      }
+      return;
+    }
     if (input === "?") return setShowHelp(true);
     if (key.escape || input === "q") {
       onSaved(false);
@@ -133,9 +155,8 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
       return dispatch(key.shift ? { type: "move-widget", dy: -1 } : { type: "move-cursor", dy: -1 });
     if (key.downArrow)
       return dispatch(key.shift ? { type: "move-widget", dy: 1 } : { type: "move-cursor", dy: 1 });
-    if (input === "a") return dispatch({ type: "add", widgetType: nextRotatingType(widget?.type) });
-    if (input === "r")
-      return dispatch({ type: "set-type", widgetType: nextRotatingType(widget?.type) });
+    if (input === "a") return dispatch({ type: "open-picker", target: "insert" });
+    if (input === "r") return dispatch({ type: "open-picker", target: "replace" });
     if (input === "x") return dispatch({ type: "delete" });
     if (input === "v") return dispatch({ type: "toggle-hidden" });
     if (input === "m") return dispatch({ type: "cycle-merge" });
@@ -163,6 +184,14 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
       : null,
     statusMessage
       ? React.createElement(Text, { color: "green" }, ` ${statusMessage} `)
+      : null,
+    state.mode === "picker"
+      ? React.createElement(Picker, {
+          title: state.pickerTarget === "replace" ? "Replace the widget with…" : "Insert a widget",
+          entries: widgetEntries,
+          query: pickerQuery,
+          highlight: pickerHighlight,
+        })
       : null,
     showHelp ? helpOverlay(bindings) : null,
   );
@@ -247,14 +276,6 @@ function footerText(bindings: readonly { key: string; description: string }[]): 
     "toggle the help overlay": "help",
   };
   return bindings.map((b) => `${b.key} ${short[b.description] ?? b.description}`).join(" · ");
-}
-
-// Placeholder widget chooser until the picker overlay lands: `a` / `r`
-// cycle through a small curated set rather than offering all 53 widgets.
-function nextRotatingType(current: string | undefined): string {
-  if (!current) return ROTATING_TYPES[0] ?? "model";
-  const idx = ROTATING_TYPES.indexOf(current);
-  return ROTATING_TYPES[(idx + 1) % ROTATING_TYPES.length] ?? "model";
 }
 
 function mountEditor(config: AgentlineConfig, path: string): {
