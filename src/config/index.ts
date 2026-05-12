@@ -13,6 +13,27 @@ export { validateConfig, ConfigValidationError } from "./validate.js";
 export { DEFAULT_CONFIG } from "./defaults.js";
 export { deepMerge, mergeAll } from "./merge.js";
 export { envLayer } from "./env.js";
+export {
+  MAX_LINES,
+  ConfigMutationError,
+  addWidget,
+  removeWidget,
+  replaceWidget,
+  moveWidget,
+  setWidgetOption,
+  setTheme,
+  saveAddWidget,
+  saveRemoveWidget,
+  saveReplaceWidget,
+  saveMoveWidget,
+  saveSetWidgetOption,
+  type AddWidgetSpec,
+  type RemoveWidgetSpec,
+  type ReplaceWidgetSpec,
+  type MoveWidgetSpec,
+  type SetWidgetOptionSpec,
+  type SaveOptions,
+} from "./mutate.js";
 export type {
   AgentlineConfig,
   PartialAgentlineConfig,
