@@ -74,11 +74,11 @@ Or disable colour entirely with `NO_COLOR=1` in your shell env, then restart Cla
 
 ## Config not loading
 
-Project config must be at `.claude/agentline.json` (not `.agentline.json`):
+agentline reads a single user config at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`. There is no project layer; a `.agentline.json` in the cwd is silently ignored.
 
 ```bash
-agentline doctor --strict                              # D03 shows the exact problem
-agentline config init --preset default --scope project # scaffold a valid file
+agentline doctor --strict                  # D03 shows the exact problem
+agentline config init --preset default     # scaffold a valid file
 ```
 
 ---
@@ -86,9 +86,8 @@ agentline config init --preset default --scope project # scaffold a valid file
 ## Reset everything
 
 ```bash
-agentline config init --force --preset default --scope project   # reset project config
-agentline config init --force --preset default --scope user      # reset user config
-agentline uninstall --purge && agentline install                 # full wipe + reinstall
+agentline config init --force --preset default   # reset the user config
+agentline uninstall --purge && agentline install # full wipe + reinstall
 ```
 
 Full reference → [troubleshooting.md](../docs/troubleshooting.md) · [doctor.md](../docs/doctor.md)

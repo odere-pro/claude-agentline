@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -45,26 +45,11 @@ describe("parseThemesArgs", () => {
     expect(() => parseThemesArgs(["--set"])).toThrow(/requires a theme name/);
   });
 
-  it("--scope user|project pairs with --set", () => {
-    expect(parseThemesArgs(["--set", "demo", "--scope", "user"])).toEqual({
-      action: "set",
-      name: "demo",
-      scope: "user",
-    });
-    expect(parseThemesArgs(["--set=demo", "--scope=project"])).toEqual({
-      action: "set",
-      name: "demo",
-      scope: "project",
-    });
-  });
-
-  it("--scope without --set is rejected", () => {
-    expect(() => parseThemesArgs(["--scope", "user"])).toThrow(/only applies to --set/);
-    expect(() => parseThemesArgs(["--list", "--scope", "user"])).toThrow(/only applies to --set/);
-  });
-
-  it("--scope rejects unknown value", () => {
-    expect(() => parseThemesArgs(["--set", "demo", "--scope", "global"])).toThrow(/unknown scope/);
+  it("--scope is no longer accepted (project layer was removed; --set always writes user config)", () => {
+    expect(() => parseThemesArgs(["--set", "demo", "--scope", "user"])).toThrow(
+      /unknown argument/,
+    );
+    expect(() => parseThemesArgs(["--set=demo", "--scope=project"])).toThrow(/unknown argument/);
   });
 
   it("--list, --show, and --set are mutually exclusive", () => {
@@ -112,7 +97,6 @@ describe("runThemesCommand", () => {
     const code = await runThemesCommand({
       args: { action: "list" },
       env: {},
-      cwd: "/no-such-cwd",
       builtinDir: tmp,
     });
     expect(code).toBe(0);
@@ -125,7 +109,6 @@ describe("runThemesCommand", () => {
     const code = await runThemesCommand({
       args: { action: "show", name: "demo" },
       env: {},
-      cwd: "/no-such-cwd",
       builtinDir: tmp,
     });
     expect(code).toBe(0);
@@ -140,7 +123,6 @@ describe("runThemesCommand", () => {
     const code = await runThemesCommand({
       args: { action: "show", name: "nope" },
       env: {},
-      cwd: "/no-such-cwd",
       builtinDir: tmp,
     });
     expect(code).toBe(1);
@@ -152,7 +134,6 @@ describe("runThemesCommand", () => {
     const code = await runThemesCommand({
       args: { action: "show" },
       env: {},
-      cwd: "/no-such-cwd",
       builtinDir: tmp,
     });
     expect(code).toBe(2);
@@ -164,7 +145,6 @@ describe("runThemesCommand", () => {
     const code = await runThemesCommand({
       args: { action: "table" },
       env: {},
-      cwd: "/no-such-cwd",
       builtinDir: tmp,
     });
     expect(code).toBe(0);
@@ -178,7 +158,6 @@ describe("runThemesCommand", () => {
     await runThemesCommand({
       args: { action: "table" },
       env: {},
-      cwd: "/no-such-cwd",
       builtinDir: tmp,
     });
     const stderrOut = stderr.mock.calls.map((c) => String(c[0])).join("");
@@ -192,7 +171,6 @@ describe("runThemesCommand", () => {
       const code = await runThemesCommand({
         args: { action: "table" },
         env: { CLAUDE_CONFIG_DIR: empty },
-        cwd: "/no-such-cwd",
         builtinDir: empty,
       });
       expect(code).toBe(1);
@@ -202,37 +180,38 @@ describe("runThemesCommand", () => {
     }
   });
 
-  it("set creates a fresh project config when none exists", async () => {
-    const project = mkdtempSync(join(tmpdir(), "agentline-themes-set-"));
+  it("set creates a fresh user config when none exists", async () => {
+    const home = mkdtempSync(join(tmpdir(), "agentline-themes-set-"));
     try {
       vi.spyOn(process.stdout, "write").mockImplementation(() => true);
       const code = await runThemesCommand({
-        args: { action: "set", name: "demo", scope: "project" },
-        env: { CLAUDE_PROJECT_DIR: project, CLAUDE_CONFIG_DIR: project },
-        cwd: project,
+        args: { action: "set", name: "demo" },
+        env: { CLAUDE_CONFIG_DIR: home },
         builtinDir: tmp,
       });
       expect(code).toBe(0);
-      const written = JSON.parse(readFileSync(join(project, ".agentline.json"), "utf8"));
+      const written = JSON.parse(
+        readFileSync(join(home, "agentline", "config.json"), "utf8"),
+      );
       expect(written).toEqual({ version: 1, theme: "demo" });
     } finally {
-      rmSync(project, { recursive: true, force: true });
+      rmSync(home, { recursive: true, force: true });
     }
   });
 
-  it("set patches an existing config without dropping other fields", async () => {
-    const project = mkdtempSync(join(tmpdir(), "agentline-themes-patch-"));
+  it("set patches an existing user config without dropping other fields", async () => {
+    const home = mkdtempSync(join(tmpdir(), "agentline-themes-patch-"));
     try {
-      const target = join(project, ".agentline.json");
+      mkdirSync(join(home, "agentline"));
+      const target = join(home, "agentline", "config.json");
       writeFileSync(
         target,
         JSON.stringify({ version: 1, theme: "old", lines: [{ widgets: [{ type: "model" }] }] }),
       );
       vi.spyOn(process.stdout, "write").mockImplementation(() => true);
       const code = await runThemesCommand({
-        args: { action: "set", name: "demo", scope: "project" },
-        env: { CLAUDE_PROJECT_DIR: project, CLAUDE_CONFIG_DIR: project },
-        cwd: project,
+        args: { action: "set", name: "demo" },
+        env: { CLAUDE_CONFIG_DIR: home },
         builtinDir: tmp,
       });
       expect(code).toBe(0);
@@ -241,103 +220,80 @@ describe("runThemesCommand", () => {
       expect(written.version).toBe(1);
       expect(written.lines).toEqual([{ widgets: [{ type: "model" }] }]);
     } finally {
-      rmSync(project, { recursive: true, force: true });
+      rmSync(home, { recursive: true, force: true });
     }
   });
 
   it("set is idempotent", async () => {
-    const project = mkdtempSync(join(tmpdir(), "agentline-themes-idem-"));
+    const home = mkdtempSync(join(tmpdir(), "agentline-themes-idem-"));
     try {
       vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-      const args = { action: "set" as const, name: "demo", scope: "project" as const };
+      const args = { action: "set" as const, name: "demo" };
       const ctx = {
         args,
-        env: { CLAUDE_PROJECT_DIR: project, CLAUDE_CONFIG_DIR: project },
-        cwd: project,
+        env: { CLAUDE_CONFIG_DIR: home },
         builtinDir: tmp,
       };
       expect(await runThemesCommand(ctx)).toBe(0);
-      const first = readFileSync(join(project, ".agentline.json"), "utf8");
+      const target = join(home, "agentline", "config.json");
+      const first = readFileSync(target, "utf8");
       expect(await runThemesCommand(ctx)).toBe(0);
-      const second = readFileSync(join(project, ".agentline.json"), "utf8");
+      const second = readFileSync(target, "utf8");
       expect(second).toBe(first);
     } finally {
-      rmSync(project, { recursive: true, force: true });
+      rmSync(home, { recursive: true, force: true });
     }
   });
 
   it("set rejects an unknown theme name", async () => {
-    const project = mkdtempSync(join(tmpdir(), "agentline-themes-unknown-"));
+    const home = mkdtempSync(join(tmpdir(), "agentline-themes-unknown-"));
     try {
       const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
       const code = await runThemesCommand({
-        args: { action: "set", name: "nope", scope: "project" },
-        env: { CLAUDE_PROJECT_DIR: project, CLAUDE_CONFIG_DIR: project },
-        cwd: project,
+        args: { action: "set", name: "nope" },
+        env: { CLAUDE_CONFIG_DIR: home },
         builtinDir: tmp,
       });
       expect(code).toBe(1);
       expect(stderr).toHaveBeenCalled();
-      expect(existsSync(join(project, ".agentline.json"))).toBe(false);
+      expect(existsSync(join(home, "agentline", "config.json"))).toBe(false);
     } finally {
-      rmSync(project, { recursive: true, force: true });
+      rmSync(home, { recursive: true, force: true });
     }
   });
 
   it("set rejects path-shaped theme names", async () => {
-    const project = mkdtempSync(join(tmpdir(), "agentline-themes-pathsafe-"));
+    const home = mkdtempSync(join(tmpdir(), "agentline-themes-pathsafe-"));
     try {
       vi.spyOn(process.stderr, "write").mockImplementation(() => true);
       const code = await runThemesCommand({
-        args: { action: "set", name: "../../etc/passwd", scope: "project" },
-        env: { CLAUDE_PROJECT_DIR: project, CLAUDE_CONFIG_DIR: project },
-        cwd: project,
+        args: { action: "set", name: "../../etc/passwd" },
+        env: { CLAUDE_CONFIG_DIR: home },
         builtinDir: tmp,
       });
       expect(code).toBe(2);
-      expect(existsSync(join(project, ".agentline.json"))).toBe(false);
+      expect(existsSync(join(home, "agentline", "config.json"))).toBe(false);
     } finally {
-      rmSync(project, { recursive: true, force: true });
+      rmSync(home, { recursive: true, force: true });
     }
   });
 
-  it("set refuses to overwrite an existing config that isn't valid JSON", async () => {
-    const project = mkdtempSync(join(tmpdir(), "agentline-themes-badjson-"));
+  it("set refuses to overwrite an existing user config that isn't valid JSON", async () => {
+    const home = mkdtempSync(join(tmpdir(), "agentline-themes-badjson-"));
     try {
-      const target = join(project, ".agentline.json");
+      mkdirSync(join(home, "agentline"));
+      const target = join(home, "agentline", "config.json");
       writeFileSync(target, "{not json");
       vi.spyOn(process.stderr, "write").mockImplementation(() => true);
       const code = await runThemesCommand({
-        args: { action: "set", name: "demo", scope: "project" },
-        env: { CLAUDE_PROJECT_DIR: project, CLAUDE_CONFIG_DIR: project },
-        cwd: project,
+        args: { action: "set", name: "demo" },
+        env: { CLAUDE_CONFIG_DIR: home },
         builtinDir: tmp,
       });
       expect(code).toBe(1);
       expect(readFileSync(target, "utf8")).toBe("{not json");
     } finally {
-      rmSync(project, { recursive: true, force: true });
-    }
-  });
-
-  it("set with no scope defaults to user when no project config exists", async () => {
-    const project = mkdtempSync(join(tmpdir(), "agentline-themes-defaultscope-"));
-    const userHome = mkdtempSync(join(tmpdir(), "agentline-themes-user-"));
-    try {
-      vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-      const code = await runThemesCommand({
-        args: { action: "set", name: "demo" },
-        env: { CLAUDE_PROJECT_DIR: project, CLAUDE_CONFIG_DIR: userHome },
-        cwd: project,
-        builtinDir: tmp,
-      });
-      expect(code).toBe(0);
-      // Project config was never created, user config should now exist.
-      expect(existsSync(join(project, ".agentline.json"))).toBe(false);
-      expect(existsSync(join(userHome, "agentline", "config.json"))).toBe(true);
-    } finally {
-      rmSync(project, { recursive: true, force: true });
-      rmSync(userHome, { recursive: true, force: true });
+      rmSync(home, { recursive: true, force: true });
     }
   });
 });

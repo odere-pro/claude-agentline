@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseInitArgs, runInitCommand } from "./command.js";
 
 describe("parseInitArgs", () => {
-  it("zero args → preset 'default', scope 'project', no force, no target", () => {
-    expect(parseInitArgs([])).toEqual({ preset: "default", scope: "project", force: false });
+  it("zero args → preset 'default', no force, no target", () => {
+    expect(parseInitArgs([])).toEqual({ preset: "default", force: false });
   });
 
   it("--minimal is no longer accepted (removed in the minimal|default|maximal restructure)", () => {
@@ -21,33 +21,31 @@ describe("parseInitArgs", () => {
     }
   });
 
-  it("--scope user|project", () => {
-    expect(parseInitArgs(["--scope", "user"])).toMatchObject({ scope: "user" });
-    expect(parseInitArgs(["--scope=project"])).toMatchObject({ scope: "project" });
+  it("--scope is no longer accepted (project layer was removed; init always writes user config)", () => {
+    expect(() => parseInitArgs(["--scope", "user"])).toThrow(/unknown argument/);
+    expect(() => parseInitArgs(["--scope=project"])).toThrow(/unknown argument/);
   });
 
   it("--force enables overwrite", () => {
     expect(parseInitArgs(["--force"])).toMatchObject({ force: true });
   });
 
-  it("--target overrides scope-derived path", () => {
+  it("--target overrides the default user-config path", () => {
     expect(parseInitArgs(["--target", "/etc/agentline.json"])).toMatchObject({
       target: "/etc/agentline.json",
     });
     expect(parseInitArgs(["--target=/x.json"])).toMatchObject({ target: "/x.json" });
   });
 
-  it("rejects unknown preset / scope / arg", () => {
+  it("rejects unknown preset / arg", () => {
     expect(() => parseInitArgs(["--preset", "ultra"])).toThrow(/unknown preset/);
     expect(() => parseInitArgs(["--preset", "focus"])).toThrow(/unknown preset/);
     expect(() => parseInitArgs(["--preset", "power"])).toThrow(/unknown preset/);
-    expect(() => parseInitArgs(["--scope", "global"])).toThrow(/unknown scope/);
     expect(() => parseInitArgs(["--bogus"])).toThrow(/unknown argument/);
   });
 
   it("rejects flags without values", () => {
     expect(() => parseInitArgs(["--preset"])).toThrow(/--preset requires/);
-    expect(() => parseInitArgs(["--scope"])).toThrow(/--scope requires/);
     expect(() => parseInitArgs(["--target"])).toThrow(/--target requires/);
   });
 });
@@ -81,10 +79,10 @@ describe("runInitCommand", () => {
   });
 
   it("writes the default preset to an explicit target", async () => {
-    const target = join(tmp, ".agentline.json");
+    const target = join(tmp, "config.json");
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const code = await runInitCommand({
-      args: { preset: "default", scope: "project", force: false, target },
+      args: { preset: "default", force: false, target },
       templateDir,
     });
     expect(code).toBe(0);
@@ -93,60 +91,47 @@ describe("runInitCommand", () => {
   });
 
   it("--preset minimal writes the minimal preset", async () => {
-    const target = join(tmp, ".agentline.json");
+    const target = join(tmp, "config.json");
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     await runInitCommand({
-      args: { preset: "minimal", scope: "project", force: false, target },
+      args: { preset: "minimal", force: false, target },
       templateDir,
     });
     expect(JSON.parse(readFileSync(target, "utf8")).marker).toBe("minimal");
   });
 
   it("--preset maximal writes the maximal preset", async () => {
-    const target = join(tmp, ".agentline.json");
+    const target = join(tmp, "config.json");
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     await runInitCommand({
-      args: { preset: "maximal", scope: "project", force: false, target },
+      args: { preset: "maximal", force: false, target },
       templateDir,
     });
     expect(JSON.parse(readFileSync(target, "utf8")).marker).toBe("maximal");
   });
 
-  it("scope=project → writes .agentline.json in the project dir", async () => {
-    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    await runInitCommand({
-      args: { preset: "minimal", scope: "project", force: false },
-      templateDir,
-      env: { CLAUDE_PROJECT_DIR: tmp, CLAUDE_CONFIG_DIR: tmp },
-      cwd: tmp,
-    });
-    const written = JSON.parse(readFileSync(join(tmp, ".agentline.json"), "utf8"));
-    expect(written.marker).toBe("minimal");
-  });
-
-  it("scope=user → writes ~/.config/agentline/config.json equivalent", async () => {
+  it("default target → ${CLAUDE_CONFIG_DIR}/agentline/config.json", async () => {
     const userDir = join(tmp, "agentline");
     mkdirSync(userDir);
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     await runInitCommand({
-      args: { preset: "default", scope: "user", force: false },
+      args: { preset: "default", force: false },
       templateDir,
       env: { CLAUDE_CONFIG_DIR: tmp },
-      cwd: tmp,
     });
     const written = JSON.parse(readFileSync(join(userDir, "config.json"), "utf8"));
     expect(written.marker).toBe("default");
   });
 
   it("post-write hint mentions verify and doctor", async () => {
-    const target = join(tmp, ".agentline.json");
+    const target = join(tmp, "config.json");
     const writes: string[] = [];
     vi.spyOn(process.stdout, "write").mockImplementation((chunk: unknown) => {
       writes.push(String(chunk));
       return true;
     });
     await runInitCommand({
-      args: { preset: "default", scope: "project", force: false, target },
+      args: { preset: "default", force: false, target },
       templateDir,
     });
     const out = writes.join("");
@@ -159,7 +144,7 @@ describe("runInitCommand", () => {
     writeFileSync(target, "user content");
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const code = await runInitCommand({
-      args: { preset: "default", scope: "project", force: false, target },
+      args: { preset: "default", force: false, target },
       templateDir,
     });
     expect(code).toBe(1);
@@ -172,7 +157,7 @@ describe("runInitCommand", () => {
     writeFileSync(target, "user content");
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const code = await runInitCommand({
-      args: { preset: "default", scope: "project", force: true, target },
+      args: { preset: "default", force: true, target },
       templateDir,
     });
     expect(code).toBe(0);

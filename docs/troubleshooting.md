@@ -52,11 +52,11 @@ See [install.md](./install.md) for the full install procedure.
 
 ## Config not loading
 
-D03 in `agentline doctor --strict` validates the config. Project config must be at `.agentline.json` at the project root (see [config.md](./config.md#file-locations)):
+D03 in `agentline doctor --strict` validates the config. agentline reads a single global config at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` (see [config.md](./config.md#file-locations)):
 
 ```bash
-agentline config init --preset default --scope project   # scaffold a valid config
-agentline config schema --write /tmp/                    # dump the schema for manual inspection
+agentline config init --preset default     # scaffold a valid user config
+agentline config schema --write /tmp/      # dump the schema for manual inspection
 ```
 
 ---
@@ -96,17 +96,6 @@ Other less obvious causes:
 - **`options.shell` was ignored.** The widget honours `shell` only when it is one of `/bin/sh`, `/bin/bash`, `/usr/bin/sh`, `/usr/bin/bash`, `/usr/local/bin/bash`, `cmd.exe`, `powershell.exe`, or `pwsh.exe`. Anything else falls back to the platform default.
 - **Credential env var missing.** Variables matching `*_TOKEN`, `*_KEY`, `*_SECRET`, `*_PASSWORD`, `*_PASS`, `*_AUTH` are stripped from the subprocess environment by design — surface secrets through a different channel.
 - **`options.cwd` was rejected.** It must be an absolute path that exists and is a directory; otherwise the subprocess inherits agentline's cwd.
-
----
-
-## My project's `command` widget is missing / I see "dropped \`command\` widget(s) from project config" on stderr
-
-By default, `command` widgets declared in `.agentline.json` (the project layer) are dropped before merge so cloning a hostile repo and refreshing the statusline isn't RCE-by-default. Two ways forward:
-
-1. **Move the widget to your user config** (`${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`). User-layer `command` widgets always run.
-2. **Opt in for this shell session:** export `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1`. The warning stops and the project widget renders. Set it project-wide via your shell rc / direnv only after reviewing the project file.
-
-See [widgets.md](./widgets.md) for the trust-boundary rationale.
 
 ---
 

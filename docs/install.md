@@ -70,11 +70,10 @@ Every filesystem write is atomic (write-temp, `fsync`, `rename`). Re-running
 
 ### Environment overrides
 
-| Variable             | Effect                                                                                                           |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `CLAUDE_CONFIG_DIR`  | Overrides the parent of the agentline config directory. Default: `~/.config`.                                    |
-| `CLAUDE_PROJECT_DIR` | Used by `agentline config init --scope project` to decide where `.claude/agentline.json` lives. Default: `$PWD`. |
-| `AGENTLINE_BIN`      | Read by `doctor.sh` and other wrappers to pick a specific bin. Useful in tests and CI.                           |
+| Variable            | Effect                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| `CLAUDE_CONFIG_DIR` | Overrides the parent of the agentline config directory. Default: `~/.config`.          |
+| `AGENTLINE_BIN`     | Read by `doctor.sh` and other wrappers to pick a specific bin. Useful in tests and CI. |
 
 ## What happens to my existing statusLine?
 
@@ -123,30 +122,20 @@ agentline doctor --fix
 (see [doctor.md](./doctor.md)); calling it after the manual `cp` steps
 adds the `statusLine` entry to `~/.claude/settings.json` for you.
 
-## Per-project init
-
-To pin a project to a smaller config (for example, in a repo where you
-want only model + git on the statusline):
+## Pick a preset
 
 ```bash
-agentline config init --preset minimal      # smaller line, project-scoped
-agentline config init --preset focus        # model + git + context + clock
-agentline config init --preset power        # everything: tokens, cost, limits
-agentline config init --scope user          # write to user config instead
+agentline config init --preset minimal      # essentials only
+agentline config init --preset default      # balanced (default if --preset omitted)
+agentline config init --preset maximal      # curated everything
 ```
 
-Available presets: `minimal | default | focus | power`. The default
-scope is `project`, which writes
-`${CLAUDE_PROJECT_DIR:-$PWD}/.claude/agentline.json`. Project config is
-layered on top of user config (§4.1 of the spec): only the keys you
-set override the user defaults.
+Available presets: `minimal | default | maximal`. All forms write to
+the user config at `${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json`
+— agentline is configured globally.
 
 `agentline config init` refuses to overwrite an existing target unless
 `--force` is passed, so re-running it on a configured tree is safe.
-
-The shipped `scripts/init.sh` remains as a thin compatibility shim for
-the install script lifecycle (gate 04 covers its idempotency); for new
-projects, prefer `agentline config init` directly.
 
 ## Verify
 

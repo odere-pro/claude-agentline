@@ -49,7 +49,7 @@ export async function runChecks(opts: RunOptions): Promise<CheckResult[]> {
     configError: null,
   };
   try {
-    const loaded = await loadConfig({ env: ctx.env, cwd: ctx.cwd });
+    const loaded = await loadConfig({ env: ctx.env });
     ctx.config = loaded.config;
   } catch (err) {
     ctx.configError = err as Error;

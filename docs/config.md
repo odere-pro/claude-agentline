@@ -23,24 +23,21 @@ agentline config schema --write .vscode/
 
 ## File locations
 
-`agentline` reads configuration from up to three layered sources, in
+agentline is configured globally only — there is no per-project
+config layer. A `.agentline.json` in the cwd is silently ignored.
+
+`agentline` reads configuration from up to four layered sources, in
 this order (each later layer overrides the earlier ones):
 
 1. **Built-in defaults** compiled into the binary.
 2. **User config** at
    `${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json`.
-3. **Project config** at `${CLAUDE_PROJECT_DIR:-$PWD}/.agentline.json`,
-   when the file is present. The project layer silently drops
-   `command` widgets unless
-   `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1` is set in the
-   environment — see [widgets.md](./widgets.md) for the rationale.
-4. **Environment variables** prefixed `AGENTLINE_` (dot-path mapping;
+3. **Environment variables** prefixed `AGENTLINE_` (dot-path mapping;
    see below).
-5. **Command-line flags** (`--config <path>` overrides the user config
+4. **Command-line flags** (`--config <path>` overrides the user config
    path entirely).
 
-Layers 2 and 3 are partial overlays: a key absent at the project layer
-inherits the user value; a key absent at both layers inherits the
+Layer 2 is a partial overlay: a key absent in user config inherits the
 built-in default. Arrays (`lines`, `lines[].widgets`) are replaced
 wholesale, not merged element-by-element — same rule as JSON Patch.
 
@@ -49,11 +46,11 @@ wholesale, not merged element-by-element — same rule as JSON Patch.
 The quickest way to work with config without editing JSON by hand:
 
 ```bash
-agentline config                                           # open the interactive TUI editor
-agentline config init --preset default --scope project     # scaffold .claude/agentline.json
-agentline config init --preset minimal --scope user        # scaffold user config
-agentline config init --force --preset default             # reset the project config to defaults
-agentline config schema --write .vscode/                   # drop the JSON schema for editor autocomplete
+agentline config                              # open the interactive TUI editor
+agentline config init --preset default        # scaffold the user config
+agentline config init --preset minimal        # scaffold a minimal user config
+agentline config init --force --preset default  # reset the user config to defaults
+agentline config schema --write .vscode/      # drop the JSON schema for editor autocomplete
 ```
 
 To see a config change in the live statusline, restart the Claude Code session — the renderer is invoked once per prompt by Claude Code, not by a watcher.
@@ -179,12 +176,11 @@ JSON values have `__proto__` / `constructor` / `prototype` keys
 stripped recursively before merge, so a malicious env layer cannot
 mutate `Object.prototype`.
 
-Two non-config-leaf env vars that affect loader behaviour:
+One non-config-leaf env var affects loader behaviour:
 
-| Variable                                  | Effect                                                                                                                                                                                                        |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS` | Set to `1` to opt in to `command` widgets sourced from the project layer (`.agentline.json`). Otherwise project-layer `command` widgets are dropped before merge and a one-line warning is emitted to stderr. |
-| `AGENTLINE_TRANSCRIPT_ROOT`               | Override the directory tree the transcript reader is allowed to resolve under (default: `~/.claude`). Test-only; production should leave unset.                                                               |
+| Variable                    | Effect                                                                                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENTLINE_TRANSCRIPT_ROOT` | Override the directory tree the transcript reader is allowed to resolve under (default: `~/.claude`). Test-only; production should leave unset. |
 
 ## Atomic writes
 

@@ -417,16 +417,14 @@ Colour-depth auto-detection reads `COLORTERM`, `TERM`, and `TERM_PROGRAM`. Detec
 
 ## Environment variables
 
-| Variable                                  | Scope                | Effect                                                                                                                                                                                                                          |
-| ----------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NO_COLOR`                                | global               | Disable colour output (equivalent to `--no-color`; takes precedence)                                                                                                                                                            |
-| `AGENTLINE_QUIET`                         | render path          | Set to `1` to suppress the first-run "using built-in defaults" hint on stderr                                                                                                                                                   |
-| `CLAUDE_CONFIG_DIR`                       | global               | Override the parent of the agentline config dir. Default: `~/.config`                                                                                                                                                           |
-| `CLAUDE_PROJECT_DIR`                      | config init, install | Override the project root for project-scoped config path. Default: `$PWD`                                                                                                                                                       |
-| `AGENTLINE_BIN`                           | scripts              | Force a specific binary path in shell scripts and CI; useful for testing                                                                                                                                                        |
-| `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS` | config load          | Set to `1` to opt in to `command` widgets sourced from `.agentline.json` (the project layer). Without this, project-layer `command` widgets are silently dropped and a one-line warning is written to stderr. See `widgets.md`. |
-| `AGENTLINE_TRANSCRIPT_ROOT`               | render path          | Override the directory tree that `transcriptPath` is allowed to resolve under. Default is the user's `~/.claude` tree. Test-only; production should leave unset.                                                                |
-| `AGENTLINE_*`                             | render path          | Override any config leaf: dot-path in `UPPER_SNAKE_CASE`, prefixed `AGENTLINE_`                                                                                                                                                 |
+| Variable                    | Scope       | Effect                                                                                                                                                           |
+| --------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NO_COLOR`                  | global      | Disable colour output (equivalent to `--no-color`; takes precedence)                                                                                             |
+| `AGENTLINE_QUIET`           | render path | Set to `1` to suppress the first-run "using built-in defaults" hint on stderr                                                                                    |
+| `CLAUDE_CONFIG_DIR`         | global      | Override the parent of the agentline config dir. Default: `~/.config`                                                                                            |
+| `AGENTLINE_BIN`             | scripts     | Force a specific binary path in shell scripts and CI; useful for testing                                                                                         |
+| `AGENTLINE_TRANSCRIPT_ROOT` | render path | Override the directory tree that `transcriptPath` is allowed to resolve under. Default is the user's `~/.claude` tree. Test-only; production should leave unset. |
+| `AGENTLINE_*`               | render path | Override any config leaf: dot-path in `UPPER_SNAKE_CASE`, prefixed `AGENTLINE_`                                                                                  |
 
 **`AGENTLINE_*` override examples:**
 

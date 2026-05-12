@@ -1,15 +1,17 @@
 /**
  * Body for `agentline config init` (§9.1, §10).
  *
- * Scaffolds a config file from a shipped preset. Idempotent: refuses
- * to overwrite an existing target unless `--force` is passed. Atomic
- * write via the existing helper.
+ * Scaffolds the user config file from a shipped preset. Idempotent:
+ * refuses to overwrite an existing target unless `--force` is passed.
+ * Atomic write via the existing helper.
+ *
+ * agentline is configured globally only — there is no per-project
+ * config. The default target is `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`;
+ * `--target <path>` overrides for tests or unusual setups.
  *
  * Flag surface:
  *   --preset <name>   one of `minimal | default | maximal`
- *   --scope <where>   `user` (~/.config/agentline/config.json) or
- *                     `project` (default — `.agentline.json` in cwd)
- *   --target <path>   explicit override; takes precedence over --scope
+ *   --target <path>   explicit override of the default user-config path
  *   --force           overwrite an existing target
  *
  * After a successful write the command prints next-step hints
@@ -27,10 +29,10 @@ import { resolveConfigPaths } from "../config/paths.js";
 import { resolveEnv } from "../lib/env.js";
 import { pathExists } from "../lib/fs.js";
 
-const HELP = `agentline config init — scaffold a config file from a shipped preset
+const HELP = `agentline config init — scaffold the user config file from a shipped preset
 
 Usage:
-  agentline config init [--preset <name>] [--scope <where>] [--target <path>] [--force]
+  agentline config init [--preset <name>] [--target <path>] [--force]
 
 Presets:
   minimal   essentials only — model + context-length + block-reset-timer (5h)
@@ -39,9 +41,8 @@ Presets:
 
 Options:
   --preset <name>     one of minimal | default | maximal (default: default)
-  --scope <where>     user (~/.config/agentline/config.json) or
-                      project (.agentline.json — default)
-  --target <path>     explicit override; takes precedence over --scope
+  --target <path>     write to this path instead of the default user-config
+                      location (\`\${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json\`)
   --force             overwrite an existing target
   -h, --help          show this message
 
@@ -49,14 +50,11 @@ After writing, the command prints next-step hints for verify + doctor.
 `;
 
 export type InitPreset = "minimal" | "default" | "maximal";
-export type InitScope = "user" | "project";
 
 const PRESETS: ReadonlySet<InitPreset> = new Set(["minimal", "default", "maximal"]);
-const SCOPES: ReadonlySet<InitScope> = new Set(["user", "project"]);
 
 export interface InitCommandArgs {
   readonly preset: InitPreset;
-  readonly scope: InitScope;
   readonly force: boolean;
   readonly target?: string;
 }
@@ -64,15 +62,13 @@ export interface InitCommandArgs {
 export interface InitInput {
   readonly args: InitCommandArgs;
   readonly env?: NodeJS.ProcessEnv;
-  readonly cwd?: string;
   /** Override template directory; primarily used by tests. */
   readonly templateDir?: string;
 }
 
 export async function runInitCommand(input: InitInput): Promise<number> {
   const env = resolveEnv(input);
-  const cwd = input.cwd ?? process.cwd();
-  const target = input.args.target ?? resolveTargetForScope(input.args.scope, env, cwd);
+  const target = input.args.target ?? resolveConfigPaths(env).userConfig;
   const templateDir = input.templateDir ?? defaultTemplateDir();
   const templateFile = templateFileFor(input.args.preset);
   const templatePath = join(templateDir, templateFile);
@@ -106,11 +102,6 @@ export async function runInitCommand(input: InitInput): Promise<number> {
   return 0;
 }
 
-function resolveTargetForScope(scope: InitScope, env: NodeJS.ProcessEnv, cwd: string): string {
-  const paths = resolveConfigPaths(env, cwd);
-  return scope === "user" ? paths.userConfig : paths.projectConfig;
-}
-
 function templateFileFor(preset: InitPreset): string {
   switch (preset) {
     case "minimal":
@@ -124,7 +115,6 @@ function templateFileFor(preset: InitPreset): string {
 
 export function parseInitArgs(rest: readonly string[]): InitCommandArgs {
   let preset: InitPreset | undefined;
-  let scope: InitScope = "project";
   let force = false;
   let target: string | undefined;
   for (let i = 0; i < rest.length; i += 1) {
@@ -145,18 +135,6 @@ export function parseInitArgs(rest: readonly string[]): InitCommandArgs {
       const value = arg.slice("--preset=".length);
       assertPreset(value);
       preset = value;
-    } else if (arg === "--scope") {
-      const next = rest[i + 1];
-      if (!next || next.startsWith("-")) {
-        throw new Error("agentline config init: --scope requires one of user|project");
-      }
-      assertScope(next);
-      scope = next;
-      i += 1;
-    } else if (arg && arg.startsWith("--scope=")) {
-      const value = arg.slice("--scope=".length);
-      assertScope(value);
-      scope = value;
     } else if (arg === "--force") {
       force = true;
     } else if (arg === "--target") {
@@ -173,7 +151,7 @@ export function parseInitArgs(rest: readonly string[]): InitCommandArgs {
     }
   }
   const resolvedPreset: InitPreset = preset ?? "default";
-  const out: InitCommandArgs = { preset: resolvedPreset, scope, force };
+  const out: InitCommandArgs = { preset: resolvedPreset, force };
   if (target !== undefined) (out as { target: string }).target = target;
   return out;
 }
@@ -183,12 +161,6 @@ function assertPreset(value: string): asserts value is InitPreset {
     throw new Error(
       `agentline config init: unknown preset '${value}' (expected minimal|default|maximal)`,
     );
-  }
-}
-
-function assertScope(value: string): asserts value is InitScope {
-  if (!SCOPES.has(value as InitScope)) {
-    throw new Error(`agentline config init: unknown scope '${value}' (expected user|project)`);
   }
 }
 

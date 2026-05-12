@@ -176,10 +176,9 @@ export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {
 async function maybeEmitFirstRunHint(): Promise<void> {
   if (!process.stderr.isTTY) return;
   if (process.env.AGENTLINE_QUIET === "1") return;
-  const paths = resolveConfigPaths(process.env, process.cwd());
+  const paths = resolveConfigPaths(process.env);
   const hasUser = await pathExists(paths.userConfig);
-  const hasProject = await pathExists(paths.projectConfig);
-  if (hasUser || hasProject) return;
+  if (hasUser) return;
   process.stderr.write(
     "# agentline: using built-in defaults — `agentline config init` to customise (silence with AGENTLINE_QUIET=1)\n",
   );

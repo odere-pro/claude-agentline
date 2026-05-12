@@ -27,8 +27,8 @@ If you cannot use GitHub advisories, open an issue titled `security contact requ
 The trust model is documented end-to-end in `docs/plan/SPEC-v0.1.0.md`. Summary:
 
 - **stdin is trusted.** Statusline stdin is supplied by Claude Code, which is the only intended sender; the render path enforces the 256 KiB cap (§8.1) and rejects malformed JSON, and it does not fetch anything based on the payload.
-- **User config is trusted.** A user who edits their own `.agentline.json` or theme JSON can already run arbitrary code on their own machine; widget options that shell out (the `command` widget, §7.8.3) are accepted by design when sourced from the user layer.
-- **Project config is partially trusted.** A `.agentline.json` checked into a repo (layer 3) cannot inject `command` widgets unless the user opts in via `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1`. Project-layer `command` widgets are silently dropped before merge otherwise.
+- **User config is trusted.** A user who edits their own user config (`${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`) or theme JSON can already run arbitrary code on their own machine; widget options that shell out (the `command` widget, §7.8.3) are accepted by design.
+- **No project config layer.** agentline is configured globally only. A `.agentline.json` in the cwd is silently ignored, so cloning a hostile repo and refreshing the statusline cannot inject any widget — `command` or otherwise.
 - **The render path makes no network calls.** Gate 14 (`tests/gates/gate-14-no-network-render.sh`) enforces this; any new import that opens a socket fails CI.
 - **Config writes are atomic.** Persisted writes to the agentline user config and to Claude Code settings go through write-temp + `fsync` + `rename`. The install flow is idempotent and reverses cleanly.
 - **No remote code at install.** `agentline install` only wires the local bin into Claude Code settings and copies skill files; it does not download or execute additional payloads.
@@ -53,7 +53,6 @@ Behaviours that are documented features, not flaws:
 - A user-edited config that points the theme loader at a path it cannot read. The loader fails closed and renders a degraded statusline; this is the intended degradation.
 - A 256 KiB stdin payload taking longer to render than a 1 KiB one. The cap is the budget.
 - Hand-edited Claude Code settings that no longer parse. Run `agentline doctor --fix` to restore a working block.
-- A user opting into `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1` and then running a malicious project. The env var is the opt-in gate; we will not adjudicate project-supplied commands once it is set.
 
 ## Disclosure
 

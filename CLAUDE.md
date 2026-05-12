@@ -21,7 +21,7 @@ The normative spec is **`docs/plan/SPEC-v0.1.0.md`**. Treat it as authoritative.
 - **Atomic config writes.** Persisted config writes go through write-temp + `fsync` + `rename`.
 - **Reset axes are explicit.** Token, cost, and rate-limit widgets must declare their `reset` axis (`session` / `block` / `day` / `week` / `model` / `effort`); mixed-axis aggregation is forbidden.
 - **No absolute paths in artefacts.** Gate 02 enforces — no `/Users/`, `/home/`, or `~/.claude/` literals in shipped files.
-- **Project-config trust boundary.** A `.agentline.json` (layer 3) cannot run shell commands by default. `command` widgets sourced from the project layer are silently dropped before merge unless the user sets `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1`. Documented at spec §7.8.3.
+- **Configured globally only.** There is no per-project config layer. The single source of truth is `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`; a `.agentline.json` in the cwd is silently ignored.
 
 ## Naming policy
 
