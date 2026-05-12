@@ -21,7 +21,7 @@ import { DEFAULT_CONFIG } from "../config/defaults.js";
 import { loadConfig } from "../config/load.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import type { AgentlineConfig } from "../config/types.js";
-import { listBindings } from "../keys/index.js";
+import { listBindings, type KeyBinding } from "../keys/index.js";
 import { resolveEnv } from "../lib/env.js";
 
 import { defaultRegistry, registerAllBuiltins, type WidgetMetaEntry } from "../widgets/index.js";
@@ -174,9 +174,6 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
     if (input === "r") return dispatch({ type: "open-picker", target: "replace" });
     if (input === "x") return dispatch({ type: "delete" });
     if (input === "o") return dispatch({ type: "open-options" });
-    if (input === "v") return dispatch({ type: "toggle-hidden" });
-    if (input === "m") return dispatch({ type: "cycle-merge" });
-    if (input === "l") return dispatch({ type: "toggle-raw" });
   });
 
   return React.createElement(
@@ -190,7 +187,7 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
       React.createElement(Preview, { base: initialConfig, lines: state.lines, width: previewWidth() }),
     ),
     React.createElement(Box, { flexDirection: "column", marginTop: 1 }, ...renderWidgets(state)),
-    React.createElement(Box, { marginTop: 1 }, React.createElement(Text, { dimColor: true }, footerText(bindings))),
+    React.createElement(Box, { marginTop: 1 }, React.createElement(Text, { dimColor: true }, footerText(bindings, state.mode))),
     state.dirty
       ? React.createElement(
           Text,
@@ -214,16 +211,32 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
   );
 }
 
-function helpOverlay(
-  bindings: readonly { key: string; description: string }[],
-): React.ReactElement {
+const SCOPE_ORDER = ["edit", "picker", "options", "any"] as const;
+const SCOPE_HEADING: Record<KeyBinding["scope"], string> = {
+  edit: "layout view",
+  picker: "in the widget picker",
+  options: "in the options sheet",
+  any: "any time",
+};
+
+function helpOverlay(bindings: readonly KeyBinding[]): React.ReactElement {
+  const widest = bindings.reduce((n, b) => Math.max(n, b.key.length), 0);
+  const groups: React.ReactElement[] = [];
+  for (const scope of SCOPE_ORDER) {
+    const inScope = bindings.filter((b) => b.scope === scope);
+    if (inScope.length === 0) continue;
+    groups.push(
+      React.createElement(Text, { key: `h-${scope}`, bold: true }, `\n${SCOPE_HEADING[scope]}`),
+      ...inScope.map((b) =>
+        React.createElement(Text, { key: `${scope}-${b.action}` }, `  ${b.key.padEnd(widest, " ")}  ${b.description}`),
+      ),
+    );
+  }
   return React.createElement(
     Box,
     { flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, marginTop: 1 },
-    React.createElement(Text, { bold: true }, "keys (press any key to close)"),
-    ...bindings.map((b) =>
-      React.createElement(Text, { key: b.description }, `  ${b.key.padEnd(10, " ")}  ${b.description}`),
-    ),
+    React.createElement(Text, { bold: true }, "keys — press any key to close"),
+    ...groups,
   );
 }
 
@@ -276,23 +289,35 @@ function renderWidgets(state: EditorState): React.ReactElement[] {
 }
 
 /** Compact one-line footer of the edit-mode keys, drawn from the active keymap. */
-function footerText(bindings: readonly { key: string; description: string }[]): string {
-  const short: Record<string, string> = {
-    "move the selection within the row": "move",
-    "move the selection to the adjacent row": "row",
-    "move the selected widget within its row": "move widget",
-    "move the selected widget to the adjacent row": "widget→row",
-    "add a widget": "add",
-    "replace the selected widget": "replace",
-    "delete the selected widget": "delete",
-    "show / hide the selected widget": "hide",
-    "spacing to neighbour: full / single space / none": "spacing",
-    "show / hide the widget's own label": "label",
-    save: "save",
-    "quit (prompts if there are unsaved changes)": "quit",
-    "toggle the help overlay": "help",
-  };
-  return bindings.map((b) => `${b.key} ${short[b.description] ?? b.description}`).join(" · ");
+// Compact one-line footer of the keys active in the current mode (plus `any`),
+// keyed by action so it survives `config.keymap` overrides and description edits.
+const FOOTER_LABEL: Record<string, string> = {
+  "move-cursor": "move",
+  "move-cursor-row": "row",
+  "move-widget": "move widget",
+  "move-widget-row": "widget→row",
+  add: "add",
+  replace: "replace",
+  delete: "delete",
+  options: "options",
+  save: "save",
+  "picker-filter": "type to filter",
+  "picker-navigate": "navigate",
+  "picker-confirm": "confirm",
+  "picker-cancel": "cancel",
+  "toggle-visible": "show/hide",
+  "toggle-label": "label",
+  "cycle-spacing": "spacing",
+  "options-close": "close",
+  quit: "quit",
+  help: "help",
+};
+
+function footerText(bindings: readonly KeyBinding[], mode: KeyBinding["scope"]): string {
+  return bindings
+    .filter((b) => b.scope === mode || b.scope === "any")
+    .map((b) => `${b.key} ${FOOTER_LABEL[b.action] ?? b.description}`)
+    .join(" · ");
 }
 
 function mountEditor(config: AgentlineConfig, path: string): {
