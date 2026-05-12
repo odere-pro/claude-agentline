@@ -26,6 +26,14 @@ export {
   WidgetTypeMissingError,
   type RenderWidgetOptions,
 } from "./render-widget.js";
+export {
+  WIDGET_CATALOG,
+  WIDGET_CATEGORIES,
+  widgetMeta,
+  type WidgetCategory,
+  type WidgetMeta,
+  type WidgetMetaEntry,
+} from "./catalog.js";
 
 import type { WidgetRegistry } from "./registry.js";
 import { registerSessionWidgets } from "./session/index.js";

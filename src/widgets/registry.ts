@@ -11,6 +11,7 @@
  * v0.1.0 (§13).
  */
 
+import { WIDGET_CATALOG, type WidgetMetaEntry } from "./catalog.js";
 import type { WidgetDef } from "./widget.js";
 
 export class WidgetTypeAlreadyRegistered extends Error {
@@ -57,6 +58,24 @@ export class WidgetRegistry {
 
   list(): readonly string[] {
     return [...this.defs.keys()].sort();
+  }
+
+  /**
+   * Catalogued metadata for the registered types, sorted by `type`.
+   *
+   * Types with no `WIDGET_CATALOG` entry are skipped — that path is
+   * reachable only for test-only fixture widgets; every built-in is
+   * catalogued (asserted by `catalog.test.ts`). Consumers that need a
+   * description for an arbitrary type should fall back to the `type`
+   * string itself.
+   */
+  listMeta(): readonly WidgetMetaEntry[] {
+    const entries: WidgetMetaEntry[] = [];
+    for (const type of this.list()) {
+      const meta = WIDGET_CATALOG[type];
+      if (meta) entries.push({ type, ...meta });
+    }
+    return entries;
   }
 
   size(): number {
