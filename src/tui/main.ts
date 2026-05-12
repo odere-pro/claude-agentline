@@ -27,9 +27,16 @@ import { resolveEnv } from "../lib/env.js";
 import { defaultRegistry, registerAllBuiltins, type WidgetMetaEntry } from "../widgets/index.js";
 
 import { saveEditedConfig } from "./persist.js";
+import { OptionsSheet } from "./options-sheet.js";
 import { Picker, selectedEntry } from "./picker.js";
 import { Preview } from "./preview.js";
-import { initialState, reduce, type EditorAction, type EditorState } from "./state.js";
+import {
+  currentWidget,
+  initialState,
+  reduce,
+  type EditorAction,
+  type EditorState,
+} from "./state.js";
 
 /** The catalogued built-in widgets, populating the default registry once. */
 function builtinWidgetEntries(): readonly WidgetMetaEntry[] {
@@ -82,6 +89,7 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
     [initialConfig.keymap],
   );
   const widgetEntries = useMemo(() => builtinWidgetEntries(), []);
+  const optionsWidget = state.mode === "options" ? currentWidget(state) : undefined;
 
   const resetPicker = useCallback(() => {
     setPickerQuery("");
@@ -136,6 +144,13 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
       }
       return;
     }
+    if (state.mode === "options") {
+      if (key.escape) return dispatch({ type: "close-options" });
+      if (input === "v") return dispatch({ type: "toggle-hidden" });
+      if (input === "l") return dispatch({ type: "toggle-raw" });
+      if (input === "m") return dispatch({ type: "cycle-merge" });
+      return;
+    }
     if (input === "?") return setShowHelp(true);
     if (key.escape || input === "q") {
       onSaved(false);
@@ -158,6 +173,7 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
     if (input === "a") return dispatch({ type: "open-picker", target: "insert" });
     if (input === "r") return dispatch({ type: "open-picker", target: "replace" });
     if (input === "x") return dispatch({ type: "delete" });
+    if (input === "o") return dispatch({ type: "open-options" });
     if (input === "v") return dispatch({ type: "toggle-hidden" });
     if (input === "m") return dispatch({ type: "cycle-merge" });
     if (input === "l") return dispatch({ type: "toggle-raw" });
@@ -193,6 +209,7 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
           highlight: pickerHighlight,
         })
       : null,
+    optionsWidget ? React.createElement(OptionsSheet, { widget: optionsWidget }) : null,
     showHelp ? helpOverlay(bindings) : null,
   );
 }
