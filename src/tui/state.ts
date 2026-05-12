@@ -55,13 +55,12 @@ export type EditorAction =
   // ── selection / widget movement ──────────────────────────────────────────
   | { readonly type: "move-cursor"; readonly dx?: number; readonly dy?: number }
   | { readonly type: "move-widget"; readonly dx?: number; readonly dy?: number }
-  // ── deprecated single-line aliases (the legacy view still dispatches these) ─
+  // ── deprecated single-line aliases (kept for callers / tests using them) ──
   | { readonly type: "navigate"; readonly delta: number }
   | { readonly type: "select-widget"; readonly delta: number }
   // ── structural edits ─────────────────────────────────────────────────────
   | { readonly type: "add"; readonly widgetType: string }
   | { readonly type: "delete" }
-  | { readonly type: "set-type"; readonly widgetType: string }
   // ── widget toggles / options ─────────────────────────────────────────────
   | { readonly type: "toggle-hidden" }
   | { readonly type: "toggle-raw" }
@@ -105,8 +104,6 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
       return insertWidget(state, action.widgetType);
     case "delete":
       return deleteWidget(state);
-    case "set-type":
-      return mutateCurrent(state, (w) => (action.widgetType ? { ...w, type: action.widgetType } : w));
     case "toggle-hidden":
       return mutateCurrent(state, (w) => ({ ...w, hidden: !(w.hidden ?? false) }));
     case "toggle-raw":

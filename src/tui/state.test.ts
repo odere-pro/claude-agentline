@@ -131,13 +131,6 @@ describe("reduce: toggle / cycle", () => {
     expect(s.lines[0]?.widgets[0]?.merged).toBe("off");
   });
 
-  it("set-type rewrites the widget type", () => {
-    let s = makeState([{ type: "model" }]);
-    s = reduce(s, { type: "set-type", widgetType: "clock" });
-    expect(s.lines[0]?.widgets[0]?.type).toBe("clock");
-    expect(s.dirty).toBe(true);
-  });
-
   it("mark-clean drops the dirty flag", () => {
     let s = makeState([{ type: "a" }]);
     s = reduce(s, { type: "toggle-hidden" });
