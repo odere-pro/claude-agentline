@@ -31,7 +31,7 @@ Homebrew tap, GitHub Releases native binaries, and curl-installer are explicitly
 ### 1.1 Functional
 
 - **F1.** A single bin `agentline` reads JSON from stdin (the Claude Code statusline contract), reads merged configuration (§4), renders one or more lines of styled text, and writes them to stdout. Exit code is `0` on success and `1` on unrecoverable error; non-zero exit MUST still produce a one-line ASCII fallback on stdout so the host UI is never blank.
-- **F2.** Configuration is JSON, schema-versioned, and merged from three layers (§4): user, project, env.
+- **F2.** Configuration is JSON, schema-versioned, and merged from two layers (§4): the user config file, then `AGENTLINE_*` env-var overrides. There is no per-project config layer (a `.agentline.json` in the cwd is ignored).
 - **F3.** A line is an ordered list of widgets (§7). A widget is one of: built-in (§7.2–§7.7), `separator` (§7.8.1), `flex-separator` (§7.8.2), or `command` (§7.8.3).
 - **F4.** Widgets render with optional foreground colour, background colour, bold, italic, raw-value mode, and merge mode (§5.4). Each widget MAY be hidden by configuration (§4.6).
 - **F5.** Powerline mode (§5.1) replaces inter-widget separators with chevron glyphs and computes adjoining colours.

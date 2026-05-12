@@ -4,53 +4,68 @@ The keymap applies to **`agentline config`** — the Ink-based TUI editor
 for your statusline configuration. It does not affect the rendered
 statusline itself (which is non-interactive output).
 
-To enumerate every active binding from the running build:
+Enumerate every active binding from the running build:
 
 ```bash
-agentline config keys          # human-readable (planned for v0.2.0)
-agentline config keys --json   # machine-readable, includes widget scopes (planned for v0.2.0)
+agentline config keys          # human-readable table, grouped by scope
+agentline config keys --json   # machine-readable: { "bindings": [{ key, action, scope, description }] }
 ```
 
-Until `agentline config keys` ships, the full default binding table is below.
+The editor draws a footer with the keys for the current scope, and a
+help overlay (press `?`) listing every binding grouped by scope.
+
+## Modes
+
+The editor has three modes; a binding's **scope** says where it applies
+(`any` applies everywhere):
+
+- **edit** — the layout view: rows of widgets, the selected one
+  highlighted.
+- **picker** — the widget chooser, opened by `a` (insert) or `r`
+  (replace): a live filter over all built-in widgets, each row showing
+  what it renders against a demo session.
+- **options** — the per-widget options sheet, opened by `o`: visible /
+  hidden, the widget's own label, spacing to the neighbour.
 
 ## Default bindings
 
-| Key                       | Context         | Action                                                  |
-| ------------------------- | --------------- | ------------------------------------------------------- |
-| <kbd>↑</kbd> <kbd>↓</kbd> | list            | navigate                                                |
-| <kbd>←</kbd> <kbd>→</kbd> | widget          | change type                                             |
-| <kbd>a</kbd>              | list            | add widget                                              |
-| <kbd>d</kbd>              | widget          | delete                                                  |
-| <kbd>r</kbd>              | widget          | toggle raw value                                        |
-| <kbd>m</kbd>              | widget          | cycle merge mode (`off` → `merge` → `merge-no-padding`) |
-| <kbd>h</kbd>              | widget          | toggle hidden                                           |
-| <kbd>l</kbd>              | git widgets     | toggle clickable IDE link (VS Code / Cursor / IntelliJ) |
-| <kbd>t</kbd>              | widget          | toggle title / label                                    |
-| <kbd>p</kbd>              | widget          | cycle display variant                                   |
-| <kbd>s</kbd>              | widget          | toggle compact / short form                             |
-| <kbd>v</kbd>              | widget          | invert / cycle inversion                                |
-| <kbd>e</kbd>              | widget          | edit inline value                                       |
-| <kbd>u</kbd>              | context widgets | toggle used-vs-remaining                                |
-| <kbd>f</kbd>              | widget          | cycle format                                            |
-| <kbd>n</kbd>              | widget          | toggle Nerd Font glyph                                  |
-| <kbd>w</kbd>              | widget          | edit window / width                                     |
-| <kbd>Space</kbd>          | separator       | cycle character                                         |
-| <kbd>Esc</kbd>            | any             | back                                                    |
+| Key                         | Scope   | Action                                           |
+| --------------------------- | ------- | ------------------------------------------------ |
+| <kbd>←</kbd> <kbd>→</kbd>   | edit    | move the selection within the row                |
+| <kbd>↑</kbd> <kbd>↓</kbd>   | edit    | move the selection to the adjacent row           |
+| <kbd>⇧←</kbd> <kbd>⇧→</kbd> | edit    | move the selected widget within its row          |
+| <kbd>⇧↑</kbd> <kbd>⇧↓</kbd> | edit    | move the selected widget to the adjacent row     |
+| <kbd>a</kbd>                | edit    | add a widget (opens the picker)                  |
+| <kbd>r</kbd>                | edit    | replace the selected widget (opens the picker)   |
+| <kbd>x</kbd>                | edit    | delete the selected widget                       |
+| <kbd>o</kbd>                | edit    | open the selected widget's options sheet         |
+| <kbd>S</kbd>                | edit    | save                                             |
+| _(type)_                    | picker  | filter widgets by name or type                   |
+| <kbd>↑</kbd> <kbd>↓</kbd>   | picker  | highlight a widget                               |
+| <kbd>↵</kbd>                | picker  | insert / replace with the highlighted widget     |
+| <kbd>Esc</kbd>              | picker  | close the picker                                 |
+| <kbd>v</kbd>                | options | show / hide the widget                           |
+| <kbd>l</kbd>                | options | show / hide the widget's own label               |
+| <kbd>m</kbd>                | options | spacing to neighbour: full / single space / none |
+| <kbd>Esc</kbd>              | options | close the options sheet                          |
+| <kbd>q</kbd>                | any     | quit (prompts if there are unsaved changes)      |
+| <kbd>?</kbd>                | any     | toggle the help overlay                          |
 
-Bindings with a non-`any` context are only active when the cursor is
-on a widget of that scope.
+Up to three rows are editable; the cap matches the schema and the
+`agentline config widget` CLI. Moving a widget down off the last row
+creates a new row when there is headroom.
 
 ## Overrides
 
-The `keymap` block in your config is a flat object that maps an action
-name to a key binding. Use `agentline config keys --json` to discover the
-canonical action names; an example:
+The `keymap` block in your config maps an **action id** to a key
+binding. Use `agentline config keys --json` to discover the action ids;
+an example:
 
 ```json
 "keymap": {
-  "widget.delete": "x",
-  "widget.toggleHidden": "?",
-  "list.add": "+"
+  "delete": "X",
+  "add": "+",
+  "save": "w"
 }
 ```
 
@@ -58,14 +73,15 @@ Rules:
 
 - One key per action; multi-key chords are not supported in v0.1.0.
 - Letters are case-sensitive; map `"X"` if you want `Shift+x`.
-- Reserved keys (`Esc`, `Enter`, arrow keys when navigating a list)
-  cannot be overridden — `agentline config` would become unusable.
-- Unknown action names are reported by `agentline doctor` (D03 — config
+- Unknown action ids are reported by `agentline doctor` (D03 — config
   validation) but do not block rendering.
 
-When a binding conflict is detected — two actions mapped to the same
-key in the same context — the editor refuses to start and points at
-the offending key. Resolve it in the config and retry.
+> **Heads-up (v0.1.0):** a `keymap` override changes the _displayed_
+> keys — `agentline config keys`, the editor footer, and the help
+> overlay — but the editor's key handling is still wired to the
+> built-in keys above. Honouring overrides at the input layer is a
+> follow-up; until then, treat the table above as authoritative for what
+> the editor responds to.
 
 ## Persistence
 

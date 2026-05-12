@@ -62,7 +62,7 @@ The five installed skills give any Claude Code session enough context to drive a
 - _"remove the cost widget"_
 - _"reset my config to the minimal preset"_
 
-The agent edits `~/.config/agentline/config.json` (or the project-local `.claude/agentline.json`) directly. Restart the Claude Code session to see the change in the live statusline.
+The agent edits `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` directly — or runs the `agentline config widget …` subcommands for precise, validated changes. agentline is configured globally only; there is no per-project config. The change shows up on the **next prompt render** — Claude Code re-runs the statusline bin every prompt — so no restart is needed.
 
 Config-related CLI commands are still available if you prefer terminal-driven editing:
 

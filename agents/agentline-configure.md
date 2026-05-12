@@ -23,15 +23,37 @@ There is no per-project config layer. A `.agentline.json` in the cwd is silently
 ## Quick commands
 
 ```bash
-agentline config                              # interactive TUI editor
+agentline config                              # interactive TUI editor (live preview, widget picker, options sheet)
 agentline config init --preset default        # scaffold the user config
 agentline config init --preset minimal        # scaffold a minimal user config
 agentline config init --force --preset default  # reset the user config to defaults
 agentline config theme                        # browse installed themes
+agentline config theme --set vscode-dark      # switch the active theme
+agentline config keys [--json]                # the editor keymap
 agentline config schema --write .             # emit JSON Schema for editor support
 ```
 
-For routine edits the in-session agent should write the config file directly (atomically) — no command needed. Restart the Claude Code session to see the change.
+Config edits take effect on the **next prompt render** — Claude Code re-invokes the statusline bin every prompt — so no restart is needed. (`agentline install` is the only thing that needs a restart, to wire the `statusLine` key.)
+
+---
+
+## Editing widgets from the CLI
+
+`agentline config widget <sub>` mutates the user config directly (load → mutate → validate → atomic write) — the deterministic path for an in-session agent to make a precise edit without opening the TUI:
+
+```bash
+agentline config widget list [--json]                            # the current layout (lines + widgets, with indices)
+agentline config widget catalog [--json] [--preview]             # every widget type; --preview shows what each renders
+agentline config widget add <type> [--line N] [--at I] [--options JSON]    # insert a widget
+agentline config widget remove [--line N] --at I                 # drop the widget at that position
+agentline config widget move [--from-line N] --from-at I [--to-line M] [--to-at J]   # reorder
+agentline config widget replace <type> [--line N] --at I [--options JSON]  # swap the widget at a position
+agentline config widget set-option <key> <value> [--line N] --at I [--json]   # set one widget option
+```
+
+`--line` defaults to 0; `--at` defaults to the end of the line for `add`/`move`. Indices come from `agentline config widget list`. Errors (unknown type, out-of-range index, …) print to stderr and exit 2; success prints one confirmation line, leaving stdout parseable.
+
+Prefer these over hand-editing the JSON when the change is mechanical — they validate the result and never leave a half-written file. For broad restructuring, hand-editing the file (atomically) is fine too.
 
 ---
 

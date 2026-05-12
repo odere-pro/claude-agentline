@@ -157,7 +157,7 @@ The user owns the command string; it runs through `/bin/sh -c` (or
 `cmd.exe /c` on Windows). Caching is keyed on cmd + shell + cwd with a
 configurable `cacheTtlMs`.
 
-**Sandbox bounds (spec §7.8.3):**
+**Sandbox bounds (spec §7.8):**
 
 - `options.shell` is honoured only when it is one of `/bin/sh`,
   `/bin/bash`, `/usr/bin/sh`, `/usr/bin/bash`, `/usr/local/bin/bash`,
@@ -189,14 +189,36 @@ A useful starting point is `templates/default.config.json`:
 { "type": "clock" }
 ```
 
-For a leaner line — what `agentline config init --preset minimal` writes —
-see `templates/minimal.config.json`. Two more presets are shipped:
-`focus` (model + git + context-percentage + clock) and `power` (full
-default plus thinking-effort, weekly-usage, block-timer).
+Three presets ship; `agentline config init --preset <name>` scaffolds the
+user config from one:
 
-## Previewing a config
+- `minimal` — `model`, `context-length`, `block-reset-timer` (`templates/minimal.config.json`);
+- `default` — the balanced bar above (`templates/default.config.json`);
+- `maximal` — `default` plus `thinking-effort`, `weekly-usage`, the weekly + block reset timers, and `clock`.
 
-Live preview is the live Claude Code session: edit `~/.config/agentline/config.json` (or the project `.claude/agentline.json`), then restart Claude Code to see the new render.
+## Editing a config
+
+The friendliest path is the **TUI editor** — `agentline config` — which
+shows a live preview of the bar as you add, reorder, replace, hide, and
+re-space widgets (see [keymap.md](./keymap.md)).
+
+For scripted edits, the **`agentline config widget`** subcommands operate
+on the user config directly (load → mutate → validate → atomic write):
+
+```bash
+agentline config widget list [--json]                 # the current layout
+agentline config widget catalog [--json] [--preview]  # every widget type; --preview shows what each renders
+agentline config widget add <type> [--line N] [--at I] [--options JSON]
+agentline config widget remove [--line N] --at I
+agentline config widget move [--from-line N] --from-at I [--to-line M] [--to-at J]
+agentline config widget replace <type> [--line N] --at I [--options JSON]
+agentline config widget set-option <key> <value> [--line N] --at I [--json]
+```
+
+Either way, edits land on `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`;
+the rendered statusline picks them up on the next prompt (no restart).
+
+## Previewing a config offline
 
 For deterministic offline replay (golden-snapshot harness, doctor's D10 check, CI), use the fixture path:
 
