@@ -173,15 +173,6 @@ configurable `cacheTtlMs`.
   or `_AUTH`. Credential-shaped Claude integration vars never reach
   the child.
 
-**Trust boundary on project config.** A `command` widget declared in
-`.agentline.json` (the project layer, §4.1) is dropped before merge
-unless you explicitly opt in by exporting
-`AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1`. When stripping fires the
-loader writes a one-line warning to stderr. The rationale: cloning a
-hostile repo and refreshing the statusline shouldn't be
-RCE-by-default. Keep `command` widgets in your user config (layer 2)
-unless you've reviewed the project file and want to opt in.
-
 ## Choosing widgets
 
 A useful starting point is `templates/default.config.json`:

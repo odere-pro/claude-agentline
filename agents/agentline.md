@@ -38,18 +38,16 @@ Full check descriptions → [doctor.md](../docs/doctor.md)
 ## Configure
 
 ```bash
-agentline config                                          # interactive TUI editor
-agentline config init --preset default --scope project    # scaffold .claude/agentline.json
-agentline config theme                                    # browse installed themes
-agentline config schema --write .                         # write JSON Schema for editor support
+agentline config                              # interactive TUI editor
+agentline config init --preset default        # scaffold the user config
+agentline config theme                        # browse installed themes
+agentline config schema --write .             # write JSON Schema for editor support
 ```
 
-Or just edit the config JSON directly:
+agentline is configured globally only. The single source of truth is
+`${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`.
 
-- user → `~/.config/agentline/config.json`
-- project → `.claude/agentline.json` (overrides user)
-
-Presets: `minimal` · `default` · `focus` · `power`
+Presets: `minimal` · `default` · `maximal`
 Full reference → [config.md](../docs/config.md)
 
 ---
@@ -57,8 +55,7 @@ Full reference → [config.md](../docs/config.md)
 ## Reset
 
 ```bash
-agentline config init --force --preset default --scope project   # reset project config
-agentline config init --force --preset default --scope user      # reset user config
+agentline config init --force --preset default   # reset the user config
 ```
 
 ---
@@ -88,12 +85,12 @@ Full reference → [install.md](../docs/install.md)
 
 ## Quick fixes
 
-| Symptom                      | Action                                                |
-| ---------------------------- | ----------------------------------------------------- |
-| Statusline not showing       | `agentline doctor --fix` then restart Claude Code     |
-| Blank/garbled output         | switch theme to `vscode-dark`; run `agentline doctor` |
-| Config ignored               | Check path is `.claude/agentline.json`                |
-| Stale pricing (D07)          | `npm install -g @agentline/cli@latest`                |
-| Powerline `>` instead of `❯` | D05: install a Nerd Font                              |
+| Symptom                      | Action                                                                                   |
+| ---------------------------- | ---------------------------------------------------------------------------------------- |
+| Statusline not showing       | `agentline doctor --fix` then restart Claude Code                                        |
+| Blank/garbled output         | switch theme to `vscode-dark`; run `agentline doctor`                                    |
+| Config ignored               | Check path is `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` (no project layer) |
+| Stale pricing (D07)          | `npm install -g @agentline/cli@latest`                                                   |
+| Powerline `>` instead of `❯` | D05: install a Nerd Font                                                                 |
 
 More → [troubleshooting.md](../docs/troubleshooting.md) · Full CLI reference → [cli.md](../docs/cli.md)

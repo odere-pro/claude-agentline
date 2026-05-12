@@ -3,13 +3,15 @@
  *
  * Order, weakest to strongest:
  *   1. Built-in defaults (`DEFAULT_CONFIG`).
- *   2. User config:   ${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json
- *   3. Project config: ${CLAUDE_PROJECT_DIR:-$PWD}/.agentline.json (if present).
- *   4. Environment vars prefixed `AGENTLINE_` (`envLayer`).
- *   5. CLI flag overrides (passed in by the caller).
+ *   2. User config: `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`.
+ *   3. Environment vars prefixed `AGENTLINE_` (`envLayer`).
+ *   4. CLI flag overrides (passed in by the caller).
  *
  * The merged tree is then validated against the JSON Schema (§4.7).
  * Missing files are silently skipped — only present files contribute.
+ *
+ * agentline is configured globally only — there is no per-project
+ * config layer. A `.agentline.json` in the cwd is silently ignored.
  *
  * The render path imports this synchronously-callable wrapper so it can
  * proceed without awaiting filesystem I/O when no user config exists.
@@ -32,13 +34,11 @@ export interface LoadedConfig {
   /** Layers actually consulted (omits non-existent files). */
   sources: {
     user: boolean;
-    project: boolean;
   };
 }
 
 export interface LoadOptions {
   env?: NodeJS.ProcessEnv;
-  cwd?: string;
   /** Final-layer overrides (typically from `--key=value` flags). */
   flagOverrides?: Record<string, unknown>;
   /** Skip validation — for tests only. */
@@ -47,19 +47,15 @@ export interface LoadOptions {
 
 export async function loadConfig(options: LoadOptions = {}): Promise<LoadedConfig> {
   const env = resolveEnv(options);
-  const cwd = options.cwd ?? process.cwd();
-  const paths = resolveConfigPaths(env, cwd);
+  const paths = resolveConfigPaths(env);
 
   const userOverride = await readJsonIfExists(paths.userConfig);
-  const rawProjectOverride = await readJsonIfExists(paths.projectConfig);
-  const projectOverride = stripUntrustedProjectWidgets(rawProjectOverride, env);
   const envOverride = envLayer(env);
   const flagOverride = options.flagOverrides ?? {};
 
   const merged = mergeAll<AgentlineConfig>(
     structuredClone(DEFAULT_CONFIG),
     userOverride,
-    projectOverride,
     envOverride,
     flagOverride,
   );
@@ -71,52 +67,8 @@ export async function loadConfig(options: LoadOptions = {}): Promise<LoadedConfi
     paths,
     sources: {
       user: userOverride !== undefined,
-      project: projectOverride !== undefined,
     },
   };
-}
-
-// Project-layer config (`.agentline.json` in the cwd) is loaded automatically
-// for Claude Code sessions started in that directory. Allowing a project file
-// to declare a `command` widget would mean cloning a hostile repo and
-// triggering arbitrary code execution on the next statusline refresh.
-// Strip `command` widgets unless the user explicitly opts in via
-// `AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1`. Other widget types remain
-// untouched so the project layer keeps its day-to-day usefulness.
-function stripUntrustedProjectWidgets(
-  override: unknown,
-  env: NodeJS.ProcessEnv,
-): unknown {
-  if (env["AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS"] === "1") return override;
-  if (!override || typeof override !== "object" || Array.isArray(override)) return override;
-  const obj = override as Record<string, unknown>;
-  const lines = obj["lines"];
-  if (!Array.isArray(lines)) return override;
-  let stripped = false;
-  const nextLines = lines.map((line) => {
-    if (!line || typeof line !== "object" || Array.isArray(line)) return line;
-    const widgets = (line as Record<string, unknown>)["widgets"];
-    if (!Array.isArray(widgets)) return line;
-    const filtered = widgets.filter((w) => {
-      const isCommand =
-        w !== null &&
-        typeof w === "object" &&
-        !Array.isArray(w) &&
-        (w as Record<string, unknown>)["type"] === "command";
-      if (isCommand) stripped = true;
-      return !isCommand;
-    });
-    if (filtered.length === widgets.length) return line;
-    return { ...(line as Record<string, unknown>), widgets: filtered };
-  });
-  if (!stripped) return override;
-  if (process.stderr.isTTY) {
-    process.stderr.write(
-      "agentline: dropped `command` widget(s) from project config (untrusted source). " +
-        "Set AGENTLINE_TRUST_PROJECT_COMMAND_WIDGETS=1 to allow.\n",
-    );
-  }
-  return { ...obj, lines: nextLines };
 }
 
 async function readJsonIfExists(path: string): Promise<unknown> {
