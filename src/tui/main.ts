@@ -432,6 +432,48 @@ export function footerLines(
   };
 }
 
+/**
+ * Enter the terminal's alternate-screen buffer for the duration of an
+ * editor session and return a finalizer that restores the prior shell
+ * view. Both halves are no-ops when stdout is not a TTY (CI, redirected
+ * output, vitest), so non-interactive consumers are unaffected.
+ *
+ * Why alt-screen: Ink's default inline rendering commits the previous
+ * frame to scrollback every time the rendered tree's height changes,
+ * so opening and closing a picker / overlay leaves stale copies in
+ * scrollback. Painting into the alt buffer keeps every frame in place
+ * and restores the user's prior shell on exit.
+ *
+ * The finalizer also fires from a SIGINT / SIGTERM handler so a Ctrl-C
+ * mid-edit doesn't leave the terminal stuck in the alt buffer.
+ */
+export function enterAltScreen(stream: NodeJS.WriteStream = process.stdout): () => void {
+  if (!stream.isTTY) return () => undefined;
+  const ENTER = "\x1b[?1049h";
+  const LEAVE = "\x1b[?1049l";
+  stream.write(ENTER);
+  let restored = false;
+  const restore = (): void => {
+    if (restored) return;
+    restored = true;
+    stream.write(LEAVE);
+  };
+  const onSignal = (signal: NodeJS.Signals): void => {
+    restore();
+    // Ink owns SIGINT via exitOnCtrlC (default true). For SIGTERM we
+    // re-raise the default exit code so the host shell sees the signal
+    // rather than a polite zero exit.
+    if (signal === "SIGTERM") process.exit(143);
+  };
+  process.once("SIGINT", onSignal);
+  process.once("SIGTERM", onSignal);
+  return (): void => {
+    process.removeListener("SIGINT", onSignal);
+    process.removeListener("SIGTERM", onSignal);
+    restore();
+  };
+}
+
 function mountEditor(
   config: AgentlineConfig,
   path: string,
@@ -443,6 +485,7 @@ function mountEditor(
   readonly savedRef: { value: boolean };
 } {
   const savedRef = { value: false };
+  const leaveAltScreen = enterAltScreen();
   const inst = render(
     React.createElement(App, {
       initialConfig: config,
@@ -453,8 +496,11 @@ function mountEditor(
         savedRef.value = saved;
       },
     }),
+    { patchConsole: false, exitOnCtrlC: true },
   );
-  return { waitUntilExit: inst.waitUntilExit(), unmount: inst.unmount, savedRef };
+  // Restore the alt-screen on every exit path — save, q, Esc, exception.
+  const waitUntilExit = inst.waitUntilExit().finally(leaveAltScreen);
+  return { waitUntilExit, unmount: inst.unmount, savedRef };
 }
 
 async function resolveStartingConfig(
