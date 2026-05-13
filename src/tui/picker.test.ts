@@ -130,6 +130,15 @@ describe("Picker components — smoke", () => {
     ).not.toThrow();
   });
 
+  it("PickerWidget includes each widget's description text in its row", () => {
+    const node = PickerWidget({ category: "git", entries: ENTRIES, query: "", highlight: 0 });
+    const serialised = JSON.stringify(node);
+    // Both git widgets' descriptions from ENTRIES must appear in the
+    // rendered tree (separate dim-coloured Text children).
+    expect(serialised).toContain("branch");
+    expect(serialised).toContain("changes");
+  });
+
   it("PickerVariant renders for a widget with variants and one without", () => {
     expect(() =>
       PickerVariant({ widgetType: "skills", mode: "fresh", highlight: 0 }),

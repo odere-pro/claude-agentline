@@ -168,7 +168,10 @@ export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
   const matches = widgetsInCategory(props.entries, props.category, props.query);
   const highlight = clampIndex(props.highlight, matches.length);
   const { start, rows } = windowSlice(matches, highlight);
-  const widest = rows.reduce((n, e) => Math.max(n, e.type.length), 0);
+  const widestType = rows.reduce((n, e) => Math.max(n, e.type.length), 0);
+  // Pad preview text so descriptions line up in their own column.
+  const previews = rows.map((e) => previewWidget(e.type).text || "(hidden)");
+  const widestPreview = previews.reduce((n, p) => Math.max(n, p.length), 0);
   const countLabel = `${matches.length} match${matches.length === 1 ? "" : "es"}`;
 
   const body =
@@ -177,11 +180,13 @@ export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
       : rows.map((e, i) => {
           const idx = start + i;
           const selected = idx === highlight;
-          const preview = previewWidget(e.type).text || "(hidden)";
+          const preview = previews[i] ?? "";
+          const head = `  ${selected ? "▸ " : "  "}${e.type.padEnd(widestType, " ")}  ${preview.padEnd(widestPreview, " ")}`;
           return React.createElement(
-            Text,
-            { key: e.type, color: selected ? "cyan" : undefined },
-            `  ${selected ? "▸ " : "  "}${e.type.padEnd(widest, " ")}  ${preview}`,
+            Box,
+            { key: e.type, flexDirection: "row" },
+            React.createElement(Text, { color: selected ? "cyan" : undefined }, head),
+            React.createElement(Text, { dimColor: true }, `  ${e.description}`),
           );
         });
 
