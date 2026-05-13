@@ -16,10 +16,13 @@
  */
 
 import { promises as fs } from "node:fs";
+import { Readable } from "node:stream";
 
 import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import { pathExists } from "../lib/fs.js";
+import { saveLastStdin } from "../state/stdin-cache.js";
+import { readStdinPayload } from "../stdin/index.js";
 import { parseAccessibilityArgs, type AccessibilityFlags } from "./accessibility.js";
 import { renderForFixture } from "./fixture-runner.js";
 
@@ -102,7 +105,23 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     flags: input.args.accessibility,
   });
   process.stdout.write(out);
+  // Cache the live stdin so `agentline edit` can show real values in its
+  // preview on the next launch. Best-effort and intentionally only on the
+  // live path — fixture replays and golden tests must stay deterministic.
+  if (!fixture && input.args.configPath === undefined) {
+    await persistLastStdin(payload);
+  }
   return 0;
+}
+
+async function persistLastStdin(rawJson: string): Promise<void> {
+  try {
+    const parsed = await readStdinPayload(Readable.from([Buffer.from(rawJson, "utf8")]));
+    await saveLastStdin(parsed);
+  } catch {
+    // Cache write is best-effort; a malformed payload here would already
+    // have failed the render, and the user can't see this error.
+  }
 }
 
 export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {

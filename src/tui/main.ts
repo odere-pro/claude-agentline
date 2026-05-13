@@ -136,7 +136,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
         glyphs: state.glyphs,
       });
       dispatch({ type: "mark-clean" });
-      setStatusMessage(`saved → ${path}`);
+      setStatusMessage(`saved → ${path} (reloads on next prompt)`);
       onSaved(true);
     } catch (err) {
       setStatusMessage(`save failed: ${(err as Error).message}`);
@@ -147,7 +147,10 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
 
   useInput((input, key) => {
     if (showHelp) {
-      setShowHelp(false);
+      if (shouldDismissHelp(input, key)) setShowHelp(false);
+      // Ignore every other key while help is open — without this, an arrow
+      // press both closes the overlay and moves the cursor, leaving the
+      // user wondering why they ended up somewhere else.
       return;
     }
 
@@ -379,9 +382,30 @@ function helpOverlay(bindings: readonly KeyBinding[]): React.ReactElement {
   return React.createElement(
     Box,
     { flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, marginTop: 1 },
-    React.createElement(Text, { bold: true }, "keys — press any key to close"),
+    React.createElement(Text, { bold: true }, "keys — press ? Esc or q to close"),
     ...groups,
   );
+}
+
+/**
+ * Subset of Ink's `Key` we care about for the help-overlay dismiss
+ * gate. Typed loosely so the helper stays unit-testable without
+ * pulling Ink into the test harness.
+ */
+export interface HelpDismissKey {
+  readonly escape?: boolean;
+}
+
+/**
+ * Return `true` when the help overlay should close in response to a
+ * key press. Only `Esc`, `?`, and `q` qualify; every other input is
+ * intentionally ignored so an unintended key (an arrow, a verb) does
+ * not both dismiss the overlay and act on the editor below.
+ */
+export function shouldDismissHelp(input: string, key: HelpDismissKey): boolean {
+  if (key.escape === true) return true;
+  if (input === "?" || input === "q") return true;
+  return false;
 }
 
 /** Short labels for the two-line footer. Falls back to the binding's description. */

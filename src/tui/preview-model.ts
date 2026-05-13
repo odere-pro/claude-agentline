@@ -19,7 +19,7 @@
  */
 
 import type { AgentlineConfig, LineConfig, WidgetConfig } from "../config/types.js";
-import { previewWidget } from "../render/demo-fixture.js";
+import { previewWidget } from "../render/preview-fixture.js";
 import type { Cell } from "../widgets/cell.js";
 
 /** A single drawable in a preview row. */

@@ -101,3 +101,25 @@ export function renderWidget(
   if (cell.hidden) return HIDDEN_CELL;
   return applyOverrides(cell, config, ctx);
 }
+
+/**
+ * Label-only render for the `agentline edit` preview when there's no
+ * cached stdin to drive a real render. Returns a `Cell` whose text is
+ * the widget's `type` — so the preview shows e.g. `tokens-input`,
+ * `git-branch`, … in place of fake demo values. Per-widget colour and
+ * style overrides still apply so a user can see how their cosmetic
+ * choices land. `hidden: true` widgets short-circuit, matching
+ * `renderWidget`.
+ */
+export function renderWidgetLabel(config: WidgetConfig): Cell {
+  if (config.hidden === true) return HIDDEN_CELL;
+  const next: Cell = {
+    text: config.type,
+    merged: config.merged ?? "off",
+    ...(config.fg !== undefined && config.fg !== null ? { fg: config.fg as Colour } : {}),
+    ...(config.bg !== undefined && config.bg !== null ? { bg: config.bg as Colour } : {}),
+    ...(config.bold !== undefined ? { bold: config.bold } : {}),
+    ...(config.italic !== undefined ? { italic: config.italic } : {}),
+  };
+  return Object.freeze(next);
+}

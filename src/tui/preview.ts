@@ -32,9 +32,8 @@ export interface PreviewProps {
    */
   readonly cursor: { readonly line: number; readonly widget: number };
   /** Resolved theme — not used by the editor preview directly (slot colours
-   * are baked in by `buildPreview` via `previewWidget` against the demo
-   * session), but reserved on the prop surface for forward compatibility
-   * with theme-aware editor chrome. */
+   * are baked in by `buildPreview` via `previewWidget` against the cached
+   * stdin context — or the label-only fallback when no cache exists). */
   readonly theme?: Theme | null;
   /** Editor glyph set (Unicode/ASCII) for the gutter, add-cell, etc. */
   readonly glyphs: EditorGlyphs;
@@ -50,7 +49,7 @@ export function Preview(props: PreviewProps): React.ReactElement {
       borderColor: "gray",
       paddingX: 1,
     },
-    React.createElement(Text, { dimColor: true }, "preview (demo session) — ‹ ↑ ↓ ← → › to navigate"),
+    React.createElement(Text, { dimColor: true }, "preview — ‹ ↑ ↓ ← → › to navigate"),
     ...rows.map((row) => renderRow(row, props.cursor, props.glyphs)),
   );
 }
