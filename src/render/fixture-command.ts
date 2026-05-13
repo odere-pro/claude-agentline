@@ -24,8 +24,12 @@ import { pathExists } from "../lib/fs.js";
 import { saveLastRender } from "../state/render-cache.js";
 import { saveLastStdin } from "../state/stdin-cache.js";
 import { readStdinPayload } from "../stdin/index.js";
+import { loadConfig } from "../config/load.js";
+import { loadGitSnapshot } from "../git/snapshot.js";
+import { loadSessionFields } from "../session/index.js";
+import { loadTokensSnapshot } from "../tokens/index.js";
 import { parseAccessibilityArgs, type AccessibilityFlags } from "./accessibility.js";
-import { renderForFixture } from "./fixture-runner.js";
+import { renderForFixture, type RenderForFixtureOptions } from "./fixture-runner.js";
 
 const HELP = `agentline render — re-render a recorded stdin payload
 
@@ -97,13 +101,18 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
   if (!fixture && input.args.configPath === undefined) {
     await maybeEmitFirstRunHint();
   }
+  const isLive = !fixture && input.args.configPath === undefined;
+  const liveSnapshots = isLive ? await loadLiveSnapshots(payload) : {};
+  const liveConfig = isLive ? await loadLiveConfig() : undefined;
   const out = await renderForFixture(payload, {
+    ...(liveConfig !== undefined ? { config: liveConfig } : {}),
     ...(input.args.configPath !== undefined ? { configPath: input.args.configPath } : {}),
     ...(input.args.frozenClockISO !== undefined
       ? { frozenClockISO: input.args.frozenClockISO }
       : {}),
     ...(input.args.width !== undefined ? { width: input.args.width } : {}),
     flags: input.args.accessibility,
+    ...liveSnapshots,
   });
   process.stdout.write(out);
   // Cache the live stdin and the rendered output. Best-effort and
@@ -120,6 +129,50 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     });
   }
   return 0;
+}
+
+/**
+ * Load the merged user config for the live `agentline` invocation.
+ * Falls back to `undefined` (which lets `renderForFixture` use
+ * `DEFAULT_CONFIG`) when loading fails — the render still produces a
+ * usable line instead of bailing the whole status bar.
+ */
+async function loadLiveConfig() {
+  try {
+    const loaded = await loadConfig();
+    return loaded.config;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Resolve the per-render-tick snapshots (session, tokens, git) for the
+ * live `agentline` invocation. The fixture / `--config` paths keep
+ * snapshots undefined so goldens and replays stay deterministic; only
+ * the path Claude Code reads on each tick loads them. Without this the
+ * widget context arrives empty and every widget that reads `ctx.git` /
+ * `ctx.tokens` / `ctx.session` hides — leaving only the stdin-only
+ * widgets (model, version, clock, session-id) on the statusline.
+ */
+async function loadLiveSnapshots(
+  rawJson: string,
+): Promise<Pick<RenderForFixtureOptions, "session" | "tokens" | "git">> {
+  let parsed;
+  try {
+    parsed = await readStdinPayload(Readable.from([Buffer.from(rawJson, "utf8")]));
+  } catch {
+    return {};
+  }
+  const env = process.env;
+  const session = loadSessionFields(parsed, { env });
+  const tokens = loadTokensSnapshot({
+    transcriptPath: parsed.transcriptPath,
+    modelId: parsed.model,
+    now: Date.now(),
+  });
+  const git = loadGitSnapshot({ cwd: parsed.cwd, env });
+  return { session, tokens, git };
 }
 
 async function persistLastStdin(rawJson: string): Promise<void> {

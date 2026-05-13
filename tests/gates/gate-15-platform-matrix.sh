@@ -78,7 +78,12 @@ log_info "smoke-rendering installed bin: ${bin}"
 fixture_in='{"model":"gate-15","cwd":"/agentline/gate-15"}'
 expected=$'\xef\x95\x84 gate-15'
 
-actual="$(printf '%s' "${fixture_in}" | NO_COLOR=1 "${bin}" 2>"${work_root}/render.err")" \
+# Isolate config: point `CLAUDE_CONFIG_DIR` at an empty dir so the live
+# render falls back to `DEFAULT_CONFIG` (model-only) rather than reading
+# the host user's `~/.config/agentline/config.json`.
+isolated_cfg="${work_root}/cfg"
+mkdir -p "${isolated_cfg}"
+actual="$(printf '%s' "${fixture_in}" | NO_COLOR=1 CLAUDE_CONFIG_DIR="${isolated_cfg}" "${bin}" 2>"${work_root}/render.err")" \
   || { sed 's/^/    /' "${work_root}/render.err" >&2; fail_gate "render exited non-zero"; }
 
 # Strip a single trailing newline if present so comparison stays byte-exact
