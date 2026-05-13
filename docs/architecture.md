@@ -43,7 +43,7 @@ The TUI reads the existing config, mutates it via reducer, and persists via atom
 Every widget is a pure function:
 
 ```typescript
-type WidgetRender = (ctx: WidgetContext, settings: WidgetSettings) => Cell
+type WidgetRender = (ctx: WidgetContext, settings: WidgetSettings) => Cell;
 ```
 
 - **Input**: context (stdin, config, theme, clock, env snapshot) + user options
@@ -71,6 +71,7 @@ Each layer is validated against the JSON Schema before merge. Writes go through 
 ## Token/Transcript System (`src/tokens/`)
 
 The transcript is the Claude Code session's token ledger: a JSONL file containing:
+
 - Each API call (request metadata, token counts)
 - Session boundaries
 - Model switches
@@ -111,6 +112,7 @@ Unit tests use frozen clocks and fixtures for determinism. Integration tests tou
 ## Error Handling
 
 The render path **never crashes the statusline**:
+
 - All widget errors are caught and emit a safe default (null text, hidden)
 - Config validation errors are caught and logged to `doctor`
 - Missing config or theme files fall back to built-in defaults
