@@ -237,9 +237,10 @@ describe("Preview — projection", () => {
       glyphs: GLYPHS,
       columns: 40,
     });
-    // 1 header Text + 3 rows when no wrap; wrap on row 0 only should add
-    // at least one extra Box for the continuation line(s).
-    expect(previewChildren(node).length).toBeGreaterThan(4);
+    // 3 display rows when no wrap; with overflow on row 0 absorbed into
+    // empty rows 1 and 2, the count stays at 3 — assert there are still
+    // at least three rendered children covering each display slot.
+    expect(previewChildren(node).length).toBeGreaterThanOrEqual(3);
   });
 
   it("never wraps when `columns` is generous", () => {
@@ -256,7 +257,83 @@ describe("Preview — projection", () => {
       glyphs: GLYPHS,
       columns: 200,
     });
-    // Header + exactly one Box per row = 4 children.
-    expect(previewChildren(node)).toHaveLength(4);
+    // Exactly one Box per row = 3 children.
+    expect(previewChildren(node)).toHaveLength(3);
+  });
+
+  it("spills row 0 overflow into empty rows below — each gets its own line# and add-cell", () => {
+    // Row 0 has many widgets that won't fit a 40-column terminal; rows 1
+    // and 2 are empty. The overflow visual sub-lines should land on rows
+    // 1 and 2's display slots, so every visible display row still shows
+    // its own "+ add widget" affordance — three add-cells total, one per
+    // row, not one wrap-continuation under row 0.
+    const node = Preview({
+      base: DEFAULT_CONFIG,
+      lines: [
+        {
+          widgets: [
+            { type: "model" },
+            { type: "thinking-effort" },
+            { type: "git-branch" },
+            { type: "git-changes" },
+            { type: "context-percent" },
+            { type: "tokens-input" },
+            { type: "tokens-output" },
+            { type: "session-time" },
+            { type: "clock" },
+            { type: "account-email" },
+          ],
+        },
+        { widgets: [] },
+        { widgets: [] },
+      ],
+      cursor: { line: 0, widget: 0 },
+      glyphs: GLYPHS,
+      columns: 40,
+    });
+    const texts = collectTextNodes(node);
+    const addCells = texts.filter((t) => t.text.includes("add widget"));
+    expect(addCells).toHaveLength(3);
+    // Each display row should still print its own line number gutter.
+    const gutters = texts.filter((t) => /\s\d\s/.test(t.text) && t.text.includes(GLYPHS.gutter));
+    const seenLineNumbers = new Set<string>();
+    for (const g of gutters) {
+      const match = g.text.match(/\s(\d)\s/);
+      if (match) seenLineNumbers.add(match[1]!);
+    }
+    expect(seenLineNumbers).toEqual(new Set(["0", "1", "2"]));
+  });
+
+  it("falls back to shared-gutter continuation when row 1 already has widgets", () => {
+    // Row 0 overflows on a narrow terminal, but row 1 has its own widgets
+    // and so cannot absorb the spill — overflow renders as a continuation
+    // line under row 0 (no extra add-cell on that line).
+    const node = Preview({
+      base: DEFAULT_CONFIG,
+      lines: [
+        {
+          widgets: [
+            { type: "model" },
+            { type: "thinking-effort" },
+            { type: "git-branch" },
+            { type: "git-changes" },
+            { type: "context-percent" },
+            { type: "tokens-input" },
+            { type: "tokens-output" },
+            { type: "session-time" },
+          ],
+        },
+        { widgets: [{ type: "clock" }] },
+        { widgets: [] },
+      ],
+      cursor: { line: 0, widget: 0 },
+      glyphs: GLYPHS,
+      columns: 40,
+    });
+    const texts = collectTextNodes(node);
+    const addCells = texts.filter((t) => t.text.includes("add widget"));
+    // 3 own rows + 0 absorbing slots ⇒ still 3 add-cells total. The spill
+    // appears as continuation lines that do NOT carry their own add cell.
+    expect(addCells).toHaveLength(3);
   });
 });
