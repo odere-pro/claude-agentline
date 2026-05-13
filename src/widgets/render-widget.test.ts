@@ -9,6 +9,7 @@ import type { WidgetContext } from "./context.js";
 import { WidgetRegistry } from "./registry.js";
 import { renderWidget, WidgetTypeMissingError } from "./render-widget.js";
 import { defineWidget, type WidgetSettings } from "./widget.js";
+import { widgetGlyph } from "./catalog.js";
 
 const stdin: StdinPayload = { raw: {}, truncated: false };
 
@@ -117,6 +118,56 @@ describe("renderWidget", () => {
     r.register(echo);
     const cell = renderWidget(r, { type: "echo" }, makeCtx());
     expect(Object.isFrozen(cell)).toBe(true);
+  });
+});
+
+describe("glyph layer", () => {
+  function ctxWithGlyphs(mode: "off" | "nerd-font"): WidgetContext {
+    return makeCtx({ config: { ...DEFAULT_CONFIG, glyphs: mode } });
+  }
+
+  it("does not prepend a glyph when config.glyphs is 'off' (default)", () => {
+    const r = new WidgetRegistry();
+    r.register(echo);
+    const cell = renderWidget(r, { type: "echo", options: { text: "hi" } }, makeCtx());
+    expect(cell.text).toBe("hi");
+  });
+
+  it("prepends the catalogued glyph + thin space when config.glyphs is 'nerd-font'", () => {
+    const r = new WidgetRegistry();
+    // `echo` is a fixture type with no catalogue glyph, so we register a
+    // widget under a real catalogue type to exercise the lookup.
+    r.register(defineWidget("git-branch", () => ({ text: "main" })));
+    const glyph = widgetGlyph("git-branch");
+    expect(glyph).toBeTruthy();
+    const cell = renderWidget(r, { type: "git-branch" }, ctxWithGlyphs("nerd-font"));
+    expect(cell.text).toBe(`${glyph}\u2009main`);
+  });
+
+  it("leaves widgets without a catalogue glyph unchanged in nerd-font mode", () => {
+    const r = new WidgetRegistry();
+    r.register(echo);
+    const cell = renderWidget(
+      r,
+      { type: "echo", options: { text: "hi" } },
+      ctxWithGlyphs("nerd-font"),
+    );
+    expect(cell.text).toBe("hi");
+  });
+
+  it("leaves flex cells alone (their text is the fill character)", () => {
+    const r = new WidgetRegistry();
+    r.register(defineWidget("test-flex", () => ({ text: " ", flex: true })));
+    const cell = renderWidget(r, { type: "test-flex" }, ctxWithGlyphs("nerd-font"));
+    expect(cell.text).toBe(" ");
+    expect(cell.flex).toBe(true);
+  });
+
+  it("leaves empty cells unchanged", () => {
+    const r = new WidgetRegistry();
+    r.register(defineWidget("git-branch", () => ({ text: "" })));
+    const cell = renderWidget(r, { type: "git-branch" }, ctxWithGlyphs("nerd-font"));
+    expect(cell.text).toBe("");
   });
 });
 

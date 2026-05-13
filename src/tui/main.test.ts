@@ -24,7 +24,8 @@ vi.mock("ink", () => {
 });
 
 import { DEFAULT_CONFIG } from "../config/defaults.js";
-import { runConfigCommand } from "./main.js";
+import { DEFAULT_KEY_BINDINGS } from "../keys/bindings.js";
+import { enterAltScreen, footerLines, runConfigCommand } from "./main.js";
 
 describe("runConfigCommand (entry-point wiring)", () => {
   let tmp: string;
@@ -52,5 +53,87 @@ describe("runConfigCommand (entry-point wiring)", () => {
     });
     expect(result.saved).toBe(false);
     expect(result.path).toContain("agentline");
+  });
+});
+
+describe("footerLines", () => {
+  it("splits edit-scope bindings into motion (line 1) and actions (line 2)", () => {
+    const { motion, actions } = footerLines(DEFAULT_KEY_BINDINGS, "edit");
+    // Line 1 — motion / navigation: arrow keys for cursor + widget moves.
+    expect(motion).toContain("← →");
+    expect(motion).toContain("↑ ↓");
+    expect(motion).toContain("⇧← ⇧→");
+    expect(motion).toContain("⇧↑ ⇧↓");
+    // Line 1 must NOT include action verbs.
+    expect(motion).not.toContain("add");
+    expect(motion).not.toContain("save");
+    expect(motion).not.toContain("quit");
+    // Line 2 — actions + the any-scope quit / help.
+    expect(actions).toContain("add");
+    expect(actions).toContain("save");
+    expect(actions).toContain("quit");
+    expect(actions).toContain("help");
+  });
+
+  it("picker-scope motion line carries picker-navigate; actions line carries the rest plus quit/help", () => {
+    const { motion, actions } = footerLines(DEFAULT_KEY_BINDINGS, "picker-widget");
+    expect(motion).toContain("navigate");
+    expect(actions).toContain("confirm");
+    expect(actions).toContain("back");
+    expect(actions).toContain("quit");
+  });
+
+  it("returns empty strings rather than throwing when no bindings match a mode", () => {
+    const { motion, actions } = footerLines([], "edit");
+    expect(motion).toBe("");
+    expect(actions).toBe("");
+  });
+});
+
+describe("enterAltScreen", () => {
+  /** Build a minimal WriteStream stub that records every `write` payload. */
+  function makeStream(isTTY: boolean) {
+    const writes: string[] = [];
+    const stream = {
+      isTTY,
+      write(chunk: string | Uint8Array): boolean {
+        writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString());
+        return true;
+      },
+    } as unknown as NodeJS.WriteStream;
+    return { stream, writes };
+  }
+
+  it("is a no-op when stdout is not a TTY", () => {
+    const { stream, writes } = makeStream(false);
+    const restore = enterAltScreen(stream);
+    restore();
+    expect(writes).toEqual([]);
+  });
+
+  it("writes the alt-screen enter sequence on call and the leave sequence on restore", () => {
+    const { stream, writes } = makeStream(true);
+    const restore = enterAltScreen(stream);
+    expect(writes).toEqual(["\x1b[?1049h"]);
+    restore();
+    expect(writes).toEqual(["\x1b[?1049h", "\x1b[?1049l"]);
+  });
+
+  it("restore is idempotent — calling twice does not double-write the leave sequence", () => {
+    const { stream, writes } = makeStream(true);
+    const restore = enterAltScreen(stream);
+    restore();
+    restore();
+    expect(writes.filter((s) => s === "\x1b[?1049l")).toHaveLength(1);
+  });
+
+  it("a SIGINT during the session triggers the leave sequence", () => {
+    const { stream, writes } = makeStream(true);
+    const restore = enterAltScreen(stream);
+    // The handler is installed via `process.once`, so emitting once is
+    // enough; the test process is otherwise untouched (Ink isn't mounted).
+    process.emit("SIGINT");
+    expect(writes).toContain("\x1b[?1049l");
+    restore(); // tidy any remaining listener
   });
 });

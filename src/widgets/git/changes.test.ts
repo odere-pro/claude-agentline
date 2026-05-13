@@ -8,7 +8,7 @@ import { DEFAULT_PALETTE } from "../../theme/index.js";
 import { frozenClock } from "../clock.js";
 import type { WidgetContext } from "../context.js";
 
-import { gitChangesWidget, gitDeletionsWidget, gitInsertionsWidget } from "./changes.js";
+import { gitChangesWidget } from "./changes.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
 
@@ -29,6 +29,7 @@ function makeSnapshot(overrides: Partial<GitSnapshot> = {}): GitSnapshot {
     upstreamRemote: null,
     worktreeName: null,
     inWorktree: false,
+    pr: null,
     ...overrides,
   });
 }
@@ -96,99 +97,5 @@ describe("git-changes widget", () => {
     });
     expect(withLabel.text).toBe("diff:+5 -2");
     expect(noLabel.text).toBe("+5 -2");
-  });
-});
-
-describe("git-insertions widget", () => {
-  it("hides when ctx.git is absent", () => {
-    const cell = gitInsertionsWidget.render(makeCtx(undefined), { options: {}, rawValue: false });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("hides when ctx.git.available is false", () => {
-    const cell = gitInsertionsWidget.render(makeCtx({ available: false }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("hides at zero by default", () => {
-    const cell = gitInsertionsWidget.render(makeCtx(makeSnapshot()), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("renders +N with success colour when insertions > 0", () => {
-    const cell = gitInsertionsWidget.render(
-      makeCtx(makeSnapshot({ diff: { insertions: 7, deletions: 0, filesChanged: 1 } })),
-      { options: {}, rawValue: false },
-    );
-    expect(cell.text).toBe("+7");
-    expect(cell.fg).toBe(DEFAULT_PALETTE.success);
-  });
-
-  it("shows +0 when hideZero=false", () => {
-    const cell = gitInsertionsWidget.render(makeCtx(makeSnapshot()), {
-      options: { hideZero: false },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("+0");
-  });
-});
-
-describe("git-deletions widget", () => {
-  it("hides when ctx.git is absent", () => {
-    const cell = gitDeletionsWidget.render(makeCtx(undefined), { options: {}, rawValue: false });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("hides when ctx.git.available is false", () => {
-    const cell = gitDeletionsWidget.render(makeCtx({ available: false }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("hides at zero by default", () => {
-    const cell = gitDeletionsWidget.render(makeCtx(makeSnapshot()), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("renders -N with danger colour when deletions > 0", () => {
-    const cell = gitDeletionsWidget.render(
-      makeCtx(makeSnapshot({ diff: { insertions: 0, deletions: 4, filesChanged: 1 } })),
-      { options: {}, rawValue: false },
-    );
-    expect(cell.text).toBe("-4");
-    expect(cell.fg).toBe(DEFAULT_PALETTE.danger);
-  });
-
-  it("shows -0 when hideZero=false", () => {
-    const cell = gitDeletionsWidget.render(makeCtx(makeSnapshot()), {
-      options: { hideZero: false },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("-0");
-  });
-
-  it("suppresses label when rawValue: true", () => {
-    const snap = makeSnapshot({ diff: { insertions: 0, deletions: 3, filesChanged: 1 } });
-    const withLabel = gitDeletionsWidget.render(makeCtx(snap), {
-      options: { label: "del:" },
-      rawValue: false,
-    });
-    const noLabel = gitDeletionsWidget.render(makeCtx(snap), {
-      options: { label: "del:" },
-      rawValue: true,
-    });
-    expect(withLabel.text).toBe("del:-3");
-    expect(noLabel.text).toBe("-3");
   });
 });

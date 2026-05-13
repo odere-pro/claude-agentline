@@ -4,53 +4,78 @@ The keymap applies to **`agentline config`** — the Ink-based TUI editor
 for your statusline configuration. It does not affect the rendered
 statusline itself (which is non-interactive output).
 
-To enumerate every active binding from the running build:
+Enumerate every active binding from the running build:
 
 ```bash
-agentline config keys          # human-readable (planned for v0.2.0)
-agentline config keys --json   # machine-readable, includes widget scopes (planned for v0.2.0)
+agentline config keys          # human-readable table, grouped by scope
+agentline config keys --json   # machine-readable: { "bindings": [{ key, action, scope, description }] }
 ```
 
-Until `agentline config keys` ships, the full default binding table is below.
+The editor draws a footer with the keys for the current scope, and a
+help overlay (press `?`) listing every binding grouped by scope.
+
+## Modes
+
+The editor has two modes; a binding's **scope** says where it applies
+(`any` applies everywhere):
+
+- **edit** — the _live preview is the editing surface_. All three line
+  slots are always rendered; the selected widget is highlighted in
+  place; each row ends in a navigable **+ add widget** cell that the
+  cursor walks onto and confirms to insert.
+- **picker** — a three-step drill-down opened by `a` (add), `r`
+  (replace), <kbd>↵</kbd> on the +add cell, or `u` (update — same as
+  step 3 only). Step 1 picks the group (`session`, `git`, …); step 2
+  picks the widget within that group, with a live filter and a per-row
+  mini-preview; step 3 picks a _variant_ (the same widget rendered a
+  different way, e.g. `skills` as count / list / last). Widgets with no
+  variants in the catalogue skip step 3 and commit straight from step 2.
+  <kbd>Esc</kbd> steps back one level (cancels at step 1).
+
+Per-widget flags (`visible`, `mergeWithPrev`, `useRawValue`) are set
+via `agentline config widget set-option <key> <value>` or by editing
+the config file directly. The TUI no longer ships a per-widget
+options sheet.
 
 ## Default bindings
 
-| Key                       | Context         | Action                                                  |
-| ------------------------- | --------------- | ------------------------------------------------------- |
-| <kbd>↑</kbd> <kbd>↓</kbd> | list            | navigate                                                |
-| <kbd>←</kbd> <kbd>→</kbd> | widget          | change type                                             |
-| <kbd>a</kbd>              | list            | add widget                                              |
-| <kbd>d</kbd>              | widget          | delete                                                  |
-| <kbd>r</kbd>              | widget          | toggle raw value                                        |
-| <kbd>m</kbd>              | widget          | cycle merge mode (`off` → `merge` → `merge-no-padding`) |
-| <kbd>h</kbd>              | widget          | toggle hidden                                           |
-| <kbd>l</kbd>              | git widgets     | toggle clickable IDE link (VS Code / Cursor / IntelliJ) |
-| <kbd>t</kbd>              | widget          | toggle title / label                                    |
-| <kbd>p</kbd>              | widget          | cycle display variant                                   |
-| <kbd>s</kbd>              | widget          | toggle compact / short form                             |
-| <kbd>v</kbd>              | widget          | invert / cycle inversion                                |
-| <kbd>e</kbd>              | widget          | edit inline value                                       |
-| <kbd>u</kbd>              | context widgets | toggle used-vs-remaining                                |
-| <kbd>f</kbd>              | widget          | cycle format                                            |
-| <kbd>n</kbd>              | widget          | toggle Nerd Font glyph                                  |
-| <kbd>w</kbd>              | widget          | edit window / width                                     |
-| <kbd>Space</kbd>          | separator       | cycle character                                         |
-| <kbd>Esc</kbd>            | any             | back                                                    |
+| Key                         | Scope  | Action                                                           |
+| --------------------------- | ------ | ---------------------------------------------------------------- |
+| <kbd>←</kbd> <kbd>→</kbd>   | edit   | move the selection within the row (incl. the trailing +add cell) |
+| <kbd>↑</kbd> <kbd>↓</kbd>   | edit   | move the selection between rows                                  |
+| <kbd>⇧←</kbd> <kbd>⇧→</kbd> | edit   | move the selected widget within its row                          |
+| <kbd>⇧↑</kbd> <kbd>⇧↓</kbd> | edit   | move the selected widget to the adjacent row                     |
+| <kbd>↵</kbd>                | edit   | +add cell → open the picker (no-op on a populated widget)        |
+| <kbd>a</kbd>                | edit   | add a widget (opens the picker)                                  |
+| <kbd>r</kbd>                | edit   | replace the selected widget (opens the picker)                   |
+| <kbd>u</kbd>                | edit   | update — pick a different variant of the selected widget         |
+| <kbd>d</kbd>                | edit   | delete the selected widget                                       |
+| <kbd>g</kbd>                | edit   | toggle Nerd Font glyphs on / off (top-level `config.glyphs`)     |
+| <kbd>S</kbd>                | edit   | save (Ctrl+S also works)                                         |
+| _(type)_                    | picker | filter widgets by name or type (step 2)                          |
+| <kbd>↑</kbd> <kbd>↓</kbd>   | picker | highlight a row                                                  |
+| <kbd>↵</kbd>                | picker | confirm the highlighted row and advance / commit                 |
+| <kbd>Esc</kbd>              | picker | step back one level (cancels at step 1)                          |
+| <kbd>q</kbd>                | any    | quit (prompts if there are unsaved changes)                      |
+| <kbd>?</kbd>                | any    | toggle the help overlay                                          |
 
-Bindings with a non-`any` context are only active when the cursor is
-on a widget of that scope.
+The editor always shows three rows so up/down navigation has somewhere
+to go even on a single-line config; on save, trailing empty rows are
+trimmed so the on-disk config still reflects your intent. Moving a
+widget across rows lands it just before the destination row's +add
+cell.
 
 ## Overrides
 
-The `keymap` block in your config is a flat object that maps an action
-name to a key binding. Use `agentline config keys --json` to discover the
-canonical action names; an example:
+The `keymap` block in your config maps an **action id** to a key
+binding. Use `agentline config keys --json` to discover the action ids;
+an example:
 
 ```json
 "keymap": {
-  "widget.delete": "x",
-  "widget.toggleHidden": "?",
-  "list.add": "+"
+  "delete": "X",
+  "add": "+",
+  "save": "w"
 }
 ```
 
@@ -58,14 +83,15 @@ Rules:
 
 - One key per action; multi-key chords are not supported in v0.1.0.
 - Letters are case-sensitive; map `"X"` if you want `Shift+x`.
-- Reserved keys (`Esc`, `Enter`, arrow keys when navigating a list)
-  cannot be overridden — `agentline config` would become unusable.
-- Unknown action names are reported by `agentline doctor` (D03 — config
+- Unknown action ids are reported by `agentline doctor` (D03 — config
   validation) but do not block rendering.
 
-When a binding conflict is detected — two actions mapped to the same
-key in the same context — the editor refuses to start and points at
-the offending key. Resolve it in the config and retry.
+> **Heads-up (v0.1.0):** a `keymap` override changes the _displayed_
+> keys — `agentline config keys`, the editor footer, and the help
+> overlay — but the editor's key handling is still wired to the
+> built-in keys above. Honouring overrides at the input layer is a
+> follow-up; until then, treat the table above as authoritative for what
+> the editor responds to.
 
 ## Persistence
 

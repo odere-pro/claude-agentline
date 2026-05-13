@@ -71,25 +71,26 @@ const bindings = root.bindings;
 
 // §5.5 – every documented action id must appear exactly once
 const SPEC_ACTIONS = [
-  "navigate",
-  "change-type",
+  // edit
+  "move-cursor",
+  "move-cursor-row",
+  "move-widget",
+  "move-widget-row",
+  "edit-widget",
   "add",
+  "replace",
+  "update",
   "delete",
-  "toggle-raw",
-  "cycle-merge",
-  "toggle-hidden",
-  "toggle-link",
-  "toggle-title",
-  "cycle-display",
-  "toggle-compact",
-  "cycle-inversion",
-  "edit-inline",
-  "toggle-used-remaining",
-  "cycle-format",
-  "toggle-nerd",
-  "edit-window",
-  "cycle-char",
-  "back",
+  "toggle-glyphs",
+  "save",
+  // picker (three steps share one scope)
+  "picker-filter",
+  "picker-navigate",
+  "picker-confirm",
+  "picker-back",
+  // any
+  "quit",
+  "help",
 ];
 
 const presentActions = new Set(bindings.map((b) => b.action));

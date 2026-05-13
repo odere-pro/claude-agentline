@@ -1,9 +1,21 @@
 import { describe, expect, it } from "vitest";
 
 import type { WidgetContext } from "../context.js";
-import { SEPARATOR_CYCLE, separatorWidget, flexSeparatorWidget } from "./separator.js";
+import { WidgetRegistry } from "../registry.js";
+import { CUSTOM_WIDGETS, registerCustomWidgets } from "./index.js";
+import { SEPARATOR_CYCLE, separatorWidget } from "./separator.js";
 
 const ctx = {} as WidgetContext;
+
+describe("registerCustomWidgets", () => {
+  it("registers only the separator widget", () => {
+    const r = new WidgetRegistry();
+    registerCustomWidgets(r);
+    expect(r.size()).toBe(1);
+    expect(r.list()).toEqual(["separator"]);
+    expect(Object.isFrozen(CUSTOM_WIDGETS)).toBe(true);
+  });
+});
 
 describe("SEPARATOR_CYCLE", () => {
   it("has exactly 5 elements", () => {
@@ -45,27 +57,5 @@ describe("separatorWidget", () => {
   it("handles emoji as a single code point", () => {
     const cell = separatorWidget.render(ctx, { options: { char: "🚀" }, rawValue: false });
     expect(cell.text).toBe("🚀");
-  });
-});
-
-describe("flexSeparatorWidget", () => {
-  it("returns cell with flex: true", () => {
-    const cell = flexSeparatorWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.flex).toBe(true);
-  });
-
-  it("returns space when no fill option is provided", () => {
-    const cell = flexSeparatorWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.text).toBe(" ");
-  });
-
-  it("uses the specified fill character", () => {
-    const cell = flexSeparatorWidget.render(ctx, { options: { fill: "·" }, rawValue: false });
-    expect(cell.text).toBe("·");
-  });
-
-  it("clamps multi-character fill to first character", () => {
-    const cell = flexSeparatorWidget.render(ctx, { options: { fill: "-~" }, rawValue: false });
-    expect(cell.text).toBe("-");
   });
 });

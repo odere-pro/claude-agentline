@@ -17,8 +17,7 @@ import {
 } from "../context/percentage.js";
 import { registerContextWidgets, CONTEXT_WIDGETS } from "../context/index.js";
 
-import { costWidget } from "./cost.js";
-import { formatCost, formatCount, formatSpeed, tokenRole } from "./format.js";
+import { formatCount, formatSpeed, tokenRole } from "./format.js";
 import { resolveResetAxis } from "./options.js";
 import { inputSpeedWidget, outputSpeedWidget, totalSpeedWidget } from "./speed.js";
 import { tokensCachedWidget } from "./tokens-cached.js";
@@ -72,13 +71,6 @@ describe("formatters", () => {
     expect(formatCount(1_500_000)).toBe("1.5M");
   });
 
-  it("formatCost uses USD with the right precision", () => {
-    expect(formatCost(0)).toBe("$0.00");
-    expect(formatCost(1.234)).toBe("$1.23");
-    expect(formatCost(15.5)).toBe("$15.5");
-    expect(formatCost(150)).toBe("$150");
-  });
-
   it("formatSpeed adapts to the rate magnitude", () => {
     expect(formatSpeed(0)).toBe("0");
     expect(formatSpeed(12.5)).toBe("12.5/s");
@@ -115,7 +107,6 @@ describe("token widgets", () => {
     const ctx = makeCtx(undefined);
     expect(tokensInputWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
     expect(tokensTotalWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
-    expect(costWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
   });
 
   it("tokens-input sums input across the session", () => {
@@ -166,25 +157,6 @@ describe("token widgets", () => {
     expect(
       tokensInputWidget.render(ctx, { options: { label: "in:" }, rawValue: true }).text,
     ).toBe("100");
-  });
-});
-
-describe("cost widget", () => {
-  it("prices opus at $15 / Mtoken input", () => {
-    const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 0, inputTokens: 1_000_000, model: "claude-opus-4-7" })]),
-    );
-    expect(costWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("$15.0");
-  });
-
-  it("rolls up multiple models in one window", () => {
-    const ctx = makeCtx(
-      makeSnapshot([
-        ev({ timestamp: 0, inputTokens: 1_000_000, model: "claude-haiku-4-5" }),
-        ev({ timestamp: 100, inputTokens: 1_000_000, model: "claude-sonnet-4-6" }),
-      ]),
-    );
-    expect(costWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("$4.00");
   });
 });
 
@@ -276,12 +248,11 @@ describe("context widgets", () => {
 });
 
 describe("registries", () => {
-  it("registerTokenWidgets installs all eight widgets", () => {
+  it("registerTokenWidgets installs all seven widgets", () => {
     const r = new WidgetRegistry();
     registerTokenWidgets(r);
-    expect(r.size()).toBe(8);
+    expect(r.size()).toBe(7);
     expect(r.list()).toEqual([
-      "cost",
       "input-speed",
       "output-speed",
       "tokens-cached",

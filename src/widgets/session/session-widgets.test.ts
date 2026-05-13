@@ -11,16 +11,12 @@ import { WidgetRegistry } from "../registry.js";
 import { renderWidget } from "../render-widget.js";
 
 import { accountEmailWidget, maskEmail } from "./account-email.js";
-import { loginMethodWidget } from "./login-method.js";
 import { modelDisplayName, modelWidget } from "./model.js";
-import { orgWidget } from "./org.js";
-import { outputStyleWidget } from "./output-style.js";
 import { sessionIdWidget } from "./session-id.js";
 import { sessionNameWidget } from "./session-name.js";
 import { skillsWidget } from "./skills.js";
 import { thinkingEffortWidget } from "./thinking-effort.js";
 import { versionWidget } from "./version.js";
-import { vimModeWidget } from "./vim-mode.js";
 import { registerSessionWidgets, SESSION_WIDGETS } from "./index.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
@@ -44,26 +40,22 @@ const registry = new WidgetRegistry();
 registerSessionWidgets(registry);
 
 describe("registerSessionWidgets", () => {
-  it("registers exactly the 11 session widgets", () => {
-    expect(registry.size()).toBe(11);
+  it("registers exactly the 7 session widgets", () => {
+    expect(registry.size()).toBe(7);
     expect(registry.list()).toEqual([
       "account-email",
-      "login-method",
       "model",
-      "org",
-      "output-style",
       "session-id",
       "session-name",
       "skills",
       "thinking-effort",
       "version",
-      "vim-mode",
     ]);
   });
 
   it("SESSION_WIDGETS is a frozen array", () => {
     expect(Object.isFrozen(SESSION_WIDGETS)).toBe(true);
-    expect(SESSION_WIDGETS).toHaveLength(11);
+    expect(SESSION_WIDGETS).toHaveLength(7);
   });
 });
 
@@ -119,16 +111,6 @@ describe("version widget", () => {
       rawValue: true,
     });
     expect(cell.text).toBe("0.1.0");
-  });
-});
-
-describe("output-style widget", () => {
-  it("renders the configured style", () => {
-    const cell = outputStyleWidget.render(makeCtx({ outputStyle: "concise" }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("concise");
   });
 });
 
@@ -222,38 +204,6 @@ describe("account-email widget", () => {
   });
 });
 
-describe("login-method widget", () => {
-  it("normalises api_key → api-key", () => {
-    const cell = loginMethodWidget.render(makeCtx({ loginMethod: "api_key" }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("api-key");
-  });
-
-  it("preserves raw values for unknown methods", () => {
-    const cell = loginMethodWidget.render(makeCtx({ loginMethod: "saml" }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("saml");
-  });
-});
-
-describe("org widget", () => {
-  it("renders the org slug", () => {
-    const cell = orgWidget.render(makeCtx({ orgSlug: "anthropic" }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("anthropic");
-  });
-
-  it("hides when no slug", () => {
-    expect(orgWidget.render(makeCtx(), { options: {}, rawValue: false }).hidden).toBe(true);
-  });
-});
-
 describe("thinking-effort widget", () => {
   it("renders with the success role colour for low", () => {
     const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "low" }), {
@@ -279,40 +229,6 @@ describe("thinking-effort widget", () => {
     });
     expect(cell.text).toBe("unknown");
     expect(cell.fg).toBeUndefined();
-  });
-});
-
-describe("vim-mode widget", () => {
-  it("default format is long", () => {
-    const cell = vimModeWidget.render(makeCtx({ vimMode: "normal" }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("NORMAL");
-  });
-
-  it("format=short emits a single character", () => {
-    const cell = vimModeWidget.render(makeCtx({ vimMode: "INSERT" }), {
-      options: { format: "short" },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("I");
-  });
-
-  it("format=bracket wraps the initial in brackets", () => {
-    const cell = vimModeWidget.render(makeCtx({ vimMode: "VISUAL" }), {
-      options: { format: "bracket" },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("[V]");
-  });
-
-  it("falls back to long format for unknown format value", () => {
-    const cell = vimModeWidget.render(makeCtx({ vimMode: "NORMAL" }), {
-      options: { format: "weird" as never },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("NORMAL");
   });
 });
 

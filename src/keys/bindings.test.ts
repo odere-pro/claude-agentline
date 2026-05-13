@@ -7,27 +7,25 @@ describe("DEFAULT_KEY_BINDINGS", () => {
     expect(Object.isFrozen(DEFAULT_KEY_BINDINGS)).toBe(true);
     const actions = DEFAULT_KEY_BINDINGS.map((b) => b.action);
     expect(new Set(actions).size).toBe(actions.length);
-    // All §5.5 actions must be present.
+    // All §5.5 actions must be present (kept in sync with gate-17's list).
     const required = [
-      "navigate",
-      "change-type",
+      "move-cursor",
+      "move-cursor-row",
+      "move-widget",
+      "move-widget-row",
+      "edit-widget",
       "add",
+      "replace",
+      "update",
       "delete",
-      "toggle-raw",
-      "cycle-merge",
-      "toggle-hidden",
-      "toggle-link",
-      "toggle-title",
-      "cycle-display",
-      "toggle-compact",
-      "cycle-inversion",
-      "edit-inline",
-      "toggle-used-remaining",
-      "cycle-format",
-      "toggle-nerd",
-      "edit-window",
-      "cycle-char",
-      "back",
+      "toggle-glyphs",
+      "save",
+      "picker-filter",
+      "picker-navigate",
+      "picker-confirm",
+      "picker-back",
+      "quit",
+      "help",
     ];
     for (const action of required) {
       expect(actions, `missing action: ${action}`).toContain(action);
@@ -42,13 +40,10 @@ describe("DEFAULT_KEY_BINDINGS", () => {
     }
   });
 
-  it("scopes are drawn from the documented set", () => {
+  it("scopes are drawn from the editor's modes", () => {
     const allowedScopes: ReadonlySet<KeyScope> = new Set<KeyScope>([
-      "list",
-      "widget",
-      "git widgets",
-      "context widgets",
-      "separator",
+      "edit",
+      "picker",
       "any",
     ]);
     for (const b of DEFAULT_KEY_BINDINGS) {

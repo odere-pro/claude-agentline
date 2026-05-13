@@ -30,6 +30,10 @@ describe("DEFAULT_CONFIG", () => {
     expect(DEFAULT_CONFIG.keymap).toEqual({});
   });
 
+  it("glyphs defaults to 'off' so existing goldens stay byte-stable", () => {
+    expect(DEFAULT_CONFIG.glyphs).toBe("off");
+  });
+
   it("global defaults match documented spec values", () => {
     expect(DEFAULT_CONFIG.global).toMatchObject({
       padding: 1,

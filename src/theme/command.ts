@@ -17,8 +17,7 @@
  */
 
 import { promises as fs } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { atomicWriteJson } from "../config/atomic.js";
@@ -36,6 +35,7 @@ import {
   THEME_ROLES,
   type Theme,
 } from "./index.js";
+import { themeDirectories as resolveThemeDirectories } from "./resolve.js";
 
 const HELP = `agentline config theme — browse, inspect, and pick a theme
 
@@ -279,17 +279,10 @@ function formatTheme(
 }
 
 function themeDirectories(input: ThemesInput): readonly string[] {
-  const env = resolveEnv(input);
-  const userThemes = join(resolveConfigPaths(env).userDir, "themes");
-  const builtin = input.builtinDir ?? defaultBuiltinDir();
-  return [userThemes, builtin];
-}
-
-function defaultBuiltinDir(): string {
-  // Themes ship under `themes/` at the package root; cli.mjs lives
-  // at `dist/cli.mjs` so the path is `../themes/`.
-  const cliDir = dirname(fileURLToPath(import.meta.url));
-  return join(cliDir, "..", "themes");
+  return resolveThemeDirectories({
+    env: resolveEnv(input),
+    ...(input.builtinDir !== undefined ? { builtinDir: input.builtinDir } : {}),
+  });
 }
 
 export function parseThemesArgs(rest: readonly string[]): ThemesCommandArgs {

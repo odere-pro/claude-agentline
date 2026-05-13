@@ -7,12 +7,7 @@ import type { StdinPayload } from "../../stdin/index.js";
 import { frozenClock } from "../clock.js";
 import type { WidgetContext } from "../context.js";
 
-import {
-  gitIsForkWidget,
-  gitOriginOwnerWidget,
-  gitOriginRepoWidget,
-  gitUpstreamWidget,
-} from "./remote.js";
+import { gitOriginRepoWidget, gitUpstreamWidget } from "./remote.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
 
@@ -33,6 +28,7 @@ function makeSnapshot(overrides: Partial<GitSnapshot> = {}): GitSnapshot {
     upstreamRemote: null,
     worktreeName: null,
     inWorktree: false,
+    pr: null,
     ...overrides,
   });
 }
@@ -48,51 +44,6 @@ function makeCtx(git: GitState | undefined, overrides: Partial<WidgetContext> = 
     ...overrides,
   };
 }
-
-describe("git-origin-owner widget", () => {
-  it("hides when ctx.git is absent", () => {
-    const cell = gitOriginOwnerWidget.render(makeCtx(undefined), { options: {}, rawValue: false });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("hides when ctx.git.available is false", () => {
-    const cell = gitOriginOwnerWidget.render(makeCtx({ available: false }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("hides when no origin is set", () => {
-    const cell = gitOriginOwnerWidget.render(makeCtx(makeSnapshot({ origin: null })), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("renders the origin owner", () => {
-    const cell = gitOriginOwnerWidget.render(
-      makeCtx(makeSnapshot({ origin: { owner: "anthropic", repo: "claude" } })),
-      { options: {}, rawValue: false },
-    );
-    expect(cell.text).toBe("anthropic");
-  });
-
-  it("suppresses label when rawValue: true", () => {
-    const snap = makeSnapshot({ origin: { owner: "anthropic", repo: "claude" } });
-    const withLabel = gitOriginOwnerWidget.render(makeCtx(snap), {
-      options: { label: "owner:" },
-      rawValue: false,
-    });
-    const noLabel = gitOriginOwnerWidget.render(makeCtx(snap), {
-      options: { label: "owner:" },
-      rawValue: true,
-    });
-    expect(withLabel.text).toBe("owner:anthropic");
-    expect(noLabel.text).toBe("anthropic");
-  });
-});
 
 describe("git-origin-repo widget", () => {
   it("hides when ctx.git is absent", () => {
@@ -176,89 +127,5 @@ describe("git-upstream widget", () => {
     });
     expect(withLabel.text).toBe("upstream:origin/main");
     expect(noLabel.text).toBe("origin/main");
-  });
-});
-
-describe("git-is-fork widget", () => {
-  it("hides when ctx.git is absent", () => {
-    const cell = gitIsForkWidget.render(makeCtx(undefined), { options: {}, rawValue: false });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("hides when ctx.git.available is false", () => {
-    const cell = gitIsForkWidget.render(makeCtx({ available: false }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("hides without an upstream remote", () => {
-    const cell = gitIsForkWidget.render(
-      makeCtx(makeSnapshot({ origin: { owner: "fork", repo: "r" }, upstreamRemote: null })),
-      { options: {}, rawValue: false },
-    );
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("reports 'fork' when origin owner differs from upstream owner", () => {
-    const cell = gitIsForkWidget.render(
-      makeCtx(makeSnapshot({
-        origin: { owner: "fork-owner", repo: "r" },
-        upstreamRemote: { owner: "anthropic", repo: "r" },
-      })),
-      { options: {}, rawValue: false },
-    );
-    expect(cell.text).toBe("fork");
-  });
-
-  it("hides when origin owner equals upstream owner (not a fork)", () => {
-    const cell = gitIsForkWidget.render(
-      makeCtx(makeSnapshot({
-        origin: { owner: "anthropic", repo: "r" },
-        upstreamRemote: { owner: "anthropic", repo: "r" },
-      })),
-      { options: {}, rawValue: false },
-    );
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("honours custom forkText option", () => {
-    const cell = gitIsForkWidget.render(
-      makeCtx(makeSnapshot({
-        origin: { owner: "a", repo: "r" },
-        upstreamRemote: { owner: "b", repo: "r" },
-      })),
-      { options: { forkText: "FORK" }, rawValue: false },
-    );
-    expect(cell.text).toBe("FORK");
-  });
-
-  it("honours custom notForkText option (renders when same owner)", () => {
-    const cell = gitIsForkWidget.render(
-      makeCtx(makeSnapshot({
-        origin: { owner: "anthropic", repo: "r" },
-        upstreamRemote: { owner: "anthropic", repo: "r" },
-      })),
-      { options: { notForkText: "source" }, rawValue: false },
-    );
-    expect(cell.text).toBe("source");
-  });
-
-  it("suppresses label when rawValue: true", () => {
-    const snap = makeSnapshot({
-      origin: { owner: "a", repo: "r" },
-      upstreamRemote: { owner: "b", repo: "r" },
-    });
-    const withLabel = gitIsForkWidget.render(makeCtx(snap), {
-      options: { label: "is:" },
-      rawValue: false,
-    });
-    const noLabel = gitIsForkWidget.render(makeCtx(snap), {
-      options: { label: "is:" },
-      rawValue: true,
-    });
-    expect(withLabel.text).toBe("is:fork");
-    expect(noLabel.text).toBe("fork");
   });
 });

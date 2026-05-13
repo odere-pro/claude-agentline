@@ -1,17 +1,17 @@
 # Configuration
 
-`agentline` is configured by a JSON file. Four shipped presets are
+`agentline` is configured by a JSON file. Three shipped presets are
 available via `agentline config init --preset <name>`:
 
-- **`minimal`** (`templates/minimal.config.json`) — model, git-branch, clock. The smallest sensible bar.
-- **`default`** (`templates/default.config.json`) — model, git, context, tokens, cost, session usage, clock. The recommended starting point; what `scripts/install.sh` seeds on first run.
-- **`focus`** (`templates/presets/focus.config.json`) — model, git, context-percentage, clock. The "I'm trying to read code" bar.
-- **`power`** (`templates/presets/power.config.json`) — full default plus `thinking-effort`, `weekly-usage`, `block-timer`. Everything.
+- **`minimal`** (`templates/minimal.config.json`) — `model`, `context-length`, `block-reset-timer`. The smallest sensible bar.
+- **`default`** (`templates/default.config.json`) — model, git, context, tokens, session usage, block reset timer, clock. The recommended starting point; what `agentline install` seeds on first run.
+- **`maximal`** — `default` plus `git-ahead-behind` and the weekly reset timer. A curated "everything useful" line.
 
-`agentline config init` defaults to the `default` preset and writes
-`.claude/agentline.json` in the current directory; pass `--scope user` to
-write the user config instead, or `--target <path>` for an explicit
-location. Existing targets are preserved unless `--force` is passed.
+`agentline config init` defaults to the `default` preset and writes the
+user config at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`
+(pass `--target <path>` for an explicit location). agentline is
+configured globally only — there is no per-project config layer.
+Existing targets are preserved unless `--force` is passed.
 
 The canonical schema lives at `schemas/config.schema.json` and is also
 embedded in the binary so validation works offline. To drop a copy into
@@ -66,6 +66,7 @@ Full flag reference for all commands → [cli.md](./cli.md)
   "$schema": "https://github.com/odere-pro/claude-agentline/schemas/config.schema.json",
   "version": 1,
   "theme": "claude-code-dark",
+  "glyphs": "off",
   "lines": [{ "widgets": [{ "type": "model" }, { "type": "clock" }] }],
   "global": { "padding": 1, "separator": "|" },
   "powerline": { "enabled": false },
@@ -79,6 +80,7 @@ Full flag reference for all commands → [cli.md](./cli.md)
 | `$schema`       | string         | the canonical schema URL | optional; lets editors auto-complete                                                                                   |
 | `version`       | int            | `1`                      | schema version; older files are auto-migrated, newer files are refused with a structured error and a `.bak` is written |
 | `theme`         | string \| null | `null`                   | named theme from `themes/` (see [themes.md](./themes.md))                                                              |
+| `glyphs`        | enum           | `"off"`                  | `"off"` or `"nerd-font"` — when `nerd-font`, each widget's catalogue glyph is prepended to its rendered text           |
 | `lines`         | array          | one default line         | ordered top-to-bottom; one or more                                                                                     |
 | `global`        | object         | see below                | global render options                                                                                                  |
 | `powerline`     | object         | `{ "enabled": false }`   | Powerline mode options                                                                                                 |
@@ -119,6 +121,21 @@ See [themes.md](./themes.md#powerline) for the full Powerline shape.
 With `"enabled": false` (the default) the inter-widget `separator` and
 `padding` from `global` are honoured; with `"enabled": true` they are
 ignored and chevron glyphs are used instead.
+
+### `glyphs`
+
+Top-level glyph mode. Two values:
+
+- `"off"` (default) — widgets render text only. The bytes the golden
+  suite depends on stay byte-stable.
+- `"nerd-font"` — widgets that have a glyph in the catalogue
+  (`src/widgets/catalog.ts`) get their codepoint prepended (followed by
+  a thin space, U+2009) to the rendered cell text. Codepoints come from
+  the [Nerd Fonts v3](https://www.nerdfonts.com/) Private Use Area, so
+  this only renders correctly with a Nerd Font installed in the
+  terminal — that's why it's opt-in. Widgets without a catalogued glyph
+  are unaffected. The layout-only `separator` widget is always
+  unaffected.
 
 ## Widget shape
 

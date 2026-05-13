@@ -40,7 +40,7 @@ See [install.md](./install.md) for `--force`, `--dry-run`, and `CLAUDE_CONFIG_DI
 
 ## Step 2 — See the default
 
-Restart your Claude Code session. The statusline appears at the bottom of the prompt with the default preset (model, git-branch, context, tokens, cost, session-usage, clock).
+Restart your Claude Code session. The statusline appears at the bottom of the prompt with the default preset (model, git-branch, context, tokens, session-usage, block-reset-timer, clock).
 
 If it doesn't render:
 
@@ -59,10 +59,10 @@ The five installed skills give any Claude Code session enough context to drive a
 
 - _"switch the theme to vscode-dark"_
 - _"add a context-percentage widget"_
-- _"remove the cost widget"_
+- _"remove the session-usage widget"_
 - _"reset my config to the minimal preset"_
 
-The agent edits `~/.config/agentline/config.json` (or the project-local `.claude/agentline.json`) directly. Restart the Claude Code session to see the change in the live statusline.
+The agent edits `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` directly — or runs the `agentline config widget …` subcommands for precise, validated changes. agentline is configured globally only; there is no per-project config. The change shows up on the **next prompt render** — Claude Code re-runs the statusline bin every prompt — so no restart is needed.
 
 Config-related CLI commands are still available if you prefer terminal-driven editing:
 
@@ -96,7 +96,7 @@ The prior `statusLine` was backed up at install time and is restored from `~/.co
 | ------------------------------------- | ------------------------------------------ |
 | Change widgets or layout              | [config.md](./config.md)                   |
 | Pick or author a theme                | [themes.md](./themes.md)                   |
-| Browse all 53 available widgets       | [widgets.md](./widgets.md)                 |
+| Browse all 55 available widgets       | [widgets.md](./widgets.md)                 |
 | Use the interactive TUI config editor | [keymap.md](./keymap.md)                   |
 | Understand health checks in detail    | [doctor.md](./doctor.md)                   |
 | Something is broken                   | [troubleshooting.md](./troubleshooting.md) |

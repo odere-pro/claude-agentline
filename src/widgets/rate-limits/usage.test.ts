@@ -8,10 +8,9 @@ import { DEFAULT_PALETTE } from "../../theme/index.js";
 import { frozenClock } from "../clock.js";
 import type { WidgetContext } from "../context.js";
 
-import { sessionUsageWidget, weeklyUsageWidget } from "./usage.js";
+import { sessionUsageWidget } from "./usage.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
-const HOUR_MS = 60 * 60 * 1000;
 
 const ev = (overrides: Partial<TranscriptEvent>): TranscriptEvent => ({
   timestamp: 0,
@@ -163,54 +162,5 @@ describe("session-usage widget", () => {
     });
     expect(withLabel.text).toMatch(/^usage:/);
     expect(noLabel.text).not.toMatch(/^usage:/);
-  });
-});
-
-describe("weekly-usage widget", () => {
-  it("hides when no snapshot is supplied", () => {
-    const cell = weeklyUsageWidget.render(makeCtx(undefined), { options: {}, rawValue: false });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("renders raw count with no limit for events within the week", async () => {
-    const { weekStart } = await import("../../tokens/index.js");
-    const now = Date.parse("2026-04-30T12:00:00Z");
-    const wkStart = weekStart(now);
-    const inWeek = ev({ timestamp: wkStart + HOUR_MS, inputTokens: 10_000 });
-    const snap = makeSnapshot([inWeek], { now });
-    const cell = weeklyUsageWidget.render(makeCtx(snap), { options: {}, rawValue: false });
-    expect(cell.text).toBe("10k");
-  });
-
-  it("renders percentage against limit for the week", async () => {
-    const { weekStart } = await import("../../tokens/index.js");
-    const now = Date.parse("2026-04-30T12:00:00Z");
-    const wkStart = weekStart(now);
-    const beforeWeek = ev({ timestamp: wkStart - HOUR_MS, inputTokens: 999_999 });
-    const inWeek = ev({ timestamp: wkStart + HOUR_MS, inputTokens: 5_000 });
-    const snap = makeSnapshot([beforeWeek, inWeek], { now });
-    const cell = weeklyUsageWidget.render(makeCtx(snap), {
-      options: { limit: 50_000 },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("10%");
-  });
-
-  it("suppresses label when rawValue: true", async () => {
-    const { weekStart } = await import("../../tokens/index.js");
-    const now = Date.parse("2026-04-30T12:00:00Z");
-    const wkStart = weekStart(now);
-    const inWeek = ev({ timestamp: wkStart + HOUR_MS, inputTokens: 1_000 });
-    const snap = makeSnapshot([inWeek], { now });
-    const withLabel = weeklyUsageWidget.render(makeCtx(snap), {
-      options: { label: "weekly:", limit: 10_000 },
-      rawValue: false,
-    });
-    const noLabel = weeklyUsageWidget.render(makeCtx(snap), {
-      options: { label: "weekly:", limit: 10_000 },
-      rawValue: true,
-    });
-    expect(withLabel.text).toMatch(/^weekly:/);
-    expect(noLabel.text).not.toMatch(/^weekly:/);
   });
 });

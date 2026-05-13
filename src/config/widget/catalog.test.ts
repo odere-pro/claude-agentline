@@ -16,12 +16,14 @@ const sample: readonly WidgetMetaEntry[] = [
 ];
 
 describe("parseWidgetCatalogArgs", () => {
-  it("defaults to text output", () => {
-    expect(parseWidgetCatalogArgs([])).toEqual({ json: false });
+  it("defaults to text output without previews", () => {
+    expect(parseWidgetCatalogArgs([])).toEqual({ json: false, preview: false });
   });
 
-  it("--json enables JSON output", () => {
-    expect(parseWidgetCatalogArgs(["--json"])).toEqual({ json: true });
+  it("--json and --preview set their flags", () => {
+    expect(parseWidgetCatalogArgs(["--json"])).toEqual({ json: true, preview: false });
+    expect(parseWidgetCatalogArgs(["--preview"])).toEqual({ json: false, preview: true });
+    expect(parseWidgetCatalogArgs(["--json", "--preview"])).toEqual({ json: true, preview: true });
   });
 
   it("rejects unknown arguments", () => {
@@ -30,9 +32,9 @@ describe("parseWidgetCatalogArgs", () => {
 });
 
 describe("builtinMeta", () => {
-  it("returns the 53 catalogued built-in widgets", () => {
+  it("returns the 39 catalogued built-in widgets", () => {
     const entries = builtinMeta();
-    expect(entries).toHaveLength(53);
+    expect(entries).toHaveLength(39);
     expect(entries.every((e) => e.type && e.name && e.description && e.category)).toBe(true);
   });
 });
@@ -48,6 +50,15 @@ describe("formatJson", () => {
       { type: "clock", name: "Clock", description: "Wall-clock time", category: "time" },
     ]);
   });
+
+  it("adds a string `preview` field per widget when --preview is set", () => {
+    const parsed = JSON.parse(formatJson(builtinMeta(), { preview: true })) as {
+      widgets: { type: string; preview: string }[];
+    };
+    expect(parsed.widgets.every((w) => typeof w.preview === "string")).toBe(true);
+    const branch = parsed.widgets.find((w) => w.type === "git-branch");
+    expect(branch?.preview).toContain("main");
+  });
 });
 
 describe("formatText", () => {
@@ -57,9 +68,13 @@ describe("formatText", () => {
     expect(text).toContain("session (1):");
     expect(text).toContain("git (1):");
     expect(text).toContain("clock");
-    // session is listed before git, which is listed before time.
     expect(text.indexOf("session (1):")).toBeLessThan(text.indexOf("git (1):"));
     expect(text.indexOf("git (1):")).toBeLessThan(text.indexOf("time (1):"));
+  });
+
+  it("appends a preview column when --preview is set", () => {
+    const text = formatText(builtinMeta(), { preview: true });
+    expect(text).toMatch(/git-branch\s+Current branch[^\n]*→\s+main/);
   });
 });
 
@@ -68,7 +83,10 @@ describe("runWidgetCatalogCommand", () => {
 
   it("prints JSON when --json is set", async () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    const code = await runWidgetCatalogCommand({ args: { json: true }, entries: sample });
+    const code = await runWidgetCatalogCommand({
+      args: { json: true, preview: false },
+      entries: sample,
+    });
     expect(code).toBe(0);
     const parsed = JSON.parse(String(stdout.mock.calls[0]?.[0] ?? "")) as { widgets: unknown[] };
     expect(parsed.widgets).toHaveLength(3);
@@ -76,7 +94,16 @@ describe("runWidgetCatalogCommand", () => {
 
   it("falls back to the built-in registry when no entries are injected", async () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    await runWidgetCatalogCommand({ args: { json: false } });
-    expect(String(stdout.mock.calls[0]?.[0] ?? "")).toContain("agentline widgets (53):");
+    await runWidgetCatalogCommand({ args: { json: false, preview: false } });
+    expect(String(stdout.mock.calls[0]?.[0] ?? "")).toContain("agentline widgets (39):");
+  });
+
+  it("includes previews with --preview", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    await runWidgetCatalogCommand({ args: { json: true, preview: true } });
+    const parsed = JSON.parse(String(stdout.mock.calls[0]?.[0] ?? "")) as {
+      widgets: { type: string; preview?: string }[];
+    };
+    expect(parsed.widgets.find((w) => w.type === "model")?.preview).toBeDefined();
   });
 });

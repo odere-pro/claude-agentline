@@ -134,5 +134,11 @@ describe("loadGitSnapshot", () => {
       if (!snap.available) throw new Error("expected available");
       expect(snap.origin).toBeNull();
     });
+
+    it("snapshot.pr defaults to null without the allowPullRequest opt-in", () => {
+      const snap = loadGitSnapshot({ cwd: repo.path });
+      if (!snap.available) throw new Error("expected available");
+      expect(snap.pr).toBeNull();
+    });
   });
 });

@@ -11,21 +11,11 @@ import { WidgetRegistry } from "../registry.js";
 
 import { gitAheadBehindWidget, gitConflictsWidget } from "./ahead-behind.js";
 import { gitBranchWidget } from "./branch.js";
-import {
-  gitChangesWidget,
-  gitDeletionsWidget,
-  gitInsertionsWidget,
-} from "./changes.js";
-import {
-  gitIsForkWidget,
-  gitOriginOwnerWidget,
-  gitOriginRepoWidget,
-  gitUpstreamWidget,
-} from "./remote.js";
+import { gitChangesWidget } from "./changes.js";
+import { gitOriginRepoWidget, gitUpstreamWidget } from "./remote.js";
 import { gitShaWidget, gitWorktreeWidget } from "./sha.js";
 import {
   gitStagedWidget,
-  gitStatusWidget,
   gitUnstagedWidget,
   gitUntrackedWidget,
 } from "./status.js";
@@ -50,6 +40,7 @@ function makeSnapshot(overrides: Partial<GitSnapshot> = {}): GitSnapshot {
     upstreamRemote: null,
     worktreeName: null,
     inWorktree: false,
+    pr: null,
     ...overrides,
   });
 }
@@ -67,30 +58,26 @@ function makeCtx(git: GitState | undefined, overrides: Partial<WidgetContext> = 
 }
 
 describe("registerGitWidgets", () => {
-  it("ships exactly 16 widgets in sorted order", () => {
+  it("ships exactly 12 widgets in sorted order", () => {
     const r = new WidgetRegistry();
     registerGitWidgets(r);
-    expect(r.size()).toBe(16);
+    expect(r.size()).toBe(12);
     expect(r.list()).toEqual([
       "git-ahead-behind",
       "git-branch",
       "git-changes",
       "git-conflicts",
-      "git-deletions",
-      "git-insertions",
-      "git-is-fork",
-      "git-origin-owner",
       "git-origin-repo",
+      "git-pr",
       "git-sha",
       "git-staged",
-      "git-status",
       "git-unstaged",
       "git-untracked",
       "git-upstream",
       "git-worktree",
     ]);
     expect(Object.isFrozen(GIT_WIDGETS)).toBe(true);
-    expect(GIT_WIDGETS).toHaveLength(16);
+    expect(GIT_WIDGETS).toHaveLength(12);
   });
 
   it("hides every widget when ctx.git is missing", () => {
@@ -137,7 +124,7 @@ describe("git-branch widget", () => {
   });
 });
 
-describe("git-changes / -insertions / -deletions widgets", () => {
+describe("git-changes widget", () => {
   const dirty = makeSnapshot({ diff: { insertions: 12, deletions: 4, filesChanged: 3 } });
 
   it("git-changes renders +N -M", () => {
@@ -146,19 +133,13 @@ describe("git-changes / -insertions / -deletions widgets", () => {
     expect(cell.fg).toBe(DEFAULT_PALETTE["git-dirty"]);
   });
 
-  it("git-insertions hides at zero by default", () => {
+  it("hides at zero by default", () => {
     expect(
-      gitInsertionsWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false }).hidden,
+      gitChangesWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false }).hidden,
     ).toBe(true);
   });
 
-  it("git-deletions renders -N with the danger role", () => {
-    const cell = gitDeletionsWidget.render(makeCtx(dirty), { options: {}, rawValue: false });
-    expect(cell.text).toBe("-4");
-    expect(cell.fg).toBe(DEFAULT_PALETTE.danger);
-  });
-
-  it("hideZero=false keeps zero-valued widgets visible", () => {
+  it("hideZero=false keeps the widget visible at zero", () => {
     const cell = gitChangesWidget.render(makeCtx(makeSnapshot()), {
       options: { hideZero: false },
       rawValue: false,
@@ -167,24 +148,9 @@ describe("git-changes / -insertions / -deletions widgets", () => {
   });
 });
 
-describe("git-status / -staged / -unstaged / -untracked widgets", () => {
+describe("git-staged / -unstaged / -untracked widgets", () => {
   const dirty = makeSnapshot({
     status: { staged: 2, unstaged: 1, untracked: 3, conflicts: 0, modified: 1, added: 1 },
-  });
-
-  it("git-status emits the compact form", () => {
-    const cell = gitStatusWidget.render(makeCtx(dirty), { options: {}, rawValue: false });
-    expect(cell.text).toBe("M1 A1 ?3");
-    expect(cell.fg).toBe(DEFAULT_PALETTE["git-dirty"]);
-  });
-
-  it("git-status renders 'clean' when hideZero=false and tree is clean", () => {
-    const cell = gitStatusWidget.render(makeCtx(makeSnapshot()), {
-      options: { hideZero: false },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("clean");
-    expect(cell.fg).toBe(DEFAULT_PALETTE["git-clean"]);
   });
 
   it("count widgets render their number", () => {
@@ -297,16 +263,10 @@ describe("git-worktree widget", () => {
   });
 });
 
-describe("git-origin-* widgets", () => {
+describe("git-origin-repo widget", () => {
   const withOrigin = makeSnapshot({ origin: { owner: "odere-pro", repo: "claude-agentline" } });
 
-  it("git-origin-owner", () => {
-    expect(
-      gitOriginOwnerWidget.render(makeCtx(withOrigin), { options: {}, rawValue: false }).text,
-    ).toBe("odere-pro");
-  });
-
-  it("git-origin-repo", () => {
+  it("renders the repo segment", () => {
     expect(
       gitOriginRepoWidget.render(makeCtx(withOrigin), { options: {}, rawValue: false }).text,
     ).toBe("claude-agentline");
@@ -314,7 +274,7 @@ describe("git-origin-* widgets", () => {
 
   it("hides without an origin", () => {
     expect(
-      gitOriginOwnerWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false })
+      gitOriginRepoWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false })
         .hidden,
     ).toBe(true);
   });
@@ -333,57 +293,5 @@ describe("git-upstream widget", () => {
     expect(
       gitUpstreamWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false }).hidden,
     ).toBe(true);
-  });
-});
-
-describe("git-is-fork widget", () => {
-  it("hides without an upstream remote", () => {
-    expect(
-      gitIsForkWidget.render(
-        makeCtx(makeSnapshot({ origin: { owner: "fork-owner", repo: "r" } })),
-        { options: {}, rawValue: false },
-      ).hidden,
-    ).toBe(true);
-  });
-
-  it("reports 'fork' when origin owner ≠ upstream owner", () => {
-    const cell = gitIsForkWidget.render(
-      makeCtx(
-        makeSnapshot({
-          origin: { owner: "fork-owner", repo: "r" },
-          upstreamRemote: { owner: "anthropic", repo: "r" },
-        }),
-      ),
-      { options: {}, rawValue: false },
-    );
-    expect(cell.text).toBe("fork");
-  });
-
-  it("hides when origin owner === upstream owner", () => {
-    const cell = gitIsForkWidget.render(
-      makeCtx(
-        makeSnapshot({
-          origin: { owner: "anthropic", repo: "r" },
-          upstreamRemote: { owner: "anthropic", repo: "r" },
-        }),
-      ),
-      { options: {}, rawValue: false },
-    );
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("honours forkText / notForkText", () => {
-    const ctx = makeCtx(
-      makeSnapshot({
-        origin: { owner: "a", repo: "r" },
-        upstreamRemote: { owner: "b", repo: "r" },
-      }),
-    );
-    expect(
-      gitIsForkWidget.render(ctx, {
-        options: { forkText: "🍴" },
-        rawValue: false,
-      }).text,
-    ).toBe("🍴");
   });
 });

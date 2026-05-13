@@ -1,15 +1,17 @@
 /**
  * Default keymap registry (§5.5).
  *
- * Each binding declares the visible key, its action id (used by the
- * TUI dispatcher), the scope it applies in, and a human-readable
- * description. The registry is the single source of truth: the TUI
- * footer reads from here, `agentline config keys [--json]` enumerates from
- * here (PR 18), and gate-17 (keymap coverage) verifies that every
- * §5.5 row is represented.
+ * Each binding declares the visible key, its action id (used by the TUI
+ * dispatcher), the scope it applies in, and a human-readable description.
+ * The registry is the single source of truth: the TUI footer / help overlay
+ * read from here, `agentline config keys [--json]` enumerates from here, and
+ * gate-17 (keymap coverage) verifies that every §5.5 action is represented.
+ *
+ * Scopes mirror the editor's modes: `edit` is the layout view, `picker` is
+ * the widget chooser overlay, and `any` applies regardless of mode.
  */
 
-export type KeyScope = "list" | "widget" | "git widgets" | "context widgets" | "separator" | "any";
+export type KeyScope = "edit" | "picker" | "any";
 
 export interface KeyBinding {
   readonly key: string;
@@ -19,35 +21,26 @@ export interface KeyBinding {
 }
 
 export const DEFAULT_KEY_BINDINGS: readonly KeyBinding[] = Object.freeze([
-  { key: "↑ ↓", action: "navigate", scope: "list", description: "navigate" },
-  { key: "← →", action: "change-type", scope: "widget", description: "change type" },
-  { key: "a", action: "add", scope: "list", description: "add widget" },
-  { key: "d", action: "delete", scope: "widget", description: "delete" },
-  { key: "r", action: "toggle-raw", scope: "widget", description: "toggle raw value" },
-  { key: "m", action: "cycle-merge", scope: "widget", description: "cycle merge mode" },
-  { key: "h", action: "toggle-hidden", scope: "widget", description: "toggle hidden" },
-  {
-    key: "l",
-    action: "toggle-link",
-    scope: "git widgets",
-    description: "toggle clickable IDE link (VS Code / Cursor / IntelliJ)",
-  },
-  { key: "t", action: "toggle-title", scope: "widget", description: "toggle title/label" },
-  { key: "p", action: "cycle-display", scope: "widget", description: "cycle display variant" },
-  { key: "s", action: "toggle-compact", scope: "widget", description: "toggle compact / short" },
-  { key: "v", action: "cycle-inversion", scope: "widget", description: "invert / cycle inversion" },
-  { key: "e", action: "edit-inline", scope: "widget", description: "edit inline value" },
-  {
-    key: "u",
-    action: "toggle-used-remaining",
-    scope: "context widgets",
-    description: "toggle used-vs-remaining",
-  },
-  { key: "f", action: "cycle-format", scope: "widget", description: "cycle format" },
-  { key: "n", action: "toggle-nerd", scope: "widget", description: "toggle Nerd Font glyph" },
-  { key: "w", action: "edit-window", scope: "widget", description: "edit window/width" },
-  { key: "Space", action: "cycle-char", scope: "separator", description: "cycle char" },
-  { key: "Esc", action: "back", scope: "any", description: "back" },
+  // ── edit (the layout view) ───────────────────────────────────────────────
+  { key: "← →", action: "move-cursor", scope: "edit", description: "move the selection within the row (incl. the trailing +add cell)" },
+  { key: "↑ ↓", action: "move-cursor-row", scope: "edit", description: "move the selection between rows" },
+  { key: "⇧← ⇧→", action: "move-widget", scope: "edit", description: "move the selected widget within its row" },
+  { key: "⇧↑ ⇧↓", action: "move-widget-row", scope: "edit", description: "move the selected widget to the adjacent row" },
+  { key: "↵", action: "edit-widget", scope: "edit", description: "+add cell → open the picker" },
+  { key: "a", action: "add", scope: "edit", description: "add a widget (opens the picker)" },
+  { key: "r", action: "replace", scope: "edit", description: "replace the selected widget (opens the picker)" },
+  { key: "u", action: "update", scope: "edit", description: "update the selected widget — pick a different variant of the same widget" },
+  { key: "d", action: "delete", scope: "edit", description: "delete the selected widget" },
+  { key: "g", action: "toggle-glyphs", scope: "edit", description: "toggle Nerd Font glyphs on / off (top-level config.glyphs)" },
+  { key: "S", action: "save", scope: "edit", description: "save (Ctrl+S also works)" },
+  // ── picker (the three-step widget chooser overlay) ───────────────────────
+  { key: "(type)", action: "picker-filter", scope: "picker", description: "type to filter widgets by name or type (step 2)" },
+  { key: "↑ ↓", action: "picker-navigate", scope: "picker", description: "highlight a row" },
+  { key: "↵", action: "picker-confirm", scope: "picker", description: "confirm the highlighted row and advance / commit" },
+  { key: "Esc", action: "picker-back", scope: "picker", description: "step back one level (cancels at step 1)" },
+  // ── any mode ─────────────────────────────────────────────────────────────
+  { key: "q", action: "quit", scope: "any", description: "quit (prompts if there are unsaved changes)" },
+  { key: "?", action: "help", scope: "any", description: "toggle the help overlay" },
 ] as const) as readonly KeyBinding[];
 
 export function listBindings(
