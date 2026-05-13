@@ -4,26 +4,21 @@ Complete flag-by-flag reference for every `agentline` subcommand. Intended as th
 
 Every subcommand accepts `-h` / `--help`. The default invocation (no subcommand, no flags) runs the render path.
 
-The top-level surface is intentionally small: **`install` · `uninstall` · `doctor` · `config`**. Everything configuration-adjacent (`init`, `theme`, `widget`, `keys`, `schema`, the TUI editor) lives under `agentline config <sub>`.
+The top-level surface is intentionally small: **`install` · `uninstall` · `doctor` · `edit`**.
 
 ---
 
 ## Command overview
 
-| Command                           | Purpose                                                  | Writes to disk |
-| --------------------------------- | -------------------------------------------------------- | -------------- |
-| _(default)_                       | Read stdin JSON, render statusline, write to stdout      | no             |
-| [`install`](#install)             | Wire `statusLine` and install skill files                | **yes**        |
-| [`uninstall`](#uninstall)         | Undo install; restore pre-install state                  | **yes**        |
-| [`doctor`](#doctor)               | Diagnose host wiring; `--fix` repairs D01–D04            | with `--fix`   |
-| [`config`](#config)               | Open the TUI editor (no sub) or route to sub-subcommand  | depends        |
-| [`config init`](#config-init)     | Scaffold the user config from a shipped preset           | **yes**        |
-| [`config theme`](#config-theme)   | Browse / inspect themes; `--set` switches the active one | with `--set`   |
-| [`config widget`](#config-widget) | Inspect / edit the layout (list, catalog, add, …)        | with mutators  |
-| [`config keys`](#config-keys)     | List TUI editor keymap bindings                          | no             |
-| [`config schema`](#config-schema) | Print or write the config JSON Schema                    | with `--write` |
-| [`version`](#version)             | Print binary version                                     | no             |
-| [`help`](#help)                   | Print the top-level command list                         | no             |
+| Command                   | Purpose                                             | Writes to disk |
+| ------------------------- | --------------------------------------------------- | -------------- |
+| _(default)_               | Read stdin JSON, render statusline, write to stdout | no             |
+| [`install`](#install)     | Wire `statusLine` and install skill files           | **yes**        |
+| [`uninstall`](#uninstall) | Undo install; restore pre-install state             | **yes**        |
+| [`doctor`](#doctor)       | Diagnose host wiring; `--fix` repairs D01–D04       | with `--fix`   |
+| [`edit`](#edit)           | Open the interactive TUI editor                     | with save      |
+| [`version`](#version)     | Print binary version                                | no             |
+| [`help`](#help)           | Print the top-level command list                    | no             |
 
 The `render` subcommand is retained for the golden-snapshot harness and doctor's D10 check but is not listed in `agentline --help`; see [`render` (hidden)](#render-hidden) below.
 
@@ -40,7 +35,7 @@ Called by Claude Code on every prompt render. Claude Code pipes a JSON payload t
 
 **Stdin contract:** a single JSON object matching the Claude Code statusline contract. An empty payload (no bytes or whitespace-only) emits a one-line fallback and exits 1.
 
-**First-run hint:** when stderr is a TTY and no user config exists, agentline prints a one-time hint recommending `agentline config init`. Suppress with `AGENTLINE_QUIET=1`.
+**First-run hint:** when stderr is a TTY and no user config exists, agentline prints a one-time hint recommending `agentline install` to seed the default config. Suppress with `AGENTLINE_QUIET=1`.
 
 **Exit codes:** `0` success · `1` stdin parse error or empty stdin
 
@@ -169,199 +164,21 @@ agentline doctor --json | jq .    # machine-readable
 
 ---
 
-## config
+## edit
 
 ```bash
-agentline config [<sub>] [options]
+agentline edit
 ```
 
-Configuration subgroup. With no subcommand, opens the interactive TUI editor; with a subcommand, dispatches to one of the four sub-subcommands below.
+Opens the interactive TUI editor (Ink-based) — the primary surface for adding, reordering, recolouring, and toggling widgets with a live preview.
 
-| Subcommand                 | Purpose                                            |
-| -------------------------- | -------------------------------------------------- |
-| _(no sub)_, `edit`         | Open the TUI editor                                |
-| [`init`](#config-init)     | Scaffold a config file from a shipped preset       |
-| [`theme`](#config-theme)   | Browse and inspect theme presets (alias: `themes`) |
-| [`keys`](#config-keys)     | List TUI editor keymap bindings                    |
-| [`schema`](#config-schema) | Print or write the config JSON Schema              |
+The TUI editor is lazy-loaded (`dist/tui.mjs` is a separate bundle) so the render path stays light. Reads the active config on entry, writes atomically on save. Requires a TTY; non-interactive contexts produce no output.
+
+**Reset:** there is no dedicated reset command. Delete the user config and re-run `agentline install` — the installer reseeds `templates/default.config.json` when no existing config is present:
 
 ```bash
-agentline config                  # open TUI editor (Ink-based)
-agentline config edit             # explicit alias for the bare form
-agentline config --help           # list the subgroup
-```
-
-The TUI editor is lazy-loaded (`dist/tui.mjs` is a separate bundle) so the render path stays light. Reads the active layered config on entry, writes atomically on save. Requires a TTY; non-interactive contexts produce no output.
-
----
-
-### config init
-
-```bash
-agentline config init [options]
-```
-
-Scaffolds the user config from a shipped preset. Writes atomically (write-temp + fsync + rename). Refuses to overwrite an existing target unless `--force` is passed. agentline is configured globally only — there is no project scope.
-
-| Flag              | Type   | Default   | Description                                                                   |
-| ----------------- | ------ | --------- | ----------------------------------------------------------------------------- |
-| `--preset <name>` | enum   | `default` | One of `minimal` · `default` · `maximal`                                      |
-| `--target <path>` | string | —         | Write here instead of `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` |
-| `--force`         | flag   | off       | Overwrite an existing target                                                  |
-| `-h` / `--help`   | flag   | —         | Show command help                                                             |
-
-**Presets:**
-
-| Name      | Contents                                                                              |
-| --------- | ------------------------------------------------------------------------------------- |
-| `minimal` | model, context-length, block-reset-timer                                              |
-| `default` | model, git, context-percentage, tokens-total, session-usage, block-reset-timer, clock |
-| `maximal` | default + git-ahead-behind and the weekly reset timer                                 |
-
-**Exit codes:** `0` success · `1` target already exists (without `--force`) or template file missing
-
-**Examples:**
-
-```bash
-agentline config init                                  # default preset, user config
-agentline config init --preset minimal                 # seed a minimal user config
-agentline config init --preset maximal --target ~/my.json   # explicit path
-agentline config init --force --preset default         # reset the user config to defaults
-```
-
----
-
-### config theme
-
-```bash
-agentline config theme [options]
-```
-
-Browse, inspect, and pick a theme. With no flags, renders a swatch table: one row per theme with 13 coloured blocks showing the palette. Accepts `themes` (plural) as an alias.
-
-| Flag            | Type   | Default | Description                                                 |
-| --------------- | ------ | ------- | ----------------------------------------------------------- |
-| `--list`        | flag   | off     | Machine-readable output: `name<TAB>path` rows, one per line |
-| `--show <name>` | string | —       | Pretty-print the resolved palette for one theme             |
-| `--set <name>`  | string | —       | Write `theme: "<name>"` into the user config (atomic write) |
-| `-h` / `--help` | flag   | —       | Show command help                                           |
-
-`--list`, `--show`, and `--set` are mutually exclusive.
-
-**Theme search path:** user themes dir (`~/.config/agentline/themes/`) then builtin (`themes/` at the package root). User themes take precedence; names are deduplicated.
-
-**`--show` name validation:** `<name>` must match `^[a-zA-Z0-9._-]+$` and must not start with a dot. Names containing `/`, `..`, or other path-shaped characters are rejected with exit code `2`.
-
-**Swatch table (no flags):** in `none`-depth terminals (e.g. `NO_COLOR=1`), the swatch column falls back to two-character role abbreviations.
-
-**`--set`:** validates the name against the theme search path first, then immutably patches `theme: "<name>"` into the user config via the same atomic-write path as `config init` (creating a `{ version: 1, theme: "<name>" }` file if none exists). Idempotent. Without `--set` the command is inspect-only and never writes.
-
-**Exit codes:** `0` success · `1` no themes found, or theme name not found (with `--show` / `--set`) · `2` invalid `--show` / `--set` name
-
-**Examples:**
-
-```bash
-agentline config theme                          # swatch table
-agentline config theme --show claude-code-dark  # inspect one palette
-agentline config theme --set vscode-dark        # switch the active theme
-agentline config theme --list | grep vscode     # machine-readable; filter
-```
-
----
-
-### config widget
-
-```bash
-agentline config widget <sub> [options]
-```
-
-Inspect and edit the statusline layout. The mutating subcommands operate on the user config directly — load → mutate → validate → atomic write — so an in-session agent (or a script) can make precise changes without opening the TUI. Read subcommands print a stable form (text by default, `--json` for machine consumption).
-
-| Subcommand                                                   | What it does                                                                                                                |
-| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| `list [--json]`                                              | Print the current layout — each line, and per widget its index, type, flags, options                                        |
-| `catalog [--json] [--preview]`                               | List every built-in widget type with its name/description/family; `--preview` adds what each renders against a demo session |
-| `add <type> [--line N] [--at I] [--options JSON]`            | Insert a widget (`--line` default 0; `--at` default = end of line; `--options` is a JSON object)                            |
-| `remove [--line N] --at I`                                   | Drop the widget at that position                                                                                            |
-| `move [--from-line N] --from-at I [--to-line M] [--to-at J]` | Reorder a widget within or across lines (`--to-line` default = `--from-line`; `--to-at` default = end)                      |
-| `replace <type> [--line N] --at I [--options JSON]`          | Swap the widget at that position for a fresh one                                                                            |
-| `set-option <key> <value> [--line N] --at I [--json]`        | Set one option on a widget; `<value>` is a string unless `--json` parses it as a JSON literal                               |
-
-`--line` indices and widget indices come from `config widget list`. Lines are capped at 3 (matching the schema). Prototype-polluting option keys (`__proto__` / `constructor` / `prototype`) are rejected.
-
-**Exit codes:** `0` success · `1` read subcommand had nothing to report · `2` bad arguments, out-of-range index, unknown widget type, or invalid `--options`/`--json` payload
-
-**Examples:**
-
-```bash
-agentline config widget list                                  # see the current layout + indices
-agentline config widget catalog --preview                     # browse widgets with sample renders
-agentline config widget add git-branch --line 0 --at 1        # insert after the first widget
-agentline config widget add tokens-total --options '{"reset":"block"}'
-agentline config widget move --from-at 3 --to-line 1          # push widget 3 down to a second line
-agentline config widget set-option label "» " --at 0         # prefix the first widget
-agentline config widget remove --at 2
-```
-
----
-
-### config keys
-
-```bash
-agentline config keys [options]
-```
-
-Lists active keymap bindings for the `agentline config` TUI editor. Reads the active config's `keymap` overrides if a config is present; falls back to defaults if loading fails.
-
-| Flag            | Type | Default | Description                                          |
-| --------------- | ---- | ------- | ---------------------------------------------------- |
-| `--json`        | flag | off     | Emit machine-readable JSON (`{ "bindings": [...] }`) |
-| `-h` / `--help` | flag | —       | Show command help                                    |
-
-**JSON binding shape:**
-
-```json
-{ "key": "ctrl+s", "action": "save", "scope": "editor", "description": "Save and exit" }
-```
-
-**Exit codes:** `0` always
-
-**Examples:**
-
-```bash
-agentline config keys                   # human-readable table
-agentline config keys --json            # JSON for scripting or gate coverage
-agentline config keys --json | jq '.bindings[].action'
-```
-
----
-
-### config schema
-
-```bash
-agentline config schema [options]
-```
-
-Prints the embedded JSON Schema for `agentline.json` config files, or writes it to a directory so editors can pick it up.
-
-| Flag            | Type   | Default | Description                                           |
-| --------------- | ------ | ------- | ----------------------------------------------------- |
-| `--write <dir>` | string | —       | Write `<dir>/agentline.config.schema.json` atomically |
-| `-h` / `--help` | flag   | —       | Show command help                                     |
-
-**Without `--write`:** schema JSON is written to stdout. Useful for inspection or piping to `jq`.
-
-**With `--write`:** writes `<dir>/agentline.config.schema.json` atomically. The path is printed to stdout on success. Useful for wiring up VS Code or another JSON-schema-aware editor.
-
-**Exit codes:** `0` success · `2` bad argument
-
-**Examples:**
-
-```bash
-agentline config schema                       # print schema to stdout
-agentline config schema | jq .definitions     # inspect definitions
-agentline config schema --write .vscode/      # drop schema for VS Code
-agentline config schema --write /tmp/         # ad-hoc inspection
+rm "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json"
+agentline install
 ```
 
 ---

@@ -3,7 +3,8 @@
  * (`templates/default.config.json`).
  *
  * The template is the source of truth for what `scripts/install.sh`
- * and `agentline init` write to a fresh user config dir. The tests
+ * (and the `agentline install` CLI) writes to a fresh user config
+ * dir. The tests
  * assert that:
  *
  *   1. It parses as JSON.

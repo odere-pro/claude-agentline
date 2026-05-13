@@ -1,18 +1,13 @@
 # Keymap
 
-The keymap applies to **`agentline config`** — the Ink-based TUI editor
+The keymap applies to **`agentline edit`** — the Ink-based TUI editor
 for your statusline configuration. It does not affect the rendered
 statusline itself (which is non-interactive output).
 
-Enumerate every active binding from the running build:
-
-```bash
-agentline config keys          # human-readable table, grouped by scope
-agentline config keys --json   # machine-readable: { "bindings": [{ key, action, scope, description }] }
-```
-
-The editor draws a footer with the keys for the current scope, and a
-help overlay (press `?`) listing every binding grouped by scope.
+The editor draws a two-line footer at the bottom showing every binding
+for the current scope (motion on line 1, actions on line 2). The
+authoritative list of default bindings lives in
+[`src/keys/bindings.ts`](../src/keys/bindings.ts).
 
 ## Modes
 
@@ -33,9 +28,8 @@ The editor has two modes; a binding's **scope** says where it applies
   <kbd>Esc</kbd> steps back one level (cancels at step 1).
 
 Per-widget flags (`visible`, `mergeWithPrev`, `useRawValue`) are set
-via `agentline config widget set-option <key> <value>` or by editing
-the config file directly. The TUI no longer ships a per-widget
-options sheet.
+by editing the config file directly. The TUI no longer ships a
+per-widget options sheet.
 
 ## Default bindings
 
@@ -57,7 +51,6 @@ options sheet.
 | <kbd>↵</kbd>                | picker | confirm the highlighted row and advance / commit                 |
 | <kbd>Esc</kbd>              | picker | step back one level (cancels at step 1)                          |
 | <kbd>q</kbd>                | any    | quit (prompts if there are unsaved changes)                      |
-| <kbd>?</kbd>                | any    | toggle the help overlay                                          |
 
 The editor always shows three rows so up/down navigation has somewhere
 to go even on a single-line config; on save, trailing empty rows are
@@ -68,8 +61,8 @@ cell.
 ## Overrides
 
 The `keymap` block in your config maps an **action id** to a key
-binding. Use `agentline config keys --json` to discover the action ids;
-an example:
+binding. Action ids are listed in
+[`src/keys/bindings.ts`](../src/keys/bindings.ts); an example:
 
 ```json
 "keymap": {
@@ -87,11 +80,10 @@ Rules:
   validation) but do not block rendering.
 
 > **Heads-up (v0.1.0):** a `keymap` override changes the _displayed_
-> keys — `agentline config keys`, the editor footer, and the help
-> overlay — but the editor's key handling is still wired to the
-> built-in keys above. Honouring overrides at the input layer is a
-> follow-up; until then, treat the table above as authoritative for what
-> the editor responds to.
+> keys (the editor footer) but the editor's key handling is still
+> wired to the built-in keys above. Honouring overrides at the input
+> layer is a follow-up; until then, treat the table above as
+> authoritative for what the editor responds to.
 
 ## Persistence
 
@@ -102,6 +94,6 @@ half-written file.
 
 ## Lazy import
 
-`agentline config` is the only subcommand that pulls in Ink and the
-TUI runtime; no other code path imports them. The render hot path
-stays small. See the discipline notes in `CLAUDE.md`.
+`agentline edit` is the only subcommand that pulls in Ink and the TUI
+runtime; no other code path imports them. The render hot path stays
+small. See the discipline notes in `CLAUDE.md`.

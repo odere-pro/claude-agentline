@@ -1,11 +1,11 @@
 /**
  * CLI dispatch surface test.
  *
- * Locks the flat top-level command set (§9.1, Phase 1 CLI flatten):
- * render / edit / init / keys / install / uninstall / doctor + the
- * help/version aliases. Dropped commands (`config`, `theme`, `widget`,
- * `schema`) MUST be absent so the dispatch table stays the source of
- * truth for "is this a known command?".
+ * Locks the flat top-level command set: render / edit / install /
+ * uninstall / doctor + the help/version aliases. Dropped commands
+ * (`config`, `theme`, `widget`, `schema`, `init`, `keys`) MUST be
+ * absent so the dispatch table stays the source of truth for "is
+ * this a known command?".
  */
 
 import { describe, expect, it } from "vitest";
@@ -15,8 +15,6 @@ import { COMMANDS } from "./cli.js";
 const EXPECTED_COMMANDS = [
   "render",
   "edit",
-  "init",
-  "keys",
   "install",
   "uninstall",
   "doctor",
@@ -28,7 +26,15 @@ const EXPECTED_COMMANDS = [
   "-v",
 ] as const;
 
-const DROPPED_COMMANDS = ["config", "theme", "themes", "widget", "schema"] as const;
+const DROPPED_COMMANDS = [
+  "config",
+  "theme",
+  "themes",
+  "widget",
+  "schema",
+  "init",
+  "keys",
+] as const;
 
 describe("CLI dispatch table", () => {
   it("exposes every flat command", () => {

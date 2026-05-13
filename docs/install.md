@@ -122,20 +122,14 @@ agentline doctor --fix
 (see [doctor.md](./doctor.md)); calling it after the manual `cp` steps
 adds the `statusLine` entry to `~/.claude/settings.json` for you.
 
-## Pick a preset
+## Default config
 
-```bash
-agentline config init --preset minimal      # essentials only
-agentline config init --preset default      # balanced (default if --preset omitted)
-agentline config init --preset maximal      # curated everything
-```
-
-Available presets: `minimal | default | maximal`. All forms write to
-the user config at `${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json`
-— agentline is configured globally.
-
-`agentline config init` refuses to overwrite an existing target unless
-`--force` is passed, so re-running it on a configured tree is safe.
+`agentline install` seeds the user config at
+`${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json` from the
+shipped `templates/default.config.json` (model, git, context, tokens,
+session usage, block reset timer, clock) the first time it runs. An
+existing config is preserved on subsequent runs. To start fresh,
+delete the file and re-run `agentline install`.
 
 ## Verify
 
@@ -160,17 +154,13 @@ agentline render --fixture path/to/payload.json
 
 Every subcommand responds to `-h` / `--help`. See [cli.md](./cli.md) for the complete flag-by-flag reference.
 
-| Command                   | Purpose                                                          |
-| ------------------------- | ---------------------------------------------------------------- |
-| `agentline install`       | Wire `statusLine` and install skill files (this page).           |
-| `agentline uninstall`     | Restore prior `statusLine`; remove installed skills.             |
-| `agentline doctor`        | Diagnose host wiring; `--fix` repairs D01–D04.                   |
-| `agentline config`        | Open the TUI editor (Ink, lazy-loaded) — or route to subgroup.   |
-| `agentline config init`   | Scaffold a config from a preset.                                 |
-| `agentline config theme`  | List installed themes; `--show <name>` prints a palette.         |
-| `agentline config keys`   | List active TUI editor keymap bindings (`--json` for scripting). |
-| `agentline config schema` | Print or `--write <dir>` the config JSON Schema.                 |
-| `(default)`               | Read stdin, render, write to stdout (the live statusline path).  |
+| Command               | Purpose                                                         |
+| --------------------- | --------------------------------------------------------------- |
+| `agentline install`   | Wire `statusLine` and install skill files (this page).          |
+| `agentline uninstall` | Restore prior `statusLine`; remove installed skills.            |
+| `agentline doctor`    | Diagnose host wiring; `--fix` repairs D01–D04.                  |
+| `agentline edit`      | Open the TUI editor (Ink, lazy-loaded).                         |
+| `(default)`           | Read stdin, render, write to stdout (the live statusline path). |
 
 ## Uninstall
 
@@ -210,8 +200,8 @@ against the pre-install state.
   `agentline doctor --strict` to surface the underlying error.
 - **a stderr "using built-in defaults" hint appears once** — that's
   the first-run nudge; it fires on a TTY when no user/project config
-  exists and recommends `agentline config init`. Set `AGENTLINE_QUIET=1` to
-  silence it permanently.
+  exists and recommends running `agentline install`. Set
+  `AGENTLINE_QUIET=1` to silence it permanently.
 
 For anything else, open an issue:
 <https://github.com/odere-pro/claude-agentline/issues>.

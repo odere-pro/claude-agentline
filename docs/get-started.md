@@ -62,17 +62,12 @@ The five installed skills give any Claude Code session enough context to drive a
 - _"remove the session-usage widget"_
 - _"reset my config to the minimal preset"_
 
-The agent edits `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` directly — or runs the `agentline config widget …` subcommands for precise, validated changes. agentline is configured globally only; there is no per-project config. The change shows up on the **next prompt render** — Claude Code re-runs the statusline bin every prompt — so no restart is needed.
+The agent edits `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` directly. agentline is configured globally only; there is no per-project config. The change shows up on the **next prompt render** — Claude Code re-runs the statusline bin every prompt — so no restart is needed.
 
-Config-related CLI commands are still available if you prefer terminal-driven editing:
+If you prefer terminal-driven editing:
 
 ```bash
-agentline config                                          # interactive TUI editor
-agentline config init --preset minimal --scope user       # scaffold from a preset
-agentline config theme                                    # browse installed themes
-agentline config theme --show vscode-dark                 # inspect a palette
-agentline config schema --write .                         # emit JSON Schema for editor support
-agentline config keys --json                              # print the TUI editor keymap
+agentline edit            # interactive TUI editor (Ink, live preview)
 ```
 
 Full reference → [cli.md](./cli.md) and [config.md](./config.md)

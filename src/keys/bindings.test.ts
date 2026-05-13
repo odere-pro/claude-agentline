@@ -25,7 +25,6 @@ describe("DEFAULT_KEY_BINDINGS", () => {
       "picker-confirm",
       "picker-back",
       "quit",
-      "help",
     ];
     for (const action of required) {
       expect(actions, `missing action: ${action}`).toContain(action);
