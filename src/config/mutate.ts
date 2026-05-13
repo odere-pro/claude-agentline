@@ -37,6 +37,13 @@ export class ConfigMutationError extends Error {
   }
 }
 
+function assertValidLineIndex(index: number | undefined): void {
+  if (index === undefined) return;
+  if (!Number.isInteger(index) || index < 0 || index >= MAX_LINES) {
+    throw new RangeError(`line index out of bounds: ${index} (max: ${MAX_LINES - 1})`);
+  }
+}
+
 export interface AddWidgetSpec {
   /** Target line index (0..MAX_LINES-1); higher than the current count pads with empty lines. */
   readonly line: number;
@@ -264,6 +271,7 @@ function assertInsertIndex(at: number, count: number, line: number): void {
  * `MAX_LINES`; callers validate that first.
  */
 function cloneLines(lines: readonly LineConfig[], ensureLine?: number): LineConfig[] {
+  assertValidLineIndex(ensureLine);
   const out: LineConfig[] = lines.map((line) => ({
     widgets: line.widgets.map(cloneWidget),
   }));
