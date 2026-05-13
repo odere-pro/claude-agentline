@@ -8,7 +8,6 @@ import {
   DEFAULT_PALETTE,
   THEME_ROLES,
   ThemeLoadError,
-  listThemesIn,
   loadTheme,
   loadThemeFromString,
   resolveRole,
@@ -17,12 +16,7 @@ import {
 const here = path.dirname(fileURLToPath(import.meta.url));
 const themesDir = path.resolve(here, "..", "..", "themes");
 
-const SHIPPED_THEMES = [
-  "vscode-dark",
-  "vscode-light",
-  "claude-code-dark",
-  "claude-code-light",
-] as const;
+const SHIPPED_THEME = "claude-code-dark";
 
 describe("loadThemeFromString", () => {
   it("parses a minimal valid theme", () => {
@@ -89,23 +83,20 @@ describe("resolveRole", () => {
   });
 });
 
-describe("shipped themes", () => {
-  it.each(SHIPPED_THEMES)("loads %s", async (name) => {
-    const theme = await loadTheme(path.join(themesDir, `${name}.json`));
-    expect(theme.name).toBe(name);
+describe("shipped theme", () => {
+  it("loads claude-code-dark", async () => {
+    const theme = await loadTheme(path.join(themesDir, `${SHIPPED_THEME}.json`));
+    expect(theme.name).toBe(SHIPPED_THEME);
     for (const role of THEME_ROLES) {
       expect(theme.palette[role]).toMatch(/^(#[0-9a-fA-F]{6}|colour:\d+|[a-z-]+)$/);
     }
   });
 
-  it("listThemesIn returns all 10 sorted", async () => {
-    const listing = await listThemesIn(themesDir);
-    expect(listing.errors).toEqual([]);
-    expect(listing.themes.map((t) => t.name).sort()).toEqual([...SHIPPED_THEMES].sort());
-  });
-
   it("schema file matches the embedded schema id", async () => {
-    const raw = await fs.readFile(path.resolve(here, "..", "..", "schemas", "theme.schema.json"), "utf8");
+    const raw = await fs.readFile(
+      path.resolve(here, "..", "..", "schemas", "theme.schema.json"),
+      "utf8",
+    );
     const json = JSON.parse(raw) as { $id: string };
     expect(json.$id).toBe("https://agentline.dev/schemas/theme.schema.json");
   });

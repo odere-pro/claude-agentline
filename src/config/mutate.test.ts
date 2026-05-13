@@ -202,7 +202,7 @@ describe("setWidgetOption", () => {
 
 describe("setTheme", () => {
   it("sets a theme id", () => {
-    expect(setTheme(baseline(), "vscode-dark").theme).toBe("vscode-dark");
+    expect(setTheme(baseline(), "claude-code-dark").theme).toBe("claude-code-dark");
   });
 
   it("accepts null", () => {

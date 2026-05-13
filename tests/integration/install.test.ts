@@ -178,7 +178,7 @@ describe("scripts/install.sh", () => {
   it("preserves a user-edited config on re-run", async () => {
     await runScript(installSh, [], sb.env, sb.root);
     const userCfg = join(sb.configDir, "config.json");
-    const edited = JSON.stringify({ version: 1, theme: "vscode-light", lines: [{ widgets: [{ type: "model" }] }] });
+    const edited = JSON.stringify({ version: 1, theme: "claude-code-dark", lines: [{ widgets: [{ type: "model" }] }] });
     await fs.writeFile(userCfg, edited);
 
     await runScript(installSh, [], sb.env, sb.root);
@@ -254,7 +254,7 @@ describe("scripts/uninstall.sh", () => {
     await runScript(uninstallSh, [], sb.env, sb.root);
 
     expect(await exists(join(sb.configDir, "config.json"))).toBe(false);
-    for (const t of ["claude-code-dark", "claude-code-light", "vscode-dark", "vscode-light"]) {
+    for (const t of ["claude-code-dark"]) {
       expect(await exists(join(sb.configDir, "themes", `${t}.json`))).toBe(false);
     }
     const settings = (await readJson(join(sb.home, ".claude", "settings.json"))) as Record<
@@ -267,7 +267,7 @@ describe("scripts/uninstall.sh", () => {
   it("preserves user-edited config (without --purge)", async () => {
     await runScript(installSh, [], sb.env, sb.root);
     const userCfg = join(sb.configDir, "config.json");
-    await fs.writeFile(userCfg, JSON.stringify({ version: 1, theme: "vscode-light" }));
+    await fs.writeFile(userCfg, JSON.stringify({ version: 1, theme: "claude-code-dark" }));
 
     await runScript(uninstallSh, [], sb.env, sb.root);
     expect(await exists(userCfg)).toBe(true);
@@ -276,7 +276,7 @@ describe("scripts/uninstall.sh", () => {
   it("--purge removes user-edited config", async () => {
     await runScript(installSh, [], sb.env, sb.root);
     const userCfg = join(sb.configDir, "config.json");
-    await fs.writeFile(userCfg, JSON.stringify({ version: 1, theme: "vscode-light" }));
+    await fs.writeFile(userCfg, JSON.stringify({ version: 1, theme: "claude-code-dark" }));
 
     await runScript(uninstallSh, ["--purge"], sb.env, sb.root);
     expect(await exists(userCfg)).toBe(false);

@@ -87,7 +87,7 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     return 1;
   }
   // First-run hint: when this is a live render (no fixture, no --config)
-  // and the user has not saved a config yet, point them at `agentline config init`.
+  // and the user has not saved a config yet, point them at `agentline init`.
   // Suppressed for non-TTY stderr (so the host UI is unaffected) and when
   // AGENTLINE_QUIET=1 is set.
   if (!fixture && input.args.configPath === undefined) {
@@ -180,7 +180,7 @@ async function maybeEmitFirstRunHint(): Promise<void> {
   const hasUser = await pathExists(paths.userConfig);
   if (hasUser) return;
   process.stderr.write(
-    "# agentline: using built-in defaults — `agentline config init` to customise (silence with AGENTLINE_QUIET=1)\n",
+    "# agentline: using built-in defaults — `agentline init` to customise (silence with AGENTLINE_QUIET=1)\n",
   );
 }
 

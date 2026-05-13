@@ -134,33 +134,3 @@ export function resolveRole(theme: Theme | null, role: ThemeRole): Colour {
   if (theme) return theme.palette[role];
   return DEFAULT_PALETTE[role];
 }
-
-export interface ThemeDirectoryListing {
-  readonly themes: readonly { readonly name: string; readonly path: string }[];
-  readonly errors: readonly { readonly path: string; readonly message: string }[];
-}
-
-export async function listThemesIn(directory: string): Promise<ThemeDirectoryListing> {
-  let entries: string[];
-  try {
-    entries = await fs.readdir(directory);
-  } catch (err) {
-    throw new ThemeLoadError(`unable to read themes directory: ${directory}`, undefined, err);
-  }
-  const themes: { name: string; path: string }[] = [];
-  const errors: { path: string; message: string }[] = [];
-  for (const entry of entries) {
-    if (!entry.endsWith(".json")) continue;
-    const full = path.join(directory, entry);
-    try {
-      const raw = await fs.readFile(full, "utf8");
-      const t = loadThemeFromString(raw, full);
-      themes.push({ name: t.name, path: full });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      errors.push({ path: full, message });
-    }
-  }
-  themes.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-  return { themes, errors };
-}
