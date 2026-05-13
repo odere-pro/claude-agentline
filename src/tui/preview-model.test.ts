@@ -3,10 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import type { LineConfig } from "../config/types.js";
 import type { GitState } from "../git/index.js";
-import {
-  resetPreviewModeCache,
-  setPreviewModeForTesting,
-} from "../render/preview-fixture.js";
+import { resetPreviewModeCache, setPreviewModeForTesting } from "../render/preview-fixture.js";
 import { PRICING_TABLE_VERSION, contextWindowFor, type TokensSnapshot } from "../tokens/index.js";
 
 import { buildPreview, type PreviewRow } from "./preview-model.js";
@@ -148,26 +145,27 @@ describe("buildPreview", () => {
     expect(joins[0]?.kind === "join" && joins[0].text).toBe(" ");
   });
 
-  it("renders a hidden widget as a navigable [hidden:type] chip with hidden=true", () => {
+  it("renders a hidden widget as a navigable dimmed chip showing its type name", () => {
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
       lines: [{ widgets: [{ type: "model", hidden: true }] }],
     });
     const widget = rows[0]?.slots.find((s) => s.kind === "widget");
     expect(widget?.kind === "widget" && widget.hidden).toBe(true);
-    expect(widget?.kind === "widget" && widget.text).toBe("[hidden:model]");
+    expect(widget?.kind === "widget" && widget.text).toBe("model");
   });
 
-  it("surfaces a self-hiding widget (no data in the demo session) as a [type: no data] chip", () => {
+  it("surfaces a self-hiding widget (no data right now) with the widget's type name as fallback", () => {
     // `git-worktree` hides cleanly when `inWorktree === false` — the
-    // demo session is a plain checkout, so its preview surfaces a
-    // "no data" chip.
+    // demo session is a plain checkout, so its preview falls back to
+    // the widget's type name (dimmed) instead of a decorative chip.
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
       lines: [{ widgets: [{ type: "git-worktree" }] }],
     });
     const widget = rows[0]?.slots.find((s) => s.kind === "widget");
-    expect(widget?.kind === "widget" && widget.text).toContain("no data");
+    expect(widget?.kind === "widget" && widget.text).toBe("git-worktree");
+    expect(widget?.kind === "widget" && widget.hidden).toBe(true);
   });
 
   it("does not mutate the supplied lines", () => {
