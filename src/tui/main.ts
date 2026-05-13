@@ -2,16 +2,15 @@
  * Ink-based TUI editor entry (`agentline config` — §1.1 F10, §5.5).
  *
  * This module is loaded ONLY by a dynamic `import("./tui.mjs")` from
- * cli.mjs. tsup builds it as a separate output file so Ink + React
- * never appear in the render-path bundle (§1.2 N3).
+ * cli.mjs. tsup builds it as a separate output file so Ink + React never
+ * appear in the render-path bundle (§1.2 N3).
  *
- * The renderer is intentionally thin: it observes the pure state
- * machine in `state.ts`, dispatches `EditorAction`s on key input,
- * and writes the merged config to disk via `saveEditedConfig`.
- *
- * `runConfigCommand` is exposed as the entry point cli.ts calls.
- * The exported `default` function makes the file usable as a Node
- * script for ad-hoc invocation, but the canonical API is named.
+ * The renderer is intentionally thin: it observes the pure state machine
+ * in `state.ts`, dispatches `EditorAction`s on key input, and writes the
+ * merged config to disk via `saveEditedConfig`. The live preview
+ * (`./preview.ts`) is the editing surface — there is no separate
+ * "layout list" view; the cursor moves through the rendered statusline
+ * itself, with each row ending in a navigable "+ add widget" cell.
  */
 
 import { Box, Text, render, useApp, useInput } from "ink";
@@ -28,6 +27,7 @@ import { resolveConfiguredTheme } from "../theme/resolve.js";
 
 import { defaultRegistry, registerAllBuiltins, type WidgetMetaEntry } from "../widgets/index.js";
 
+import { pickGlyphs, type EditorGlyphs } from "./glyphs.js";
 import { saveEditedConfig } from "./persist.js";
 import { OptionsSheet } from "./options-sheet.js";
 import { Picker, selectedEntry } from "./picker.js";
@@ -35,9 +35,8 @@ import { Preview } from "./preview.js";
 import {
   currentWidget,
   initialState,
+  isAddCell,
   reduce,
-  type EditorAction,
-  type EditorState,
 } from "./state.js";
 
 /** The catalogued built-in widgets, populating the default registry once. */
@@ -60,12 +59,12 @@ export interface RunConfigResult {
 
 export async function runConfigCommand(input: RunConfigInput = {}): Promise<RunConfigResult> {
   const { config, path } = await resolveStartingConfig(input);
+  const env = resolveEnv(input);
   // Resolve `config.theme` once at startup so the live preview matches what
-  // the real statusline renders. Themes don't change during an edit session,
-  // so a single async resolve is enough; widgets re-read `theme` from props
-  // on every render.
-  const previewTheme = await resolveConfiguredTheme(config.theme, { env: resolveEnv(input) });
-  const { waitUntilExit, unmount, savedRef } = mountEditor(config, path, previewTheme);
+  // the real statusline renders. Themes don't change during an edit session.
+  const previewTheme = await resolveConfiguredTheme(config.theme, { env });
+  const glyphs = pickGlyphs({ env });
+  const { waitUntilExit, unmount, savedRef } = mountEditor(config, path, previewTheme, glyphs);
   await waitUntilExit;
   unmount();
   return { saved: savedRef.value, path };
@@ -75,18 +74,13 @@ interface AppProps {
   readonly initialConfig: AgentlineConfig;
   readonly path: string;
   readonly previewTheme: Theme | null;
+  readonly glyphs: EditorGlyphs;
   readonly onSaved: (saved: boolean) => void;
 }
 
-function reducerWithLog(state: EditorState, action: EditorAction): EditorState {
-  return reduce(state, action);
-}
-
-function App({ initialConfig, path, previewTheme, onSaved }: AppProps): React.ReactElement {
+function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): React.ReactElement {
   const { exit } = useApp();
-  const [state, dispatch] = useReducer(reducerWithLog, initialConfig.lines, (lines) =>
-    initialState(lines),
-  );
+  const [state, dispatch] = useReducer(reduce, initialConfig.lines, (lines) => initialState(lines));
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [showHelp, setShowHelp] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
@@ -136,7 +130,11 @@ function App({ initialConfig, path, previewTheme, onSaved }: AppProps): React.Re
       }
       if (key.return) {
         const picked = selectedEntry(widgetEntries, pickerQuery, pickerHighlight);
-        dispatch(picked ? { type: "apply-picker", widgetType: picked.type } : { type: "close-picker" });
+        dispatch(
+          picked
+            ? { type: "apply-picker", widgetType: picked.type }
+            : { type: "close-picker" },
+        );
         resetPicker();
         return;
       }
@@ -159,13 +157,14 @@ function App({ initialConfig, path, previewTheme, onSaved }: AppProps): React.Re
       if (input === "m") return dispatch({ type: "cycle-merge" });
       return;
     }
+    // ── edit scope ───────────────────────────────────────────────────────
     if (input === "?") return setShowHelp(true);
     if (key.escape || input === "q") {
       onSaved(false);
       exit();
       return;
     }
-    if (input === "S") {
+    if (input === "S" || (key.ctrl && input === "s")) {
       if (saveInFlight.current) return;
       void onSave();
       return;
@@ -178,9 +177,20 @@ function App({ initialConfig, path, previewTheme, onSaved }: AppProps): React.Re
       return dispatch(key.shift ? { type: "move-widget", dy: -1 } : { type: "move-cursor", dy: -1 });
     if (key.downArrow)
       return dispatch(key.shift ? { type: "move-widget", dy: 1 } : { type: "move-cursor", dy: 1 });
+    if (key.return) {
+      // On the +add cell → open the picker. On a widget → open the options
+      // sheet (the "edit this widget" affordance). Verbs `a`/`r`/`d`/`o`
+      // remain available too.
+      if (isAddCell(state)) {
+        return dispatch({ type: "open-picker", target: "insert" });
+      }
+      return dispatch({ type: "open-options" });
+    }
     if (input === "a") return dispatch({ type: "open-picker", target: "insert" });
     if (input === "r") return dispatch({ type: "open-picker", target: "replace" });
-    if (input === "x") return dispatch({ type: "delete" });
+    if (input === "d" || input === "x" || key.delete || key.backspace) {
+      return dispatch({ type: "delete" });
+    }
     if (input === "o") return dispatch({ type: "open-options" });
   });
 
@@ -195,12 +205,16 @@ function App({ initialConfig, path, previewTheme, onSaved }: AppProps): React.Re
       React.createElement(Preview, {
         base: initialConfig,
         lines: state.lines,
-        width: previewWidth(),
+        cursor: state.cursor,
         theme: previewTheme,
+        glyphs,
       }),
     ),
-    React.createElement(Box, { flexDirection: "column", marginTop: 1 }, ...renderWidgets(state)),
-    React.createElement(Box, { marginTop: 1 }, React.createElement(Text, { dimColor: true }, footerText(bindings, state.mode))),
+    React.createElement(
+      Box,
+      { marginTop: 1 },
+      React.createElement(Text, { dimColor: true }, footerText(bindings, state.mode)),
+    ),
     state.dirty
       ? React.createElement(
           Text,
@@ -226,7 +240,7 @@ function App({ initialConfig, path, previewTheme, onSaved }: AppProps): React.Re
 
 const SCOPE_ORDER = ["edit", "picker", "options", "any"] as const;
 const SCOPE_HEADING: Record<KeyBinding["scope"], string> = {
-  edit: "layout view",
+  edit: "in the preview",
   picker: "in the widget picker",
   options: "in the options sheet",
   any: "any time",
@@ -241,7 +255,11 @@ function helpOverlay(bindings: readonly KeyBinding[]): React.ReactElement {
     groups.push(
       React.createElement(Text, { key: `h-${scope}`, bold: true }, `\n${SCOPE_HEADING[scope]}`),
       ...inScope.map((b) =>
-        React.createElement(Text, { key: `${scope}-${b.action}` }, `  ${b.key.padEnd(widest, " ")}  ${b.description}`),
+        React.createElement(
+          Text,
+          { key: `${scope}-${b.action}` },
+          `  ${b.key.padEnd(widest, " ")}  ${b.description}`,
+        ),
       ),
     );
   }
@@ -253,62 +271,14 @@ function helpOverlay(bindings: readonly KeyBinding[]): React.ReactElement {
   );
 }
 
-/** Width to compose the preview against — the terminal width, minus the box chrome. */
-function previewWidth(): number {
-  const columns = process.stdout.columns;
-  return Math.max(20, (typeof columns === "number" && columns > 0 ? columns : 120) - 4);
-}
-
-function renderWidgets(state: EditorState): React.ReactElement[] {
-  const out: React.ReactElement[] = [];
-  state.lines.forEach((line, lineIdx) => {
-    const onLine = state.cursor.line === lineIdx;
-    out.push(
-      React.createElement(
-        Text,
-        { key: `line${lineIdx}`, color: onLine ? "cyan" : undefined, dimColor: !onLine },
-        `line ${lineIdx}${onLine ? "  ◂" : ""}`,
-      ),
-    );
-    if (line.widgets.length === 0) {
-      out.push(
-        React.createElement(
-          Text,
-          { key: `line${lineIdx}-empty`, dimColor: true },
-          "    (empty — press a to add a widget here)",
-        ),
-      );
-      return;
-    }
-    line.widgets.forEach((w, idx) => {
-      const selected = onLine && idx === state.cursor.widget;
-      const flags = [
-        w.hidden ? "hidden" : null,
-        w.rawValue ? "no label" : null,
-        w.merged && w.merged !== "off" ? w.merged : null,
-      ]
-        .filter(Boolean)
-        .join(", ");
-      out.push(
-        React.createElement(
-          Text,
-          { key: `line${lineIdx}-w${idx}`, color: selected ? "cyan" : undefined },
-          `  ${selected ? "▸ " : "  "}${String(idx).padStart(2, " ")}  ${w.type}${flags ? `  [${flags}]` : ""}`,
-        ),
-      );
-    });
-  });
-  return out;
-}
-
-/** Compact one-line footer of the edit-mode keys, drawn from the active keymap. */
-// Compact one-line footer of the keys active in the current mode (plus `any`),
-// keyed by action so it survives `config.keymap` overrides and description edits.
+/** Compact one-line footer of the keys active in the current mode (plus `any`),
+ *  keyed by action so it survives `config.keymap` overrides. */
 const FOOTER_LABEL: Record<string, string> = {
   "move-cursor": "move",
   "move-cursor-row": "row",
   "move-widget": "move widget",
   "move-widget-row": "widget→row",
+  "edit-widget": "+add or edit",
   add: "add",
   replace: "replace",
   delete: "delete",
@@ -337,6 +307,7 @@ function mountEditor(
   config: AgentlineConfig,
   path: string,
   previewTheme: Theme | null,
+  glyphs: EditorGlyphs,
 ): {
   readonly waitUntilExit: Promise<void>;
   readonly unmount: () => void;
@@ -348,6 +319,7 @@ function mountEditor(
       initialConfig: config,
       path,
       previewTheme,
+      glyphs,
       onSaved: (saved) => {
         savedRef.value = saved;
       },

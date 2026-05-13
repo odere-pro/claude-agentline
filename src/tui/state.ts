@@ -5,27 +5,34 @@
  * pure means tests never drive Ink and the cold-start budget is
  * unaffected — this module imports neither Ink nor React.
  *
- * State shape:
+ * The grid model
+ * --------------
+ * The editor works as a fixed 3-row grid (one row per `LineConfig`,
+ * padded to `MAX_LINES`). Each row has `N` real widget cells plus one
+ * synthetic **add-cell** at column `N` (the "+ add widget" affordance the
+ * user navigates onto and presses `Enter` to insert). The cursor's
+ * `widget` index therefore ranges `0..widgets.length` inclusive; when it
+ * equals `widgets.length` the add-cell is selected. `currentWidget`
+ * returns `undefined` in that case.
  *
- *   - `lines`        the editable widget config (mirror of
- *                    `AgentlineConfig.lines`); capped at `MAX_LINES`.
- *   - `cursor`       selected `{ line, widget }`. `widget === -1` means
- *                    the line is empty / nothing is selected.
- *   - `mode`         `"edit"` (the layout view), `"picker"` (the
- *                    insert/replace widget chooser is open), or
- *                    `"options"` (the per-widget options sheet is open).
+ * State shape
+ * -----------
+ *   - `lines`        editable widget config — always exactly `MAX_LINES`
+ *                    rows. `persist.ts` trims trailing empty rows on save
+ *                    so the on-disk config stays clean.
+ *   - `cursor`       selected `{ line, widget }`. `widget === widgets.length`
+ *                    means the row's add-cell is selected.
+ *   - `mode`         `"edit"` (the preview is the surface), `"picker"`
+ *                    (the widget chooser is open), or `"options"` (the
+ *                    per-widget options sheet is open).
  *   - `pickerTarget` while `mode === "picker"`, whether confirming
- *                    inserts a new widget at the cursor or replaces the
- *                    selected one.
+ *                    inserts a new widget or replaces the selected one.
  *   - `dirty`        whether anything changed since the last save.
  *
- * Movement is two-axis: `move-cursor` slides the *selection* (the widget
- * stays put); `move-widget` carries the *selected widget* (the selection
- * follows it). Both respect the row count and the `MAX_LINES` cap; moving
- * a widget down off the last row appends a new row when there is headroom.
- * Picker filter text / highlight and in-progress option edits live in the
- * view components — this reducer only tracks `mode`/`pickerTarget` and
- * applies committed results.
+ * Movement is two-axis: `move-cursor` slides the *selection* over the
+ * `MAX_LINES × (N + 1)` grid (the +1 is the add-cell); `move-widget`
+ * carries the *selected widget*, with the selection following it.
+ * Widgets cannot move onto the add-cell column — it stays last.
  */
 
 import type { LineConfig, WidgetConfig } from "../config/types.js";
@@ -40,6 +47,7 @@ export type PickerTarget = "insert" | "replace";
 
 export interface EditorCursor {
   readonly line: number;
+  /** `0..widgets.length`. `widget === widgets.length` selects the row's add-cell. */
   readonly widget: number;
 }
 
@@ -76,12 +84,21 @@ export type EditorAction =
 const MERGE_CYCLE: readonly MergeMode[] = ["off", "merge", "merge-no-padding"];
 const FORBIDDEN_OPTION_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
+/** Pad `lines` to exactly `MAX_LINES` empty-row entries so every grid slot is real. */
+function padToMaxLines(lines: readonly LineConfig[]): readonly LineConfig[] {
+  const trimmed = lines.slice(0, MAX_LINES).map((l) => ({ widgets: [...l.widgets] }));
+  while (trimmed.length < MAX_LINES) trimmed.push({ widgets: [] });
+  return trimmed;
+}
+
 export function initialState(lines: readonly LineConfig[]): EditorState {
-  const trimmed = lines.length > 0 ? lines.slice(0, MAX_LINES) : [{ widgets: [] }];
-  const first = trimmed[0];
+  const padded = padToMaxLines(lines);
+  const first = padded[0]!; // padded length is always MAX_LINES
+  // Land on the first row's first widget when one exists; otherwise on its
+  // add-cell (column 0 == widgets.length when empty).
   return Object.freeze({
-    lines: trimmed,
-    cursor: { line: 0, widget: first && first.widgets.length > 0 ? 0 : -1 },
+    lines: padded,
+    cursor: { line: 0, widget: first.widgets.length > 0 ? 0 : 0 },
     mode: "edit",
     pickerTarget: "insert",
     dirty: false,
@@ -129,13 +146,24 @@ function lineAt(state: EditorState, line: number): LineConfig | undefined {
   return state.lines[line];
 }
 
-function currentLine(state: EditorState): LineConfig | undefined {
+export function currentLine(state: EditorState): LineConfig | undefined {
   return lineAt(state, state.cursor.line);
+}
+
+export function widgetCountAt(state: EditorState, line: number): number {
+  return lineAt(state, line)?.widgets.length ?? 0;
+}
+
+/** `true` when the cursor sits on the trailing "+ add widget" cell of its row. */
+export function isAddCell(state: EditorState): boolean {
+  const line = currentLine(state);
+  return !!line && state.cursor.widget === line.widgets.length;
 }
 
 export function currentWidget(state: EditorState): WidgetConfig | undefined {
   const line = currentLine(state);
-  if (!line || state.cursor.widget < 0) return undefined;
+  if (!line) return undefined;
+  if (state.cursor.widget >= line.widgets.length) return undefined; // add-cell
   return line.widgets[state.cursor.widget];
 }
 
@@ -144,11 +172,12 @@ export function currentWidget(state: EditorState): WidgetConfig | undefined {
 function moveCursor(state: EditorState, dx: number, dy: number): EditorState {
   if (state.mode !== "edit") return state;
   const line = clamp(state.cursor.line + dy, 0, state.lines.length - 1);
-  const target = lineAt(state, line);
-  const count = target ? target.widgets.length : 0;
-  // dy keeps the column where it can; dx slides within the row.
+  const count = widgetCountAt(state, line);
+  // Inclusive max — the add-cell sits at column `count`.
+  const maxCol = count;
+  // `dy` keeps the column where it can; `dx` slides within the row.
   const base = dy !== 0 ? state.cursor.widget : state.cursor.widget + dx;
-  const widget = count === 0 ? -1 : clamp(base < 0 ? 0 : base, 0, count - 1);
+  const widget = clamp(base, 0, maxCol);
   if (line === state.cursor.line && widget === state.cursor.widget) return state;
   return { ...state, cursor: { line, widget } };
 }
@@ -164,6 +193,8 @@ function shiftWithinRow(state: EditorState, dx: number): EditorState {
   const line = currentLine(state);
   if (!line) return state;
   const from = state.cursor.widget;
+  // Clamp to `widgets.length - 1` so a widget can never swap places with
+  // the add-cell — the add-cell is always last.
   const to = clamp(from + dx, 0, line.widgets.length - 1);
   if (to === from) return state;
   const widgets = [...line.widgets];
@@ -181,21 +212,21 @@ function shiftWithinRow(state: EditorState, dx: number): EditorState {
 function shiftAcrossRows(state: EditorState, dir: -1 | 1): EditorState {
   const fromLine = state.cursor.line;
   const toLine = fromLine + dir;
-  if (toLine < 0 || toLine >= MAX_LINES) return state;
+  if (toLine < 0 || toLine >= state.lines.length) return state;
   const source = lineAt(state, fromLine);
-  if (!source) return state;
+  const dest = lineAt(state, toLine);
+  if (!source || !dest) return state;
   const movedAt = state.cursor.widget;
   const moved = source.widgets[movedAt];
   if (!moved) return state;
 
-  const lines = state.lines.map((l) => ({ widgets: [...l.widgets] }));
-  while (lines.length <= toLine) lines.push({ widgets: [] }); // pad to reach a new last row
-  const src = lines[fromLine];
-  const dst = lines[toLine];
-  if (!src || !dst) return state;
-  src.widgets.splice(movedAt, 1);
-  const insertAt = dst.widgets.length; // append on the destination row
-  dst.widgets.splice(insertAt, 0, moved);
+  const srcWidgets = [...source.widgets];
+  srcWidgets.splice(movedAt, 1);
+  const dstWidgets = [...dest.widgets, moved]; // append before the destination add-cell
+  const insertAt = dest.widgets.length;
+
+  let lines: readonly LineConfig[] = replaceLine(state.lines, fromLine, { widgets: srcWidgets });
+  lines = replaceLine(lines, toLine, { widgets: dstWidgets });
   return { ...state, lines, cursor: { line: toLine, widget: insertAt }, dirty: true };
 }
 
@@ -205,7 +236,9 @@ function insertWidget(state: EditorState, widgetType: string): EditorState {
   if (!widgetType) return state.mode === "edit" ? state : { ...state, mode: "edit" };
   const lineIdx = state.cursor.line;
   const line = lineAt(state, lineIdx) ?? { widgets: [] };
-  const insertAt = state.cursor.widget < 0 ? line.widgets.length : state.cursor.widget + 1;
+  // From the add-cell ⇒ append at the end. From a widget ⇒ insert after it.
+  const onAdd = state.cursor.widget >= line.widgets.length;
+  const insertAt = onAdd ? line.widgets.length : state.cursor.widget + 1;
   const widgets = [
     ...line.widgets.slice(0, insertAt),
     { type: widgetType },
@@ -222,7 +255,7 @@ function insertWidget(state: EditorState, widgetType: string): EditorState {
 
 function deleteWidget(state: EditorState): EditorState {
   const line = currentLine(state);
-  if (!line || state.cursor.widget < 0) return state;
+  if (!line || state.cursor.widget >= line.widgets.length) return state; // add-cell
   const widgets = [
     ...line.widgets.slice(0, state.cursor.widget),
     ...line.widgets.slice(state.cursor.widget + 1),
@@ -232,7 +265,9 @@ function deleteWidget(state: EditorState): EditorState {
     lines: replaceLine(state.lines, state.cursor.line, { widgets }),
     cursor: {
       line: state.cursor.line,
-      widget: widgets.length === 0 ? -1 : Math.min(state.cursor.widget, widgets.length - 1),
+      // Re-anchor onto the surviving column, clamping into the new row
+      // width — `widgets.length` is the add-cell when the row empties.
+      widget: Math.min(state.cursor.widget, widgets.length),
     },
     dirty: true,
   };
@@ -264,7 +299,7 @@ function setOption(state: EditorState, key: string, value: unknown): EditorState
 
 function mutateCurrent(state: EditorState, fn: (w: WidgetConfig) => WidgetConfig): EditorState {
   const line = currentLine(state);
-  if (!line || state.cursor.widget < 0) return state;
+  if (!line || state.cursor.widget >= line.widgets.length) return state; // add-cell — nothing to mutate
   const target = line.widgets[state.cursor.widget];
   if (!target) return state;
   const next = fn(target);

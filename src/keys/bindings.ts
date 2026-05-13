@@ -23,13 +23,14 @@ export interface KeyBinding {
 
 export const DEFAULT_KEY_BINDINGS: readonly KeyBinding[] = Object.freeze([
   // ── edit (the layout view) ───────────────────────────────────────────────
-  { key: "← →", action: "move-cursor", scope: "edit", description: "move the selection within the row" },
-  { key: "↑ ↓", action: "move-cursor-row", scope: "edit", description: "move the selection to the adjacent row" },
+  { key: "← →", action: "move-cursor", scope: "edit", description: "move the selection within the row (incl. the trailing +add cell)" },
+  { key: "↑ ↓", action: "move-cursor-row", scope: "edit", description: "move the selection between rows" },
   { key: "⇧← ⇧→", action: "move-widget", scope: "edit", description: "move the selected widget within its row" },
   { key: "⇧↑ ⇧↓", action: "move-widget-row", scope: "edit", description: "move the selected widget to the adjacent row" },
+  { key: "↵", action: "edit-widget", scope: "edit", description: "+add cell → open the picker; on a widget → open the options sheet" },
   { key: "a", action: "add", scope: "edit", description: "add a widget (opens the picker)" },
   { key: "r", action: "replace", scope: "edit", description: "replace the selected widget (opens the picker)" },
-  { key: "x", action: "delete", scope: "edit", description: "delete the selected widget" },
+  { key: "d", action: "delete", scope: "edit", description: "delete the selected widget" },
   { key: "o", action: "options", scope: "edit", description: "open the selected widget's options sheet" },
   { key: "S", action: "save", scope: "edit", description: "save" },
   // ── picker (the widget chooser overlay) ──────────────────────────────────
