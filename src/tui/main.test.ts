@@ -7,6 +7,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("ink", () => {
@@ -53,6 +54,15 @@ describe("runConfigCommand (entry-point wiring)", () => {
     });
     expect(result.saved).toBe(false);
     expect(result.path).toContain("agentline");
+  });
+
+  it("project gate skips silently outside a Claude project on a non-TTY stdin", async () => {
+    const stdin = new PassThrough() as NodeJS.ReadableStream & { isTTY?: boolean };
+    stdin.isTTY = false;
+    const result = await runConfigCommand({ cwd: tmp, stdin });
+    expect(result.skipped).toBe(true);
+    expect(result.saved).toBe(false);
+    expect(result.path).toBe("");
   });
 });
 

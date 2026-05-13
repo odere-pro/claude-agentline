@@ -23,6 +23,7 @@ import { basename, dirname, join } from "node:path";
 import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { atomicWrite } from "../config/atomic.js";
 import { resolveConfigPaths } from "../config/paths.js";
+import { projectGate } from "../lib/claude-project.js";
 import { resolveEnv } from "../lib/env.js";
 import { pathExists } from "../lib/fs.js";
 
@@ -52,10 +53,20 @@ export interface InitInput {
   readonly target?: string;
   /** Override template directory; primarily used by tests. */
   readonly templateDir?: string;
+  /** Cwd the project-gate probes. Defaults to `process.cwd()`. */
+  readonly cwd?: string;
+  /** Stdin override for the project-gate prompt; tests inject a PassThrough. */
+  readonly stdin?: NodeJS.ReadableStream & { readonly isTTY?: boolean };
 }
 
 export async function runInitCommand(input: InitInput): Promise<number> {
   const env = resolveEnv(input);
+  const gate = await projectGate({
+    command: "init",
+    ...(input.cwd !== undefined ? { cwd: input.cwd } : {}),
+    ...(input.stdin !== undefined ? { stdin: input.stdin } : {}),
+  });
+  if (gate === "skip") return 0;
   const target = input.target ?? resolveConfigPaths(env).userConfig;
   const templateDir = input.templateDir ?? defaultTemplateDir();
   const templatePath = join(templateDir, TEMPLATE_FILE);

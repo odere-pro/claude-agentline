@@ -30,6 +30,7 @@ import { loadConfig } from "../config/load.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import type { AgentlineConfig } from "../config/types.js";
 import { listBindings, type KeyBinding, type KeyScope } from "../keys/index.js";
+import { projectGate } from "../lib/claude-project.js";
 import { resolveEnv } from "../lib/env.js";
 import type { Theme } from "../theme/index.js";
 import { resolveConfiguredTheme } from "../theme/resolve.js";
@@ -73,14 +74,26 @@ export interface RunConfigInput {
   readonly env?: NodeJS.ProcessEnv;
   /** Directly pre-supplied config; primarily used by smoke tests. */
   readonly preloaded?: { config: AgentlineConfig; path: string };
+  /** Cwd the project-gate probes. Defaults to `process.cwd()`. */
+  readonly cwd?: string;
+  /** Stdin override for the project-gate prompt; tests inject a PassThrough. */
+  readonly stdin?: NodeJS.ReadableStream & { readonly isTTY?: boolean };
 }
 
 export interface RunConfigResult {
   readonly saved: boolean;
   readonly path: string;
+  /** `true` when the project gate caused an early skip; preloaded path is empty. */
+  readonly skipped?: boolean;
 }
 
 export async function runConfigCommand(input: RunConfigInput = {}): Promise<RunConfigResult> {
+  const gate = await projectGate({
+    command: "edit",
+    ...(input.cwd !== undefined ? { cwd: input.cwd } : {}),
+    ...(input.stdin !== undefined ? { stdin: input.stdin } : {}),
+  });
+  if (gate === "skip") return { saved: false, path: "", skipped: true };
   const { config, path } = await resolveStartingConfig(input);
   const env = resolveEnv(input);
   const previewTheme = await resolveConfiguredTheme(config.theme, { env });
