@@ -77,25 +77,13 @@ agentline: config error at /lines/0/widgets/2/type: must be a known widget type
 npm install -g @agentline/cli@latest
 ```
 
-The `cost` widget uses an embedded pricing table refreshed monthly. Upgrade when D07 fires.
+The embedded pricing table is refreshed monthly. Upgrade when D07 fires.
 
 ---
 
 ## Powerline chevrons show as `>` / `<`
 
 Nerd Font missing. D05 prints the platform-specific install command when it fires.
-
----
-
-## `command` widget shows `✗`
-
-Run `options.cmd` in your terminal directly. Common causes: binary not on PATH in the Claude Code environment, or command exceeds `timeoutMs` (default 250 ms). D09 names the offending widget.
-
-Other less obvious causes:
-
-- **`options.shell` was ignored.** The widget honours `shell` only when it is one of `/bin/sh`, `/bin/bash`, `/usr/bin/sh`, `/usr/bin/bash`, `/usr/local/bin/bash`, `cmd.exe`, `powershell.exe`, or `pwsh.exe`. Anything else falls back to the platform default.
-- **Credential env var missing.** Variables matching `*_TOKEN`, `*_KEY`, `*_SECRET`, `*_PASSWORD`, `*_PASS`, `*_AUTH` are stripped from the subprocess environment by design — surface secrets through a different channel.
-- **`options.cwd` was rejected.** It must be an absolute path that exists and is a directory; otherwise the subprocess inherits agentline's cwd.
 
 ---
 

@@ -40,7 +40,7 @@ See [install.md](./install.md) for `--force`, `--dry-run`, and `CLAUDE_CONFIG_DI
 
 ## Step 2 — See the default
 
-Restart your Claude Code session. The statusline appears at the bottom of the prompt with the default preset (model, git-branch, context, tokens, cost, session-usage, clock).
+Restart your Claude Code session. The statusline appears at the bottom of the prompt with the default preset (model, git-branch, context, tokens, session-usage, block-reset-timer, clock).
 
 If it doesn't render:
 
@@ -59,7 +59,7 @@ The five installed skills give any Claude Code session enough context to drive a
 
 - _"switch the theme to vscode-dark"_
 - _"add a context-percentage widget"_
-- _"remove the cost widget"_
+- _"remove the session-usage widget"_
 - _"reset my config to the minimal preset"_
 
 The agent edits `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` directly — or runs the `agentline config widget …` subcommands for precise, validated changes. agentline is configured globally only; there is no per-project config. The change shows up on the **next prompt render** — Claude Code re-runs the statusline bin every prompt — so no restart is needed.

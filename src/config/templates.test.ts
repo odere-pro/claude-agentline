@@ -8,8 +8,8 @@
  *   1. Each template parses as JSON.
  *   2. Each template validates against the embedded JSON Schema.
  *   3. The default template's first line matches the §7.10 widget set,
- *      with `tokens-total` / `cost` / `session-usage` declaring
- *      `reset: block` and the theme set to `claude-code-dark`.
+ *      with `tokens-total` / `session-usage` declaring `reset: block`
+ *      and the theme set to `claude-code-dark`.
  *
  * Failing here means the templates and the schema have drifted apart;
  * fix the offender before shipping.
@@ -54,17 +54,13 @@ describe("shipped config templates", () => {
       "git-changes",
       "context-percentage",
       "tokens-total",
-      "cost",
       "session-usage",
       "block-reset-timer",
-      "flex-separator",
       "clock",
     ]);
     const tokens = cfg.lines[0]!.widgets.find((w) => w.type === "tokens-total");
-    const cost = cfg.lines[0]!.widgets.find((w) => w.type === "cost");
     const session = cfg.lines[0]!.widgets.find((w) => w.type === "session-usage");
     expect(tokens?.options?.reset).toBe("block");
-    expect(cost?.options?.reset).toBe("block");
     expect(session?.options?.reset).toBe("block");
     expect(cfg.theme).toBe("claude-code-dark");
     expect(cfg.powerline.enabled).toBe(false);

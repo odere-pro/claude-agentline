@@ -35,7 +35,6 @@ wrapper around the bin is read-only by construction — it never passes
 | D06 | git binary on PATH when any git widget is enabled                 | none; reports                                                      |
 | D07 | the embedded pricing table is fresher than `now − 90 days`        | none; reports                                                      |
 | D08 | `CLAUDE_CONFIG_DIR` (when set) points at a writable directory     | none; reports                                                      |
-| D09 | every `command` widget's `cmd` resolves to an executable          | none; reports                                                      |
 | D10 | render dry-run on an embedded fixture matches the stored snapshot | none; reports                                                      |
 
 `--fix` only touches D01–D04. Everything else is reported and left
@@ -107,21 +106,15 @@ checkout. No fix.
 
 ### D07 — pricing table
 
-The `cost` widget reads token prices from a table embedded in the
-binary at build time. The `pricing-skew.yml` workflow refreshes that
-table on a monthly schedule. D07 reports `warn` when the table is
-older than 90 days so you can upgrade `@agentline/cli`. No fix.
+A token-pricing table is embedded in the binary at build time for
+future cost-aware widgets. The `pricing-skew.yml` workflow refreshes
+that table on a monthly schedule. D07 reports `warn` when the table
+is older than 90 days so you can upgrade `@agentline/cli`. No fix.
 
 ### D08 — config-dir writability
 
 Triggered only when `CLAUDE_CONFIG_DIR` is set. Reports whether the
 directory exists, is a directory, and is writable. No fix.
-
-### D09 — command widgets
-
-For each `command` widget, resolves `options.cmd` against PATH and
-verifies it is executable. Reports the first widget that fails. No
-fix; `command` widgets are user-authored and we will not guess.
 
 ### D10 — render snapshot
 

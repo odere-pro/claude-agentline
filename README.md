@@ -14,7 +14,7 @@ A standalone, fast, themeable Claude Code statusline. Reads the Claude Code stdi
 
 ## Features
 
-- **55 widgets** across seven families — `session`, `git`, `tokens`, `context`, `rate-limits`, `time`, and `custom` (sandboxed shell-command, rotating Claude Code REPL keyboard-shortcut hints, opt-in `git-pr` lookup)
+- **37 widgets** across seven families — `session`, `git`, `tokens`, `context`, `rate-limits`, `time`, and `custom` (opt-in `git-pr` lookup)
 - **Opt-in Nerd Font glyph layer** — set `"glyphs": "nerd-font"` to prepend a per-widget icon; default `"off"` keeps output byte-stable
 - **4 shipped themes** with full truecolor / 256-colour / 16-colour degradation
 - **Configured globally** — one config file at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`, layered under built-in defaults and `AGENTLINE_*` env overrides; there is no per-project layer
@@ -59,7 +59,7 @@ In a fresh session, ask the agent:
 
 > "switch the theme to vscode-dark"
 > "add a context-percentage widget"
-> "remove the cost widget"
+> "remove the session-usage widget"
 
 The installed skills (`agentline.md`, `agentline-onboarding.md`, `agentline-configure.md`, `agentline-themes.md`, `agentline-troubleshoot.md`) give the agent the schema, paths, and guardrails it needs to edit `~/.config/agentline/config.json` for you — or it can run the `agentline config widget …` subcommands for precise, validated edits. The change shows up on the next prompt render; no restart needed.
 
@@ -82,7 +82,7 @@ Full walkthrough (doctor, presets, TUI editor, JSON Schema) → [docs/get-starte
 | CLI reference    | [docs/cli.md](./docs/cli.md)                         |
 | Install          | [docs/install.md](./docs/install.md)                 |
 | Configure        | [docs/config.md](./docs/config.md)                   |
-| Widgets (all 55) | [docs/widgets.md](./docs/widgets.md)                 |
+| Widgets (all 37) | [docs/widgets.md](./docs/widgets.md)                 |
 | Themes           | [docs/themes.md](./docs/themes.md)                   |
 | TUI editor keys  | [docs/keymap.md](./docs/keymap.md)                   |
 | Doctor checks    | [docs/doctor.md](./docs/doctor.md)                   |

@@ -31,8 +31,8 @@ describe("parseWidgetAddArgs", () => {
   });
 
   it("parses --options into an object", () => {
-    expect(parseWidgetAddArgs(["cost", "--options", '{"reset":"block"}'])).toEqual({
-      type: "cost",
+    expect(parseWidgetAddArgs(["session-usage", "--options", '{"reset":"block"}'])).toEqual({
+      type: "session-usage",
       line: 0,
       options: { reset: "block" },
     });
@@ -93,11 +93,11 @@ describe("runWidgetAddCommand", () => {
   it("inserts at an index and carries options through", async () => {
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     await runWidgetAddCommand({
-      args: { type: "cost", line: 0, at: 0, options: { reset: "block" } },
+      args: { type: "session-usage", line: 0, at: 0, options: { reset: "block" } },
       env: { CLAUDE_CONFIG_DIR: claudeCfgDir },
     });
     const widgets = (await onDisk()).lines[0]?.widgets;
-    expect(widgets?.[0]).toEqual({ type: "cost", options: { reset: "block" } });
+    expect(widgets?.[0]).toEqual({ type: "session-usage", options: { reset: "block" } });
     expect(widgets?.[1]?.type).toBe("model");
   });
 

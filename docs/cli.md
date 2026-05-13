@@ -149,7 +149,6 @@ Runs ten health checks (D01–D10) against the host configuration. With `--fix`,
 | D06 | `git` on PATH                    | no           |
 | D07 | Pricing table age ≤ 90 days      | no           |
 | D08 | `CLAUDE_CONFIG_DIR` writable     | no           |
-| D09 | `command` widget binary on PATH  | no           |
 | D10 | Render snapshot matches golden   | no           |
 
 **Glyphs in output:** `[ok]` passed · `[!!]` warning · `[XX]` failed · `[fx]` fixed · `[--]` skipped
@@ -213,11 +212,11 @@ Scaffolds the user config from a shipped preset. Writes atomically (write-temp +
 
 **Presets:**
 
-| Name      | Contents                                                                        |
-| --------- | ------------------------------------------------------------------------------- |
-| `minimal` | model, context-length, block-reset-timer                                        |
-| `default` | model, git, context-percentage, tokens-total, cost, session-usage, clock        |
-| `maximal` | default + thinking-effort, weekly-usage, the weekly + block reset timers, clock |
+| Name      | Contents                                                                              |
+| --------- | ------------------------------------------------------------------------------------- |
+| `minimal` | model, context-length, block-reset-timer                                              |
+| `default` | model, git, context-percentage, tokens-total, session-usage, block-reset-timer, clock |
+| `maximal` | default + git-ahead-behind and the weekly reset timer                                 |
 
 **Exit codes:** `0` success · `1` target already exists (without `--force`) or template file missing
 
@@ -298,7 +297,7 @@ Inspect and edit the statusline layout. The mutating subcommands operate on the 
 agentline config widget list                                  # see the current layout + indices
 agentline config widget catalog --preview                     # browse widgets with sample renders
 agentline config widget add git-branch --line 0 --at 1        # insert after the first widget
-agentline config widget add cost --options '{"reset":"block"}'
+agentline config widget add tokens-total --options '{"reset":"block"}'
 agentline config widget move --from-at 3 --to-line 1          # push widget 3 down to a second line
 agentline config widget set-option label "» " --at 0         # prefix the first widget
 agentline config widget remove --at 2

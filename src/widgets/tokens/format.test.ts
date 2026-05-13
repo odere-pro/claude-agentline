@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCount, formatCost, formatSpeed, tokenRole } from "./format.js";
+import { formatCount, formatSpeed, tokenRole } from "./format.js";
 
 describe("formatCount", () => {
   it("rounds and returns plain number below 1000", () => {
@@ -29,31 +29,6 @@ describe("formatCount", () => {
 
   it("trims trailing .0 in M suffix", () => {
     expect(formatCount(2_000_000)).toBe("2M");
-  });
-});
-
-describe("formatCost", () => {
-  it("returns $0.00 when cost is below $0.01", () => {
-    expect(formatCost(0)).toBe("$0.00");
-    expect(formatCost(0.009)).toBe("$0.00");
-  });
-
-  it("uses 2-decimal format for $0.01–$9.99", () => {
-    expect(formatCost(0.01)).toBe("$0.01");
-    expect(formatCost(1.5)).toBe("$1.50");
-    expect(formatCost(9.99)).toBe("$9.99");
-  });
-
-  it("uses 1-decimal format for $10–$99.9", () => {
-    expect(formatCost(10)).toBe("$10.0");
-    expect(formatCost(50.5)).toBe("$50.5");
-    expect(formatCost(99.9)).toBe("$99.9");
-  });
-
-  it("uses rounded integer format for $100+", () => {
-    expect(formatCost(100)).toBe("$100");
-    expect(formatCost(150.7)).toBe("$151");
-    expect(formatCost(1000)).toBe("$1000");
   });
 });
 

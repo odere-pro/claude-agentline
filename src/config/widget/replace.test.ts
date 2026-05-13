@@ -19,8 +19,8 @@ describe("parseWidgetReplaceArgs", () => {
   });
 
   it("reads --line, --at, and --options", () => {
-    expect(parseWidgetReplaceArgs(["cost", "--line=1", "--at=0", "--options", '{"reset":"day"}'])).toEqual({
-      type: "cost",
+    expect(parseWidgetReplaceArgs(["session-usage", "--line=1", "--at=0", "--options", '{"reset":"day"}'])).toEqual({
+      type: "session-usage",
       line: 1,
       at: 0,
       options: { reset: "day" },
@@ -69,14 +69,14 @@ describe("runWidgetReplaceCommand", () => {
   it("swaps the widget and carries options through", async () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const code = await runWidgetReplaceCommand({
-      args: { type: "cost", line: 0, at: 0, options: { reset: "block" } },
+      args: { type: "session-usage", line: 0, at: 0, options: { reset: "block" } },
       env: { CLAUDE_CONFIG_DIR: claudeCfgDir },
     });
     expect(code).toBe(0);
     expect(String(stdout.mock.calls[0]?.[0] ?? "")).toMatch(/replaced the widget/);
     const onDisk = JSON.parse(await fs.readFile(userCfg, "utf8")) as AgentlineConfig;
     expect(onDisk.lines[0]?.widgets).toEqual([
-      { type: "cost", options: { reset: "block" } },
+      { type: "session-usage", options: { reset: "block" } },
       { type: "clock" },
     ]);
   });

@@ -22,7 +22,7 @@ describe("optionsSummary", () => {
   });
 
   it("reflects hidden / rawValue / merged", () => {
-    const summary = optionsSummary({ type: "cost", hidden: true, rawValue: true, merged: "merge" });
+    const summary = optionsSummary({ type: "tokens-total", hidden: true, rawValue: true, merged: "merge" });
     expect(summary).toEqual([
       { key: "v", label: "visible", value: "hidden" },
       { key: "l", label: "own label", value: "hidden" },

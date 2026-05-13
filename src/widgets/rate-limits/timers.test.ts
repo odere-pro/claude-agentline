@@ -7,11 +7,7 @@ import type { TokensSnapshot, TranscriptEvent } from "../../tokens/index.js";
 import { frozenClock } from "../clock.js";
 import type { WidgetContext } from "../context.js";
 
-import {
-  blockResetTimerWidget,
-  blockTimerWidget,
-  weeklyResetTimerWidget,
-} from "./timers.js";
+import { blockResetTimerWidget, weeklyResetTimerWidget } from "./timers.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
 const HOUR_MS = 60 * 60 * 1000;
@@ -57,57 +53,6 @@ function makeCtx(
     ...overrides,
   };
 }
-
-describe("block-timer widget", () => {
-  it("shows remaining time anchored to the block", () => {
-    const anchor = Date.parse("2026-05-01T00:00:00Z");
-    const now = anchor + 90 * 60 * 1000;
-    const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
-      now,
-      blockAnchor: anchor,
-    });
-    const cell = blockTimerWidget.render(makeCtx(snap), { options: {}, rawValue: false });
-    expect(cell.text).toBe("3h30m");
-  });
-
-  it("clock format renders HH:MM:SS", () => {
-    const anchor = Date.parse("2026-05-01T00:00:00Z");
-    const now = anchor + 90 * 60 * 1000;
-    const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
-      now,
-      blockAnchor: anchor,
-    });
-    const cell = blockTimerWidget.render(makeCtx(snap), {
-      options: { format: "clock" },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("03:30:00");
-  });
-
-  it("falls back to 5h0m when no snapshot is present", () => {
-    const cell = blockTimerWidget.render(makeCtx(undefined), { options: {}, rawValue: false });
-    expect(cell.text).toBe("5h0m");
-  });
-
-  it("suppresses label when rawValue: true", () => {
-    const anchor = Date.parse("2026-05-01T00:00:00Z");
-    const now = anchor + HOUR_MS;
-    const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
-      now,
-      blockAnchor: anchor,
-    });
-    const withLabel = blockTimerWidget.render(makeCtx(snap), {
-      options: { label: "block:" },
-      rawValue: false,
-    });
-    const noLabel = blockTimerWidget.render(makeCtx(snap), {
-      options: { label: "block:" },
-      rawValue: true,
-    });
-    expect(withLabel.text).toMatch(/^block:/);
-    expect(noLabel.text).not.toMatch(/^block:/);
-  });
-});
 
 describe("block-reset-timer widget", () => {
   it("shows 'resets N' as default label", () => {

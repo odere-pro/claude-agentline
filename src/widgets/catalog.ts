@@ -109,18 +109,15 @@ const WIDGET_GLYPHS: Readonly<Record<string, string>> = Object.freeze({
   // Session
   model: "", // nf-md-robot
   "account-email": "", // nf-fa-envelope
-  "vim-mode": "", // nf-dev-vim
   skills: "", // nf-fa-puzzle_piece
   "thinking-effort": "", // nf-fa-bolt
   "session-name": "", // nf-fa-user
-  org: "", // nf-fa-sitemap
 
-  // Tokens & cost
+  // Tokens
   "tokens-total": "", // nf-fa-calculator
   "tokens-input": "", // nf-fa-arrow_down
   "tokens-output": "", // nf-fa-arrow_up
   "tokens-cached": "", // nf-md-database
-  cost: "", // nf-fa-dollar
   "input-speed": "", // nf-fa-rocket
   "output-speed": "",
   "total-speed": "",
@@ -133,48 +130,33 @@ const WIDGET_GLYPHS: Readonly<Record<string, string>> = Object.freeze({
 
   // Rate limits
   "session-usage": "", // nf-fa-percent
-  "weekly-usage": "",
-  "block-timer": "", // nf-fa-clock_o
   "block-reset-timer": "", // nf-fa-refresh
   "weekly-reset-timer": "",
-  "model-usage": "",
-  "effort-usage": "",
-  "compaction-counter": "", // nf-fa-compress
 
   // Git
   "git-branch": "", // nf-pl-branch
   "git-sha": "", // nf-oct-git_commit
   "git-worktree": "", // nf-fa-folder
-  "git-status": "", // nf-fa-git
   "git-changes": "", // nf-md-pencil
   "git-staged": "", // nf-fa-plus
   "git-unstaged": "",
   "git-untracked": "", // nf-fa-question
-  "git-insertions": "",
-  "git-deletions": "", // nf-fa-minus
   "git-conflicts": "", // nf-fa-warning
   "git-ahead-behind": "", // nf-fa-arrows_h
   "git-upstream": "",
-  "git-origin-owner": "", // nf-fa-github
   "git-origin-repo": "",
-  "git-is-fork": "", // nf-fa-code_fork
   "git-pr": "", // nf-oct-git_pull_request
 
   // Time
   clock: "",
   "uptime-session": "", // nf-fa-hourglass_half
   "uptime-block": "",
-
-  // Custom
-  command: "", // nf-fa-terminal
-  "key-hints": "", // nf-fa-keyboard_o
 });
 
 const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
-  // Session (11)
+  // Session (7)
   model: entry("Model", "Active model id (e.g. Sonnet 4.6)", "session"),
   version: entry("Version", "Claude Code version", "session"),
-  "output-style": entry("Output style", "Active output style", "session"),
   "session-id": entry("Session id", "Short session id", "session"),
   "session-name": entry("Session name", "Session name, or the short id when unset", "session"),
   "account-email": entry("Account email", "Logged-in account email", "session", [
@@ -182,29 +164,17 @@ const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
     v("domain", "Domain only (@example.com)", { mask: "domain" }),
     v("localpart", "Local part only (user)", { mask: "localpart" }),
   ]),
-  "login-method": entry("Login method", "Auth method: oauth, api-key, or device", "session"),
-  org: entry("Organisation", "Active organisation name", "session"),
   "thinking-effort": entry(
     "Thinking effort",
     "Thinking-effort tier: low, medium, or high",
     "session",
-  ),
-  "vim-mode": entry(
-    "Vim mode",
-    "Current vim mode when vim keybindings are active",
-    "session",
-    [
-      v("long", "Long (NORMAL / INSERT / VISUAL)", { format: "long" }),
-      v("short", "Short (N / I / V)", { format: "short" }),
-      v("bracket", "Bracketed ([N] / [I] / [V])", { format: "bracket" }),
-    ],
   ),
   skills: entry("Skills", "Skills attached to the session", "session", [
     v("count", "Count (just the number)", { variant: "count" }),
     v("list", "List (comma-joined)", { variant: "list" }),
     v("last", "Last (most recent only)", { variant: "last" }),
   ]),
-  // Tokens & cost (8)
+  // Tokens (7)
   "tokens-total": entry("Tokens (total)", "Running token total for the chosen reset axis", "tokens"),
   "tokens-input": entry("Tokens (input)", "Input-token subtotal for the chosen reset axis", "tokens"),
   "tokens-output": entry(
@@ -213,7 +183,6 @@ const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
     "tokens",
   ),
   "tokens-cached": entry("Tokens (cached)", "Cached-token subtotal (prompt-cache hits)", "tokens"),
-  cost: entry("Cost", "Running USD cost from the embedded pricing table", "tokens"),
   "input-speed": entry("Input speed", "Input tokens per second over the active window", "tokens"),
   "output-speed": entry("Output speed", "Output tokens per second over the active window", "tokens"),
   "total-speed": entry("Total speed", "Combined token throughput per second", "tokens"),
@@ -232,7 +201,7 @@ const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
   ),
   "context-bar": entry("Context bar", "Tiny inline bar approximating context fill", "context"),
 
-  // Rate limits (8)
+  // Rate limits (3)
   "session-usage": entry(
     "Session usage",
     "Percentage of the session quota consumed",
@@ -241,21 +210,6 @@ const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
       v("percent", "Percent (65%)", { display: "percent" }),
       v("bar", "Bar (12 cells)", { display: "bar" }),
       v("short-bar", "Short bar (6 cells)", { display: "short-bar" }),
-    ],
-  ),
-  "weekly-usage": entry("Weekly usage", "Percentage of the weekly quota consumed", "rate-limits", [
-    v("percent", "Percent (65%)", { display: "percent" }),
-    v("bar", "Bar (12 cells)", { display: "bar" }),
-    v("short-bar", "Short bar (6 cells)", { display: "short-bar" }),
-  ]),
-  "block-timer": entry(
-    "Block timer",
-    "Time elapsed in the active conversation block",
-    "rate-limits",
-    [
-      v("short", "Short (1h 23m)", { format: "short" }),
-      v("long", "Long (1 hour 23 minutes)", { format: "long" }),
-      v("clock", "Clock (01:23:45)", { format: "clock" }),
     ],
   ),
   "block-reset-timer": entry(
@@ -278,39 +232,19 @@ const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
       v("clock", "Clock", { format: "clock" }),
     ],
   ),
-  "model-usage": entry("Usage by model", "Usage broken out by model id", "rate-limits"),
-  "effort-usage": entry(
-    "Usage by effort",
-    "Usage broken out by thinking-effort tier",
-    "rate-limits",
-  ),
-  "compaction-counter": entry(
-    "Compaction counter",
-    "Number of compactions performed in the session",
-    "rate-limits",
-  ),
 
-  // Git (17)
+  // Git (12)
   "git-branch": entry("Git branch", "Current branch, or short SHA when detached", "git"),
   "git-sha": entry("Git SHA", "Short commit SHA of HEAD", "git"),
   "git-worktree": entry("Git worktree", "Basename of the current worktree", "git"),
-  "git-status": entry("Git status", "One-glance dirty/clean working-tree summary", "git"),
   "git-changes": entry("Git changes", "Staged, unstaged, and untracked file counts", "git"),
   "git-staged": entry("Git staged", "Staged-file count", "git"),
   "git-unstaged": entry("Git unstaged", "Unstaged-file count", "git"),
   "git-untracked": entry("Git untracked", "Untracked-file count", "git"),
-  "git-insertions": entry("Git insertions", "Insertion count from git diff --shortstat", "git"),
-  "git-deletions": entry("Git deletions", "Deletion count from git diff --shortstat", "git"),
   "git-conflicts": entry("Git conflicts", "Merge-conflict file count", "git"),
   "git-ahead-behind": entry("Git ahead/behind", "Commits ahead of and behind upstream", "git"),
   "git-upstream": entry("Git upstream", "Upstream branch, e.g. origin/main", "git"),
-  "git-origin-owner": entry("Git origin owner", "Owner segment of the origin remote URL", "git"),
   "git-origin-repo": entry("Git origin repo", "Repo segment of the origin remote URL", "git"),
-  "git-is-fork": entry(
-    "Git fork marker",
-    "Marker shown when upstream owner differs from origin owner",
-    "git",
-  ),
   "git-pr": entry(
     "Git pull request",
     "PR for HEAD's branch (opt-in network: requires options.allowNetwork)",
@@ -347,19 +281,8 @@ const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
     v("clock", "Clock (01:23:45)", { format: "clock" }),
   ]),
 
-  // Layout / custom (4)
+  // Layout / custom (1)
   separator: entry("Separator", "A single user-defined glyph (options.char)", "custom"),
-  "flex-separator": entry(
-    "Flex separator",
-    "Absorbs remaining space on the line; dropped in Powerline mode",
-    "custom",
-  ),
-  command: entry("Command", "Output of options.cmd run in a sandboxed shell", "custom"),
-  "key-hints": entry(
-    "Key hints",
-    "Rotating Claude Code REPL keyboard-shortcut hint",
-    "custom",
-  ),
 });
 
 function applyGlyphs(

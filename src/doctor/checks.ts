@@ -25,7 +25,6 @@ const execFileP = promisify(execFile);
 
 const EXEC_TIMEOUTS = {
   gitVersion: 2000,
-  binaryLookup: 1500,
   fcList: 2500,
   systemProfiler: 5000,
 } as const;
@@ -34,7 +33,7 @@ interface CheckCtx {
   home: string;
   env: NodeJS.ProcessEnv;
   cwd: string;
-  /** Lazily resolved merged config; some checks need it (D03, D04, D05, D06, D09). */
+  /** Lazily resolved merged config; some checks need it (D03, D04, D05, D06). */
   config: AgentlineConfig | null;
   /** Loader error if config could not be loaded — used by D03. */
   configError: Error | null;
@@ -64,7 +63,6 @@ export async function runChecks(opts: RunOptions): Promise<CheckResult[]> {
     await checkD06(ctx),
     await checkD07(ctx),
     await checkD08(ctx),
-    await checkD09(ctx),
     await checkD10(ctx),
   ];
 }
@@ -236,28 +234,6 @@ async function checkD08(ctx: CheckCtx): Promise<CheckResult> {
   }
 }
 
-/** D09 — Custom-command widgets resolve their `cmd` to an executable. */
-async function checkD09(ctx: CheckCtx): Promise<CheckResult> {
-  const cmds = collectCommandWidgets(ctx.config);
-  if (cmds.length === 0) {
-    return ok("D09", "Custom-command widgets resolve", "no command widgets configured");
-  }
-  const broken: string[] = [];
-  for (const cmd of cmds) {
-    if (!(await commandResolves(cmd, ctx.env))) broken.push(cmd);
-  }
-  if (broken.length === 0) {
-    return ok("D09", "Custom-command widgets resolve", `${cmds.length} command(s) ok`);
-  }
-  return {
-    id: "D09",
-    title: "Custom-command widgets resolve",
-    status: "warn",
-    message: `unresolved: ${broken.join(" | ")}`,
-    hint: "edit the widget options.cmd or install the missing tool",
-  };
-}
-
 /** D10 — Render dry-run on embedded fixture matches snapshot. */
 async function checkD10(_ctx: CheckCtx): Promise<CheckResult> {
   const ok = await runEmbeddedRenderFixture();
@@ -312,31 +288,6 @@ function collectReferencedThemes(cfg: AgentlineConfig | null): string[] {
 function hasGitWidget(cfg: AgentlineConfig | null): boolean {
   if (!cfg) return false;
   return cfg.lines.some((line) => line.widgets.some((w) => w.type.startsWith("git-")));
-}
-
-function collectCommandWidgets(cfg: AgentlineConfig | null): string[] {
-  if (!cfg) return [];
-  const out: string[] = [];
-  for (const line of cfg.lines) {
-    for (const w of line.widgets) {
-      if (w.type !== "command") continue;
-      const cmd = (w.options ?? {})["cmd"];
-      if (typeof cmd === "string" && cmd.length > 0) out.push(cmd);
-    }
-  }
-  return out;
-}
-
-async function commandResolves(cmd: string, env: NodeJS.ProcessEnv): Promise<boolean> {
-  // Take the first whitespace-delimited token; skip if it's a shell builtin.
-  const exe = cmd.trim().split(/\s+/)[0];
-  if (!exe || /^(if|for|while|cd|echo|test|true|false)$/.test(exe)) return true;
-  try {
-    await execFileP(process.platform === "win32" ? "where" : "which", [exe], { timeout: EXEC_TIMEOUTS.binaryLookup, env });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 async function detectNerdFont(): Promise<boolean> {

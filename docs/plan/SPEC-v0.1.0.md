@@ -32,11 +32,11 @@ Homebrew tap, GitHub Releases native binaries, and curl-installer are explicitly
 
 - **F1.** A single bin `agentline` reads JSON from stdin (the Claude Code statusline contract), reads merged configuration (§4), renders one or more lines of styled text, and writes them to stdout. Exit code is `0` on success and `1` on unrecoverable error; non-zero exit MUST still produce a one-line ASCII fallback on stdout so the host UI is never blank.
 - **F2.** Configuration is JSON, schema-versioned, and merged from two layers (§4): the user config file, then `AGENTLINE_*` env-var overrides. There is no per-project config layer (a `.agentline.json` in the cwd is ignored).
-- **F3.** A line is an ordered list of widgets (§7). A widget is one of: built-in (§7.2–§7.7), `separator` (§7.8.1), `flex-separator` (§7.8.2), or `command` (§7.8.3).
+- **F3.** A line is an ordered list of widgets (§7). A widget is one of: built-in (§7.2–§7.7) or `separator` (§7.8.1).
 - **F4.** Widgets render with optional foreground colour, background colour, bold, italic, raw-value mode, and merge mode (§5.4). Each widget MAY be hidden by configuration (§4.6).
 - **F5.** Powerline mode (§5.1) replaces inter-widget separators with chevron glyphs and computes adjoining colours.
-- **F6.** Flex separators expand to fill the remaining horizontal width across all flex slots equally; in their absence content is left-aligned.
-- **F7.** Token, cost, and rate-limit accumulators are bucketed by a declared `reset` axis (§8.4). Mixed axes never silently combine.
+- **F6.** Content is left-aligned by default; layout primitives may emit flex-true cells that expand to fill the remaining horizontal width across all flex slots equally.
+- **F7.** Token and rate-limit accumulators are bucketed by a declared `reset` axis (§8.4). Mixed axes never silently combine.
 - **F8.** Git widgets read the working tree implied by the stdin `cwd` field; they MUST NOT shell out to anything other than `git`, and MUST tolerate non-git directories with a hidden render.
 - **F9.** Session info widgets read every field the Claude Code stdin contract exposes (§7.2) and fall back to local auth files where the field is unavailable (§7.2.1).
 - **F10.** A TUI editor (`agentline config`) lets users add, reorder, recolour, and toggle widgets with live preview; configuration changes persist atomically (write-temp-then-rename).
@@ -144,7 +144,7 @@ agentline/
 │   ├── theme/                         theme loader & colour resolution (§5.4)
 │   ├── stdin/                         Claude Code stdin contract parser (§8.1)
 │   ├── git/                           git invocation + parser (§7.6)
-│   ├── tokens/                        token + cost accumulators, pricing table (§7.3, §8.5)
+│   ├── tokens/                        token accumulators, pricing table (§7.3, §8.5)
 │   ├── session/                       session-info field resolvers + auth fallback (§7.2)
 │   ├── tui/                           Ink editor; lazy-loaded (§1.2 N3)
 │   ├── doctor/                        diagnostics + autofix (§9.2)
@@ -328,7 +328,6 @@ When `enabled` is `true`:
 
 - Inter-widget `separator` and `padding` are ignored; chevrons are inserted instead.
 - Adjoining colours are computed: `glyph.fg = prev.bg`, `glyph.bg = next.bg`.
-- `flex-separator` is a no-op (silently dropped) — Powerline lines are right-padded by `autoAlign` instead.
 - Without a Nerd Font installed, Doctor (§9.2) emits a warning and the bin falls back to ASCII chevrons (`>`, `<`).
 
 ### 5.2 Widget merging
@@ -433,32 +432,27 @@ render(ctx: Context, opts: Options): Cell
 | ----------------- | ---------------------------------------------- | -------------------------------------------------------- |
 | `model`           | `stdin.model`                                  | Maps id → display name                                   |
 | `version`         | `stdin.version` or `claude --version` fallback |                                                          |
-| `output-style`    | `stdin.outputStyle`                            |                                                          |
 | `session-id`      | `stdin.sessionId`                              | Truncated to 8 chars; `h` toggles hide                   |
 | `session-name`    | `stdin.sessionName`                            | Empty hides by default                                   |
 | `account-email`   | `stdin.user.email` ∨ `~/.claude/auth.json`     | Mask modes: `none`, `domain`, `localpart`                |
-| `login-method`    | `stdin.user.authMethod` ∨ auth file            | `oauth` / `api-key` / `enterprise`                       |
-| `org`             | `stdin.user.org.slug`                          |                                                          |
 | `thinking-effort` | `stdin.thinkingEffort`                         | One of `low`, `medium`, `high`, `xhigh`; semantic colour |
-| `vim-mode`        | `stdin.vimMode`                                | `NORMAL` / `INSERT` / `VISUAL`; format cycled by `f`     |
 | `skills`          | `stdin.skills`                                 | Display: count, list, last; cycled by `v`                |
 
 #### 7.2.1 Auth-file fallback
 
 When stdin omits a field, the bin reads `${CLAUDE_CONFIG_DIR}/auth.json` (or platform equivalent) read-only. Failure renders the field as hidden, never errors. The reader caps file size at **64 KB**; an oversize file (e.g. a symlink to `/dev/zero`) is treated as an unreadable auth file — same hidden-field behaviour as the missing-file case — so the render budget (§1.2 N3) is not blown.
 
-### 7.3 Token & cost widgets
+### 7.3 Token widgets
 
-| Type            | Reset axis                                           | Notes                                                 |
-| --------------- | ---------------------------------------------------- | ----------------------------------------------------- |
-| `tokens-input`  | `session`\|`block`\|`day`\|`week`\|`model`\|`effort` | Sum from JSONL `message.usage.input_tokens`           |
-| `tokens-output` | same                                                 |                                                       |
-| `tokens-cached` | same                                                 |                                                       |
-| `tokens-total`  | same                                                 | Sum of the three                                      |
-| `cost`          | same                                                 | Computed from token counts × model price table (§8.5) |
-| `input-speed`   | rolling window (s)                                   | Default 60 s                                          |
-| `output-speed`  | same                                                 |                                                       |
-| `total-speed`   | same                                                 |                                                       |
+| Type            | Reset axis                                           | Notes                                       |
+| --------------- | ---------------------------------------------------- | ------------------------------------------- |
+| `tokens-input`  | `session`\|`block`\|`day`\|`week`\|`model`\|`effort` | Sum from JSONL `message.usage.input_tokens` |
+| `tokens-output` | same                                                 |                                             |
+| `tokens-cached` | same                                                 |                                             |
+| `tokens-total`  | same                                                 | Sum of the three                            |
+| `input-speed`   | rolling window (s)                                   | Default 60 s                                |
+| `output-speed`  | same                                                 |                                             |
+| `total-speed`   | same                                                 |                                             |
 
 The reset axis is declared in `options.reset` and defaults to `session`.
 
@@ -476,34 +470,25 @@ The reset axis is declared in `options.reset` and defaults to `session`.
 | Type                 | Notes                                               |
 | -------------------- | --------------------------------------------------- |
 | `session-usage`      | 5-h block; cycle display: percent / bar / short bar |
-| `weekly-usage`       | Rolling 7-day; same display set                     |
-| `block-timer`        | Time remaining in current 5-h block                 |
 | `block-reset-timer`  | Countdown to next block reset                       |
 | `weekly-reset-timer` | Countdown to next weekly reset                      |
-| `model-usage`        | Per-model token aggregate; reset axis `model`       |
-| `effort-usage`       | Per-thinking-effort aggregate; reset axis `effort`  |
-| `compaction-counter` | Count of compactions detected in transcript JSONL   |
 
 ### 7.6 Git widgets
 
-| Type               | Output             | Notes                                          |
-| ------------------ | ------------------ | ---------------------------------------------- |
-| `git-branch`       | branch name        | Detached HEAD shows `(SHA)`; OSC-8 link toggle |
-| `git-changes`      | `+N -M`            | Aggregate insertions & deletions               |
-| `git-insertions`   | `+N`               |                                                |
-| `git-deletions`    | `-M`               |                                                |
-| `git-status`       | compact `M2 A1 ?3` |                                                |
-| `git-staged`       | count              |                                                |
-| `git-unstaged`     | count              |                                                |
-| `git-untracked`    | count              |                                                |
-| `git-ahead-behind` | `↑N ↓M`            | `h` hides when even                            |
-| `git-conflicts`    | `⚡N`              | Hidden when zero                               |
-| `git-sha`          | short SHA          |                                                |
-| `git-worktree`     | worktree name      | When inside a worktree                         |
-| `git-origin-owner` | remote owner       | Toggle IDE link                                |
-| `git-origin-repo`  | remote repo        | Toggle IDE link                                |
-| `git-upstream`     | upstream ref       |                                                |
-| `git-is-fork`      | bool indicator     | Comparing remote graph                         |
+| Type               | Output        | Notes                                          |
+| ------------------ | ------------- | ---------------------------------------------- |
+| `git-branch`       | branch name   | Detached HEAD shows `(SHA)`; OSC-8 link toggle |
+| `git-changes`      | `+N -M`       | Aggregate insertions & deletions               |
+| `git-staged`       | count         |                                                |
+| `git-unstaged`     | count         |                                                |
+| `git-untracked`    | count         |                                                |
+| `git-ahead-behind` | `↑N ↓M`       | `h` hides when even                            |
+| `git-conflicts`    | `⚡N`         | Hidden when zero                               |
+| `git-sha`          | short SHA     |                                                |
+| `git-worktree`     | worktree name | When inside a worktree                         |
+| `git-origin-repo`  | remote repo   | Toggle IDE link                                |
+| `git-upstream`     | upstream ref  |                                                |
+| `git-pr`           | PR identifier | Opt-in network — see §7.8                      |
 
 Git widgets call `git -C <cwd> …`; CRLF and Windows path normalisation handled (§8.6).
 
@@ -525,42 +510,15 @@ Git widgets call `git -C <cwd> …`; CRLF and Windows path normalisation handled
 
 Renders one character; `Space` in TUI cycles `\| - , · ␣`.
 
-#### 7.8.2 `flex-separator`
-
-Renders empty space sized to fill remaining width. Multiple flex separators share remainder equally. Disabled in Powerline mode.
-
-#### 7.8.3 `command`
-
-```text
-{
-  "type": "command",
-  "options": {
-    "cmd":         "<shell-fragment>",        // required
-    "timeoutMs":   250,                        // ≤ 2000
-    "cacheTtlMs":  1000,                       // 0 disables cache
-    "byteLimit":   1024,                       // stdout truncation
-    "trim":        true,                       // strip trailing whitespace
-    "onError":     "✗",                        // marker on failure
-    "shell":       "/bin/sh"                   // override
-  }
-}
-```
-
-`cmd` runs in a sandboxed subprocess. stderr is discarded; non-zero exit (or timeout, or spawn failure) renders `onError`. The sandbox carries the following bounds:
-
-- **Shell allowlist.** `options.shell` is honoured only when it matches one of `/bin/sh`, `/bin/bash`, `/usr/bin/sh`, `/usr/bin/bash`, `/usr/local/bin/bash`, `cmd.exe`, `powershell.exe`, `pwsh.exe`. Any other value silently falls back to the platform default (`/bin/sh` on Unix, `cmd.exe` on Windows) — the widget never spawns an arbitrary attacker-supplied binary.
-- **Cwd validation.** `options.cwd` (or, when unset, `stdin.cwd`) is accepted only when it is a non-empty absolute path that exists and is a directory. Anything else collapses to `undefined` so the subprocess inherits agentline's own cwd rather than following an attacker-controlled hint.
-- **Environment allowlist.** Only `PATH`, `HOME`, `USER`, `USERNAME`, `LOGNAME`, `LANG`, `TERM`, `TMPDIR`, `TMP`, `TEMP`, `SHELL`, `USERPROFILE`, `SYSTEMROOT`, `WINDIR`, `COMSPEC`, plus any `LC_*` and `CLAUDE_*` variables, are forwarded to the child. Inside that allowlist the loader still drops keys whose name ends in `_TOKEN`, `_KEY`, `_SECRET`, `_PASSWORD`, `_PASS`, or `_AUTH` so credential-shaped CLAUDE\_\* vars never leak into a user-supplied shell command.
-
 ### 7.9 Widget roles (theme palette keys)
 
 `accent`, `info`, `success`, `warning`, `danger`, `muted`, `git-clean`, `git-dirty`, `tokens-low`, `tokens-mid`, `tokens-high`, `bg-section`, `bg-emphasis`. Themes MUST define every role; missing roles fall back to compiled defaults.
 
 ### 7.10 Default config widget list (one line)
 
-`model · git-branch · git-changes · context-percentage · tokens-total · cost · session-usage · flex-separator · clock`.
+`model · thinking-effort · git-branch · git-changes · context-percentage · tokens-total · session-usage · block-reset-timer · clock`.
 
-The default config makes `tokens-total` and `cost` use `reset: block` and `session-usage` use `reset: block`. Theme is `claude-code-dark` under Powerline-disabled mode.
+The default config makes `tokens-total` and `session-usage` use `reset: block`. Theme is `claude-code-dark` under Powerline-disabled mode.
 
 ---
 

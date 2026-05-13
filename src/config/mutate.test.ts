@@ -28,10 +28,10 @@ const baseline = (): AgentlineConfig =>
 
 describe("addWidget", () => {
   it("inserts at the given index", () => {
-    const out = addWidget(baseline(), { line: 0, at: 1, widget: { type: "cost" } });
+    const out = addWidget(baseline(), { line: 0, at: 1, widget: { type: "session-usage" } });
     expect(out.lines[0]?.widgets.map((w) => w.type)).toEqual([
       "model",
-      "cost",
+      "session-usage",
       "git-branch",
       "clock",
     ]);
@@ -57,7 +57,7 @@ describe("addWidget", () => {
   it("does not mutate the input config", () => {
     const input = baseline();
     const snapshot = structuredClone(input);
-    addWidget(input, { line: 0, at: 0, widget: { type: "cost" } });
+    addWidget(input, { line: 0, at: 0, widget: { type: "session-usage" } });
     expect(input).toEqual(snapshot);
   });
 
