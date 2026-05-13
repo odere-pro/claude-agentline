@@ -391,6 +391,74 @@ function backToEdit(state: EditorState): EditorState {
   return { ...state, mode: "edit", pickerDraft: {} };
 }
 
+function commitUpdate(
+  state: EditorState,
+  targetLine: number,
+  index: number,
+  variantOptions: Readonly<Record<string, unknown>> | undefined,
+): EditorState {
+  const line = lineAt(state, targetLine);
+  if (!line) return backToEdit(state);
+  const existing = line.widgets[index];
+  if (!existing) return backToEdit(state);
+  const merged = sanitiseOptions({ ...(existing.options ?? {}), ...(variantOptions ?? {}) });
+  const next: WidgetConfig = { ...existing, options: merged };
+  return {
+    ...state,
+    lines: replaceLine(
+      state.lines,
+      targetLine,
+      { widgets: replaceAt(line.widgets, index, next) },
+    ),
+    cursor: { line: targetLine, widget: index },
+    mode: "edit",
+    pickerDraft: {},
+    dirty: true,
+  };
+}
+
+function commitReplace(
+  state: EditorState,
+  targetLine: number,
+  index: number,
+  fresh: WidgetConfig,
+): EditorState {
+  return {
+    ...state,
+    lines: replaceLine(
+      state.lines,
+      targetLine,
+      { widgets: replaceAt(lineAt(state, targetLine)!.widgets, index, fresh) },
+    ),
+    cursor: { line: targetLine, widget: index },
+    mode: "edit",
+    pickerDraft: {},
+    dirty: true,
+  };
+}
+
+function commitInsert(
+  state: EditorState,
+  targetLine: number,
+  index: number,
+  fresh: WidgetConfig,
+): EditorState {
+  const line = lineAt(state, targetLine)!;
+  const widgets = [
+    ...line.widgets.slice(0, index),
+    fresh,
+    ...line.widgets.slice(index),
+  ];
+  return {
+    ...state,
+    lines: replaceLine(state.lines, targetLine, { widgets }),
+    cursor: { line: targetLine, widget: index },
+    mode: "edit",
+    pickerDraft: {},
+    dirty: true,
+  };
+}
+
 /**
  * Land a chosen `widgetType` + optional variant-options patch into the
  * editor state. Branches on `pickerTarget.kind`:
@@ -411,22 +479,7 @@ function commit(
   if (!line) return backToEdit(state);
 
   if (kind === "update") {
-    const existing = line.widgets[index];
-    if (!existing) return backToEdit(state);
-    const merged = sanitiseOptions({ ...(existing.options ?? {}), ...(variantOptions ?? {}) });
-    const next: WidgetConfig = { ...existing, options: merged };
-    return {
-      ...state,
-      lines: replaceLine(
-        state.lines,
-        targetLine,
-        { widgets: replaceAt(line.widgets, index, next) },
-      ),
-      cursor: { line: targetLine, widget: index },
-      mode: "edit",
-      pickerDraft: {},
-      dirty: true,
-    };
+    return commitUpdate(state, targetLine, index, variantOptions);
   }
 
   const fresh: WidgetConfig = variantOptions
@@ -434,34 +487,10 @@ function commit(
     : { type: widgetType };
 
   if (kind === "replace") {
-    return {
-      ...state,
-      lines: replaceLine(
-        state.lines,
-        targetLine,
-        { widgets: replaceAt(line.widgets, index, fresh) },
-      ),
-      cursor: { line: targetLine, widget: index },
-      mode: "edit",
-      pickerDraft: {},
-      dirty: true,
-    };
+    return commitReplace(state, targetLine, index, fresh);
   }
 
-  // insert
-  const widgets = [
-    ...line.widgets.slice(0, index),
-    fresh,
-    ...line.widgets.slice(index),
-  ];
-  return {
-    ...state,
-    lines: replaceLine(state.lines, targetLine, { widgets }),
-    cursor: { line: targetLine, widget: index },
-    mode: "edit",
-    pickerDraft: {},
-    dirty: true,
-  };
+  return commitInsert(state, targetLine, index, fresh);
 }
 
 function setOption(state: EditorState, key: string, value: unknown): EditorState {

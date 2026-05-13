@@ -159,6 +159,8 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
   }, [initialConfig, onSaved, path, state.lines, state.glyphs]);
 
   useInput((input, key) => {
+    const { mode, pickerDraft, pickerTarget, glyphs } = state;
+
     if (showHelp) {
       if (shouldDismissHelp(input, key)) setShowHelp(false);
       // Ignore every other key while help is open — without this, an arrow
@@ -168,7 +170,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
     }
 
     // ── picker steps ─────────────────────────────────────────────────────
-    if (state.mode === "picker-group") {
+    if (mode === "picker-group") {
       const cats = categoriesWithWidgets(widgetEntries);
       if (key.escape) return dispatch({ type: "picker-back" });
       if (key.return) {
@@ -181,8 +183,8 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
         return setStepHighlight((h) => Math.min(cats.length - 1, h + 1));
       return;
     }
-    if (state.mode === "picker-widget") {
-      const category = state.pickerDraft.category;
+    if (mode === "picker-widget") {
+      const category = pickerDraft.category;
       if (!category) {
         // Should never happen — defensive fall-through.
         dispatch({ type: "picker-back" });
@@ -210,15 +212,15 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       }
       return;
     }
-    if (state.mode === "picker-variant") {
-      const widgetType = state.pickerDraft.widgetType;
+    if (mode === "picker-variant") {
+      const widgetType = pickerDraft.widgetType;
       if (!widgetType) {
         dispatch({ type: "picker-back" });
         return;
       }
-      const mode: "update" | "fresh" =
-        state.pickerTarget.kind === "update" ? "update" : "fresh";
-      const rows = variantRows(widgetType, mode);
+      const variantMode: "update" | "fresh" =
+        pickerTarget.kind === "update" ? "update" : "fresh";
+      const rows = variantRows(widgetType, variantMode);
       if (key.escape) return dispatch({ type: "picker-back" });
       if (key.return) {
         const row = selectedAt(rows, stepHighlight);
@@ -287,7 +289,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       // Surface the new value so the user can see the toggle landed even if
       // their terminal lacks a Nerd Font (the prepended glyphs would render
       // as tofu boxes — without a status line they'd look like noise).
-      const next = state.glyphs === "nerd-font" ? "off" : "nerd-font";
+      const next = glyphs === "nerd-font" ? "off" : "nerd-font";
       setStatusMessage(`glyphs: ${next}`);
       return;
     }

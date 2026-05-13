@@ -1,3 +1,12 @@
+/**
+ * Consolidated test surface for every widget in `src/widgets/rate-limits/`.
+ *
+ * Rate-limit widgets (timers, reset-at, usage) share common patterns and
+ * test fixtures. They were consolidated into a single file to speed up the
+ * test run and reduce boilerplate. Trade-off: a single failure masks which
+ * widget broke. If frequent churn occurs, re-split into per-widget files.
+ */
+
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_CONFIG } from "../../config/index.js";

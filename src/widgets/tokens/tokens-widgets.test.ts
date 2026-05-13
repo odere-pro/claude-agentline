@@ -1,3 +1,12 @@
+/**
+ * Consolidated test surface for every widget in `src/widgets/tokens/`.
+ *
+ * Multiple token/cost widgets share similar render contracts and test fixtures.
+ * They were consolidated into a single file to reduce test boilerplate and
+ * speed up the test run. Trade-off: a single failure masks which widget broke.
+ * If frequent churn occurs, re-split into per-widget files.
+ */
+
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_CONFIG } from "../../config/index.js";
