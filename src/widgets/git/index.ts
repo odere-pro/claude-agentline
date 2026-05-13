@@ -14,6 +14,7 @@ import type { WidgetRegistry } from "../registry.js";
 import { gitAheadBehindWidget, gitConflictsWidget } from "./ahead-behind.js";
 import { gitBranchWidget } from "./branch.js";
 import { gitChangesWidget, gitDeletionsWidget, gitInsertionsWidget } from "./changes.js";
+import { gitPrWidget } from "./pr.js";
 import {
   gitIsForkWidget,
   gitOriginOwnerWidget,
@@ -31,6 +32,7 @@ import {
 export { gitAheadBehindWidget, gitConflictsWidget } from "./ahead-behind.js";
 export { gitBranchWidget } from "./branch.js";
 export { gitChangesWidget, gitDeletionsWidget, gitInsertionsWidget } from "./changes.js";
+export { gitPrWidget } from "./pr.js";
 export {
   gitIsForkWidget,
   gitOriginOwnerWidget,
@@ -55,6 +57,7 @@ export const GIT_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   gitIsForkWidget as WidgetDef<unknown>,
   gitOriginOwnerWidget as WidgetDef<unknown>,
   gitOriginRepoWidget as WidgetDef<unknown>,
+  gitPrWidget as WidgetDef<unknown>,
   gitShaWidget as WidgetDef<unknown>,
   gitStagedWidget as WidgetDef<unknown>,
   gitStatusWidget as WidgetDef<unknown>,

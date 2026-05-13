@@ -50,6 +50,7 @@ function makeSnapshot(overrides: Partial<GitSnapshot> = {}): GitSnapshot {
     upstreamRemote: null,
     worktreeName: null,
     inWorktree: false,
+    pr: null,
     ...overrides,
   });
 }
@@ -67,10 +68,10 @@ function makeCtx(git: GitState | undefined, overrides: Partial<WidgetContext> = 
 }
 
 describe("registerGitWidgets", () => {
-  it("ships exactly 16 widgets in sorted order", () => {
+  it("ships exactly 17 widgets in sorted order", () => {
     const r = new WidgetRegistry();
     registerGitWidgets(r);
-    expect(r.size()).toBe(16);
+    expect(r.size()).toBe(17);
     expect(r.list()).toEqual([
       "git-ahead-behind",
       "git-branch",
@@ -81,6 +82,7 @@ describe("registerGitWidgets", () => {
       "git-is-fork",
       "git-origin-owner",
       "git-origin-repo",
+      "git-pr",
       "git-sha",
       "git-staged",
       "git-status",
@@ -90,7 +92,7 @@ describe("registerGitWidgets", () => {
       "git-worktree",
     ]);
     expect(Object.isFrozen(GIT_WIDGETS)).toBe(true);
-    expect(GIT_WIDGETS).toHaveLength(16);
+    expect(GIT_WIDGETS).toHaveLength(17);
   });
 
   it("hides every widget when ctx.git is missing", () => {

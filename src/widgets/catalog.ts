@@ -211,7 +211,7 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freez
     "rate-limits",
   ),
 
-  // Git (16)
+  // Git (17)
   "git-branch": entry("Git branch", "Current branch, or short SHA when detached", "git"),
   "git-sha": entry("Git SHA", "Short commit SHA of HEAD", "git"),
   "git-worktree": entry("Git worktree", "Basename of the current worktree", "git"),
@@ -231,6 +231,17 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freez
     "Git fork marker",
     "Marker shown when upstream owner differs from origin owner",
     "git",
+  ),
+  "git-pr": entry(
+    "Git pull request",
+    "PR for HEAD's branch (opt-in network: requires options.allowNetwork)",
+    "git",
+    [
+      v("number", "Number (#42)", { variant: "number" }),
+      v("url", "URL (https://…/pull/42)", { variant: "url" }),
+      v("title", "Title (feat: …)", { variant: "title" }),
+      v("number-title", "Number + title (#42 feat: …)", { variant: "number-title" }),
+    ],
   ),
 
   // Time (3)

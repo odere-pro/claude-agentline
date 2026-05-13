@@ -46,7 +46,7 @@ widget instances with different `reset` axes.
 
 ## Built-in widgets
 
-54 widgets ship with v0.1.0, organised into seven families. The
+55 widgets ship with v0.1.0, organised into seven families. The
 authoritative registry is `src/widgets/registry.ts`; this page tracks
 it.
 
@@ -111,30 +111,48 @@ When the table is older than 90 days, `doctor` reports D07.
 | `effort-usage`       | usage broken out by thinking-effort tier       | yes                      |
 | `compaction-counter` | number of compactions performed in the session | no                       |
 
-### Git (16)
+### Git (17)
 
 Git widgets activate only when the working directory is a git checkout;
 otherwise they hide themselves. They share a single per-render snapshot
-so a line with sixteen git widgets only spawns `git` once.
+so a line with seventeen git widgets only spawns `git` once.
 
-| Type               | Renders                                         |
-| ------------------ | ----------------------------------------------- |
-| `git-branch`       | current branch (or short SHA when detached)     |
-| `git-sha`          | short commit SHA                                |
-| `git-worktree`     | basename of the current worktree                |
-| `git-status`       | one-glance dirty / clean summary                |
-| `git-changes`      | summary of staged / unstaged / untracked counts |
-| `git-staged`       | staged-file count                               |
-| `git-unstaged`     | unstaged-file count                             |
-| `git-untracked`    | untracked-file count                            |
-| `git-insertions`   | insertion count from `git diff --shortstat`     |
-| `git-deletions`    | deletion count from `git diff --shortstat`      |
-| `git-conflicts`    | merge-conflict file count                       |
-| `git-ahead-behind` | commits ahead of and behind upstream            |
-| `git-upstream`     | upstream branch (`origin/main`)                 |
-| `git-origin-owner` | owner segment of the `origin` remote URL        |
-| `git-origin-repo`  | repo segment of the `origin` remote URL         |
-| `git-is-fork`      | `fork` marker if upstream owner ≠ origin owner  |
+| Type               | Renders                                                                |
+| ------------------ | ---------------------------------------------------------------------- |
+| `git-branch`       | current branch (or short SHA when detached)                            |
+| `git-sha`          | short commit SHA                                                       |
+| `git-worktree`     | basename of the current worktree                                       |
+| `git-status`       | one-glance dirty / clean summary                                       |
+| `git-changes`      | summary of staged / unstaged / untracked counts                        |
+| `git-staged`       | staged-file count                                                      |
+| `git-unstaged`     | unstaged-file count                                                    |
+| `git-untracked`    | untracked-file count                                                   |
+| `git-insertions`   | insertion count from `git diff --shortstat`                            |
+| `git-deletions`    | deletion count from `git diff --shortstat`                             |
+| `git-conflicts`    | merge-conflict file count                                              |
+| `git-ahead-behind` | commits ahead of and behind upstream                                   |
+| `git-upstream`     | upstream branch (`origin/main`)                                        |
+| `git-origin-owner` | owner segment of the `origin` remote URL                               |
+| `git-origin-repo`  | repo segment of the `origin` remote URL                                |
+| `git-is-fork`      | `fork` marker if upstream owner ≠ origin owner                         |
+| `git-pr`           | PR number / URL / title for HEAD's branch (opt-in network — see below) |
+
+**`git-pr` and the no-network rule.** The render hot path (§1.2 N5)
+forbids outbound calls. `git-pr` is the only widget that needs PR
+metadata, which lives outside the local checkout, so it is gated:
+
+- The widget hides unless `options.allowNetwork: true` is set.
+- The actual network call lives in `src/git/pr.ts`'s `loadPullRequest`,
+  which shells out to `gh pr view --json number,url,title`. It is
+  invoked only when `loadGitSnapshot` is called with
+  `allowPullRequest: true`. `loadGitSnapshot` is itself wired outside
+  `renderFromInputs`, so the render path stays clean even when the
+  widget is enabled.
+- Any failure — `gh` not installed, no PR for the branch, response
+  malformed, network timeout — silently yields `null` and the widget
+  hides. There is no error surface on the statusline.
+- Variants in the catalogue: `number` (`#42`, default), `url`,
+  `title`, `number-title` (`#42 feat: do the thing`).
 
 ### Time (3)
 
