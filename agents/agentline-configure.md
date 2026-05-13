@@ -24,9 +24,6 @@ There is no per-project config layer. A `.agentline.json` in the cwd is silently
 
 ```bash
 agentline edit                                # interactive TUI editor (live preview, widget picker)
-agentline init                                # write the default user config (refuses overwrite)
-agentline init --force                        # reset the user config to the default
-agentline keys [--json]                       # list the editor keymap
 ```
 
 Config edits take effect on the **next prompt render** — Claude Code re-invokes the statusline bin every prompt — so no restart is needed. (`agentline install` is the only thing that needs a restart, to wire the `statusLine` key.)
@@ -87,10 +84,11 @@ Dot-path in `UPPER_SNAKE_CASE`, prefixed `AGENTLINE_`.
 
 ## Reset
 
-No dedicated reset command — use `init --force`:
+There is no dedicated reset command. Delete the user config and re-run `agentline install` — the installer reseeds the default template when no existing config is present:
 
 ```bash
-agentline init --force
+rm "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json"
+agentline install
 ```
 
 Full reference → [config.md](../docs/config.md)

@@ -3,9 +3,9 @@
  *
  * Each binding declares the visible key, its action id (used by the TUI
  * dispatcher), the scope it applies in, and a human-readable description.
- * The registry is the single source of truth: the TUI footer / help overlay
- * read from here, `agentline config keys [--json]` enumerates from here, and
- * gate-17 (keymap coverage) verifies that every §5.5 action is represented.
+ * The registry is the single source of truth: the TUI footer reads from
+ * here and gate-17 (keymap coverage) verifies that every §5.5 action is
+ * represented.
  *
  * Scopes mirror the editor's modes: `edit` is the layout view, `picker` is
  * the widget chooser overlay, and `any` applies regardless of mode.
@@ -40,7 +40,6 @@ export const DEFAULT_KEY_BINDINGS: readonly KeyBinding[] = Object.freeze([
   { key: "Esc", action: "picker-back", scope: "picker", description: "step back one level (cancels at step 1)" },
   // ── any mode ─────────────────────────────────────────────────────────────
   { key: "q", action: "quit", scope: "any", description: "quit (prompts if there are unsaved changes)" },
-  { key: "?", action: "help", scope: "any", description: "toggle the help overlay" },
 ] as const) as readonly KeyBinding[];
 
 export function listBindings(

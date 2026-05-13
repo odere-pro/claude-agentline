@@ -1,5 +1,5 @@
 /**
- * Ink-based TUI editor entry (`agentline config` — §1.1 F10, §5.5).
+ * Ink-based TUI editor entry (`agentline edit` — §1.1 F10, §5.5).
  *
  * This module is loaded ONLY by a dynamic `import("./tui.mjs")` from
  * cli.mjs. tsup builds it as a separate output file so Ink + React never
@@ -115,7 +115,6 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
     initialState(cfg.lines, cfg.glyphs),
   );
   const [statusMessage, setStatusMessage] = useState<string>("");
-  const [showHelp, setShowHelp] = useState(false);
   // Per-step transient UI state — reset on every mode change so each step
   // starts with a clean filter and the highlight at row 0.
   const [stepQuery, setStepQuery] = useState("");
@@ -155,14 +154,6 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
 
   useInput((input, key) => {
     const { mode, pickerDraft, pickerTarget, glyphs } = state;
-
-    if (showHelp) {
-      if (shouldDismissHelp(input, key)) setShowHelp(false);
-      // Ignore every other key while help is open — without this, an arrow
-      // press both closes the overlay and moves the cursor, leaving the
-      // user wondering why they ended up somewhere else.
-      return;
-    }
 
     // ── picker steps ─────────────────────────────────────────────────────
     if (mode === "picker-group") {
@@ -226,7 +217,6 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
     }
 
     // ── edit scope ───────────────────────────────────────────────────────
-    if (input === "?") return setShowHelp(true);
     if (key.escape || input === "q") {
       onSaved(false);
       exit();
@@ -350,74 +340,14 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
           highlight: stepHighlight,
         })
       : null,
-    showHelp ? helpOverlay(bindings) : null,
   );
 }
 
-const SCOPE_ORDER = ["edit", "picker", "any"] as const;
-const SCOPE_HEADING: Record<KeyScope, string> = {
-  edit: "in the preview",
-  picker: "in the widget picker",
-  any: "any time",
-};
-
 /** Map the reducer's mode (which includes the three picker steps) onto the
- *  display scope used by the footer + help overlay. */
+ *  display scope used by the footer. */
 function modeToScope(mode: EditorMode): KeyScope {
   if (isPickerMode(mode)) return "picker";
   return "edit";
-}
-
-function helpOverlay(bindings: readonly KeyBinding[]): React.ReactElement {
-  const widest = bindings.reduce((n, b) => Math.max(n, b.key.length), 0);
-  const groups: React.ReactElement[] = [];
-  for (const scope of SCOPE_ORDER) {
-    const inScope = bindings.filter((b) => b.scope === scope);
-    if (inScope.length === 0) continue;
-    groups.push(
-      React.createElement(Text, { key: `h-${scope}`, bold: true }, `\n${SCOPE_HEADING[scope]}`),
-      ...inScope.map((b) =>
-        React.createElement(
-          Text,
-          { key: `${scope}-${b.action}` },
-          `  ${b.key.padEnd(widest, " ")}  ${b.description}`,
-        ),
-      ),
-    );
-  }
-  return React.createElement(
-    Box,
-    {
-      flexDirection: "column",
-      borderStyle: "round",
-      borderColor: "cyan",
-      paddingX: 1,
-      marginTop: 1,
-    },
-    React.createElement(Text, { bold: true }, "keys — press ? Esc or q to close"),
-    ...groups,
-  );
-}
-
-/**
- * Subset of Ink's `Key` we care about for the help-overlay dismiss
- * gate. Typed loosely so the helper stays unit-testable without
- * pulling Ink into the test harness.
- */
-export interface HelpDismissKey {
-  readonly escape?: boolean;
-}
-
-/**
- * Return `true` when the help overlay should close in response to a
- * key press. Only `Esc`, `?`, and `q` qualify; every other input is
- * intentionally ignored so an unintended key (an arrow, a verb) does
- * not both dismiss the overlay and act on the editor below.
- */
-export function shouldDismissHelp(input: string, key: HelpDismissKey): boolean {
-  if (key.escape === true) return true;
-  if (input === "?" || input === "q") return true;
-  return false;
 }
 
 /** Short labels for the two-line footer. Falls back to the binding's description. */
@@ -438,7 +368,6 @@ const FOOTER_LABEL: Record<string, string> = {
   "picker-confirm": "confirm",
   "picker-back": "back",
   quit: "quit",
-  help: "help",
 };
 
 /** Actions that describe navigation / motion — surfaced on the footer's first line. */

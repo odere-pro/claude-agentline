@@ -8,7 +8,7 @@ Use this skill when the user asks about:
 
 - The statusline not showing in Claude Code
 - Changing what the statusline displays (widgets, layout, theme)
-- agentline install, uninstall, edit, init, or doctor commands
+- agentline install, uninstall, edit, or doctor commands
 - Tokens, cost, or git info not appearing
 - Resetting agentline to defaults
 
@@ -39,8 +39,6 @@ Full check descriptions → [doctor.md](../docs/doctor.md)
 
 ```bash
 agentline edit            # interactive TUI editor
-agentline init            # write the default user config
-agentline keys [--json]   # list the editor keymap
 ```
 
 agentline is configured globally only. The single source of truth is
@@ -52,8 +50,11 @@ Full reference → [config.md](../docs/config.md)
 
 ## Reset
 
+Delete the user config and re-run `agentline install`:
+
 ```bash
-agentline init --force    # rewrite the user config to the shipped default
+rm "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json"
+agentline install
 ```
 
 ---
@@ -84,7 +85,7 @@ Full reference → [install.md](../docs/install.md)
 | Symptom                      | Action                                                                                   |
 | ---------------------------- | ---------------------------------------------------------------------------------------- |
 | Statusline not showing       | `agentline doctor --fix` then restart Claude Code                                        |
-| Blank/garbled output         | `agentline init --force`; run `agentline doctor`                                         |
+| Blank/garbled output         | Reset config (see above), run `agentline doctor`                                         |
 | Config ignored               | Check path is `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` (no project layer) |
 | Stale pricing (D07)          | `npm install -g @agentline/cli@latest`                                                   |
 | Powerline `>` instead of `❯` | D05: install a Nerd Font                                                                 |

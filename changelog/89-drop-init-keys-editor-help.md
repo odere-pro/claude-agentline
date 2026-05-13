@@ -1,0 +1,1 @@
+- Shrink the CLI surface: drop the `agentline init` and `agentline keys` subcommands and the editor's `?` help overlay; the installer already seeds the default config and the editor's two-line footer surfaces every binding, so the extra commands and the overlay carried no unique value. Gate-17 now reads `dist/keys.mjs` directly instead of shelling out to the retired `keys` CLI.

@@ -2,11 +2,11 @@
  * agentline CLI entry point.
  *
  * Subcommand bodies live under their owner directories
- * (`src/init`, `src/doctor`, `src/render`, `src/tui`, …);
- * this file is dispatch-only.
+ * (`src/doctor`, `src/render`, `src/tui`, …); this file is
+ * dispatch-only.
  *
- * Top-level surface (v0.1.0): render (default) / edit / init /
- * keys / install / uninstall / doctor / help / version.
+ * Top-level surface: render (default) / edit / install /
+ * uninstall / doctor / help / version.
  *
  * The default invocation (no subcommand) runs the render path:
  * read stdin, render the merged statusline, write to stdout.
@@ -19,10 +19,8 @@ import { StdinParseError } from "./stdin/index.js";
 import { AGENTLINE_VERSION } from "./version.js";
 import { HelpRequestedError } from "./cli/help.js";
 import { parseDoctorArgs, runDoctorCommand } from "./doctor/command.js";
-import { parseInitArgs, runInitCommand } from "./init/command.js";
 import { parseInstallArgs, runInstallCommand } from "./install/command.js";
 import { parseUninstallArgs, runUninstallCommand } from "./uninstall/command.js";
-import { parseKeysArgs, runKeysCommand } from "./keys/command.js";
 import { parseRenderArgs, runRenderCommand } from "./render/fixture-command.js";
 
 type ParsedArgs = {
@@ -72,7 +70,6 @@ async function runRender(rest: readonly string[]): Promise<number> {
         `agentline: render error: ${(err as Error).message}`,
         "  try: agentline doctor              # diagnose host wiring",
         "  try: agentline edit                # edit configuration",
-        "  rebuild: agentline init --force",
         "",
       ].join("\n"),
     );
@@ -98,8 +95,6 @@ function runHelp(): number {
       "  uninstall            remove agentline + restore prior statusLine",
       "  doctor [--fix]       diagnose + repair host wiring",
       "  edit                 open the TUI editor",
-      "  init [--force]       write the default user config",
-      "  keys [--json]        list the TUI editor keymap",
       "  version              print version (alias: -v, --version)",
       "  help                 print this message (alias: -h, --help)",
       "",
@@ -162,10 +157,6 @@ export const COMMANDS: Readonly<Record<string, Subcommand>> = Object.freeze({
   "-h": async () => runHelp(),
   doctor: (rest) => dispatch(() => runDoctorCommand(parseDoctorArgs([...rest]))),
   edit: () => dispatch(runEditor, "agentline edit"),
-  init: (rest) =>
-    dispatch(() => runInitCommand({ args: parseInitArgs(rest) }), "agentline init"),
-  keys: (rest) =>
-    dispatch(() => runKeysCommand({ args: parseKeysArgs(rest) }), "agentline keys"),
   install: (rest) => dispatch(() => runInstallCommand(parseInstallArgs(rest)), "agentline install"),
   uninstall: (rest) =>
     dispatch(() => runUninstallCommand(parseUninstallArgs(rest)), "agentline uninstall"),
