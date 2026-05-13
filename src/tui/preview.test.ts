@@ -21,10 +21,7 @@ import React from "react";
 
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import type { GitState } from "../git/index.js";
-import {
-  resetPreviewModeCache,
-  setPreviewModeForTesting,
-} from "../render/preview-fixture.js";
+import { resetPreviewModeCache, setPreviewModeForTesting } from "../render/preview-fixture.js";
 import { PRICING_TABLE_VERSION, contextWindowFor, type TokensSnapshot } from "../tokens/index.js";
 import { pickGlyphs } from "./glyphs.js";
 import { Preview } from "./preview.js";
@@ -116,6 +113,15 @@ function collectTextNodes(node: unknown): TextNode[] {
 
 const GLYPHS = pickGlyphs({ unicode: true });
 
+// React.createElement nests children inside `props.children`. Normalise to
+// a flat array so wrap-line counts read cleanly.
+function previewChildren(node: unknown): unknown[] {
+  const props = (node as { props?: { children?: unknown } } | undefined)?.props;
+  const raw = props?.children;
+  if (raw === undefined || raw === null) return [];
+  return Array.isArray(raw) ? raw.flat(Infinity).filter((c) => c !== null) : [raw];
+}
+
 describe("Preview — projection", () => {
   it("renders a Text node per supplied line plus the add-cell on each row", () => {
     const node = Preview({
@@ -136,7 +142,11 @@ describe("Preview — projection", () => {
   it("inverses exactly one slot per render — the cursor target", () => {
     const node = Preview({
       base: DEFAULT_CONFIG,
-      lines: [{ widgets: [{ type: "model" }, { type: "git-branch" }] }, { widgets: [] }, { widgets: [] }],
+      lines: [
+        { widgets: [{ type: "model" }, { type: "git-branch" }] },
+        { widgets: [] },
+        { widgets: [] },
+      ],
       cursor: { line: 0, widget: 1 },
       glyphs: GLYPHS,
     });
@@ -196,5 +206,57 @@ describe("Preview — projection", () => {
   // Reference React so the import isn't flagged as unused on stricter TS configs.
   it("imports React (smoke)", () => {
     expect(React).toBeDefined();
+  });
+
+  it("packs a wide row across multiple visual sub-lines when `columns` is tight", () => {
+    // Eleven widget slots + ten separators + an add cell are well over what
+    // a 40-column terminal can fit on one visual line. The packer should
+    // emit more than one Box-line for row 0.
+    const node = Preview({
+      base: DEFAULT_CONFIG,
+      lines: [
+        {
+          widgets: [
+            { type: "model" },
+            { type: "thinking-effort" },
+            { type: "git-branch" },
+            { type: "git-changes" },
+            { type: "context-percent" },
+            { type: "tokens-input" },
+            { type: "tokens-output" },
+            { type: "session-time" },
+            { type: "clock" },
+            { type: "account-email" },
+            { type: "context-tokens-used" },
+          ],
+        },
+        { widgets: [] },
+        { widgets: [] },
+      ],
+      cursor: { line: 0, widget: 0 },
+      glyphs: GLYPHS,
+      columns: 40,
+    });
+    // 1 header Text + 3 rows when no wrap; wrap on row 0 only should add
+    // at least one extra Box for the continuation line(s).
+    expect(previewChildren(node).length).toBeGreaterThan(4);
+  });
+
+  it("never wraps when `columns` is generous", () => {
+    const node = Preview({
+      base: DEFAULT_CONFIG,
+      lines: [
+        {
+          widgets: [{ type: "model" }, { type: "git-branch" }, { type: "clock" }],
+        },
+        { widgets: [] },
+        { widgets: [] },
+      ],
+      cursor: { line: 0, widget: 0 },
+      glyphs: GLYPHS,
+      columns: 200,
+    });
+    // Header + exactly one Box per row = 4 children.
+    expect(previewChildren(node)).toHaveLength(4);
   });
 });
