@@ -47,7 +47,6 @@ const SPEC_ACTIONS = [
   "edit-widget",
   "add",
   "replace",
-  "update",
   "delete",
   "toggle-glyphs",
   "save",

@@ -30,8 +30,8 @@ describe("DEFAULT_CONFIG", () => {
     expect(DEFAULT_CONFIG.keymap).toEqual({});
   });
 
-  it("glyphs defaults to 'off' so existing goldens stay byte-stable", () => {
-    expect(DEFAULT_CONFIG.glyphs).toBe("off");
+  it("glyphs defaults to 'nerd-font' (on by default)", () => {
+    expect(DEFAULT_CONFIG.glyphs).toBe("nerd-font");
   });
 
   it("global defaults match documented spec values", () => {

@@ -134,10 +134,11 @@ export function previewWidget(
   options?: Record<string, unknown>,
   opts: PreviewOptions = {},
 ): Cell {
-  const config: WidgetConfig =
-    options !== undefined ? { type, options } : { type };
+  const config: WidgetConfig = options !== undefined ? { type, options } : { type };
   const mode = getPreviewMode(opts.env);
-  if (mode.kind === "label") return renderWidgetLabel(config);
+  if (mode.kind === "label") {
+    return renderWidgetLabel(config, opts.glyphs ? { glyphs: opts.glyphs } : {});
+  }
   const effectiveConfig: AgentlineConfig =
     opts.glyphs !== undefined ? { ...DEFAULT_CONFIG, glyphs: opts.glyphs } : DEFAULT_CONFIG;
   const ctx: WidgetContext = {

@@ -200,7 +200,7 @@ describe("buildPreview — label-only fallback (no stdin cache)", () => {
   it("renders every widget as its type name when no cached stdin is available", () => {
     setPreviewModeForTesting({ kind: "label" });
     const rows = buildPreview({
-      base: DEFAULT_CONFIG,
+      base: { ...DEFAULT_CONFIG, glyphs: "off" },
       lines: [{ widgets: [{ type: "model" }, { type: "git-branch" }] }],
     });
     const widgets = rows[0]?.slots.filter((s) => s.kind === "widget") ?? [];

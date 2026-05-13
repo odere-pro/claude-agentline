@@ -13,7 +13,7 @@ export const DEFAULT_COMPACT_THRESHOLD = 60;
 export const DEFAULT_CONFIG: AgentlineConfig = {
   version: 1,
   theme: null,
-  glyphs: "off",
+  glyphs: "nerd-font",
   lines: [{ widgets: [{ type: "model" }] }],
   global: {
     padding: 1,

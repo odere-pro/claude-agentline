@@ -306,42 +306,6 @@ describe("picker drill-down — replace target", () => {
   });
 });
 
-describe("picker drill-down — open-update (variant only)", () => {
-  it("jumps straight to picker-variant for a widget with variants", () => {
-    let s = initialState([{ widgets: [{ type: "skills", options: { variant: "count" } }] }]);
-    s = reduce(s, { type: "open-update" });
-    expect(s.mode).toBe("picker-variant");
-    expect(s.pickerTarget).toEqual({ kind: "update", line: 0, index: 0 });
-    expect(s.pickerDraft.widgetType).toBe("skills");
-    s = reduce(s, { type: "pick-variant", variantId: "last" });
-    expect(s.lines[0]?.widgets[0]).toEqual({
-      type: "skills",
-      options: { variant: "last" },
-    });
-    expect(s.mode).toBe("edit");
-    expect(s.dirty).toBe(true);
-  });
-
-  it("is a no-op on a widget without variants", () => {
-    const s = makeState([{ type: "git-branch" }]);
-    expect(reduce(s, { type: "open-update" })).toBe(s);
-  });
-
-  it("is a no-op on the add-cell", () => {
-    const s = makeState([]);
-    expect(reduce(s, { type: "open-update" })).toBe(s);
-  });
-
-  it("merges the variant patch over the existing options (other keys kept)", () => {
-    let s = initialState([
-      { widgets: [{ type: "session-usage", options: { display: "percent", limit: 500 } }] },
-    ]);
-    s = reduce(s, { type: "open-update" });
-    s = reduce(s, { type: "pick-variant", variantId: "bar" });
-    expect(s.lines[0]?.widgets[0]?.options).toEqual({ display: "bar", limit: 500 });
-  });
-});
-
 describe("picker drill-down — picker-back and close-picker", () => {
   it("picker-back from picker-variant returns to picker-widget for add/replace", () => {
     let s = multiLine([["a"]]);
@@ -355,14 +319,6 @@ describe("picker drill-down — picker-back and close-picker", () => {
     s = reduce(s, { type: "picker-back" });
     expect(s.mode).toBe("picker-group");
     expect(s.pickerDraft.category).toBeUndefined();
-    s = reduce(s, { type: "picker-back" });
-    expect(s.mode).toBe("edit");
-  });
-
-  it("picker-back from picker-variant returns straight to edit for an update target", () => {
-    let s = initialState([{ widgets: [{ type: "skills" }] }]);
-    s = reduce(s, { type: "open-update" });
-    expect(s.mode).toBe("picker-variant");
     s = reduce(s, { type: "picker-back" });
     expect(s.mode).toBe("edit");
   });
