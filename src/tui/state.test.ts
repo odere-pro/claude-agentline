@@ -35,27 +35,6 @@ describe("initialState", () => {
   });
 });
 
-describe("reduce: navigate", () => {
-  it("moves the cursor forward without exceeding the last widget", () => {
-    let s = makeState([{ type: "a" }, { type: "b" }, { type: "c" }]);
-    s = reduce(s, { type: "navigate", delta: 1 });
-    expect(s.cursor.widget).toBe(1);
-    s = reduce(s, { type: "navigate", delta: 5 });
-    expect(s.cursor.widget).toBe(2);
-  });
-
-  it("clamps backwards at zero", () => {
-    let s = makeState([{ type: "a" }, { type: "b" }]);
-    s = reduce(s, { type: "navigate", delta: -10 });
-    expect(s.cursor.widget).toBe(0);
-  });
-
-  it("is a no-op on an empty line", () => {
-    const s = makeState([]);
-    expect(reduce(s, { type: "navigate", delta: 1 })).toBe(s);
-  });
-});
-
 describe("reduce: add", () => {
   it("appends to an empty line and selects the new widget", () => {
     let s = makeState([]);
@@ -83,7 +62,7 @@ describe("reduce: add", () => {
 describe("reduce: delete", () => {
   it("removes the current widget and re-anchors the cursor", () => {
     let s = makeState([{ type: "a" }, { type: "b" }, { type: "c" }]);
-    s = reduce(s, { type: "navigate", delta: 1 });
+    s = reduce(s, { type: "move-cursor", dx: 1 });
     s = reduce(s, { type: "delete" });
     const types = s.lines[0]?.widgets.map((w) => w.type) ?? [];
     expect(types).toEqual(["a", "c"]);
@@ -93,7 +72,7 @@ describe("reduce: delete", () => {
 
   it("clamps cursor to last widget when removing the tail", () => {
     let s = makeState([{ type: "a" }, { type: "b" }]);
-    s = reduce(s, { type: "navigate", delta: 1 });
+    s = reduce(s, { type: "move-cursor", dx: 1 });
     s = reduce(s, { type: "delete" });
     expect(s.cursor.widget).toBe(0);
   });
