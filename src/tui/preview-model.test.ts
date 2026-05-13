@@ -99,11 +99,12 @@ describe("buildPreview", () => {
   });
 
   it("surfaces a self-hiding widget (no data in the demo session) as a [type: no data] chip", () => {
-    // `git-conflicts` hides cleanly when conflicts === 0 — the demo
-    // session has none, so its preview surfaces a "no data" chip.
+    // `git-worktree` hides cleanly when `inWorktree === false` — the
+    // demo session is a plain checkout, so its preview surfaces a
+    // "no data" chip.
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
-      lines: [{ widgets: [{ type: "git-conflicts" }] }],
+      lines: [{ widgets: [{ type: "git-worktree" }] }],
     });
     const widget = rows[0]?.slots.find((s) => s.kind === "widget");
     expect(widget?.kind === "widget" && widget.text).toContain("no data");
