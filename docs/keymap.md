@@ -16,7 +16,7 @@ help overlay (press `?`) listing every binding grouped by scope.
 
 ## Modes
 
-The editor has three modes; a binding's **scope** says where it applies
+The editor has two modes; a binding's **scope** says where it applies
 (`any` applies everywhere):
 
 - **edit** — the _live preview is the editing surface_. All three line
@@ -31,36 +31,33 @@ The editor has three modes; a binding's **scope** says where it applies
   different way, e.g. `skills` as count / list / last). Widgets with no
   variants in the catalogue skip step 3 and commit straight from step 2.
   <kbd>Esc</kbd> steps back one level (cancels at step 1).
-- **options** — the per-widget options sheet, opened by `o` or
-  <kbd>↵</kbd> on a widget: visible / hidden, the widget's own label,
-  spacing to the neighbour.
+
+Per-widget flags (`visible`, `mergeWithPrev`, `useRawValue`) are set
+via `agentline config widget set-option <key> <value>` or by editing
+the config file directly. The TUI no longer ships a per-widget
+options sheet.
 
 ## Default bindings
 
-| Key                         | Scope   | Action                                                            |
-| --------------------------- | ------- | ----------------------------------------------------------------- |
-| <kbd>←</kbd> <kbd>→</kbd>   | edit    | move the selection within the row (incl. the trailing +add cell)  |
-| <kbd>↑</kbd> <kbd>↓</kbd>   | edit    | move the selection between rows                                   |
-| <kbd>⇧←</kbd> <kbd>⇧→</kbd> | edit    | move the selected widget within its row                           |
-| <kbd>⇧↑</kbd> <kbd>⇧↓</kbd> | edit    | move the selected widget to the adjacent row                      |
-| <kbd>↵</kbd>                | edit    | +add cell → open the picker; on a widget → open the options sheet |
-| <kbd>a</kbd>                | edit    | add a widget (opens the picker)                                   |
-| <kbd>r</kbd>                | edit    | replace the selected widget (opens the picker)                    |
-| <kbd>u</kbd>                | edit    | update — pick a different variant of the selected widget          |
-| <kbd>d</kbd>                | edit    | delete the selected widget                                        |
-| <kbd>o</kbd>                | edit    | open the selected widget's options sheet                          |
-| <kbd>g</kbd>                | edit    | toggle Nerd Font glyphs on / off (top-level `config.glyphs`)      |
-| <kbd>S</kbd>                | edit    | save (Ctrl+S also works)                                          |
-| _(type)_                    | picker  | filter widgets by name or type (step 2)                           |
-| <kbd>↑</kbd> <kbd>↓</kbd>   | picker  | highlight a row                                                   |
-| <kbd>↵</kbd>                | picker  | confirm the highlighted row and advance / commit                  |
-| <kbd>Esc</kbd>              | picker  | step back one level (cancels at step 1)                           |
-| <kbd>v</kbd>                | options | show / hide the widget                                            |
-| <kbd>l</kbd>                | options | show / hide the widget's own label                                |
-| <kbd>m</kbd>                | options | spacing to neighbour: full / single space / none                  |
-| <kbd>Esc</kbd>              | options | close the options sheet                                           |
-| <kbd>q</kbd>                | any     | quit (prompts if there are unsaved changes)                       |
-| <kbd>?</kbd>                | any     | toggle the help overlay                                           |
+| Key                         | Scope  | Action                                                           |
+| --------------------------- | ------ | ---------------------------------------------------------------- |
+| <kbd>←</kbd> <kbd>→</kbd>   | edit   | move the selection within the row (incl. the trailing +add cell) |
+| <kbd>↑</kbd> <kbd>↓</kbd>   | edit   | move the selection between rows                                  |
+| <kbd>⇧←</kbd> <kbd>⇧→</kbd> | edit   | move the selected widget within its row                          |
+| <kbd>⇧↑</kbd> <kbd>⇧↓</kbd> | edit   | move the selected widget to the adjacent row                     |
+| <kbd>↵</kbd>                | edit   | +add cell → open the picker (no-op on a populated widget)        |
+| <kbd>a</kbd>                | edit   | add a widget (opens the picker)                                  |
+| <kbd>r</kbd>                | edit   | replace the selected widget (opens the picker)                   |
+| <kbd>u</kbd>                | edit   | update — pick a different variant of the selected widget         |
+| <kbd>d</kbd>                | edit   | delete the selected widget                                       |
+| <kbd>g</kbd>                | edit   | toggle Nerd Font glyphs on / off (top-level `config.glyphs`)     |
+| <kbd>S</kbd>                | edit   | save (Ctrl+S also works)                                         |
+| _(type)_                    | picker | filter widgets by name or type (step 2)                          |
+| <kbd>↑</kbd> <kbd>↓</kbd>   | picker | highlight a row                                                  |
+| <kbd>↵</kbd>                | picker | confirm the highlighted row and advance / commit                 |
+| <kbd>Esc</kbd>              | picker | step back one level (cancels at step 1)                          |
+| <kbd>q</kbd>                | any    | quit (prompts if there are unsaved changes)                      |
+| <kbd>?</kbd>                | any    | toggle the help overlay                                          |
 
 The editor always shows three rows so up/down navigation has somewhere
 to go even on a single-line config; on save, trailing empty rows are

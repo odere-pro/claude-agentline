@@ -8,11 +8,10 @@
  * gate-17 (keymap coverage) verifies that every §5.5 action is represented.
  *
  * Scopes mirror the editor's modes: `edit` is the layout view, `picker` is
- * the widget chooser overlay, `options` is the per-widget options sheet, and
- * `any` applies regardless of mode.
+ * the widget chooser overlay, and `any` applies regardless of mode.
  */
 
-export type KeyScope = "edit" | "picker" | "options" | "any";
+export type KeyScope = "edit" | "picker" | "any";
 
 export interface KeyBinding {
   readonly key: string;
@@ -27,12 +26,11 @@ export const DEFAULT_KEY_BINDINGS: readonly KeyBinding[] = Object.freeze([
   { key: "↑ ↓", action: "move-cursor-row", scope: "edit", description: "move the selection between rows" },
   { key: "⇧← ⇧→", action: "move-widget", scope: "edit", description: "move the selected widget within its row" },
   { key: "⇧↑ ⇧↓", action: "move-widget-row", scope: "edit", description: "move the selected widget to the adjacent row" },
-  { key: "↵", action: "edit-widget", scope: "edit", description: "+add cell → open the picker; on a widget → open the options sheet" },
+  { key: "↵", action: "edit-widget", scope: "edit", description: "+add cell → open the picker" },
   { key: "a", action: "add", scope: "edit", description: "add a widget (opens the picker)" },
   { key: "r", action: "replace", scope: "edit", description: "replace the selected widget (opens the picker)" },
   { key: "u", action: "update", scope: "edit", description: "update the selected widget — pick a different variant of the same widget" },
   { key: "d", action: "delete", scope: "edit", description: "delete the selected widget" },
-  { key: "o", action: "options", scope: "edit", description: "open the selected widget's options sheet" },
   { key: "g", action: "toggle-glyphs", scope: "edit", description: "toggle Nerd Font glyphs on / off (top-level config.glyphs)" },
   { key: "S", action: "save", scope: "edit", description: "save (Ctrl+S also works)" },
   // ── picker (the three-step widget chooser overlay) ───────────────────────
@@ -40,11 +38,6 @@ export const DEFAULT_KEY_BINDINGS: readonly KeyBinding[] = Object.freeze([
   { key: "↑ ↓", action: "picker-navigate", scope: "picker", description: "highlight a row" },
   { key: "↵", action: "picker-confirm", scope: "picker", description: "confirm the highlighted row and advance / commit" },
   { key: "Esc", action: "picker-back", scope: "picker", description: "step back one level (cancels at step 1)" },
-  // ── options (the per-widget options sheet) ───────────────────────────────
-  { key: "v", action: "toggle-visible", scope: "options", description: "show / hide the widget" },
-  { key: "l", action: "toggle-label", scope: "options", description: "show / hide the widget's own label" },
-  { key: "m", action: "cycle-spacing", scope: "options", description: "spacing to neighbour: full / single space / none" },
-  { key: "Esc", action: "options-close", scope: "options", description: "close the options sheet" },
   // ── any mode ─────────────────────────────────────────────────────────────
   { key: "q", action: "quit", scope: "any", description: "quit (prompts if there are unsaved changes)" },
   { key: "?", action: "help", scope: "any", description: "toggle the help overlay" },

@@ -18,17 +18,12 @@ describe("DEFAULT_KEY_BINDINGS", () => {
       "replace",
       "update",
       "delete",
-      "options",
       "toggle-glyphs",
       "save",
       "picker-filter",
       "picker-navigate",
       "picker-confirm",
       "picker-back",
-      "toggle-visible",
-      "toggle-label",
-      "cycle-spacing",
-      "options-close",
       "quit",
       "help",
     ];
@@ -49,7 +44,6 @@ describe("DEFAULT_KEY_BINDINGS", () => {
     const allowedScopes: ReadonlySet<KeyScope> = new Set<KeyScope>([
       "edit",
       "picker",
-      "options",
       "any",
     ]);
     for (const b of DEFAULT_KEY_BINDINGS) {
