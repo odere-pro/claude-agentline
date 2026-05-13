@@ -42,6 +42,7 @@ import { renderWidget } from "../widgets/render-widget.js";
 import { defaultRegistry, registerAllBuiltins } from "../widgets/index.js";
 import type { TokensSnapshot } from "../tokens/index.js";
 import type { GitState } from "../git/index.js";
+import type { ResolvedSessionFields } from "../session/index.js";
 import type { StdinPayload } from "../stdin/index.js";
 import { resolveEnv } from "../lib/env.js";
 
@@ -71,15 +72,13 @@ export interface RenderInputs {
   readonly flags?: AccessibilityFlags;
   readonly tokens?: TokensSnapshot;
   readonly git?: GitState;
+  readonly session?: ResolvedSessionFields;
 }
 
 export function renderFromInputs(inputs: RenderInputs): string {
   ensureRegistry();
   const env = resolveEnv(inputs);
-  const flags = honourNoColorEnv(
-    inputs.flags ?? { noColor: false, noUnicode: false },
-    env,
-  );
+  const flags = honourNoColorEnv(inputs.flags ?? { noColor: false, noUnicode: false }, env);
   const clock: Clock = inputs.clock ?? realClock;
   const width = inputs.width ?? resolveWidth(inputs.config, env);
   const ctx: WidgetContext = {
@@ -90,6 +89,7 @@ export function renderFromInputs(inputs: RenderInputs): string {
     env,
     ...(inputs.tokens !== undefined ? { tokens: inputs.tokens } : {}),
     ...(inputs.git !== undefined ? { git: inputs.git } : {}),
+    ...(inputs.session !== undefined ? { session: inputs.session } : {}),
   };
 
   const registry = defaultRegistry();
@@ -140,10 +140,7 @@ export function renderFromInputs(inputs: RenderInputs): string {
  * can join the same pipeline by appending to the array before this
  * function is called.
  */
-function buildWarningLines(
-  unknownTypes: ReadonlySet<string>,
-  theme: Theme | null,
-): Segment[][] {
+function buildWarningLines(unknownTypes: ReadonlySet<string>, theme: Theme | null): Segment[][] {
   if (unknownTypes.size === 0) return [];
   const fg = resolveRole(theme, "danger");
   const messages = [...unknownTypes]

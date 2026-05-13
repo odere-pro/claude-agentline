@@ -24,6 +24,7 @@ import type { AccessibilityFlags } from "./accessibility.js";
 import { renderFromInputs } from "./pipeline.js";
 import type { TokensSnapshot } from "../tokens/index.js";
 import type { GitState } from "../git/index.js";
+import type { ResolvedSessionFields } from "../session/index.js";
 
 export interface RenderForFixtureOptions {
   readonly config?: AgentlineConfig;
@@ -41,6 +42,7 @@ export interface RenderForFixtureOptions {
   readonly flags?: AccessibilityFlags;
   readonly tokens?: TokensSnapshot;
   readonly git?: GitState;
+  readonly session?: ResolvedSessionFields;
   /** Override the bundled themes directory; primarily used by tests. */
   readonly builtinThemesDir?: string;
 }
@@ -74,6 +76,7 @@ export async function renderForFixture(
     ...(options.flags !== undefined ? { flags: options.flags } : {}),
     ...(options.tokens !== undefined ? { tokens: options.tokens } : {}),
     ...(options.git !== undefined ? { git: options.git } : {}),
+    ...(options.session !== undefined ? { session: options.session } : {}),
   });
 }
 
