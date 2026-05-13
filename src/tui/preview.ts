@@ -75,7 +75,6 @@ export function Preview(props: PreviewProps): React.ReactElement {
       borderColor: "gray",
       paddingX: 1,
     },
-    React.createElement(Text, { dimColor: true }, "preview — ‹ ↑ ↓ ← → › to navigate"),
     ...rows.flatMap((row) => renderRow(row, props.cursor, props.glyphs, available, gutterWidth)),
   );
 }
