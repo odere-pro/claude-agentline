@@ -6,7 +6,7 @@
  * (`inverse: true`), add-cell presence, gutter, and that the cursor flags
  * one and only one slot per render.
  */
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("ink", () => {
   const el = (type: unknown, props: unknown, ...children: unknown[]) => ({
@@ -20,8 +20,61 @@ vi.mock("ink", () => {
 import React from "react";
 
 import { DEFAULT_CONFIG } from "../config/defaults.js";
+import type { GitState } from "../git/index.js";
+import {
+  resetPreviewModeCache,
+  setPreviewModeForTesting,
+} from "../render/preview-fixture.js";
+import { PRICING_TABLE_VERSION, contextWindowFor, type TokensSnapshot } from "../tokens/index.js";
 import { pickGlyphs } from "./glyphs.js";
 import { Preview } from "./preview.js";
+
+const realGit: GitState = Object.freeze({
+  available: true,
+  cwd: "/agentline",
+  branch: "main",
+  detached: false,
+  sha: "0".repeat(40),
+  shortSha: "0000000",
+  status: Object.freeze({
+    staged: 0,
+    unstaged: 0,
+    untracked: 0,
+    conflicts: 0,
+    modified: 0,
+    added: 0,
+  }),
+  diff: Object.freeze({ insertions: 0, deletions: 0, filesChanged: 0 }),
+  diffStaged: Object.freeze({ insertions: 0, deletions: 0, filesChanged: 0 }),
+  aheadBehind: Object.freeze({ ahead: 0, behind: 0 }),
+  upstream: null,
+  origin: null,
+  upstreamRemote: null,
+  worktreeName: null,
+  inWorktree: false,
+  pr: null,
+});
+
+const realTokens: TokensSnapshot = Object.freeze({
+  events: Object.freeze([]) as TokensSnapshot["events"],
+  now: Date.parse("2026-05-13T11:00:00.000Z"),
+  contextWindow: contextWindowFor("claude-opus-4-7"),
+  pricingVersion: PRICING_TABLE_VERSION,
+});
+
+beforeEach(() => {
+  setPreviewModeForTesting({
+    kind: "real",
+    payload: { raw: {}, truncated: false, model: "claude-opus-4-7", cwd: "/agentline" },
+    session: { model: "claude-opus-4-7" },
+    tokens: realTokens,
+    git: realGit,
+  });
+});
+
+afterEach(() => {
+  resetPreviewModeCache();
+});
 
 // Walk the rendered tree and collect every <Text> node with its props +
 // the concatenated text of its children (each child is either a string or

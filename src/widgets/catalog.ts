@@ -53,8 +53,8 @@ export interface WidgetMeta {
   readonly category: WidgetCategory;
   /**
    * Optional fixture key the picker uses to render a representative
-   * preview cell. Wired by the demo-fixture work; unset means "use the
-   * shared demo context".
+   * preview cell. Unset means the picker resolves the cell through
+   * `previewWidget` against the cached stdin (or label-mode fallback).
    */
   readonly previewFixture?: string;
   /**

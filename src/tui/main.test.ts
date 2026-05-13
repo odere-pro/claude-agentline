@@ -25,7 +25,7 @@ vi.mock("ink", () => {
 
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import { DEFAULT_KEY_BINDINGS } from "../keys/bindings.js";
-import { enterAltScreen, footerLines, runConfigCommand } from "./main.js";
+import { enterAltScreen, footerLines, runConfigCommand, shouldDismissHelp } from "./main.js";
 
 describe("runConfigCommand (entry-point wiring)", () => {
   let tmp: string;
@@ -87,6 +87,28 @@ describe("footerLines", () => {
     const { motion, actions } = footerLines([], "edit");
     expect(motion).toBe("");
     expect(actions).toBe("");
+  });
+});
+
+describe("shouldDismissHelp", () => {
+  it("closes the overlay on Esc", () => {
+    expect(shouldDismissHelp("", { escape: true })).toBe(true);
+  });
+
+  it("closes the overlay on `?`", () => {
+    expect(shouldDismissHelp("?", {})).toBe(true);
+  });
+
+  it("closes the overlay on `q`", () => {
+    expect(shouldDismissHelp("q", {})).toBe(true);
+  });
+
+  it("ignores arrows / verbs / typing while help is open", () => {
+    expect(shouldDismissHelp("", {})).toBe(false);
+    expect(shouldDismissHelp(" ", {})).toBe(false);
+    expect(shouldDismissHelp("a", {})).toBe(false);
+    expect(shouldDismissHelp("s", {})).toBe(false);
+    expect(shouldDismissHelp("Q", {})).toBe(false); // case-sensitive — Q is not the documented dismiss key
   });
 });
 
