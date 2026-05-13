@@ -105,8 +105,20 @@ describe("resolveResetAxis", () => {
 describe("token widgets", () => {
   it("hide when ctx.tokens is undefined", () => {
     const ctx = makeCtx(undefined);
+    // Cover every axis explicitly so a refactor that introduces a hidden-on-no-data
+    // regression on any individual widget is caught here.
     expect(tokensInputWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
+    expect(tokensOutputWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
+    expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
     expect(tokensTotalWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
+  });
+
+  it("render 0 when the snapshot has no events", () => {
+    const ctx = makeCtx(makeSnapshot([]));
+    expect(tokensInputWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("0");
+    expect(tokensOutputWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("0");
+    expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("0");
+    expect(tokensTotalWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("0");
   });
 
   it("tokens-input sums input across the session", () => {
@@ -119,14 +131,51 @@ describe("token widgets", () => {
     expect(tokensInputWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("1.5k");
   });
 
+  it("tokens-input does not include output or cached tokens", () => {
+    const ctx = makeCtx(
+      makeSnapshot([
+        ev({ timestamp: 0, inputTokens: 100, outputTokens: 999, cachedTokens: 999 }),
+      ]),
+    );
+    expect(tokensInputWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("100");
+  });
+
   it("tokens-output sums output", () => {
-    const ctx = makeCtx(makeSnapshot([ev({ timestamp: 0, outputTokens: 2500 })]));
+    const ctx = makeCtx(
+      makeSnapshot([
+        ev({ timestamp: 0, outputTokens: 1500 }),
+        ev({ timestamp: 100, outputTokens: 1000 }),
+      ]),
+    );
     expect(tokensOutputWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("2.5k");
   });
 
+  it("tokens-output does not include input or cached tokens", () => {
+    const ctx = makeCtx(
+      makeSnapshot([
+        ev({ timestamp: 0, inputTokens: 999, outputTokens: 200, cachedTokens: 999 }),
+      ]),
+    );
+    expect(tokensOutputWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("200");
+  });
+
   it("tokens-cached sums cache_read + cache_creation as one bucket", () => {
-    const ctx = makeCtx(makeSnapshot([ev({ timestamp: 0, cachedTokens: 800 })]));
+    const ctx = makeCtx(
+      makeSnapshot([
+        ev({ timestamp: 0, cachedTokens: 500 }),
+        ev({ timestamp: 100, cachedTokens: 300 }),
+      ]),
+    );
     expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("800");
+  });
+
+  it("tokens-cached does not include input or output tokens", () => {
+    const ctx = makeCtx(
+      makeSnapshot([
+        ev({ timestamp: 0, inputTokens: 999, outputTokens: 999, cachedTokens: 100 }),
+      ]),
+    );
+    expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("100");
   });
 
   it("tokens-total sums all three", () => {
@@ -134,6 +183,17 @@ describe("token widgets", () => {
       makeSnapshot([ev({ timestamp: 0, inputTokens: 100, outputTokens: 200, cachedTokens: 300 })]),
     );
     expect(tokensTotalWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("600");
+  });
+
+  it("tokens-total sums across multiple events", () => {
+    const ctx = makeCtx(
+      makeSnapshot([
+        ev({ timestamp: 0, inputTokens: 500 }),
+        ev({ timestamp: 100, outputTokens: 500 }),
+        ev({ timestamp: 200, cachedTokens: 500 }),
+      ]),
+    );
+    expect(tokensTotalWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("1.5k");
   });
 
   it("respects options.reset axis", () => {
