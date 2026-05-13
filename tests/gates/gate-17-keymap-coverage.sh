@@ -81,7 +81,6 @@ const SPEC_ACTIONS = [
   "replace",
   "update",
   "delete",
-  "options",
   "toggle-glyphs",
   "save",
   // picker (three steps share one scope)
@@ -89,11 +88,6 @@ const SPEC_ACTIONS = [
   "picker-navigate",
   "picker-confirm",
   "picker-back",
-  // options sheet
-  "toggle-visible",
-  "toggle-label",
-  "cycle-spacing",
-  "options-close",
   // any
   "quit",
   "help",

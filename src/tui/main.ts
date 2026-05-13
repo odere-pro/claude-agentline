@@ -43,7 +43,6 @@ import { widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
 
 import { pickGlyphs, type EditorGlyphs } from "./glyphs.js";
 import { saveEditedConfig } from "./persist.js";
-import { OptionsSheet } from "./options-sheet.js";
 import {
   PickerGroup,
   PickerVariant,
@@ -119,7 +118,6 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
     [initialConfig.keymap],
   );
   const widgetEntries = useMemo(() => builtinWidgetEntries(), []);
-  const optionsWidget = state.mode === "options" ? currentWidget(state) : undefined;
 
   // Reset per-step state on every transition.
   useEffect(() => {
@@ -217,15 +215,6 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       return;
     }
 
-    // ── options sheet ────────────────────────────────────────────────────
-    if (state.mode === "options") {
-      if (key.escape) return dispatch({ type: "close-options" });
-      if (input === "v") return dispatch({ type: "toggle-hidden" });
-      if (input === "l") return dispatch({ type: "toggle-raw" });
-      if (input === "m") return dispatch({ type: "cycle-merge" });
-      return;
-    }
-
     // ── edit scope ───────────────────────────────────────────────────────
     if (input === "?") return setShowHelp(true);
     if (key.escape || input === "q") {
@@ -256,7 +245,9 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       );
     if (key.return) {
       if (isAddCell(state)) return dispatch({ type: "open-picker", intent: "add" });
-      return dispatch({ type: "open-options" });
+      // On a populated widget ↵ is a no-op now — `u`/`r` cover the
+      // edit paths the options sheet used to surface.
+      return;
     }
     if (input === "a") return dispatch({ type: "open-picker", intent: "add" });
     if (input === "r") return dispatch({ type: "open-picker", intent: "replace" });
@@ -275,7 +266,6 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
     if (input === "d" || input === "x" || key.delete || key.backspace) {
       return dispatch({ type: "delete" });
     }
-    if (input === "o") return dispatch({ type: "open-options" });
     if (input === "g") {
       dispatch({ type: "toggle-glyphs" });
       // Surface the new value so the user can see the toggle landed even if
@@ -351,23 +341,20 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
           highlight: stepHighlight,
         })
       : null,
-    optionsWidget ? React.createElement(OptionsSheet, { widget: optionsWidget }) : null,
     showHelp ? helpOverlay(bindings) : null,
   );
 }
 
-const SCOPE_ORDER = ["edit", "picker", "options", "any"] as const;
+const SCOPE_ORDER = ["edit", "picker", "any"] as const;
 const SCOPE_HEADING: Record<KeyScope, string> = {
   edit: "in the preview",
   picker: "in the widget picker",
-  options: "in the options sheet",
   any: "any time",
 };
 
 /** Map the reducer's mode (which includes the three picker steps) onto the
  *  display scope used by the footer + help overlay. */
 function modeToScope(mode: EditorMode): KeyScope {
-  if (mode === "options") return "options";
   if (isPickerMode(mode)) return "picker";
   return "edit";
 }
@@ -397,29 +384,23 @@ function helpOverlay(bindings: readonly KeyBinding[]): React.ReactElement {
   );
 }
 
-/** Compact one-line footer of the keys active in the current mode (plus `any`). */
+/** Short labels for the two-line footer. Falls back to the binding's description. */
 const FOOTER_LABEL: Record<string, string> = {
   "move-cursor": "move",
   "move-cursor-row": "row",
   "move-widget": "move widget",
   "move-widget-row": "widget→row",
-  "edit-widget": "+add or edit",
+  "edit-widget": "+add",
   add: "add",
   replace: "replace",
   update: "update (variant)",
   delete: "delete",
-  options: "options",
   save: "save",
   "toggle-glyphs": "glyphs on/off",
   "picker-filter": "type to filter",
   "picker-navigate": "navigate",
   "picker-confirm": "confirm",
-  "picker-cancel": "cancel / back",
   "picker-back": "back",
-  "toggle-visible": "show/hide",
-  "toggle-label": "label",
-  "cycle-spacing": "spacing",
-  "options-close": "close",
   quit: "quit",
   help: "help",
 };

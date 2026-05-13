@@ -35,8 +35,7 @@
  *                    so the on-disk config stays clean.
  *   - `cursor`       selected `{ line, widget }`. `widget === widgets.length`
  *                    means the row's add-cell is selected.
- *   - `mode`         `"edit"`, one of the three `picker-*` steps, or
- *                    `"options"`.
+ *   - `mode`         `"edit"` or one of the three `picker-*` steps.
  *   - `pickerTarget` while a `picker-*` mode is active, what to do when
  *                    the variant step confirms — `insert` at `(line,index)`,
  *                    `replace` the widget at `(line,index)`, or `update`
@@ -48,8 +47,6 @@
 import type { GlyphMode, LineConfig, WidgetConfig } from "../config/types.js";
 import { widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
 
-type MergeMode = NonNullable<WidgetConfig["merged"]>;
-
 /** Hard cap on statusline rows the editor will create (mirrors `src/config/mutate.ts`). */
 export const MAX_LINES = 3;
 
@@ -57,8 +54,7 @@ export type EditorMode =
   | "edit"
   | "picker-group"
   | "picker-widget"
-  | "picker-variant"
-  | "options";
+  | "picker-variant";
 
 export type PickerTargetKind = "insert" | "replace" | "update";
 
@@ -102,10 +98,7 @@ export type EditorAction =
   | { readonly type: "move-widget"; readonly dx?: number; readonly dy?: number }
   // ── structural edits ─────────────────────────────────────────────────────
   | { readonly type: "delete" }
-  // ── widget toggles / options ─────────────────────────────────────────────
-  | { readonly type: "toggle-hidden" }
-  | { readonly type: "toggle-raw" }
-  | { readonly type: "cycle-merge" }
+  // ── widget option mutators (CLI / programmatic only) ─────────────────────
   | { readonly type: "set-option"; readonly key: string; readonly value: unknown }
   // ── top-level config toggles ─────────────────────────────────────────────
   | { readonly type: "toggle-glyphs" }
@@ -117,14 +110,10 @@ export type EditorAction =
   | { readonly type: "pick-variant"; readonly variantId: string | null }
   | { readonly type: "picker-back" }
   | { readonly type: "close-picker" }
-  // ── options overlay ──────────────────────────────────────────────────────
-  | { readonly type: "open-options" }
-  | { readonly type: "close-options" }
   // ── dirty bookkeeping ────────────────────────────────────────────────────
   | { readonly type: "mark-clean" }
   | { readonly type: "mark-dirty" };
 
-const MERGE_CYCLE: readonly MergeMode[] = ["off", "merge", "merge-no-padding"];
 const FORBIDDEN_OPTION_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 /** Pad `lines` to exactly `MAX_LINES` empty-row entries so every grid slot is real. */
@@ -159,12 +148,6 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
       return moveWidget(state, action.dx ?? 0, action.dy ?? 0);
     case "delete":
       return deleteWidget(state);
-    case "toggle-hidden":
-      return mutateCurrent(state, (w) => ({ ...w, hidden: !(w.hidden ?? false) }));
-    case "toggle-raw":
-      return mutateCurrent(state, (w) => ({ ...w, rawValue: !(w.rawValue ?? false) }));
-    case "cycle-merge":
-      return mutateCurrent(state, (w) => ({ ...w, merged: nextMerge(w.merged) }));
     case "set-option":
       return setOption(state, action.key, action.value);
     case "toggle-glyphs":
@@ -187,10 +170,6 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
       return pickerBack(state);
     case "close-picker":
       return isPickerMode(state.mode) ? backToEdit(state) : state;
-    case "open-options":
-      return currentWidget(state) ? { ...state, mode: "options" } : state;
-    case "close-options":
-      return state.mode === "options" ? { ...state, mode: "edit" } : state;
     case "mark-clean":
       return state.dirty ? { ...state, dirty: false } : state;
     case "mark-dirty":
@@ -524,11 +503,6 @@ function sanitiseOptions(opts: Record<string, unknown>): Record<string, unknown>
     out[key] = value;
   }
   return out;
-}
-
-function nextMerge(current: MergeMode | undefined): MergeMode {
-  const idx = MERGE_CYCLE.indexOf(current ?? "off");
-  return MERGE_CYCLE[(idx + 1) % MERGE_CYCLE.length] ?? "off";
 }
 
 function clamp(value: number, low: number, high: number): number {

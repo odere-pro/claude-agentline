@@ -66,7 +66,6 @@ describe("isAddCell / currentWidget / isPickerMode", () => {
     expect(isPickerMode("picker-widget")).toBe(true);
     expect(isPickerMode("picker-variant")).toBe(true);
     expect(isPickerMode("edit")).toBe(false);
-    expect(isPickerMode("options")).toBe(false);
   });
 });
 
@@ -180,40 +179,10 @@ describe("reduce: delete", () => {
   });
 });
 
-describe("reduce: toggle / cycle", () => {
-  it("toggle-hidden flips the hidden flag", () => {
-    let s = makeState([{ type: "a" }]);
-    s = reduce(s, { type: "toggle-hidden" });
-    expect(s.lines[0]?.widgets[0]?.hidden).toBe(true);
-    s = reduce(s, { type: "toggle-hidden" });
-    expect(s.lines[0]?.widgets[0]?.hidden).toBe(false);
-  });
-
-  it("toggle-raw flips rawValue", () => {
-    let s = makeState([{ type: "a" }]);
-    s = reduce(s, { type: "toggle-raw" });
-    expect(s.lines[0]?.widgets[0]?.rawValue).toBe(true);
-  });
-
-  it("cycle-merge walks off → merge → merge-no-padding → off", () => {
-    let s = makeState([{ type: "a" }]);
-    s = reduce(s, { type: "cycle-merge" });
-    expect(s.lines[0]?.widgets[0]?.merged).toBe("merge");
-    s = reduce(s, { type: "cycle-merge" });
-    expect(s.lines[0]?.widgets[0]?.merged).toBe("merge-no-padding");
-    s = reduce(s, { type: "cycle-merge" });
-    expect(s.lines[0]?.widgets[0]?.merged).toBe("off");
-  });
-
-  it("toggle / cycle are no-ops when the add-cell is selected", () => {
-    const s = makeState([]);
-    expect(reduce(s, { type: "toggle-hidden" })).toBe(s);
-    expect(reduce(s, { type: "cycle-merge" })).toBe(s);
-  });
-
-  it("mark-clean drops the dirty flag", () => {
-    let s = makeState([{ type: "a" }]);
-    s = reduce(s, { type: "toggle-hidden" });
+describe("reduce: dirty bookkeeping", () => {
+  it("mark-clean drops the dirty flag after a structural change", () => {
+    let s = makeState([{ type: "a" }, { type: "b" }]);
+    s = reduce(s, { type: "delete" });
     expect(s.dirty).toBe(true);
     s = reduce(s, { type: "mark-clean" });
     expect(s.dirty).toBe(false);
@@ -425,31 +394,17 @@ describe("picker — option sanitisation", () => {
   });
 
   it("set-option still rejects empty and prototype-polluting keys", () => {
-    const s = reduce(makeState([{ type: "a" }]), { type: "open-options" });
+    const s = makeState([{ type: "a" }]);
     expect(reduce(s, { type: "set-option", key: "  ", value: 1 })).toBe(s);
     expect(reduce(s, { type: "set-option", key: "__proto__", value: {} })).toBe(s);
   });
-});
-
-describe("reduce: options overlay", () => {
-  it("opens only when a widget is selected", () => {
-    expect(reduce(makeState([]), { type: "open-options" }).mode).toBe("edit");
-    const s = reduce(makeState([{ type: "a" }]), { type: "open-options" });
-    expect(s.mode).toBe("options");
-  });
 
   it("set-option merges into the widget's options and marks dirty", () => {
-    let s = reduce(makeState([{ type: "tokens-total" }]), { type: "open-options" });
+    let s = makeState([{ type: "tokens-total" }]);
     s = reduce(s, { type: "set-option", key: "reset", value: "block" });
     s = reduce(s, { type: "set-option", key: "format", value: "human" });
     expect(s.lines[0]?.widgets[0]?.options).toEqual({ reset: "block", format: "human" });
     expect(s.dirty).toBe(true);
-    expect(s.mode).toBe("options");
-  });
-
-  it("close-options returns to edit mode", () => {
-    let s = reduce(makeState([{ type: "a" }]), { type: "open-options" });
-    s = reduce(s, { type: "close-options" });
     expect(s.mode).toBe("edit");
   });
 });
