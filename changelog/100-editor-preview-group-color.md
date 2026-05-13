@@ -1,0 +1,1 @@
+- Editor preview chips now paint in the picker's group accent — `model` reads as session-blue, `git-branch` as git-green, `clock` as time-cyan — so the inline layout matches what the picker showed when each widget was added. Per-widget `fg` overrides still win; the real statusline (`pipeline.ts`) continues to honour the configured theme.
