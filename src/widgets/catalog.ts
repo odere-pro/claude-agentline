@@ -131,7 +131,9 @@ const WIDGET_GLYPHS: Readonly<Record<string, string>> = Object.freeze({
   // Rate limits
   "session-usage": "", // nf-fa-percent
   "block-reset-timer": "", // nf-fa-refresh
+  "block-reset-at": "",
   "weekly-reset-timer": "",
+  "weekly-reset-at": "",
 
   // Git
   "git-branch": "", // nf-pl-branch
@@ -154,16 +156,9 @@ const WIDGET_GLYPHS: Readonly<Record<string, string>> = Object.freeze({
 });
 
 const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
-  // Session (7)
+  // Session (7) — identity first, then per-session signals, then runtime bookkeeping
   model: entry("Model", "Active model id (e.g. Sonnet 4.6)", "session"),
   version: entry("Version", "Claude Code version", "session"),
-  "session-id": entry("Session id", "Short session id", "session"),
-  "session-name": entry("Session name", "Session name, or the short id when unset", "session"),
-  "account-email": entry("Account email", "Logged-in account email", "session", [
-    v("full", "Full address", { mask: "none" }),
-    v("domain", "Domain only (@example.com)", { mask: "domain" }),
-    v("localpart", "Local part only (user)", { mask: "localpart" }),
-  ]),
   "thinking-effort": entry(
     "Thinking effort",
     "Thinking-effort tier: low, medium, or high",
@@ -173,6 +168,13 @@ const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
     v("count", "Count (just the number)", { variant: "count" }),
     v("list", "List (comma-joined)", { variant: "list" }),
     v("last", "Last (most recent only)", { variant: "last" }),
+  ]),
+  "session-id": entry("Session id", "Short session id", "session"),
+  "session-name": entry("Session name", "Session name, or the short id when unset", "session"),
+  "account-email": entry("Account email", "Logged-in account email", "session", [
+    v("full", "Full address", { mask: "none" }),
+    v("domain", "Domain only (@example.com)", { mask: "domain" }),
+    v("localpart", "Local part only (user)", { mask: "localpart" }),
   ]),
   // Tokens (7)
   "tokens-total": entry("Tokens (total)", "Running token total for the chosen reset axis", "tokens"),
@@ -201,7 +203,7 @@ const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
   ),
   "context-bar": entry("Context bar", "Tiny inline bar approximating context fill", "context"),
 
-  // Rate limits (3)
+  // Rate limits (5) — session usage, then each reset paired (countdown + wall-clock)
   "session-usage": entry(
     "Session usage",
     "Percentage of the session quota consumed",
@@ -222,6 +224,16 @@ const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
       v("clock", "Clock (01:23:45)", { format: "clock" }),
     ],
   ),
+  "block-reset-at": entry(
+    "Block reset at",
+    "Wall-clock time of the next block reset (e.g. resets 18:30)",
+    "rate-limits",
+    [
+      v("time-24h", "24-hour (18:30)", { format: "HH:mm" }),
+      v("time-12h", "12-hour (6:30pm)", { format: "h:mma" }),
+      v("seconds", "With seconds (18:30:45)", { format: "HH:mm:ss" }),
+    ],
+  ),
   "weekly-reset-timer": entry(
     "Weekly reset timer",
     "Time remaining until the weekly quota resets",
@@ -230,6 +242,16 @@ const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
       v("short", "Short (3d 4h)", { format: "short" }),
       v("long", "Long (3 days 4 hours)", { format: "long" }),
       v("clock", "Clock", { format: "clock" }),
+    ],
+  ),
+  "weekly-reset-at": entry(
+    "Weekly reset at",
+    "Wall-clock time of the next weekly reset (e.g. resets 18:30)",
+    "rate-limits",
+    [
+      v("time-24h", "24-hour (18:30)", { format: "HH:mm" }),
+      v("time-12h", "12-hour (6:30pm)", { format: "h:mma" }),
+      v("seconds", "With seconds (18:30:45)", { format: "HH:mm:ss" }),
     ],
   ),
 

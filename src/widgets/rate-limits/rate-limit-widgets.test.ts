@@ -100,17 +100,19 @@ describe("formatDuration", () => {
 });
 
 describe("registerRateLimitWidgets", () => {
-  it("ships exactly three widgets in sorted order", () => {
+  it("ships exactly five widgets in sorted order", () => {
     const r = new WidgetRegistry();
     registerRateLimitWidgets(r);
-    expect(r.size()).toBe(3);
+    expect(r.size()).toBe(5);
     expect(r.list()).toEqual([
+      "block-reset-at",
       "block-reset-timer",
       "session-usage",
+      "weekly-reset-at",
       "weekly-reset-timer",
     ]);
     expect(Object.isFrozen(RATE_LIMIT_WIDGETS)).toBe(true);
-    expect(RATE_LIMIT_WIDGETS).toHaveLength(3);
+    expect(RATE_LIMIT_WIDGETS).toHaveLength(5);
   });
 });
 

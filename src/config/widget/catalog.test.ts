@@ -32,9 +32,9 @@ describe("parseWidgetCatalogArgs", () => {
 });
 
 describe("builtinMeta", () => {
-  it("returns the 37 catalogued built-in widgets", () => {
+  it("returns the 39 catalogued built-in widgets", () => {
     const entries = builtinMeta();
-    expect(entries).toHaveLength(37);
+    expect(entries).toHaveLength(39);
     expect(entries.every((e) => e.type && e.name && e.description && e.category)).toBe(true);
   });
 });
@@ -95,7 +95,7 @@ describe("runWidgetCatalogCommand", () => {
   it("falls back to the built-in registry when no entries are injected", async () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     await runWidgetCatalogCommand({ args: { json: false, preview: false } });
-    expect(String(stdout.mock.calls[0]?.[0] ?? "")).toContain("agentline widgets (37):");
+    expect(String(stdout.mock.calls[0]?.[0] ?? "")).toContain("agentline widgets (39):");
   });
 
   it("includes previews with --preview", async () => {
