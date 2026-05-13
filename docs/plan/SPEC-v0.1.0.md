@@ -376,6 +376,7 @@ The TUI editor (`agentline config`) renders a key footer (the active scope) and 
 | `u`      | edit    | update — pick a different variant of the selected widget          |
 | `d`      | edit    | delete the selected widget                                        |
 | `o`      | edit    | open the selected widget's options sheet                          |
+| `g`      | edit    | toggle Nerd Font glyphs on / off (top-level `config.glyphs`)      |
 | `S`      | edit    | save (Ctrl+S also works)                                          |
 | `(type)` | picker  | type to filter widgets by name or type (step 2)                   |
 | `↑ ↓`    | picker  | highlight a row                                                   |

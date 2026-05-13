@@ -33,6 +33,7 @@ export const DEFAULT_KEY_BINDINGS: readonly KeyBinding[] = Object.freeze([
   { key: "u", action: "update", scope: "edit", description: "update the selected widget — pick a different variant of the same widget" },
   { key: "d", action: "delete", scope: "edit", description: "delete the selected widget" },
   { key: "o", action: "options", scope: "edit", description: "open the selected widget's options sheet" },
+  { key: "g", action: "toggle-glyphs", scope: "edit", description: "toggle Nerd Font glyphs on / off (top-level config.glyphs)" },
   { key: "S", action: "save", scope: "edit", description: "save (Ctrl+S also works)" },
   // ── picker (the three-step widget chooser overlay) ───────────────────────
   { key: "(type)", action: "picker-filter", scope: "picker", description: "type to filter widgets by name or type (step 2)" },

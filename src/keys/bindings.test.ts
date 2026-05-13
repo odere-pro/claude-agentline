@@ -19,6 +19,7 @@ describe("DEFAULT_KEY_BINDINGS", () => {
       "update",
       "delete",
       "options",
+      "toggle-glyphs",
       "save",
       "picker-filter",
       "picker-navigate",
