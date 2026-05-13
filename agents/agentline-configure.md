@@ -53,7 +53,6 @@ For mechanical edits without the TUI, hand-edit the JSON file directly; the bin 
         { "type": "model" },
         { "type": "git-branch" },
         { "type": "tokens-total", "options": { "reset": "block" } },
-        { "type": "flex-separator" },
         { "type": "clock" },
       ],
     },
