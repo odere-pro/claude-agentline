@@ -27,7 +27,7 @@ The editor has three modes; a binding's **scope** says where it applies
   (replace), <kbd>↵</kbd> on the +add cell, or `u` (update — same as
   step 3 only). Step 1 picks the group (`session`, `git`, …); step 2
   picks the widget within that group, with a live filter and a per-row
-  mini-preview; step 3 picks a *variant* (the same widget rendered a
+  mini-preview; step 3 picks a _variant_ (the same widget rendered a
   different way, e.g. `skills` as count / list / last). Widgets with no
   variants in the catalogue skip step 3 and commit straight from step 2.
   <kbd>Esc</kbd> steps back one level (cancels at step 1).
