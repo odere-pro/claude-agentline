@@ -298,9 +298,7 @@ describe("picker drill-down — pick-category → pick-widget → pick-variant",
 
 describe("picker drill-down — replace target", () => {
   it("replace swaps the widget type and drops prior colour/style overrides", () => {
-    let s = initialState([
-      { widgets: [{ type: "model", fg: "#ff00ff", bold: true }] },
-    ]);
+    let s = initialState([{ widgets: [{ type: "model", fg: "#ff00ff", bold: true }] }]);
     s = reduce(s, { type: "open-picker", intent: "replace" });
     s = reduce(s, { type: "pick-category", category: "git" });
     s = reduce(s, { type: "pick-widget", widgetType: "git-branch" });
@@ -415,5 +413,52 @@ describe("reduce: mark-dirty", () => {
     const dirty = reduce(clean, { type: "mark-dirty" });
     expect(dirty.dirty).toBe(true);
     expect(reduce(dirty, { type: "mark-dirty" })).toBe(dirty);
+  });
+});
+
+describe("memento — lastSaved snapshot + revert", () => {
+  it("initialState captures the loaded lines as the snapshot", () => {
+    const s = makeState([{ type: "model" }]);
+    expect(s.lastSaved.lines).toEqual(s.lines);
+    expect(s.lastSaved.glyphs).toBe(s.glyphs);
+    expect(s.dirty).toBe(false);
+  });
+
+  it("mark-clean refreshes the snapshot to the current lines", () => {
+    let s = makeState([{ type: "a" }]);
+    s = reduce(s, { type: "set-option", key: "k", value: "v" });
+    expect(s.dirty).toBe(true);
+    s = reduce(s, { type: "mark-clean" });
+    expect(s.dirty).toBe(false);
+    expect(s.lastSaved.lines).toEqual(s.lines);
+  });
+
+  it("revert restores lines + glyphs from the snapshot and clears dirty", () => {
+    let s = makeState([{ type: "a" }]);
+    const original = s.lines;
+    s = reduce(s, { type: "set-option", key: "k", value: "v" });
+    s = reduce(s, { type: "toggle-glyphs" });
+    expect(s.dirty).toBe(true);
+    s = reduce(s, { type: "revert" });
+    expect(s.dirty).toBe(false);
+    expect(s.lines).toBe(original);
+    expect(s.glyphs).toBe("off");
+  });
+
+  it("revert is a no-op when the editor is already clean", () => {
+    const s = makeState([{ type: "a" }]);
+    expect(reduce(s, { type: "revert" })).toBe(s);
+  });
+
+  it("revert clamps the cursor back into the snapshot's bounds", () => {
+    let s = makeState([{ type: "a" }, { type: "b" }, { type: "c" }]);
+    s = reduce(s, { type: "move-cursor", dx: 2 });
+    expect(s.cursor.widget).toBe(2);
+    s = reduce(s, { type: "delete" });
+    s = reduce(s, { type: "delete" });
+    expect(s.dirty).toBe(true);
+    s = reduce(s, { type: "revert" });
+    expect(s.lines[0]?.widgets).toHaveLength(3);
+    expect(s.cursor.widget).toBeLessThanOrEqual(s.lines[0]!.widgets.length);
   });
 });

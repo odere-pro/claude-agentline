@@ -10,6 +10,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isHelpFlag, requestHelp } from "../cli/help.js";
+import { readLastRenderSync, type CachedRender } from "../state/render-cache.js";
 
 const HELP = `agentline uninstall — remove agentline from this host
 
@@ -48,7 +49,40 @@ export function parseUninstallArgs(rest: readonly string[]): UninstallArgs {
   return { purge, dryRun };
 }
 
-export async function runUninstallCommand(args: UninstallArgs): Promise<number> {
+/**
+ * Pure formatter for the "last statusline" banner shown before
+ * uninstall. Returns an empty string when there is no usable cache.
+ * Extracted so it can be unit-tested without spawning the uninstall
+ * script.
+ */
+export function formatLastRenderBanner(cache: CachedRender | null): string {
+  if (!cache || cache.rendered.length === 0) return "";
+  const trailingNewline = cache.rendered.endsWith("\n") ? "" : "\n";
+  return (
+    "\nLast statusline:\n" +
+    cache.rendered +
+    trailingNewline +
+    `(cached ${cache.savedAt} — run \`agentline install\` to restore)\n\n`
+  );
+}
+
+export async function runUninstallCommand(
+  args: UninstallArgs,
+  io: {
+    readonly stdout?: NodeJS.WritableStream;
+    readonly env?: NodeJS.ProcessEnv;
+  } = {},
+): Promise<number> {
+  const out = io.stdout ?? process.stdout;
+  // Show the last rendered statusline (Memento) so the user has a
+  // parting view of what was on screen, and point at how to restore
+  // agentline if they change their mind. Skipped on --dry-run to keep
+  // its output focused on the would-be filesystem actions.
+  if (!args.dryRun) {
+    const banner = formatLastRenderBanner(readLastRenderSync(io.env ?? process.env));
+    if (banner) out.write(banner);
+  }
+
   const script = resolveScript("uninstall.sh");
   const argv: string[] = [];
   if (args.purge) argv.push("--purge");

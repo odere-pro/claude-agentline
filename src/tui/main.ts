@@ -32,14 +32,11 @@ import type { AgentlineConfig } from "../config/types.js";
 import { listBindings, type KeyBinding, type KeyScope } from "../keys/index.js";
 import { projectGate } from "../lib/claude-project.js";
 import { resolveEnv } from "../lib/env.js";
+import { isErr, tryAsync } from "../lib/result.js";
 import type { Theme } from "../theme/index.js";
 import { resolveConfiguredTheme } from "../theme/resolve.js";
 
-import {
-  defaultRegistry,
-  registerAllBuiltins,
-  type WidgetMetaEntry,
-} from "../widgets/index.js";
+import { defaultRegistry, registerAllBuiltins, type WidgetMetaEntry } from "../widgets/index.js";
 import { widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
 
 import { pickGlyphs, type EditorGlyphs } from "./glyphs.js";
@@ -114,10 +111,8 @@ interface AppProps {
 
 function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): React.ReactElement {
   const { exit } = useApp();
-  const [state, dispatch] = useReducer(
-    reduce,
-    initialConfig,
-    (cfg) => initialState(cfg.lines, cfg.glyphs),
+  const [state, dispatch] = useReducer(reduce, initialConfig, (cfg) =>
+    initialState(cfg.lines, cfg.glyphs),
   );
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [showHelp, setShowHelp] = useState(false);
@@ -179,8 +174,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
         return;
       }
       if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
-      if (key.downArrow)
-        return setStepHighlight((h) => Math.min(cats.length - 1, h + 1));
+      if (key.downArrow) return setStepHighlight((h) => Math.min(cats.length - 1, h + 1));
       return;
     }
     if (mode === "picker-widget") {
@@ -218,8 +212,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
         dispatch({ type: "picker-back" });
         return;
       }
-      const variantMode: "update" | "fresh" =
-        pickerTarget.kind === "update" ? "update" : "fresh";
+      const variantMode: "update" | "fresh" = pickerTarget.kind === "update" ? "update" : "fresh";
       const rows = variantRows(widgetType, variantMode);
       if (key.escape) return dispatch({ type: "picker-back" });
       if (key.return) {
@@ -228,8 +221,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
         return;
       }
       if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
-      if (key.downArrow)
-        return setStepHighlight((h) => Math.min(rows.length - 1, h + 1));
+      if (key.downArrow) return setStepHighlight((h) => Math.min(rows.length - 1, h + 1));
       return;
     }
 
@@ -242,7 +234,12 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
     }
     if (input === "S" || (key.ctrl && input === "s")) {
       if (saveInFlight.current) return;
-      void onSave();
+      // Defense-in-depth: `onSave` catches its own errors today, but
+      // `void` would silently swallow any rejection that ever leaked
+      // through. Surface it in the status line instead.
+      tryAsync(onSave).then((r) => {
+        if (isErr(r)) setStatusMessage(`save failed: ${r.error.message}`);
+      });
       return;
     }
     if (key.leftArrow)
@@ -250,17 +247,13 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
         key.shift ? { type: "move-widget", dx: -1 } : { type: "move-cursor", dx: -1 },
       );
     if (key.rightArrow)
-      return dispatch(
-        key.shift ? { type: "move-widget", dx: 1 } : { type: "move-cursor", dx: 1 },
-      );
+      return dispatch(key.shift ? { type: "move-widget", dx: 1 } : { type: "move-cursor", dx: 1 });
     if (key.upArrow)
       return dispatch(
         key.shift ? { type: "move-widget", dy: -1 } : { type: "move-cursor", dy: -1 },
       );
     if (key.downArrow)
-      return dispatch(
-        key.shift ? { type: "move-widget", dy: 1 } : { type: "move-cursor", dy: 1 },
-      );
+      return dispatch(key.shift ? { type: "move-widget", dy: 1 } : { type: "move-cursor", dy: 1 });
     if (key.return) {
       if (isAddCell(state)) return dispatch({ type: "open-picker", intent: "add" });
       // On a populated widget ↵ is a no-op now — `u`/`r` cover the
@@ -334,9 +327,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
           " ● unsaved changes — press S to save, q/Esc to discard ",
         )
       : null,
-    statusMessage
-      ? React.createElement(Text, { color: "green" }, ` ${statusMessage} `)
-      : null,
+    statusMessage ? React.createElement(Text, { color: "green" }, ` ${statusMessage} `) : null,
     state.mode === "picker-group"
       ? React.createElement(PickerGroup, {
           entries: widgetEntries,
@@ -396,7 +387,13 @@ function helpOverlay(bindings: readonly KeyBinding[]): React.ReactElement {
   }
   return React.createElement(
     Box,
-    { flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, marginTop: 1 },
+    {
+      flexDirection: "column",
+      borderStyle: "round",
+      borderColor: "cyan",
+      paddingX: 1,
+      marginTop: 1,
+    },
     React.createElement(Text, { bold: true }, "keys — press ? Esc or q to close"),
     ...groups,
   );
