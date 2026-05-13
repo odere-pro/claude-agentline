@@ -9,6 +9,12 @@
     "$schema": { "type": "string" },
     "version": { "type": "integer", "minimum": 1, "default": 1 },
     "theme": { "type": ["string", "null"], "default": null },
+    "glyphs": {
+      "type": "string",
+      "enum": ["off", "nerd-font"],
+      "default": "off",
+      "description": "Top-level glyph mode. 'nerd-font' prepends each widget's catalogue glyph to its rendered text (Nerd Font required); 'off' keeps the bytes the goldens depend on."
+    },
     "lines": {
       "type": "array",
       "minItems": 1,

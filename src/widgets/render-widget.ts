@@ -16,6 +16,7 @@
 
 import type { WidgetConfig } from "../config/types.js";
 import type { Colour } from "../theme/colours.js";
+import { widgetGlyph } from "./catalog.js";
 import type { Cell, MergeMode } from "./cell.js";
 import { HIDDEN_CELL } from "./cell.js";
 import type { WidgetContext } from "./context.js";
@@ -34,14 +35,29 @@ export interface RenderWidgetOptions {
   readonly strict?: boolean;
 }
 
-function applyOverrides(cell: Cell, config: WidgetConfig): Cell {
+/** Thin space (U+2009) — keeps the glyph from sticking to the value. */
+const GLYPH_SEPARATOR = " ";
+
+function applyGlyph(text: string, type: string, ctx: WidgetContext): string {
+  if (ctx.config.glyphs !== "nerd-font") return text;
+  if (text.length === 0) return text;
+  const glyph = widgetGlyph(type);
+  if (!glyph) return text;
+  return `${glyph}${GLYPH_SEPARATOR}${text}`;
+}
+
+function applyOverrides(cell: Cell, config: WidgetConfig, ctx: WidgetContext): Cell {
   const merged: MergeMode = config.merged ?? cell.merged ?? "off";
+  // Glyph mode prepends the catalogue glyph + a thin space when
+  // `config.glyphs === "nerd-font"`. Skipped on flex separators (their
+  // text is the fill character, not a label) and empty cells.
+  const text = cell.flex === true ? cell.text : applyGlyph(cell.text, config.type, ctx);
   // The config layer's `Colour` is a loose `string` alias validated against
   // the JSON Schema; the cell layer's `Colour` is the strict union the
   // encoder consumes. Cast at the boundary because validation already
   // guaranteed the shape.
   const next: Cell = {
-    text: cell.text,
+    text,
     merged,
     ...(config.fg !== undefined && config.fg !== null
       ? { fg: config.fg as Colour }
@@ -78,5 +94,5 @@ export function renderWidget(
     rawValue: config.rawValue ?? false,
   });
   if (cell.hidden) return HIDDEN_CELL;
-  return applyOverrides(cell, config);
+  return applyOverrides(cell, config, ctx);
 }

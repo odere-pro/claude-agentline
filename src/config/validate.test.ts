@@ -54,4 +54,15 @@ describe("validateConfig", () => {
   it("accepts a line with no widgets (empty lines render blank)", () => {
     expect(() => validateConfig({ ...DEFAULT_CONFIG, lines: [{ widgets: [] }] })).not.toThrow();
   });
+
+  it("accepts the two valid glyph modes", () => {
+    expect(() => validateConfig({ ...DEFAULT_CONFIG, glyphs: "off" })).not.toThrow();
+    expect(() => validateConfig({ ...DEFAULT_CONFIG, glyphs: "nerd-font" })).not.toThrow();
+  });
+
+  it("rejects an unknown glyph mode", () => {
+    expect(() => validateConfig({ ...DEFAULT_CONFIG, glyphs: "fancy" })).toThrowError(
+      ConfigValidationError,
+    );
+  });
 });

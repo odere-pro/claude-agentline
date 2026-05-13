@@ -68,4 +68,29 @@ describe("previewStatusline", () => {
     });
     expect(line).toContain("main");
   });
+
+  it("prepends Nerd Font glyphs when config.glyphs is 'nerd-font'", () => {
+    const cfg = {
+      ...DEFAULT_CONFIG,
+      lines: [{ widgets: [{ type: "git-branch" }] }],
+    };
+    const off = previewStatusline({ ...cfg, glyphs: "off" as const });
+    const nerd = previewStatusline({ ...cfg, glyphs: "nerd-font" as const });
+    // The nerd-font output is strictly longer (extra glyph + thin space) and
+    // contains the same branch name with a glyph to its left.
+    expect(off).toContain("main");
+    expect(nerd).toContain("main");
+    expect(nerd.length).toBeGreaterThan(off.length);
+  });
+
+  it("DemoOptions.glyphs overrides config.glyphs without mutating the source config", () => {
+    const cfg = {
+      ...DEFAULT_CONFIG,
+      glyphs: "off" as const,
+      lines: [{ widgets: [{ type: "git-branch" }] }],
+    };
+    const overridden = previewStatusline(cfg, { glyphs: "nerd-font" });
+    expect(overridden.length).toBeGreaterThan(previewStatusline(cfg).length);
+    expect(cfg.glyphs).toBe("off");
+  });
 });

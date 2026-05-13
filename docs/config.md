@@ -66,6 +66,7 @@ Full flag reference for all commands → [cli.md](./cli.md)
   "$schema": "https://github.com/odere-pro/claude-agentline/schemas/config.schema.json",
   "version": 1,
   "theme": "claude-code-dark",
+  "glyphs": "off",
   "lines": [{ "widgets": [{ "type": "model" }, { "type": "clock" }] }],
   "global": { "padding": 1, "separator": "|" },
   "powerline": { "enabled": false },
@@ -79,6 +80,7 @@ Full flag reference for all commands → [cli.md](./cli.md)
 | `$schema`       | string         | the canonical schema URL | optional; lets editors auto-complete                                                                                   |
 | `version`       | int            | `1`                      | schema version; older files are auto-migrated, newer files are refused with a structured error and a `.bak` is written |
 | `theme`         | string \| null | `null`                   | named theme from `themes/` (see [themes.md](./themes.md))                                                              |
+| `glyphs`        | enum           | `"off"`                  | `"off"` or `"nerd-font"` — when `nerd-font`, each widget's catalogue glyph is prepended to its rendered text           |
 | `lines`         | array          | one default line         | ordered top-to-bottom; one or more                                                                                     |
 | `global`        | object         | see below                | global render options                                                                                                  |
 | `powerline`     | object         | `{ "enabled": false }`   | Powerline mode options                                                                                                 |
@@ -119,6 +121,21 @@ See [themes.md](./themes.md#powerline) for the full Powerline shape.
 With `"enabled": false` (the default) the inter-widget `separator` and
 `padding` from `global` are honoured; with `"enabled": true` they are
 ignored and chevron glyphs are used instead.
+
+### `glyphs`
+
+Top-level glyph mode. Two values:
+
+- `"off"` (default) — widgets render text only. The bytes the golden
+  suite depends on stay byte-stable.
+- `"nerd-font"` — widgets that have a glyph in the catalogue
+  (`src/widgets/catalog.ts`) get their codepoint prepended (followed by
+  a thin space, U+2009) to the rendered cell text. Codepoints come from
+  the [Nerd Fonts v3](https://www.nerdfonts.com/) Private Use Area, so
+  this only renders correctly with a Nerd Font installed in the
+  terminal — that's why it's opt-in. Widgets without a catalogued glyph
+  are unaffected. Layout-only widgets (`separator`, `flex-separator`)
+  are always unaffected.
 
 ## Widget shape
 
