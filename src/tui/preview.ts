@@ -12,10 +12,14 @@
  *
  * Wrapping is computed in user-space rather than via Yoga's `flexWrap`:
  * the outer Box has no defined width, so Yoga would let the row grow
- * past the terminal edge instead of wrapping cells. Here we pre-pack
- * each row's slots into visual sub-lines against `process.stdout.columns`
- * and emit one Box per sub-line, indenting continuation lines so wrapped
- * widgets stay aligned with the gutter.
+ * past the terminal edge instead of wrapping cells. Here we pack each
+ * row's widget slots into visual sub-lines against `process.stdout.columns`
+ * and, when a row's widgets overflow, spill the continuation visual lines
+ * into the *next empty display rows* — each spilled line then carries the
+ * empty row's own line number and "+ add widget" affordance in the gutter,
+ * instead of cramming the overflow under the source row with a blank
+ * continuation gutter. Truly excess sub-lines (when there's no empty row
+ * to absorb them) still fall back to a shared-gutter continuation line.
  */
 
 import { Box, Text } from "ink";
@@ -67,6 +71,96 @@ export function Preview(props: PreviewProps): React.ReactElement {
   // width. Clamp to a minimum so wrap doesn't degenerate when the terminal
   // is unusually narrow.
   const available = Math.max(20, cols - 4 - gutterWidth);
+
+  const elements: React.ReactElement[] = [];
+
+  // Pack each row's widget+join slots into visual sub-lines (excluding the
+  // add-cell — it's rendered separately so empty rows below can absorb
+  // overflow visual lines while keeping their own affordance).
+  const packed = rows.map((row) => ({
+    row,
+    visualLines: packWidgetSlots(row, props.cursor, props.glyphs, available),
+  }));
+
+  let spillLines: PackedSlot[][] = [];
+  let spillRow: PreviewRow | null = null;
+  let keyCounter = 0;
+
+  for (let d = 0; d < packed.length; d += 1) {
+    const entry = packed[d]!;
+    const { row, visualLines } = entry;
+    const hasOwnWidgets = visualLines.length > 0;
+
+    if (hasOwnWidgets) {
+      // Any leftover spill from the previous logical row couldn't fit into
+      // this row (which has its own widgets) — drop it under that row as
+      // shared-gutter continuation lines before drawing this row.
+      for (const line of spillLines) {
+        elements.push(
+          renderContinuationLine(
+            line,
+            spillRow!,
+            props.cursor,
+            props.glyphs,
+            gutterWidth,
+            `cont-${keyCounter++}`,
+          ),
+        );
+      }
+      spillLines = [];
+      spillRow = null;
+
+      elements.push(
+        renderDisplayRow(
+          { displayRow: row, contentRow: row, contentSlots: visualLines[0]! },
+          props.cursor,
+          props.glyphs,
+          `disp-${keyCounter++}`,
+        ),
+      );
+
+      // Stash overflow sub-lines so subsequent empty rows can claim them.
+      spillLines = visualLines.slice(1);
+      spillRow = row;
+    } else {
+      if (spillLines.length > 0 && spillRow !== null) {
+        const absorbed = spillLines.shift()!;
+        elements.push(
+          renderDisplayRow(
+            { displayRow: row, contentRow: spillRow, contentSlots: absorbed },
+            props.cursor,
+            props.glyphs,
+            `disp-${keyCounter++}`,
+          ),
+        );
+      } else {
+        elements.push(
+          renderDisplayRow(
+            { displayRow: row, contentRow: row, contentSlots: [] },
+            props.cursor,
+            props.glyphs,
+            `disp-${keyCounter++}`,
+          ),
+        );
+      }
+    }
+  }
+
+  // Any spill still left after all display rows are filled becomes
+  // shared-gutter continuation lines under the last display row.
+  for (const line of spillLines) {
+    elements.push(
+      renderContinuationLine(
+        line,
+        spillRow!,
+        props.cursor,
+        props.glyphs,
+        gutterWidth,
+        `cont-${keyCounter++}`,
+      ),
+    );
+  }
+
   return React.createElement(
     Box,
     {
@@ -75,7 +169,7 @@ export function Preview(props: PreviewProps): React.ReactElement {
       borderColor: "gray",
       paddingX: 1,
     },
-    ...rows.flatMap((row) => renderRow(row, props.cursor, props.glyphs, available, gutterWidth)),
+    ...elements,
   );
 }
 
@@ -94,40 +188,83 @@ function computeGutterWidth(rows: readonly PreviewRow[], glyphs: EditorGlyphs): 
   return 1 + 1 + digits + 1 + codePointLength(glyphs.gutter) + 1;
 }
 
-function renderRow(
-  row: PreviewRow,
+interface DisplayLine {
+  /** Row whose line number + add-cell appear in this display slot. */
+  readonly displayRow: PreviewRow;
+  /** Row whose widgets are drawn here (may differ when absorbing overflow). */
+  readonly contentRow: PreviewRow;
+  readonly contentSlots: readonly PackedSlot[];
+}
+
+function renderDisplayRow(
+  d: DisplayLine,
   cursor: PreviewProps["cursor"],
   glyphs: EditorGlyphs,
-  available: number,
-  gutterWidth: number,
-): React.ReactElement[] {
-  const onRow = cursor.line === row.line;
-  const lines = packIntoLines(row, cursor, glyphs, available);
-  return lines.map((slots, lineIdx) => {
-    const prefix =
-      lineIdx === 0
-        ? `${onRow ? glyphs.activeRow : " "} ${row.line} ${glyphs.gutter} `
-        : " ".repeat(gutterWidth);
-    return React.createElement(
+  key: string,
+): React.ReactElement {
+  const onRow = isCursorOnDisplay(d, cursor);
+  const prefix = `${onRow ? glyphs.activeRow : " "} ${d.displayRow.line} ${glyphs.gutter} `;
+  return React.createElement(
+    Box,
+    { key, flexDirection: "row" },
+    React.createElement(
       Box,
-      { key: `row-${row.line}-line-${lineIdx}`, flexDirection: "row" },
-      React.createElement(
-        Box,
-        { flexShrink: 0 },
-        React.createElement(Text, { dimColor: !onRow, color: onRow ? "cyan" : undefined }, prefix),
-      ),
-      ...slots.map((packed) => renderSlot(row, packed.slot, packed.originalIndex, cursor, glyphs)),
-    );
-  });
+      { key: "gutter", flexShrink: 0 },
+      React.createElement(Text, { dimColor: !onRow, color: onRow ? "cyan" : undefined }, prefix),
+    ),
+    ...d.contentSlots.map((packed) =>
+      renderSlot(d.contentRow, packed.slot, packed.originalIndex, cursor, glyphs),
+    ),
+    renderAddCell(d.displayRow, cursor, glyphs),
+  );
+}
+
+function renderContinuationLine(
+  line: readonly PackedSlot[],
+  sourceRow: PreviewRow,
+  cursor: PreviewProps["cursor"],
+  glyphs: EditorGlyphs,
+  gutterWidth: number,
+  key: string,
+): React.ReactElement {
+  return React.createElement(
+    Box,
+    { key, flexDirection: "row" },
+    React.createElement(
+      Box,
+      { key: "gutter", flexShrink: 0 },
+      React.createElement(Text, { dimColor: true }, " ".repeat(gutterWidth)),
+    ),
+    ...line.map((packed) =>
+      renderSlot(sourceRow, packed.slot, packed.originalIndex, cursor, glyphs),
+    ),
+  );
+}
+
+function isCursorOnDisplay(d: DisplayLine, cursor: PreviewProps["cursor"]): boolean {
+  if (cursor.line === d.displayRow.line && cursor.widget === d.displayRow.widgetCount) {
+    return true;
+  }
+  if (cursor.line === d.contentRow.line) {
+    for (const packed of d.contentSlots) {
+      if (packed.slot.kind === "widget" && packed.slot.widgetIndex === cursor.widget) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 /**
- * Greedy first-fit packer: walk slots left-to-right and start a new visual
- * line whenever the next slot would push past `available`. A leading
- * `"join"` slot on a wrapped line (the `" | "` separator between widgets)
- * is dropped so continuation lines don't begin with a stray pipe.
+ * Greedy first-fit packer: walk widget + join slots left-to-right and start
+ * a new visual line whenever the next slot would push past `available`. A
+ * leading `"join"` slot on a wrapped line (the `" | "` separator between
+ * widgets) is dropped so continuation lines don't begin with a stray pipe.
+ * The trailing `"add"` slot is skipped — it's rendered separately by the
+ * display-row code so empty rows below can absorb overflow visual lines
+ * without losing their own "+ add widget" affordance.
  */
-function packIntoLines(
+function packWidgetSlots(
   row: PreviewRow,
   cursor: PreviewProps["cursor"],
   glyphs: EditorGlyphs,
@@ -138,16 +275,19 @@ function packIntoLines(
   for (let i = 0; i < row.slots.length; i += 1) {
     const slot = row.slots[i];
     if (!slot) continue;
+    if (slot.kind === "add") continue;
     const w = slotWidth(slot, row, cursor, glyphs);
     const current = lines[lines.length - 1];
     if (current && current.length > 0 && used + w > available) {
       lines.push([]);
       used = 0;
-      // Drop leading separator on a fresh wrap line.
       if (slot.kind === "join") continue;
     }
     lines[lines.length - 1]!.push({ slot, originalIndex: i });
     used += w;
+  }
+  while (lines.length > 0 && lines[lines.length - 1]!.length === 0) {
+    lines.pop();
   }
   return lines;
 }
@@ -160,7 +300,7 @@ function slotWidth(
 ): number {
   if (slot.kind === "join") return codePointLength(slot.text);
   if (slot.kind === "add") {
-    // Matches the literal rendered in `renderSlot` ("  <addCell>").
+    // Matches the literal rendered in `renderAddCell` ("  <addCell>").
     return 2 + codePointLength(glyphs.addCell);
   }
   const selected = cursor.line === row.line && cursor.widget === slot.widgetIndex;
@@ -175,6 +315,27 @@ function codePointLength(s: string): number {
   let n = 0;
   for (const _ of s) n += 1;
   return n;
+}
+
+function renderAddCell(
+  row: PreviewRow,
+  cursor: PreviewProps["cursor"],
+  glyphs: EditorGlyphs,
+): React.ReactElement {
+  const selected = cursor.line === row.line && cursor.widget === row.widgetCount;
+  return React.createElement(
+    Box,
+    { key: "add", flexShrink: 0 },
+    React.createElement(
+      Text,
+      {
+        dimColor: !selected,
+        inverse: selected,
+        color: selected ? undefined : "gray",
+      },
+      `  ${glyphs.addCell}`,
+    ),
+  );
 }
 
 function renderSlot(
