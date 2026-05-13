@@ -30,6 +30,7 @@ import type { AgentlineConfig } from "../config/types.js";
 import { listBindings, type KeyBinding, type KeyScope } from "../keys/index.js";
 import { projectGate } from "../lib/claude-project.js";
 import { resolveEnv } from "../lib/env.js";
+import { readNerdFontStatus, stateDir as nerdFontStateDir } from "../lib/nerd-font.js";
 import { isErr, tryAsync } from "../lib/result.js";
 import type { Theme } from "../theme/index.js";
 import { resolveConfiguredTheme } from "../theme/resolve.js";
@@ -99,10 +100,30 @@ export async function runConfigCommand(input: RunConfigInput = {}): Promise<RunC
   const env = resolveEnv(input);
   const previewTheme = await resolveConfiguredTheme(config.theme, { env });
   const glyphs = pickGlyphs({ env });
-  const { waitUntilExit, unmount, savedRef } = mountEditor(config, path, previewTheme, glyphs);
+  const nerdFontAvailable = resolveNerdFontAvailable(env);
+  const { waitUntilExit, unmount, savedRef } = mountEditor(
+    config,
+    path,
+    previewTheme,
+    glyphs,
+    nerdFontAvailable,
+  );
   await waitUntilExit;
   unmount();
   return { saved: savedRef.value, path };
+}
+
+/**
+ * Read the install-time Nerd Font sentinel. When the sentinel is missing
+ * (user skipped `agentline install`, or installed an older version) we
+ * assume a font is available rather than locking the toggle — a missed
+ * disable is recoverable, a false lock is annoying.
+ */
+function resolveNerdFontAvailable(env: NodeJS.ProcessEnv): boolean {
+  const home = env.HOME ?? "";
+  if (!home) return true;
+  const status = readNerdFontStatus(nerdFontStateDir(env, home));
+  return status === null ? true : status.available;
 }
 
 interface AppProps {
@@ -110,13 +131,22 @@ interface AppProps {
   readonly path: string;
   readonly previewTheme: Theme | null;
   readonly glyphs: EditorGlyphs;
+  /** `false` when the install probe didn't find a Nerd Font; locks the `g` toggle to "off". */
+  readonly nerdFontAvailable: boolean;
   readonly onSaved: (saved: boolean) => void;
 }
 
-function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): React.ReactElement {
+function App({
+  initialConfig,
+  path,
+  previewTheme,
+  glyphs,
+  nerdFontAvailable,
+  onSaved,
+}: AppProps): React.ReactElement {
   const { exit } = useApp();
   const [state, dispatch] = useReducer(reduce, initialConfig, (cfg) =>
-    initialState(cfg.lines, cfg.glyphs),
+    initialState(cfg.lines, nerdFontAvailable ? cfg.glyphs : "off"),
   );
   const [statusMessage, setStatusMessage] = useState<string>("");
   // Per-step transient UI state — reset on every mode change so each step
@@ -129,6 +159,20 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
     [initialConfig.keymap],
   );
   const widgetEntries = useMemo(() => builtinWidgetEntries(), []);
+
+  // Types already placed in the layout. The picker hides these so the user
+  // can't add the same widget twice. In replace mode the widget under the
+  // cursor is on its way out, so its type isn't considered "used".
+  const usedTypes = useMemo(() => {
+    const set = new Set<string>();
+    for (const line of state.lines) for (const w of line.widgets) set.add(w.type);
+    if (state.mode !== "edit" && state.pickerTarget.kind === "replace") {
+      const line = state.lines[state.pickerTarget.line];
+      const target = line?.widgets[state.pickerTarget.index];
+      if (target) set.delete(target.type);
+    }
+    return set;
+  }, [state.lines, state.mode, state.pickerTarget]);
 
   // Reset per-step state on every transition.
   useEffect(() => {
@@ -159,11 +203,11 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
   }, [initialConfig, onSaved, path, state.lines, state.glyphs]);
 
   useInput((input, key) => {
-    const { mode, pickerDraft, glyphs } = state;
+    const { mode, pickerDraft } = state;
 
     // ── picker steps ─────────────────────────────────────────────────────
     if (mode === "picker-group") {
-      const cats = categoriesWithWidgets(widgetEntries);
+      const cats = categoriesWithWidgets(widgetEntries, usedTypes);
       if (key.escape) return dispatch({ type: "picker-back" });
       if (key.return) {
         const cat = selectedAt(cats, stepHighlight);
@@ -183,14 +227,14 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       }
       if (key.escape) return dispatch({ type: "picker-back" });
       if (key.return) {
-        const matches = widgetsInCategory(widgetEntries, category, stepQuery);
+        const matches = widgetsInCategory(widgetEntries, category, stepQuery, usedTypes);
         const picked = selectedAt(matches, stepHighlight);
         if (picked) dispatch({ type: "pick-widget", widgetType: picked.type });
         return;
       }
       if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
       if (key.downArrow) {
-        const matches = widgetsInCategory(widgetEntries, category, stepQuery);
+        const matches = widgetsInCategory(widgetEntries, category, stepQuery, usedTypes);
         return setStepHighlight((h) => Math.min(Math.max(0, matches.length - 1), h + 1));
       }
       if (key.backspace || key.delete) {
@@ -261,11 +305,18 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       return dispatch({ type: "delete" });
     }
     if (input === "g") {
+      const next = state.glyphs === "nerd-font" ? "off" : "nerd-font";
+      // When `agentline install` couldn't find a Nerd Font, lock the
+      // toggle to "off" — enabling glyphs would only paint tofu boxes
+      // onto the rendered statusline. Toggling *off* is still allowed
+      // so a user who edited the file by hand can recover via the UI.
+      if (!nerdFontAvailable && next === "nerd-font") {
+        setStatusMessage("glyphs: disabled — install a Nerd Font, then re-run `agentline install`");
+        return;
+      }
       dispatch({ type: "toggle-glyphs" });
-      // Surface the new value so the user can see the toggle landed even if
-      // their terminal lacks a Nerd Font (the prepended glyphs would render
-      // as tofu boxes — without a status line they'd look like noise).
-      const next = glyphs === "nerd-font" ? "off" : "nerd-font";
+      // Surface the new value so the user can see the toggle landed
+      // even if their terminal lacks a Nerd Font.
       setStatusMessage(`glyphs: ${next}`);
       return;
     }
@@ -321,6 +372,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
           entries: widgetEntries,
           highlight: stepHighlight,
           glyphs,
+          exclude: usedTypes,
         })
       : null,
     state.mode === "picker-widget" && state.pickerDraft.category
@@ -329,6 +381,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
           entries: widgetEntries,
           query: stepQuery,
           highlight: stepHighlight,
+          exclude: usedTypes,
         })
       : null,
     state.mode === "picker-variant" && state.pickerDraft.widgetType
@@ -441,6 +494,7 @@ function mountEditor(
   path: string,
   previewTheme: Theme | null,
   glyphs: EditorGlyphs,
+  nerdFontAvailable: boolean,
 ): {
   readonly waitUntilExit: Promise<void>;
   readonly unmount: () => void;
@@ -454,6 +508,7 @@ function mountEditor(
       path,
       previewTheme,
       glyphs,
+      nerdFontAvailable,
       onSaved: (saved) => {
         savedRef.value = saved;
       },
