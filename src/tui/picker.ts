@@ -16,6 +16,7 @@ import React from "react";
 
 import { previewWidget } from "../render/preview-fixture.js";
 import {
+  CATEGORY_COLOR,
   WIDGET_CATEGORIES,
   widgetVariants,
   type WidgetCategory,
@@ -25,21 +26,7 @@ import {
 
 import type { EditorGlyphs } from "./glyphs.js";
 
-/**
- * Per-category accent colour for the picker. Each group renders with its
- * own colour so the user can scan the list visually instead of relying on
- * the category label alone. Names match Ink's 8-colour palette so they
- * degrade cleanly on hosts without truecolor.
- */
-export const CATEGORY_COLOR: Readonly<Record<WidgetCategory, string>> = Object.freeze({
-  session: "blue",
-  tokens: "yellow",
-  context: "magenta",
-  "rate-limits": "red",
-  git: "green",
-  time: "cyan",
-  custom: "white",
-});
+export { CATEGORY_COLOR };
 
 /** How many rows the picker windows show at once. */
 export const PICKER_PAGE = 8;

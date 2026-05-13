@@ -175,18 +175,19 @@ describe("buildPreview", () => {
     expect(JSON.stringify(lines)).toBe(snapshot);
   });
 
-  it("widget slots carry the resolved colour (from the widget's Cell)", () => {
+  it("widget slots default to the category accent so chips match the picker", () => {
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
-      lines: [{ widgets: [{ type: "model" }] }],
+      lines: [{ widgets: [{ type: "model" }, { type: "git-branch" }, { type: "clock" }] }],
     });
-    const widget = rows[0]?.slots.find((s) => s.kind === "widget");
-    // `model` uses `resolveRole(theme, "accent")` — with `theme: null` it
-    // falls back to DEFAULT_PALETTE.accent (#7aa2f7).
-    expect(widget?.kind === "widget" && widget.fg).toBe("#7aa2f7");
+    const widgets = rows[0]?.slots.filter((s) => s.kind === "widget") ?? [];
+    // `model` ∈ session → blue, `git-branch` ∈ git → green, `clock` ∈ time → cyan.
+    if (widgets[0]?.kind === "widget") expect(widgets[0].fg).toBe("blue");
+    if (widgets[1]?.kind === "widget") expect(widgets[1].fg).toBe("green");
+    if (widgets[2]?.kind === "widget") expect(widgets[2].fg).toBe("cyan");
   });
 
-  it("widget overrides win over the widget's own Cell colours", () => {
+  it("widget overrides win over the category accent", () => {
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
       lines: [{ widgets: [{ type: "model", fg: "#ff0080" }] }],

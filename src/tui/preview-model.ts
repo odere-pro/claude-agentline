@@ -10,7 +10,10 @@
  * — it doesn't try to replicate `renderFromInputs`'s flex/Powerline byte
  * output. It does honour:
  *
- *   - real widget colours from the resolved theme (`renderWidget`'s output);
+ *   - per-category accent colours (`CATEGORY_COLOR`) so every widget chip
+ *     visually matches the group it belongs to in the picker; the user's
+ *     explicit `widget.fg` override still wins. The real statusline path
+ *     (`pipeline.ts`) is unaffected and keeps using the theme palette;
  *   - the same separator + padding the plain-mode composer uses
  *     (`config.global.separator`, `global.padding`, per-cell `merged`);
  *   - hidden widgets, which still appear as a dim navigable chip so a user
@@ -20,6 +23,7 @@
 
 import type { AgentlineConfig, LineConfig, WidgetConfig } from "../config/types.js";
 import { previewWidget } from "../render/preview-fixture.js";
+import { CATEGORY_COLOR, widgetMeta } from "../widgets/catalog.js";
 import type { Cell } from "../widgets/cell.js";
 
 /** A single drawable in a preview row. */
@@ -90,6 +94,13 @@ function buildRow(line: number, row: LineConfig, base: AgentlineConfig): Preview
  * decorative chip text (`[hidden:type]`, `[type: no data]`) treated
  * those cases as their own demo string, which is not a real demonstration
  * of what the widget renders.
+ *
+ * The slot's foreground colour is the widget's category accent
+ * (`CATEGORY_COLOR`) by default, so every chip in the preview matches
+ * the group it belongs to in the picker. User overrides on the widget
+ * itself (`widget.fg`) still win; widgets whose `type` is unknown to
+ * the catalogue (custom registrations) fall back to the cell's own
+ * theme-resolved colour.
  */
 function renderSlot(
   widget: WidgetConfig,
@@ -116,11 +127,14 @@ function renderSlot(
       hidden: true,
     };
   }
+  const meta = widgetMeta(widget.type);
+  const accent = meta ? CATEGORY_COLOR[meta.category] : undefined;
+  const resolvedFg = widget.fg ?? accent ?? (cell.fg as string | undefined);
   return {
     kind: "widget",
     widgetIndex: idx,
     text: cell.text,
-    ...(widget.fg ? { fg: widget.fg } : cell.fg ? { fg: cell.fg as string } : {}),
+    ...(resolvedFg ? { fg: resolvedFg } : {}),
     ...(widget.bg ? { bg: widget.bg } : cell.bg ? { bg: cell.bg as string } : {}),
     ...((widget.bold ?? cell.bold) ? { bold: true } : {}),
     ...((widget.italic ?? cell.italic) ? { italic: true } : {}),
