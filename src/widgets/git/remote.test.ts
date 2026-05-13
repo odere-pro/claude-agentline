@@ -33,6 +33,7 @@ function makeSnapshot(overrides: Partial<GitSnapshot> = {}): GitSnapshot {
     upstreamRemote: null,
     worktreeName: null,
     inWorktree: false,
+    pr: null,
     ...overrides,
   });
 }

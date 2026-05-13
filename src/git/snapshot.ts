@@ -21,6 +21,7 @@ import {
   type RemoteRef,
   type Shortstat,
 } from "./parse.js";
+import { loadPullRequest, type GitPullRequestInfo } from "./pr.js";
 
 export interface GitSnapshot {
   readonly available: true;
@@ -40,6 +41,14 @@ export interface GitSnapshot {
   readonly upstreamRemote: RemoteRef | null;
   readonly worktreeName: string | null;
   readonly inWorktree: boolean;
+  /**
+   * PR metadata for HEAD's branch. Populated only when the snapshot
+   * loader was called with `allowPullRequest: true` (opt-in) and the
+   * `gh` CLI returned a PR. `null` everywhere else: opt-out, no `gh`,
+   * no PR, network failure. The `git-pr` widget reads this field and
+   * hides cleanly when it's null.
+   */
+  readonly pr: GitPullRequestInfo | null;
 }
 
 export interface GitUnavailable {
@@ -52,6 +61,17 @@ export interface LoadGitSnapshotInput {
   readonly cwd: string | undefined;
   readonly env?: NodeJS.ProcessEnv;
   readonly timeoutMs?: number;
+  /**
+   * When `true`, the loader additionally invokes `gh pr view` to
+   * populate `snapshot.pr`. Defaults to `false` so the render hot
+   * path and any incidental `loadGitSnapshot` caller stays free of
+   * outbound `gh` calls. Callers that opt in (e.g. a future scan
+   * detecting a `git-pr` widget on the configured lines) accept the
+   * latency and silent-failure semantics documented in `pr.ts`.
+   */
+  readonly allowPullRequest?: boolean;
+  /** Timeout for the `gh` lookup; defaults to `pr.ts`'s built-in. */
+  readonly pullRequestTimeoutMs?: number;
 }
 
 export function loadGitSnapshot(input: LoadGitSnapshotInput): GitState {
@@ -97,6 +117,16 @@ export function loadGitSnapshot(input: LoadGitSnapshotInput): GitState {
     }
   }
 
+  const pr = input.allowPullRequest
+    ? loadPullRequest({
+        cwd: input.cwd,
+        ...(input.env !== undefined ? { env: input.env } : {}),
+        ...(input.pullRequestTimeoutMs !== undefined
+          ? { timeoutMs: input.pullRequestTimeoutMs }
+          : {}),
+      })
+    : null;
+
   return Object.freeze({
     available: true,
     cwd: input.cwd,
@@ -113,5 +143,6 @@ export function loadGitSnapshot(input: LoadGitSnapshotInput): GitState {
     upstreamRemote,
     worktreeName,
     inWorktree,
+    pr,
   });
 }

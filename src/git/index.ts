@@ -25,3 +25,9 @@ export {
   type GitUnavailable,
   type LoadGitSnapshotInput,
 } from "./snapshot.js";
+export {
+  loadPullRequest,
+  parsePullRequestJson,
+  type GitPullRequestInfo,
+  type LoadPullRequestOptions,
+} from "./pr.js";

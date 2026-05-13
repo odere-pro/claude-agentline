@@ -112,6 +112,11 @@ export const demoGit: GitState = Object.freeze({
   upstreamRemote: null,
   worktreeName: null,
   inWorktree: false,
+  pr: Object.freeze({
+    number: 42,
+    url: "https://github.com/agentline/agentline/pull/42",
+    title: "demo: example pull request",
+  }),
 });
 
 export interface DemoOptions {
