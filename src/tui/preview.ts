@@ -16,6 +16,7 @@ import React from "react";
 
 import type { AgentlineConfig, LineConfig } from "../config/types.js";
 import { previewStatusline } from "../render/demo-fixture.js";
+import type { Theme } from "../theme/index.js";
 
 export interface PreviewProps {
   /** The full loaded config — everything except `lines` is taken from here. */
@@ -24,6 +25,12 @@ export interface PreviewProps {
   readonly lines: readonly LineConfig[];
   /** Terminal width to compose against; defaults to a roomy 120. */
   readonly width?: number;
+  /**
+   * Resolved theme to colour the preview with. The editor resolves
+   * `base.theme` once at startup and threads it through; pass `null` (the
+   * default) to render uncoloured.
+   */
+  readonly theme?: Theme | null;
 }
 
 /** Compose the preview string for the given edit state. */
@@ -32,7 +39,15 @@ export function previewLines(props: PreviewProps): readonly string[] {
     ...props.base,
     lines: props.lines.map((line) => ({ widgets: line.widgets.map((w) => ({ ...w })) })),
   };
-  const opts = props.width !== undefined ? { width: props.width } : {};
+  const opts = {
+    ...(props.width !== undefined ? { width: props.width } : {}),
+    ...(props.theme !== undefined ? { theme: props.theme } : {}),
+    // The preview ought to look like the real bin in this terminal; pass
+    // `process.env` so colour-depth and glyph-support detection match the
+    // user's host. Single-Cell previews keep the deterministic `env: {}`
+    // default in `demoRenderInputs`.
+    env: process.env,
+  };
   // `renderFromInputs` joins the rendered lines with "\n" and appends a
   // trailing newline; drop it so an N-line config yields exactly N rows.
   // An all-empty config still yields one (empty) row to keep the box height

@@ -119,6 +119,12 @@ export interface DemoOptions {
   readonly theme?: Theme | null;
   /** Terminal width for line composition; defaults to a roomy 120. */
   readonly width?: number;
+  /**
+   * Env used for colour-depth and glyph-support detection. Defaults to `{}`
+   * so single-Cell previews and tests stay deterministic; the editor's live
+   * preview passes `process.env` so its colours match the user's terminal.
+   */
+  readonly env?: NodeJS.ProcessEnv;
 }
 
 /** Assemble `RenderInputs` for the demo session against a caller-supplied config. */
@@ -128,7 +134,7 @@ export function demoRenderInputs(config: AgentlineConfig, opts: DemoOptions = {}
     config,
     theme: opts.theme ?? null,
     clock: demoClock(),
-    env: {},
+    env: opts.env ?? {},
     width: opts.width ?? 120,
     flags: { noColor: false, noUnicode: false },
     tokens: demoTokens,

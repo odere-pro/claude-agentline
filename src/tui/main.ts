@@ -23,6 +23,8 @@ import { resolveConfigPaths } from "../config/paths.js";
 import type { AgentlineConfig } from "../config/types.js";
 import { listBindings, type KeyBinding } from "../keys/index.js";
 import { resolveEnv } from "../lib/env.js";
+import type { Theme } from "../theme/index.js";
+import { resolveConfiguredTheme } from "../theme/resolve.js";
 
 import { defaultRegistry, registerAllBuiltins, type WidgetMetaEntry } from "../widgets/index.js";
 
@@ -58,7 +60,12 @@ export interface RunConfigResult {
 
 export async function runConfigCommand(input: RunConfigInput = {}): Promise<RunConfigResult> {
   const { config, path } = await resolveStartingConfig(input);
-  const { waitUntilExit, unmount, savedRef } = mountEditor(config, path);
+  // Resolve `config.theme` once at startup so the live preview matches what
+  // the real statusline renders. Themes don't change during an edit session,
+  // so a single async resolve is enough; widgets re-read `theme` from props
+  // on every render.
+  const previewTheme = await resolveConfiguredTheme(config.theme, { env: resolveEnv(input) });
+  const { waitUntilExit, unmount, savedRef } = mountEditor(config, path, previewTheme);
   await waitUntilExit;
   unmount();
   return { saved: savedRef.value, path };
@@ -67,6 +74,7 @@ export async function runConfigCommand(input: RunConfigInput = {}): Promise<RunC
 interface AppProps {
   readonly initialConfig: AgentlineConfig;
   readonly path: string;
+  readonly previewTheme: Theme | null;
   readonly onSaved: (saved: boolean) => void;
 }
 
@@ -74,7 +82,7 @@ function reducerWithLog(state: EditorState, action: EditorAction): EditorState {
   return reduce(state, action);
 }
 
-function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
+function App({ initialConfig, path, previewTheme, onSaved }: AppProps): React.ReactElement {
   const { exit } = useApp();
   const [state, dispatch] = useReducer(reducerWithLog, initialConfig.lines, (lines) =>
     initialState(lines),
@@ -184,7 +192,12 @@ function App({ initialConfig, path, onSaved }: AppProps): React.ReactElement {
     React.createElement(
       Box,
       { marginTop: 1 },
-      React.createElement(Preview, { base: initialConfig, lines: state.lines, width: previewWidth() }),
+      React.createElement(Preview, {
+        base: initialConfig,
+        lines: state.lines,
+        width: previewWidth(),
+        theme: previewTheme,
+      }),
     ),
     React.createElement(Box, { flexDirection: "column", marginTop: 1 }, ...renderWidgets(state)),
     React.createElement(Box, { marginTop: 1 }, React.createElement(Text, { dimColor: true }, footerText(bindings, state.mode))),
@@ -320,7 +333,11 @@ function footerText(bindings: readonly KeyBinding[], mode: KeyBinding["scope"]):
     .join(" · ");
 }
 
-function mountEditor(config: AgentlineConfig, path: string): {
+function mountEditor(
+  config: AgentlineConfig,
+  path: string,
+  previewTheme: Theme | null,
+): {
   readonly waitUntilExit: Promise<void>;
   readonly unmount: () => void;
   readonly savedRef: { value: boolean };
@@ -330,6 +347,7 @@ function mountEditor(config: AgentlineConfig, path: string): {
     React.createElement(App, {
       initialConfig: config,
       path,
+      previewTheme,
       onSaved: (saved) => {
         savedRef.value = saved;
       },
