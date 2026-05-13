@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { WIDGET_CATALOG, WIDGET_CATEGORIES, widgetMeta } from "./catalog.js";
+import {
+  WIDGET_CATALOG,
+  WIDGET_CATEGORIES,
+  activeVariantId,
+  widgetMeta,
+  widgetVariants,
+} from "./catalog.js";
 import { registerAllBuiltins } from "./index.js";
 import { WidgetRegistry } from "./registry.js";
 
@@ -52,7 +58,7 @@ describe("WIDGET_CATALOG", () => {
 });
 
 describe("widgetMeta", () => {
-  it("returns the entry for a known type", () => {
+  it("returns the entry for a known type without variants", () => {
     expect(widgetMeta("git-branch")).toEqual({
       name: "Git branch",
       description: "Current branch, or short SHA when detached",
@@ -62,6 +68,62 @@ describe("widgetMeta", () => {
 
   it("returns undefined for an unknown type", () => {
     expect(widgetMeta("does-not-exist")).toBeUndefined();
+  });
+});
+
+describe("WIDGET_CATALOG — variants", () => {
+  it("declares variants for widgets that branch on an option (skills/usage/clock/timers/uptime/account-email/vim-mode)", () => {
+    expect(widgetVariants("skills").map((v) => v.id)).toEqual(["count", "list", "last"]);
+    expect(widgetVariants("session-usage").map((v) => v.id)).toEqual(["percent", "bar", "short-bar"]);
+    expect(widgetVariants("weekly-usage").map((v) => v.id)).toEqual(["percent", "bar", "short-bar"]);
+    expect(widgetVariants("vim-mode").map((v) => v.id)).toEqual(["long", "short", "bracket"]);
+    expect(widgetVariants("account-email").map((v) => v.id)).toEqual(["full", "domain", "localpart"]);
+    expect(widgetVariants("block-timer").map((v) => v.id)).toEqual(["short", "long", "clock"]);
+    expect(widgetVariants("block-reset-timer").map((v) => v.id)).toEqual(["short", "long", "clock"]);
+    expect(widgetVariants("weekly-reset-timer").map((v) => v.id)).toEqual(["short", "long", "clock"]);
+    expect(widgetVariants("uptime-session").map((v) => v.id)).toEqual(["short", "long", "clock"]);
+    expect(widgetVariants("uptime-block").map((v) => v.id)).toEqual(["short", "long", "clock"]);
+    expect(widgetVariants("clock").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("widgets without distinct rendering modes carry no variants", () => {
+    expect(widgetVariants("git-branch")).toEqual([]);
+    expect(widgetVariants("model")).toEqual([]);
+    expect(widgetVariants("context-length")).toEqual([]);
+    expect(widgetVariants("does-not-exist")).toEqual([]);
+  });
+
+  it("variant ids are unique within a widget and every variant has a non-empty label", () => {
+    for (const [type, meta] of Object.entries(WIDGET_CATALOG)) {
+      const variants = meta.variants ?? [];
+      const ids = variants.map((v) => v.id);
+      expect(new Set(ids).size, `${type}: duplicate variant ids`).toBe(ids.length);
+      for (const variant of variants) {
+        expect(variant.id.trim().length, `${type}/${variant.id}: id`).toBeGreaterThan(0);
+        expect(variant.label.trim().length, `${type}/${variant.id}: label`).toBeGreaterThan(0);
+        expect(Object.isFrozen(variant.options), `${type}/${variant.id}: options frozen`).toBe(true);
+      }
+    }
+  });
+});
+
+describe("activeVariantId", () => {
+  it("recognises the active variant from a widget's options", () => {
+    expect(activeVariantId("skills", { variant: "list" })).toBe("list");
+    expect(activeVariantId("skills", { variant: "count" })).toBe("count");
+    expect(activeVariantId("session-usage", { display: "bar" })).toBe("bar");
+    expect(activeVariantId("vim-mode", { format: "short" })).toBe("short");
+    expect(activeVariantId("clock", { format: "%H:%M" })).toBe("time-24h");
+  });
+
+  it("ignores extra keys when matching (variant only constrains the keys it declares)", () => {
+    expect(activeVariantId("session-usage", { display: "bar", barWidth: 8 })).toBe("bar");
+  });
+
+  it("returns null when no variant matches", () => {
+    expect(activeVariantId("skills", { variant: "weird" })).toBeNull();
+    expect(activeVariantId("skills", undefined)).toBeNull(); // no variant key set
+    expect(activeVariantId("git-branch", {})).toBeNull(); // no variants defined
   });
 });
 

@@ -1,7 +1,7 @@
 /**
- * Tests for the widget picker overlay. The filtering / selection logic is
- * pure and tested directly; the Ink `Picker` component is exercised with
- * Ink mocked so no TTY is needed.
+ * Tests for the three-step widget picker. The filtering / selection helpers
+ * are pure and tested directly; the Ink components are exercised with Ink
+ * mocked so no TTY is needed.
  */
 import { describe, expect, it, vi } from "vitest";
 
@@ -11,62 +11,131 @@ vi.mock("ink", () => {
 });
 
 import type { WidgetMetaEntry } from "../widgets/index.js";
-import { Picker, PICKER_PAGE, filterWidgets, selectedEntry } from "./picker.js";
 
-const entries: readonly WidgetMetaEntry[] = [
-  { type: "git-branch", name: "Git branch", description: "Current branch", category: "git" },
-  { type: "git-changes", name: "Git changes", description: "File counts", category: "git" },
-  { type: "model", name: "Model", description: "Active model id", category: "session" },
-  { type: "clock", name: "Clock", description: "Wall-clock time", category: "time" },
-  { type: "tokens-total", name: "Tokens (total)", description: "Token total", category: "tokens" },
+import { pickGlyphs } from "./glyphs.js";
+import {
+  PICKER_PAGE,
+  PickerGroup,
+  PickerVariant,
+  PickerWidget,
+  categoriesWithWidgets,
+  filterWidgets,
+  selectedAt,
+  selectedEntry,
+  variantRows,
+  widgetsInCategory,
+} from "./picker.js";
+
+const ENTRIES: readonly WidgetMetaEntry[] = [
+  { type: "git-branch", name: "Git branch", description: "branch", category: "git" },
+  { type: "git-changes", name: "Git changes", description: "changes", category: "git" },
+  { type: "model", name: "Model", description: "model id", category: "session" },
+  { type: "skills", name: "Skills", description: "skills attached", category: "session" },
+  { type: "clock", name: "Clock", description: "wall-clock", category: "time" },
 ];
 
-describe("filterWidgets", () => {
-  it("returns everything for an empty / whitespace query", () => {
-    expect(filterWidgets(entries, "")).toBe(entries);
-    expect(filterWidgets(entries, "   ")).toBe(entries);
+const GLYPHS = pickGlyphs({ unicode: true });
+
+describe("categoriesWithWidgets", () => {
+  it("lists every category that has ≥1 widget, in catalogue order", () => {
+    expect(categoriesWithWidgets(ENTRIES)).toEqual(["session", "git", "time"]);
   });
 
-  it("matches the query as a case-insensitive substring of type or name", () => {
-    expect(filterWidgets(entries, "git").map((e) => e.type)).toEqual(["git-branch", "git-changes"]);
-    expect(filterWidgets(entries, "MODEL").map((e) => e.type)).toEqual(["model"]);
-    expect(filterWidgets(entries, "total").map((e) => e.type)).toEqual(["tokens-total"]);
-  });
-
-  it("returns nothing when no widget matches", () => {
-    expect(filterWidgets(entries, "zzz")).toEqual([]);
+  it("returns empty when no entries are present", () => {
+    expect(categoriesWithWidgets([])).toEqual([]);
   });
 });
 
-describe("selectedEntry", () => {
-  it("returns the highlighted entry within the filtered list", () => {
-    expect(selectedEntry(entries, "git", 1)?.type).toBe("git-changes");
-    expect(selectedEntry(entries, "", 2)?.type).toBe("model");
+describe("widgetsInCategory", () => {
+  it("scopes to the given category and substring-filters", () => {
+    expect(widgetsInCategory(ENTRIES, "git", "").map((e) => e.type)).toEqual([
+      "git-branch",
+      "git-changes",
+    ]);
+    expect(widgetsInCategory(ENTRIES, "git", "BRANCH").map((e) => e.type)).toEqual(["git-branch"]);
+    expect(widgetsInCategory(ENTRIES, "session", "skills").map((e) => e.type)).toEqual(["skills"]);
   });
 
-  it("clamps the highlight to the bounds of the filtered list", () => {
-    expect(selectedEntry(entries, "git", 99)?.type).toBe("git-changes");
-    expect(selectedEntry(entries, "git", -5)?.type).toBe("git-branch");
-  });
-
-  it("returns undefined when nothing matches", () => {
-    expect(selectedEntry(entries, "zzz", 0)).toBeUndefined();
+  it("returns empty when nothing matches", () => {
+    expect(widgetsInCategory(ENTRIES, "git", "zzz")).toEqual([]);
   });
 });
 
-describe("Picker", () => {
-  it("renders a React element with the given title", () => {
-    const node = Picker({ title: "Insert a widget", entries, query: "", highlight: 0 });
-    expect(node).toBeTruthy();
-    expect(node).toHaveProperty("props");
+describe("variantRows", () => {
+  it('prefixes a "Default options" synthetic row in fresh mode', () => {
+    const rows = variantRows("skills", "fresh");
+    expect(rows[0]).toEqual({ id: null, label: "Default options" });
+    expect(rows.slice(1).map((r) => r.id)).toEqual(["count", "list", "last"]);
   });
 
-  it("never throws — even with no matches or an out-of-range highlight", () => {
-    expect(() => Picker({ title: "x", entries, query: "zzz", highlight: 3 })).not.toThrow();
-    expect(() => Picker({ title: "x", entries, query: "", highlight: 999 })).not.toThrow();
+  it('prefixes a "Keep current options" synthetic row in update mode', () => {
+    const rows = variantRows("skills", "update");
+    expect(rows[0]).toEqual({ id: null, label: "Keep current options" });
   });
 
-  it("exposes a sane page size", () => {
+  it("widgets without variants get just the synthetic row", () => {
+    expect(variantRows("git-branch", "fresh")).toEqual([{ id: null, label: "Default options" }]);
+  });
+});
+
+describe("selectedAt", () => {
+  it("returns the highlighted row, clamping to bounds", () => {
+    expect(selectedAt([1, 2, 3], 1)).toBe(2);
+    expect(selectedAt([1, 2, 3], -5)).toBe(1);
+    expect(selectedAt([1, 2, 3], 99)).toBe(3);
+  });
+
+  it("returns undefined on empty input", () => {
+    expect(selectedAt<number>([], 0)).toBeUndefined();
+  });
+});
+
+describe("filterWidgets / selectedEntry (legacy)", () => {
+  it("filterWidgets still substring-matches over name and type", () => {
+    expect(filterWidgets(ENTRIES, "git").map((e) => e.type)).toEqual([
+      "git-branch",
+      "git-changes",
+    ]);
+  });
+
+  it("selectedEntry returns the highlighted entry within the filtered list", () => {
+    expect(selectedEntry(ENTRIES, "git", 1)?.type).toBe("git-changes");
+    expect(selectedEntry(ENTRIES, "zzz", 0)).toBeUndefined();
+  });
+});
+
+describe("PICKER_PAGE", () => {
+  it("is a positive integer", () => {
     expect(PICKER_PAGE).toBeGreaterThan(0);
+    expect(Number.isInteger(PICKER_PAGE)).toBe(true);
+  });
+});
+
+describe("Picker components — smoke", () => {
+  it("PickerGroup renders without throwing", () => {
+    expect(() =>
+      PickerGroup({ entries: ENTRIES, highlight: 0, glyphs: GLYPHS }),
+    ).not.toThrow();
+  });
+
+  it("PickerWidget renders without throwing, even with an out-of-range highlight", () => {
+    expect(() =>
+      PickerWidget({ category: "git", entries: ENTRIES, query: "", highlight: 99 }),
+    ).not.toThrow();
+  });
+
+  it("PickerWidget renders gracefully when nothing matches", () => {
+    expect(() =>
+      PickerWidget({ category: "git", entries: ENTRIES, query: "zzz", highlight: 0 }),
+    ).not.toThrow();
+  });
+
+  it("PickerVariant renders for a widget with variants and one without", () => {
+    expect(() =>
+      PickerVariant({ widgetType: "skills", mode: "fresh", highlight: 0 }),
+    ).not.toThrow();
+    expect(() =>
+      PickerVariant({ widgetType: "git-branch", mode: "update", highlight: 0 }),
+    ).not.toThrow();
   });
 });

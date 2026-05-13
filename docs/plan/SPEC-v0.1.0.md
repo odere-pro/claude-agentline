@@ -364,31 +364,36 @@ Roles consumed by built-in widgets are listed in §7.9. A widget without an expl
 
 The TUI editor (`agentline config`) renders a key footer (the active scope) and a help overlay (`?`, every binding). Default keymap (override-able via `config.keymap`):
 
-| Key      | Scope   | Action                                           |
-| -------- | ------- | ------------------------------------------------ |
-| `← →`    | edit    | move the selection within the row                |
-| `↑ ↓`    | edit    | move the selection to the adjacent row           |
-| `⇧← ⇧→`  | edit    | move the selected widget within its row          |
-| `⇧↑ ⇧↓`  | edit    | move the selected widget to the adjacent row     |
-| `a`      | edit    | add a widget (opens the picker)                  |
-| `r`      | edit    | replace the selected widget (opens the picker)   |
-| `x`      | edit    | delete the selected widget                       |
-| `o`      | edit    | open the selected widget's options sheet         |
-| `S`      | edit    | save                                             |
-| `(type)` | picker  | type to filter widgets by name or type           |
-| `↑ ↓`    | picker  | highlight a widget                               |
-| `↵`      | picker  | insert / replace with the highlighted widget     |
-| `Esc`    | picker  | close the picker                                 |
-| `v`      | options | show / hide the widget                           |
-| `l`      | options | show / hide the widget's own label               |
-| `m`      | options | spacing to neighbour: full / single space / none |
-| `Esc`    | options | close the options sheet                          |
-| `q`      | any     | quit (prompts if there are unsaved changes)      |
-| `?`      | any     | toggle the help overlay                          |
+| Key      | Scope   | Action                                                            |
+| -------- | ------- | ----------------------------------------------------------------- |
+| `← →`    | edit    | move the selection within the row (incl. the trailing +add cell)  |
+| `↑ ↓`    | edit    | move the selection between rows                                   |
+| `⇧← ⇧→`  | edit    | move the selected widget within its row                           |
+| `⇧↑ ⇧↓`  | edit    | move the selected widget to the adjacent row                      |
+| `↵`      | edit    | +add cell → open the picker; on a widget → open the options sheet |
+| `a`      | edit    | add a widget (opens the picker)                                   |
+| `r`      | edit    | replace the selected widget (opens the picker)                    |
+| `u`      | edit    | update — pick a different variant of the selected widget          |
+| `d`      | edit    | delete the selected widget                                        |
+| `o`      | edit    | open the selected widget's options sheet                          |
+| `S`      | edit    | save (Ctrl+S also works)                                          |
+| `(type)` | picker  | type to filter widgets by name or type (step 2)                   |
+| `↑ ↓`    | picker  | highlight a row                                                   |
+| `↵`      | picker  | confirm the highlighted row and advance / commit                  |
+| `Esc`    | picker  | step back one level (cancels at step 1)                           |
+| `v`      | options | show / hide the widget                                            |
+| `l`      | options | show / hide the widget's own label                                |
+| `m`      | options | spacing to neighbour: full / single space / none                  |
+| `Esc`    | options | close the options sheet                                           |
+| `q`      | any     | quit (prompts if there are unsaved changes)                       |
+| `?`      | any     | toggle the help overlay                                           |
 
-Scopes mirror the editor's modes — `edit` (the layout view), `picker` (the
-widget chooser), `options` (the per-widget options sheet). `agentline config
-keys [--json]` enumerates every binding with its scope.
+Scopes mirror the editor's modes — `edit` (the live preview is the editing
+surface — every row ends in a navigable "+ add widget" cell), `picker` (the
+three-step widget chooser: pick a group → pick a widget → pick a variant;
+widgets without catalogued variants skip step 3 and commit straight from
+step 2), `options` (the per-widget options sheet). `agentline config keys
+[--json]` enumerates every binding with its scope.
 
 ### 5.6 Theme presets shipped at v0.1.0
 

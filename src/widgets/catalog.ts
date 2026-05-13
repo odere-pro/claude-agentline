@@ -27,6 +27,23 @@ export const WIDGET_CATEGORIES = [
 
 export type WidgetCategory = (typeof WIDGET_CATEGORIES)[number];
 
+/**
+ * A *variant* is a named alternative way a single widget can render itself —
+ * the same data shown differently. Skills can show a count, a list, or just
+ * the last entry. Session-usage can show a percent, a long bar, or a short
+ * one. The variant's `options` is a patch merged into `WidgetConfig.options`
+ * when the user picks it; widgets without distinct rendering modes carry no
+ * variants and the picker skips that step.
+ */
+export interface WidgetVariant {
+  /** Stable identifier — e.g. "count", "bar", "short-bar". */
+  readonly id: string;
+  /** Human label for the picker. */
+  readonly label: string;
+  /** Patch merged into `WidgetConfig.options` on pick. */
+  readonly options: Readonly<Record<string, unknown>>;
+}
+
 export interface WidgetMeta {
   /** Human label, e.g. "Git branch". */
   readonly name: string;
@@ -40,6 +57,12 @@ export interface WidgetMeta {
    * shared demo context".
    */
   readonly previewFixture?: string;
+  /**
+   * Named alternative rendering modes for this widget. Omit (or empty) when
+   * the widget has only one rendering. The editor surfaces these in step 3
+   * of the picker and as the targets of the `u` (update) verb.
+   */
+  readonly variants?: readonly WidgetVariant[];
 }
 
 /** A catalogue entry paired with the `type` it describes. */
@@ -49,8 +72,22 @@ function entry(
   name: string,
   description: string,
   category: WidgetCategory,
+  variants?: readonly WidgetVariant[],
 ): WidgetMeta {
+  if (variants !== undefined) {
+    return Object.freeze({
+      name,
+      description,
+      category,
+      variants: Object.freeze(variants.map((v) => Object.freeze({ ...v, options: Object.freeze({ ...v.options }) }))),
+    });
+  }
   return Object.freeze({ name, description, category });
+}
+
+/** Variants declared in code, by widget type. Keeps the catalogue table compact. */
+function v(id: string, label: string, options: Readonly<Record<string, unknown>>): WidgetVariant {
+  return { id, label, options };
 }
 
 /** Canonical metadata for every built-in widget, keyed by `type`. */
@@ -61,7 +98,11 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freez
   "output-style": entry("Output style", "Active output style", "session"),
   "session-id": entry("Session id", "Short session id", "session"),
   "session-name": entry("Session name", "Session name, or the short id when unset", "session"),
-  "account-email": entry("Account email", "Logged-in account email", "session"),
+  "account-email": entry("Account email", "Logged-in account email", "session", [
+    v("full", "Full address", { mask: "none" }),
+    v("domain", "Domain only (@example.com)", { mask: "domain" }),
+    v("localpart", "Local part only (user)", { mask: "localpart" }),
+  ]),
   "login-method": entry("Login method", "Auth method: oauth, api-key, or device", "session"),
   org: entry("Organisation", "Active organisation name", "session"),
   "thinking-effort": entry(
@@ -69,9 +110,21 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freez
     "Thinking-effort tier: low, medium, or high",
     "session",
   ),
-  "vim-mode": entry("Vim mode", "Current vim mode when vim keybindings are active", "session"),
-  skills: entry("Skills", "Skills attached to the session", "session"),
-
+  "vim-mode": entry(
+    "Vim mode",
+    "Current vim mode when vim keybindings are active",
+    "session",
+    [
+      v("long", "Long (NORMAL / INSERT / VISUAL)", { format: "long" }),
+      v("short", "Short (N / I / V)", { format: "short" }),
+      v("bracket", "Bracketed ([N] / [I] / [V])", { format: "bracket" }),
+    ],
+  ),
+  skills: entry("Skills", "Skills attached to the session", "session", [
+    v("count", "Count (just the number)", { variant: "count" }),
+    v("list", "List (comma-joined)", { variant: "list" }),
+    v("last", "Last (most recent only)", { variant: "last" }),
+  ]),
   // Tokens & cost (8)
   "tokens-total": entry("Tokens (total)", "Running token total for the chosen reset axis", "tokens"),
   "tokens-input": entry("Tokens (input)", "Input-token subtotal for the chosen reset axis", "tokens"),
@@ -105,22 +158,46 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freez
     "Session usage",
     "Percentage of the session quota consumed",
     "rate-limits",
+    [
+      v("percent", "Percent (65%)", { display: "percent" }),
+      v("bar", "Bar (12 cells)", { display: "bar" }),
+      v("short-bar", "Short bar (6 cells)", { display: "short-bar" }),
+    ],
   ),
-  "weekly-usage": entry("Weekly usage", "Percentage of the weekly quota consumed", "rate-limits"),
+  "weekly-usage": entry("Weekly usage", "Percentage of the weekly quota consumed", "rate-limits", [
+    v("percent", "Percent (65%)", { display: "percent" }),
+    v("bar", "Bar (12 cells)", { display: "bar" }),
+    v("short-bar", "Short bar (6 cells)", { display: "short-bar" }),
+  ]),
   "block-timer": entry(
     "Block timer",
     "Time elapsed in the active conversation block",
     "rate-limits",
+    [
+      v("short", "Short (1h 23m)", { format: "short" }),
+      v("long", "Long (1 hour 23 minutes)", { format: "long" }),
+      v("clock", "Clock (01:23:45)", { format: "clock" }),
+    ],
   ),
   "block-reset-timer": entry(
     "Block reset timer",
     "Time remaining until the next block resets",
     "rate-limits",
+    [
+      v("short", "Short (1h 23m)", { format: "short" }),
+      v("long", "Long (1 hour 23 minutes)", { format: "long" }),
+      v("clock", "Clock (01:23:45)", { format: "clock" }),
+    ],
   ),
   "weekly-reset-timer": entry(
     "Weekly reset timer",
     "Time remaining until the weekly quota resets",
     "rate-limits",
+    [
+      v("short", "Short (3d 4h)", { format: "short" }),
+      v("long", "Long (3 days 4 hours)", { format: "long" }),
+      v("clock", "Clock", { format: "clock" }),
+    ],
   ),
   "model-usage": entry("Usage by model", "Usage broken out by model id", "rate-limits"),
   "effort-usage": entry(
@@ -157,9 +234,28 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freez
   ),
 
   // Time (3)
-  clock: entry("Clock", "Wall-clock time; options.format accepts strftime", "time"),
-  "uptime-session": entry("Session uptime", "Uptime since the Claude Code session started", "time"),
-  "uptime-block": entry("Block uptime", "Uptime of the active conversation block", "time"),
+  clock: entry("Clock", "Wall-clock time; options.format accepts strftime", "time", [
+    v("time-24h", "24-hour (14:30)", { format: "%H:%M" }),
+    v("time-12h", "12-hour (2:30PM)", { format: "%I:%M%p" }),
+    v("seconds", "With seconds (14:30:45)", { format: "%H:%M:%S" }),
+    v("date", "Date (2026-05-13)", { format: "%Y-%m-%d" }),
+    v("datetime", "Date + time (2026-05-13 14:30)", { format: "%Y-%m-%d %H:%M" }),
+  ]),
+  "uptime-session": entry(
+    "Session uptime",
+    "Uptime since the Claude Code session started",
+    "time",
+    [
+      v("short", "Short (1h 23m)", { format: "short" }),
+      v("long", "Long (1 hour 23 minutes)", { format: "long" }),
+      v("clock", "Clock (01:23:45)", { format: "clock" }),
+    ],
+  ),
+  "uptime-block": entry("Block uptime", "Uptime of the active conversation block", "time", [
+    v("short", "Short (1h 23m)", { format: "short" }),
+    v("long", "Long (1 hour 23 minutes)", { format: "long" }),
+    v("clock", "Clock (01:23:45)", { format: "clock" }),
+  ]),
 
   // Layout / custom (3)
   separator: entry("Separator", "A single user-defined glyph (options.char)", "custom"),
@@ -174,4 +270,36 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freez
 /** Look up a widget's metadata by `type`. */
 export function widgetMeta(type: string): WidgetMeta | undefined {
   return WIDGET_CATALOG[type];
+}
+
+/** Variants for `type`, or an empty list when the widget has no variants. */
+export function widgetVariants(type: string): readonly WidgetVariant[] {
+  return WIDGET_CATALOG[type]?.variants ?? [];
+}
+
+/**
+ * Best-guess "which variant am I currently on?" given the widget's `options`.
+ * Match is by full-equality on every key the variant declares; partial matches
+ * (variant declares `{display:"bar"}`, current options is
+ * `{display:"bar", barWidth:8}`) still match. Returns `null` when no variant
+ * fits — e.g. options has been hand-edited away from any catalogued shape.
+ */
+export function activeVariantId(
+  type: string,
+  options: Readonly<Record<string, unknown>> | undefined,
+): string | null {
+  const variants = widgetVariants(type);
+  if (variants.length === 0) return null;
+  const opts = options ?? {};
+  for (const variant of variants) {
+    let match = true;
+    for (const [key, value] of Object.entries(variant.options)) {
+      if ((opts as Record<string, unknown>)[key] !== value) {
+        match = false;
+        break;
+      }
+    }
+    if (match) return variant.id;
+  }
+  return null;
 }

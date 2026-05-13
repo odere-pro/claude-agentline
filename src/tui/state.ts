@@ -11,9 +11,22 @@
  * padded to `MAX_LINES`). Each row has `N` real widget cells plus one
  * synthetic **add-cell** at column `N` (the "+ add widget" affordance the
  * user navigates onto and presses `Enter` to insert). The cursor's
- * `widget` index therefore ranges `0..widgets.length` inclusive; when it
- * equals `widgets.length` the add-cell is selected. `currentWidget`
- * returns `undefined` in that case.
+ * `widget` index ranges `0..widgets.length` inclusive; when it equals
+ * `widgets.length` the add-cell is selected. `currentWidget` returns
+ * `undefined` in that case.
+ *
+ * The picker drill-down
+ * ---------------------
+ * Add / replace / update share one drill-down:
+ *
+ *   step 1 — `picker-group`   — pick a category (`session`, `git`, …).
+ *   step 2 — `picker-widget`  — pick a widget within the chosen category.
+ *   step 3 — `picker-variant` — pick a variant (same widget, different
+ *                                rendering) — *skipped* when the widget
+ *                                has no `variants` in the catalogue.
+ *
+ * `update` is "step 3 only" — the variant of the already-selected
+ * widget; the first two steps are skipped (`pickerDraft` is pre-seeded).
  *
  * State shape
  * -----------
@@ -22,28 +35,43 @@
  *                    so the on-disk config stays clean.
  *   - `cursor`       selected `{ line, widget }`. `widget === widgets.length`
  *                    means the row's add-cell is selected.
- *   - `mode`         `"edit"` (the preview is the surface), `"picker"`
- *                    (the widget chooser is open), or `"options"` (the
- *                    per-widget options sheet is open).
- *   - `pickerTarget` while `mode === "picker"`, whether confirming
- *                    inserts a new widget or replaces the selected one.
+ *   - `mode`         `"edit"`, one of the three `picker-*` steps, or
+ *                    `"options"`.
+ *   - `pickerTarget` while a `picker-*` mode is active, what to do when
+ *                    the variant step confirms — `insert` at `(line,index)`,
+ *                    `replace` the widget at `(line,index)`, or `update`
+ *                    the variant of the widget at `(line,index)`.
+ *   - `pickerDraft`  the choices accumulated so far during the drill-down.
  *   - `dirty`        whether anything changed since the last save.
- *
- * Movement is two-axis: `move-cursor` slides the *selection* over the
- * `MAX_LINES × (N + 1)` grid (the +1 is the add-cell); `move-widget`
- * carries the *selected widget*, with the selection following it.
- * Widgets cannot move onto the add-cell column — it stays last.
  */
 
 import type { LineConfig, WidgetConfig } from "../config/types.js";
+import { widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
 
 type MergeMode = NonNullable<WidgetConfig["merged"]>;
 
 /** Hard cap on statusline rows the editor will create (mirrors `src/config/mutate.ts`). */
 export const MAX_LINES = 3;
 
-export type EditorMode = "edit" | "picker" | "options";
-export type PickerTarget = "insert" | "replace";
+export type EditorMode =
+  | "edit"
+  | "picker-group"
+  | "picker-widget"
+  | "picker-variant"
+  | "options";
+
+export type PickerTargetKind = "insert" | "replace" | "update";
+
+export interface PickerTarget {
+  readonly kind: PickerTargetKind;
+  readonly line: number;
+  readonly index: number;
+}
+
+export interface PickerDraft {
+  readonly category?: WidgetCategory;
+  readonly widgetType?: string;
+}
 
 export interface EditorCursor {
   readonly line: number;
@@ -56,6 +84,7 @@ export interface EditorState {
   readonly cursor: EditorCursor;
   readonly mode: EditorMode;
   readonly pickerTarget: PickerTarget;
+  readonly pickerDraft: PickerDraft;
   readonly dirty: boolean;
 }
 
@@ -64,17 +93,21 @@ export type EditorAction =
   | { readonly type: "move-cursor"; readonly dx?: number; readonly dy?: number }
   | { readonly type: "move-widget"; readonly dx?: number; readonly dy?: number }
   // ── structural edits ─────────────────────────────────────────────────────
-  | { readonly type: "add"; readonly widgetType: string }
   | { readonly type: "delete" }
   // ── widget toggles / options ─────────────────────────────────────────────
   | { readonly type: "toggle-hidden" }
   | { readonly type: "toggle-raw" }
   | { readonly type: "cycle-merge" }
   | { readonly type: "set-option"; readonly key: string; readonly value: unknown }
-  // ── overlay mode ─────────────────────────────────────────────────────────
-  | { readonly type: "open-picker"; readonly target: PickerTarget }
+  // ── picker drill-down (add / replace / update) ───────────────────────────
+  | { readonly type: "open-picker"; readonly intent: "add" | "replace" }
+  | { readonly type: "open-update" }
+  | { readonly type: "pick-category"; readonly category: WidgetCategory }
+  | { readonly type: "pick-widget"; readonly widgetType: string }
+  | { readonly type: "pick-variant"; readonly variantId: string | null }
+  | { readonly type: "picker-back" }
   | { readonly type: "close-picker" }
-  | { readonly type: "apply-picker"; readonly widgetType: string }
+  // ── options overlay ──────────────────────────────────────────────────────
   | { readonly type: "open-options" }
   | { readonly type: "close-options" }
   // ── dirty bookkeeping ────────────────────────────────────────────────────
@@ -93,14 +126,13 @@ function padToMaxLines(lines: readonly LineConfig[]): readonly LineConfig[] {
 
 export function initialState(lines: readonly LineConfig[]): EditorState {
   const padded = padToMaxLines(lines);
-  const first = padded[0]!; // padded length is always MAX_LINES
-  // Land on the first row's first widget when one exists; otherwise on its
-  // add-cell (column 0 == widgets.length when empty).
-  return Object.freeze({
+  const first = padded[0]!;
+  return Object.freeze<EditorState>({
     lines: padded,
     cursor: { line: 0, widget: first.widgets.length > 0 ? 0 : 0 },
     mode: "edit",
-    pickerTarget: "insert",
+    pickerTarget: { kind: "insert", line: 0, index: 0 },
+    pickerDraft: {},
     dirty: false,
   });
 }
@@ -111,8 +143,6 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
       return moveCursor(state, action.dx ?? 0, action.dy ?? 0);
     case "move-widget":
       return moveWidget(state, action.dx ?? 0, action.dy ?? 0);
-    case "add":
-      return insertWidget(state, action.widgetType);
     case "delete":
       return deleteWidget(state);
     case "toggle-hidden":
@@ -124,11 +154,19 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
     case "set-option":
       return setOption(state, action.key, action.value);
     case "open-picker":
-      return openPicker(state, action.target);
+      return openPicker(state, action.intent);
+    case "open-update":
+      return openUpdate(state);
+    case "pick-category":
+      return pickCategory(state, action.category);
+    case "pick-widget":
+      return pickWidget(state, action.widgetType);
+    case "pick-variant":
+      return pickVariant(state, action.variantId);
+    case "picker-back":
+      return pickerBack(state);
     case "close-picker":
-      return state.mode === "picker" ? { ...state, mode: "edit" } : state;
-    case "apply-picker":
-      return applyPicker(state, action.widgetType);
+      return isPickerMode(state.mode) ? backToEdit(state) : state;
     case "open-options":
       return currentWidget(state) ? { ...state, mode: "options" } : state;
     case "close-options":
@@ -163,8 +201,12 @@ export function isAddCell(state: EditorState): boolean {
 export function currentWidget(state: EditorState): WidgetConfig | undefined {
   const line = currentLine(state);
   if (!line) return undefined;
-  if (state.cursor.widget >= line.widgets.length) return undefined; // add-cell
+  if (state.cursor.widget >= line.widgets.length) return undefined;
   return line.widgets[state.cursor.widget];
+}
+
+export function isPickerMode(mode: EditorMode): boolean {
+  return mode === "picker-group" || mode === "picker-widget" || mode === "picker-variant";
 }
 
 // ─── movement ───────────────────────────────────────────────────────────────
@@ -173,9 +215,7 @@ function moveCursor(state: EditorState, dx: number, dy: number): EditorState {
   if (state.mode !== "edit") return state;
   const line = clamp(state.cursor.line + dy, 0, state.lines.length - 1);
   const count = widgetCountAt(state, line);
-  // Inclusive max — the add-cell sits at column `count`.
-  const maxCol = count;
-  // `dy` keeps the column where it can; `dx` slides within the row.
+  const maxCol = count; // inclusive — add-cell sits at column `count`
   const base = dy !== 0 ? state.cursor.widget : state.cursor.widget + dx;
   const widget = clamp(base, 0, maxCol);
   if (line === state.cursor.line && widget === state.cursor.widget) return state;
@@ -193,8 +233,6 @@ function shiftWithinRow(state: EditorState, dx: number): EditorState {
   const line = currentLine(state);
   if (!line) return state;
   const from = state.cursor.widget;
-  // Clamp to `widgets.length - 1` so a widget can never swap places with
-  // the add-cell — the add-cell is always last.
   const to = clamp(from + dx, 0, line.widgets.length - 1);
   if (to === from) return state;
   const widgets = [...line.widgets];
@@ -222,7 +260,7 @@ function shiftAcrossRows(state: EditorState, dir: -1 | 1): EditorState {
 
   const srcWidgets = [...source.widgets];
   srcWidgets.splice(movedAt, 1);
-  const dstWidgets = [...dest.widgets, moved]; // append before the destination add-cell
+  const dstWidgets = [...dest.widgets, moved];
   const insertAt = dest.widgets.length;
 
   let lines: readonly LineConfig[] = replaceLine(state.lines, fromLine, { widgets: srcWidgets });
@@ -232,30 +270,9 @@ function shiftAcrossRows(state: EditorState, dir: -1 | 1): EditorState {
 
 // ─── structural edits ───────────────────────────────────────────────────────
 
-function insertWidget(state: EditorState, widgetType: string): EditorState {
-  if (!widgetType) return state.mode === "edit" ? state : { ...state, mode: "edit" };
-  const lineIdx = state.cursor.line;
-  const line = lineAt(state, lineIdx) ?? { widgets: [] };
-  // From the add-cell ⇒ append at the end. From a widget ⇒ insert after it.
-  const onAdd = state.cursor.widget >= line.widgets.length;
-  const insertAt = onAdd ? line.widgets.length : state.cursor.widget + 1;
-  const widgets = [
-    ...line.widgets.slice(0, insertAt),
-    { type: widgetType },
-    ...line.widgets.slice(insertAt),
-  ];
-  return {
-    ...state,
-    lines: replaceLine(state.lines, lineIdx, { widgets }),
-    cursor: { line: lineIdx, widget: insertAt },
-    mode: "edit",
-    dirty: true,
-  };
-}
-
 function deleteWidget(state: EditorState): EditorState {
   const line = currentLine(state);
-  if (!line || state.cursor.widget >= line.widgets.length) return state; // add-cell
+  if (!line || state.cursor.widget >= line.widgets.length) return state;
   const widgets = [
     ...line.widgets.slice(0, state.cursor.widget),
     ...line.widgets.slice(state.cursor.widget + 1),
@@ -265,29 +282,187 @@ function deleteWidget(state: EditorState): EditorState {
     lines: replaceLine(state.lines, state.cursor.line, { widgets }),
     cursor: {
       line: state.cursor.line,
-      // Re-anchor onto the surviving column, clamping into the new row
-      // width — `widgets.length` is the add-cell when the row empties.
       widget: Math.min(state.cursor.widget, widgets.length),
     },
     dirty: true,
   };
 }
 
-// ─── overlay mode ───────────────────────────────────────────────────────────
+// ─── picker drill-down ──────────────────────────────────────────────────────
 
-function openPicker(state: EditorState, target: PickerTarget): EditorState {
-  const effective: PickerTarget =
-    target === "replace" && currentWidget(state) ? "replace" : "insert";
-  return { ...state, mode: "picker", pickerTarget: effective };
+function openPicker(state: EditorState, intent: "add" | "replace"): EditorState {
+  const line = state.cursor.line;
+  const widgetCount = widgetCountAt(state, line);
+  const onAdd = state.cursor.widget >= widgetCount;
+  // "replace" requires a real widget under the cursor — on the add-cell,
+  // degrade gracefully to "insert".
+  const effective: PickerTargetKind =
+    intent === "replace" && !onAdd ? "replace" : "insert";
+  // Insert *after* the cursor for `add` on a widget; *at* the cursor for the
+  // add-cell (which already points at the row's end). Replace targets the
+  // selected widget directly.
+  const index =
+    effective === "replace" ? state.cursor.widget : onAdd ? widgetCount : state.cursor.widget + 1;
+  return {
+    ...state,
+    mode: "picker-group",
+    pickerTarget: { kind: effective, line, index },
+    pickerDraft: {},
+  };
 }
 
-function applyPicker(state: EditorState, widgetType: string): EditorState {
-  if (state.mode !== "picker") return state;
-  if (!widgetType) return { ...state, mode: "edit" };
-  if (state.pickerTarget === "replace" && currentWidget(state)) {
-    return mutateCurrent({ ...state, mode: "edit" }, (w) => ({ ...w, type: widgetType }));
+function openUpdate(state: EditorState): EditorState {
+  const widget = currentWidget(state);
+  if (!widget) return state;
+  // No-op when the widget has no variants — the editor surfaces a status
+  // message in that case rather than opening an empty picker step.
+  if (widgetVariants(widget.type).length === 0) return state;
+  return {
+    ...state,
+    mode: "picker-variant",
+    pickerTarget: { kind: "update", line: state.cursor.line, index: state.cursor.widget },
+    pickerDraft: { widgetType: widget.type },
+  };
+}
+
+function pickCategory(state: EditorState, category: WidgetCategory): EditorState {
+  if (state.mode !== "picker-group") return state;
+  return {
+    ...state,
+    mode: "picker-widget",
+    pickerDraft: { ...state.pickerDraft, category },
+  };
+}
+
+function pickWidget(state: EditorState, widgetType: string): EditorState {
+  if (state.mode !== "picker-widget") return state;
+  if (!widgetType) return backToEdit(state);
+  const variants = widgetVariants(widgetType);
+  if (variants.length === 0) {
+    // Commit immediately with default options — no variant step to drill into.
+    return commit(
+      { ...state, pickerDraft: { ...state.pickerDraft, widgetType } },
+      widgetType,
+      undefined,
+    );
   }
-  return insertWidget(state, widgetType);
+  return {
+    ...state,
+    mode: "picker-variant",
+    pickerDraft: { ...state.pickerDraft, widgetType },
+  };
+}
+
+function pickVariant(state: EditorState, variantId: string | null): EditorState {
+  if (state.mode !== "picker-variant") return state;
+  const widgetType = state.pickerDraft.widgetType;
+  if (!widgetType) return backToEdit(state);
+  if (variantId === null) {
+    return commit(state, widgetType, undefined);
+  }
+  const variant = widgetVariants(widgetType).find((v) => v.id === variantId);
+  if (!variant) return commit(state, widgetType, undefined);
+  return commit(state, widgetType, variant.options);
+}
+
+function pickerBack(state: EditorState): EditorState {
+  if (state.mode === "picker-variant") {
+    // Update-target skips the earlier steps; back-out lands on edit.
+    if (state.pickerTarget.kind === "update") return backToEdit(state);
+    return {
+      ...state,
+      mode: "picker-widget",
+      pickerDraft: { ...state.pickerDraft, widgetType: undefined },
+    };
+  }
+  if (state.mode === "picker-widget") {
+    return {
+      ...state,
+      mode: "picker-group",
+      pickerDraft: { ...state.pickerDraft, category: undefined },
+    };
+  }
+  if (state.mode === "picker-group") {
+    return backToEdit(state);
+  }
+  return state;
+}
+
+function backToEdit(state: EditorState): EditorState {
+  return { ...state, mode: "edit", pickerDraft: {} };
+}
+
+/**
+ * Land a chosen `widgetType` + optional variant-options patch into the
+ * editor state. Branches on `pickerTarget.kind`:
+ *   - `insert`  — splice a fresh `WidgetConfig` at `target.index`.
+ *   - `replace` — swap the widget at `target.index`. Prior colour/style
+ *                 overrides are dropped so a new widget doesn't inherit
+ *                 the previous one's accidents.
+ *   - `update`  — keep the widget's `type`, merge the variant patch over
+ *                 its existing options.
+ */
+function commit(
+  state: EditorState,
+  widgetType: string,
+  variantOptions: Readonly<Record<string, unknown>> | undefined,
+): EditorState {
+  const { line: targetLine, index, kind } = state.pickerTarget;
+  const line = lineAt(state, targetLine);
+  if (!line) return backToEdit(state);
+
+  if (kind === "update") {
+    const existing = line.widgets[index];
+    if (!existing) return backToEdit(state);
+    const merged = sanitiseOptions({ ...(existing.options ?? {}), ...(variantOptions ?? {}) });
+    const next: WidgetConfig = { ...existing, options: merged };
+    return {
+      ...state,
+      lines: replaceLine(
+        state.lines,
+        targetLine,
+        { widgets: replaceAt(line.widgets, index, next) },
+      ),
+      cursor: { line: targetLine, widget: index },
+      mode: "edit",
+      pickerDraft: {},
+      dirty: true,
+    };
+  }
+
+  const fresh: WidgetConfig = variantOptions
+    ? { type: widgetType, options: sanitiseOptions({ ...variantOptions }) }
+    : { type: widgetType };
+
+  if (kind === "replace") {
+    return {
+      ...state,
+      lines: replaceLine(
+        state.lines,
+        targetLine,
+        { widgets: replaceAt(line.widgets, index, fresh) },
+      ),
+      cursor: { line: targetLine, widget: index },
+      mode: "edit",
+      pickerDraft: {},
+      dirty: true,
+    };
+  }
+
+  // insert
+  const widgets = [
+    ...line.widgets.slice(0, index),
+    fresh,
+    ...line.widgets.slice(index),
+  ];
+  return {
+    ...state,
+    lines: replaceLine(state.lines, targetLine, { widgets }),
+    cursor: { line: targetLine, widget: index },
+    mode: "edit",
+    pickerDraft: {},
+    dirty: true,
+  };
 }
 
 function setOption(state: EditorState, key: string, value: unknown): EditorState {
@@ -299,16 +474,12 @@ function setOption(state: EditorState, key: string, value: unknown): EditorState
 
 function mutateCurrent(state: EditorState, fn: (w: WidgetConfig) => WidgetConfig): EditorState {
   const line = currentLine(state);
-  if (!line || state.cursor.widget >= line.widgets.length) return state; // add-cell — nothing to mutate
+  if (!line || state.cursor.widget >= line.widgets.length) return state;
   const target = line.widgets[state.cursor.widget];
   if (!target) return state;
   const next = fn(target);
   if (next === target) return state;
-  const widgets = [
-    ...line.widgets.slice(0, state.cursor.widget),
-    next,
-    ...line.widgets.slice(state.cursor.widget + 1),
-  ];
+  const widgets = replaceAt(line.widgets, state.cursor.widget, next);
   return { ...state, lines: replaceLine(state.lines, state.cursor.line, { widgets }), dirty: true };
 }
 
@@ -320,6 +491,19 @@ function replaceLine(
   const next = [...lines];
   next[index] = line;
   return next;
+}
+
+function replaceAt<T>(items: readonly T[], index: number, item: T): T[] {
+  return [...items.slice(0, index), item, ...items.slice(index + 1)];
+}
+
+function sanitiseOptions(opts: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(opts)) {
+    if (FORBIDDEN_OPTION_KEYS.has(key)) continue;
+    out[key] = value;
+  }
+  return out;
 }
 
 function nextMerge(current: MergeMode | undefined): MergeMode {
