@@ -18,8 +18,12 @@ import { promisify } from "node:util";
 import { loadConfig, type AgentlineConfig } from "../config/index.js";
 import { resolveEnv } from "../lib/env.js";
 import { pathExists } from "../lib/fs.js";
+import { PRICING_TABLE_VERSION } from "../tokens/pricing.js";
 import { runEmbeddedRenderFixture } from "./fixture.js";
 import type { CheckResult, RunOptions } from "./types.js";
+
+const PRICING_FRESH_MAX_DAYS = 90;
+const MS_PER_DAY = 86_400_000;
 
 const execFileP = promisify(execFile);
 
@@ -204,15 +208,43 @@ async function checkD06(ctx: CheckCtx): Promise<CheckResult> {
 
 /** D07 — Pricing table fresher than now − 90 days. Reports only. */
 async function checkD07(_ctx: CheckCtx): Promise<CheckResult> {
-  // `src/tokens/pricing.ts` exists, but the freshness-check logic (staleness
-  // threshold, version date comparison) is not yet implemented. This check
-  // remains skipped until D07 is fully wired.
+  const verdict = evaluatePricingFreshness(PRICING_TABLE_VERSION, new Date());
   return {
     id: "D07",
     title: "Pricing table fresh (≤90 days)",
-    status: "skip",
-    message: "pricing freshness check not yet implemented",
-    hint: "check implementation deferred; pricing.ts is present but staleness logic is pending",
+    ...verdict,
+  };
+}
+
+/**
+ * Decide whether an embedded pricing-table version date is within the
+ * staleness threshold. Pure helper so D07 stays deterministic in tests.
+ */
+export function evaluatePricingFreshness(
+  version: string,
+  now: Date,
+): Pick<CheckResult, "status" | "message" | "hint"> {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(version);
+  const parsed = match ? new Date(`${version}T00:00:00Z`) : null;
+  if (!parsed || Number.isNaN(parsed.getTime())) {
+    return {
+      status: "warn",
+      message: `PRICING_TABLE_VERSION="${version}" is not a valid YYYY-MM-DD date`,
+      hint: "ship a release with a corrected PRICING_TABLE_VERSION in src/tokens/pricing.ts",
+    };
+  }
+  const rawAge = Math.floor((now.getTime() - parsed.getTime()) / MS_PER_DAY);
+  const ageDays = Math.max(0, rawAge);
+  if (ageDays <= PRICING_FRESH_MAX_DAYS) {
+    return {
+      status: "pass",
+      message: `pricing table dated ${version} (${ageDays}d old)`,
+    };
+  }
+  return {
+    status: "warn",
+    message: `pricing table dated ${version} is ${ageDays}d old (threshold ${PRICING_FRESH_MAX_DAYS})`,
+    hint: "refresh src/tokens/pricing.ts and bump PRICING_TABLE_VERSION as part of the next release",
   };
 }
 

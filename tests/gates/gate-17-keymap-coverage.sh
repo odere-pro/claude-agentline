@@ -26,9 +26,14 @@ work_dir="${GATES_TMP_DIR}/gate-17"
 rm -rf "${work_dir}"
 mkdir -p "${work_dir}"
 
+# Import via a relative path so the spec works identically on Linux, macOS,
+# and Windows. MSYS-style absolute paths (e.g. `/d/a/...`) confuse the
+# Node ESM resolver on Windows, which treats them as drive-rooted paths
+# (`D:\d\a\...`) and fails with ERR_MODULE_NOT_FOUND. The work_dir layout
+# is fixed: tests/gates/.tmp/gate-17/check.mjs → ../../../../dist/keys.mjs.
 check_script="${work_dir}/check.mjs"
 cat >"${check_script}" <<NODEJS
-import { DEFAULT_KEY_BINDINGS } from "${bin}";
+import { DEFAULT_KEY_BINDINGS } from "../../../../dist/keys.mjs";
 
 const bindings = DEFAULT_KEY_BINDINGS;
 
