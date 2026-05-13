@@ -25,6 +25,22 @@ import {
 
 import type { EditorGlyphs } from "./glyphs.js";
 
+/**
+ * Per-category accent colour for the picker. Each group renders with its
+ * own colour so the user can scan the list visually instead of relying on
+ * the category label alone. Names match Ink's 8-colour palette so they
+ * degrade cleanly on hosts without truecolor.
+ */
+export const CATEGORY_COLOR: Readonly<Record<WidgetCategory, string>> = Object.freeze({
+  session: "blue",
+  tokens: "yellow",
+  context: "magenta",
+  "rate-limits": "red",
+  git: "green",
+  time: "cyan",
+  custom: "white",
+});
+
 /** How many rows the picker windows show at once. */
 export const PICKER_PAGE = 8;
 
@@ -32,22 +48,34 @@ export const PICKER_PAGE = 8;
 // pure helpers — every step's "what would Enter commit?" answer
 // ────────────────────────────────────────────────────────────────────────────
 
-/** Categories the registered widgets actually populate, in catalogue order. */
+/**
+ * Categories the registered widgets actually populate, in catalogue order.
+ * `exclude` drops any widget already added to the editor so groups that
+ * have no remaining widgets disappear from step 1 of the picker.
+ */
 export function categoriesWithWidgets(
   entries: readonly WidgetMetaEntry[],
+  exclude: ReadonlySet<string> = new Set(),
 ): readonly WidgetCategory[] {
-  const present = new Set<WidgetCategory>(entries.map((e) => e.category));
+  const present = new Set<WidgetCategory>(
+    entries.filter((e) => !exclude.has(e.type)).map((e) => e.category),
+  );
   return WIDGET_CATEGORIES.filter((c) => present.has(c));
 }
 
-/** All entries in `category`, substring-filtered (case-insensitive). */
+/**
+ * All entries in `category`, substring-filtered (case-insensitive), with
+ * any widget types in `exclude` removed (used to hide already-added
+ * widgets from the picker).
+ */
 export function widgetsInCategory(
   entries: readonly WidgetMetaEntry[],
   category: WidgetCategory,
   query: string,
+  exclude: ReadonlySet<string> = new Set(),
 ): readonly WidgetMetaEntry[] {
   const q = query.trim().toLowerCase();
-  const scoped = entries.filter((e) => e.category === category);
+  const scoped = entries.filter((e) => e.category === category && !exclude.has(e.type));
   if (q === "") return scoped;
   return scoped.filter((e) => e.type.toLowerCase().includes(q) || e.name.toLowerCase().includes(q));
 }
@@ -123,10 +151,14 @@ export interface PickerGroupProps {
   readonly entries: readonly WidgetMetaEntry[];
   readonly highlight: number;
   readonly glyphs: EditorGlyphs;
+  /** Widget types already placed elsewhere — they don't count toward
+   *  per-group totals and groups that become empty are hidden. */
+  readonly exclude?: ReadonlySet<string>;
 }
 
 export function PickerGroup(props: PickerGroupProps): React.ReactElement {
-  const cats = categoriesWithWidgets(props.entries);
+  const exclude = props.exclude ?? new Set<string>();
+  const cats = categoriesWithWidgets(props.entries, exclude);
   const highlight = clampIndex(props.highlight, cats.length);
   const widest = cats.reduce((n, c) => Math.max(n, c.length), 0);
   return React.createElement(
@@ -146,12 +178,19 @@ export function PickerGroup(props: PickerGroupProps): React.ReactElement {
     ),
     ...cats.map((cat, idx) => {
       const selected = idx === highlight;
-      const count = props.entries.filter((e) => e.category === cat).length;
+      const count = props.entries.filter((e) => e.category === cat && !exclude.has(e.type)).length;
       const icon = props.glyphs.category[cat] ?? " ";
+      const accent = CATEGORY_COLOR[cat];
+      const body = `${selected ? "▸ " : "  "}${icon}  ${cat.padEnd(widest, " ")}`;
       return React.createElement(
-        Text,
-        { key: cat, color: selected ? "cyan" : undefined },
-        `  ${selected ? "▸ " : "  "}${icon}  ${cat.padEnd(widest, " ")}  ${count} widget${count === 1 ? "" : "s"}`,
+        Box,
+        { key: cat, flexDirection: "row" },
+        React.createElement(Text, { color: accent, bold: selected }, `  ${body}`),
+        React.createElement(
+          Text,
+          { dimColor: true },
+          `  ${count} widget${count === 1 ? "" : "s"}`,
+        ),
       );
     }),
   );
@@ -166,10 +205,13 @@ export interface PickerWidgetProps {
   readonly entries: readonly WidgetMetaEntry[];
   readonly query: string;
   readonly highlight: number;
+  /** Widget types already placed elsewhere — hidden from the list. */
+  readonly exclude?: ReadonlySet<string>;
 }
 
 export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
-  const matches = widgetsInCategory(props.entries, props.category, props.query);
+  const exclude = props.exclude ?? new Set<string>();
+  const matches = widgetsInCategory(props.entries, props.category, props.query, exclude);
   const highlight = clampIndex(props.highlight, matches.length);
   const { start, rows } = windowSlice(matches, highlight);
   const widestType = rows.reduce((n, e) => Math.max(n, e.type.length), 0);
@@ -181,6 +223,7 @@ export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
   const previews = rows.map((e) => previewWidget(e.type).text || e.type);
   const widestPreview = previews.reduce((n, p) => Math.max(n, p.length), 0);
   const countLabel = `${matches.length} match${matches.length === 1 ? "" : "es"}`;
+  const accent = CATEGORY_COLOR[props.category];
 
   const body =
     matches.length === 0
@@ -189,11 +232,16 @@ export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
           const idx = start + i;
           const selected = idx === highlight;
           const preview = previews[i] ?? "";
-          const head = `  ${selected ? "▸ " : "  "}${e.type.padEnd(widestType, " ")}  ${preview.padEnd(widestPreview, " ")}`;
+          const head = `  ${selected ? "▸ " : "  "}${e.type.padEnd(widestType, " ")}`;
           return React.createElement(
             Box,
             { key: e.type, flexDirection: "row" },
-            React.createElement(Text, { color: selected ? "cyan" : undefined }, head),
+            React.createElement(
+              Text,
+              { color: accent, bold: selected },
+              head,
+            ),
+            React.createElement(Text, null, `  ${preview.padEnd(widestPreview, " ")}`),
             React.createElement(Text, { dimColor: true }, `  ${e.description}`),
           );
         });
@@ -207,7 +255,12 @@ export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
       paddingX: 1,
       marginTop: 1,
     },
-    React.createElement(Text, { bold: true }, `Pick a widget — group ‹${props.category}›`),
+    React.createElement(
+      Text,
+      { bold: true },
+      "Pick a widget — group ",
+      React.createElement(Text, { color: accent, bold: true }, `‹${props.category}›`),
+    ),
     React.createElement(Text, null, `filter: ${props.query}▏`),
     React.createElement(
       Text,

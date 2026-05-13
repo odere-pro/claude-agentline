@@ -353,6 +353,17 @@ tidy_user_config
 tidy_skills
 unwire_statusline
 
+# Remove the Nerd Font probe sentinel — purely a runtime artefact, no
+# user data, so it always goes regardless of --purge.
+__nerd_sentinel="${AL_STATE_DIR}/nerd-font.json"
+if [ -f "${__nerd_sentinel}" ]; then
+  if [ "${DRY_RUN}" = "1" ]; then
+    al_log_info "would remove Nerd Font sentinel: ${__nerd_sentinel}"
+  else
+    rm -f -- "${__nerd_sentinel}"
+  fi
+fi
+
 # Remove the install manifest last so all other steps can still read it.
 if [ -f "${manifest_file}" ]; then
   if [ "${DRY_RUN}" = "1" ]; then
