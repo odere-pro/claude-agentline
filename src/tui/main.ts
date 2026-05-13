@@ -14,8 +14,12 @@
  *
  * Add / replace share a three-step picker drill-down:
  *
- *   step 1 (`picker-group`)   — pick a category.
- *   step 2 (`picker-widget`)  — pick a widget within that category.
+ *   step 1 (`picker-group`)   — empty search ⇒ pick a category;
+ *                                typing flips the view to a flat global
+ *                                widget list filtered by substring (across
+ *                                every category at once). Picking a result
+ *                                from the flat view skips step 2.
+ *   step 2 (`picker-widget`)  — pick a widget within the chosen category.
  *   step 3 (`picker-variant`) — pick a variant (skipped for widgets that
  *                                have none in the catalogue).
  */
@@ -42,9 +46,11 @@ import { pickGlyphs, type EditorGlyphs } from "./glyphs.js";
 import { saveEditedConfig } from "./persist.js";
 import {
   PickerGroup,
+  PickerSearch,
   PickerVariant,
   PickerWidget,
   categoriesWithWidgets,
+  filterWidgets,
   selectedAt,
   variantRows,
   widgetsInCategory,
@@ -210,15 +216,46 @@ function App({
 
     // ── picker steps ─────────────────────────────────────────────────────
     if (mode === "picker-group") {
-      const cats = categoriesWithWidgets(widgetEntries, usedTypes);
+      // Step 1 hosts a search field on top of the group list:
+      //   - empty query  → ↑↓/↵ navigate and select a category;
+      //   - typed query  → the group view collapses into a flat global
+      //                    widget list filtered by substring; ↑↓/↵ act on
+      //                    that list and Enter commits the widget directly.
+      // Backspace through the query returns the user to the group view.
+      const searching = stepQuery.length > 0;
       if (key.escape) return dispatch({ type: "picker-back" });
-      if (key.return) {
-        const cat = selectedAt(cats, stepHighlight);
-        if (cat) dispatch({ type: "pick-category", category: cat });
-        return;
+      if (key.backspace || key.delete) {
+        if (stepQuery.length === 0) return;
+        setStepQuery((q) => q.slice(0, -1));
+        return setStepHighlight(0);
       }
-      if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
-      if (key.downArrow) return setStepHighlight((h) => Math.min(cats.length - 1, h + 1));
+      if (searching) {
+        const matches = filterWidgets(widgetEntries, stepQuery, usedTypes);
+        if (key.return) {
+          const picked = selectedAt(matches, stepHighlight);
+          if (picked) dispatch({ type: "pick-widget", widgetType: picked.type });
+          return;
+        }
+        if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
+        if (key.downArrow) {
+          return setStepHighlight((h) => Math.min(Math.max(0, matches.length - 1), h + 1));
+        }
+      } else {
+        const cats = categoriesWithWidgets(widgetEntries, usedTypes);
+        if (key.return) {
+          const cat = selectedAt(cats, stepHighlight);
+          if (cat) dispatch({ type: "pick-category", category: cat });
+          return;
+        }
+        if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
+        if (key.downArrow) return setStepHighlight((h) => Math.min(cats.length - 1, h + 1));
+      }
+      // Any printable key extends the search query and flips the view to
+      // flat results on the next render.
+      if (input.length === 1 && input >= " " && !key.ctrl && !key.meta) {
+        setStepQuery((q) => q + input);
+        return setStepHighlight(0);
+      }
       return;
     }
     if (mode === "picker-widget") {
@@ -371,12 +408,19 @@ function App({
       : null,
     statusMessage ? React.createElement(Text, { color: "green" }, ` ${statusMessage} `) : null,
     state.mode === "picker-group"
-      ? React.createElement(PickerGroup, {
-          entries: widgetEntries,
-          highlight: stepHighlight,
-          glyphs,
-          exclude: usedTypes,
-        })
+      ? stepQuery.length > 0
+        ? React.createElement(PickerSearch, {
+            entries: widgetEntries,
+            query: stepQuery,
+            highlight: stepHighlight,
+            exclude: usedTypes,
+          })
+        : React.createElement(PickerGroup, {
+            entries: widgetEntries,
+            highlight: stepHighlight,
+            glyphs,
+            exclude: usedTypes,
+          })
       : null,
     state.mode === "picker-widget" && state.pickerDraft.category
       ? React.createElement(PickerWidget, {
