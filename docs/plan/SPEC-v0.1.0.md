@@ -471,7 +471,9 @@ The reset axis is declared in `options.reset` and defaults to `session`.
 | -------------------- | --------------------------------------------------- |
 | `session-usage`      | 5-h block; cycle display: percent / bar / short bar |
 | `block-reset-timer`  | Countdown to next block reset                       |
+| `block-reset-at`     | Wall-clock of next block reset                      |
 | `weekly-reset-timer` | Countdown to next weekly reset                      |
+| `weekly-reset-at`    | Wall-clock of next weekly reset                     |
 
 ### 7.6 Git widgets
 

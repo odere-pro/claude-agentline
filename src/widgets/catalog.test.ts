@@ -28,9 +28,9 @@ describe("WIDGET_CATALOG", () => {
     expect({ missing, extra }).toEqual({ missing: [], extra: [] });
   });
 
-  it("covers all 37 shipped widgets", () => {
-    expect(Object.keys(WIDGET_CATALOG)).toHaveLength(37);
-    expect(builtinRegistry().size()).toBe(37);
+  it("covers all 39 shipped widgets", () => {
+    expect(Object.keys(WIDGET_CATALOG)).toHaveLength(39);
+    expect(builtinRegistry().size()).toBe(39);
   });
 
   it("every entry has a non-empty description of at most 80 chars", () => {
@@ -77,7 +77,9 @@ describe("WIDGET_CATALOG — variants", () => {
     expect(widgetVariants("session-usage").map((v) => v.id)).toEqual(["percent", "bar", "short-bar"]);
     expect(widgetVariants("account-email").map((v) => v.id)).toEqual(["full", "domain", "localpart"]);
     expect(widgetVariants("block-reset-timer").map((v) => v.id)).toEqual(["short", "long", "clock"]);
+    expect(widgetVariants("block-reset-at").map((v) => v.id)).toEqual(["time-24h", "time-12h", "seconds"]);
     expect(widgetVariants("weekly-reset-timer").map((v) => v.id)).toEqual(["short", "long", "clock"]);
+    expect(widgetVariants("weekly-reset-at").map((v) => v.id)).toEqual(["time-24h", "time-12h", "seconds"]);
     expect(widgetVariants("uptime-session").map((v) => v.id)).toEqual(["short", "long", "clock"]);
     expect(widgetVariants("uptime-block").map((v) => v.id)).toEqual(["short", "long", "clock"]);
     expect(widgetVariants("clock").length).toBeGreaterThanOrEqual(2);

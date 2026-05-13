@@ -14,7 +14,7 @@ A standalone, fast, themeable Claude Code statusline. Reads the Claude Code stdi
 
 ## Features
 
-- **37 widgets** across seven families — `session`, `git`, `tokens`, `context`, `rate-limits`, `time`, and `custom` (opt-in `git-pr` lookup)
+- **39 widgets** across seven families — `session`, `git`, `tokens`, `context`, `rate-limits`, `time`, and `custom` (opt-in `git-pr` lookup)
 - **Opt-in Nerd Font glyph layer** — set `"glyphs": "nerd-font"` to prepend a per-widget icon; default `"off"` keeps output byte-stable
 - **4 shipped themes** with full truecolor / 256-colour / 16-colour degradation
 - **Configured globally** — one config file at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`, layered under built-in defaults and `AGENTLINE_*` env overrides; there is no per-project layer

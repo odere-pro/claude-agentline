@@ -46,7 +46,7 @@ widget instances with different `reset` axes.
 
 ## Built-in widgets
 
-37 widgets ship with v0.1.0, organised into seven families. The
+39 widgets ship with v0.1.0, organised into seven families. The
 authoritative registry is `src/widgets/registry.ts`; this page tracks
 it.
 
@@ -89,13 +89,15 @@ so the line is never blank for an authenticated user.
 | `context-percentage-usable` | percentage of usable context (excludes reserved-for-output budget) |
 | `context-bar`               | tiny inline bar approximating context fill                         |
 
-### Rate limits (3)
+### Rate limits (5)
 
-| Type                 | Renders                                      | Required `options.reset` |
-| -------------------- | -------------------------------------------- | ------------------------ |
-| `session-usage`      | percentage of the session quota consumed     | yes                      |
-| `block-reset-timer`  | time remaining until the next block resets   | no                       |
-| `weekly-reset-timer` | time remaining until the weekly quota resets | no                       |
+| Type                 | Renders                                                    | Required `options.reset` |
+| -------------------- | ---------------------------------------------------------- | ------------------------ |
+| `session-usage`      | percentage of the session quota consumed                   | yes                      |
+| `block-reset-timer`  | time remaining until the next block resets                 | no                       |
+| `block-reset-at`     | wall-clock of the next block reset (e.g. `resets 18:30`)   | no                       |
+| `weekly-reset-timer` | time remaining until the weekly quota resets               | no                       |
+| `weekly-reset-at`    | wall-clock of the next weekly reset (e.g. `week resets …`) | no                       |
 
 ### Git (12)
 
