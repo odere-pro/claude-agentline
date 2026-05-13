@@ -2,7 +2,9 @@
  * Widget picker overlay — three steps. Shown while the reducer's mode is
  * `picker-group`, `picker-widget`, or `picker-variant`:
  *
- *   step 1 (`PickerGroup`)   — pick a category.
+ *   step 1 — empty search → `PickerGroup` (pick a category).
+ *            non-empty   → `PickerSearch` (flat list across every category,
+ *                          substring-filtered by the search field on top).
  *   step 2 (`PickerWidget`)  — pick a widget in that category (live filter).
  *   step 3 (`PickerVariant`) — pick a variant for widgets that have them.
  *
@@ -81,16 +83,19 @@ export function widgetsInCategory(
 }
 
 /**
- * Substring filter over all entries (kept for ad-hoc consumers; the editor
- * itself drives the per-step filters via `widgetsInCategory`).
+ * Substring filter over all entries — matches against the widget's `type`
+ * and human `name`, optionally dropping entries whose `type` is in
+ * `exclude` (used to hide already-added widgets from the flat search).
  */
 export function filterWidgets(
   entries: readonly WidgetMetaEntry[],
   query: string,
+  exclude: ReadonlySet<string> = new Set(),
 ): readonly WidgetMetaEntry[] {
   const q = query.trim().toLowerCase();
-  if (q === "") return entries;
-  return entries.filter(
+  const scoped = exclude.size === 0 ? entries : entries.filter((e) => !exclude.has(e.type));
+  if (q === "") return scoped;
+  return scoped.filter(
     (e) => e.type.toLowerCase().includes(q) || e.name.toLowerCase().includes(q),
   );
 }
@@ -271,6 +276,69 @@ export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// step 1b — flat search across every category (when the search field is non-empty)
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface PickerSearchProps {
+  readonly entries: readonly WidgetMetaEntry[];
+  readonly query: string;
+  readonly highlight: number;
+  /** Widget types already placed elsewhere — hidden from the list. */
+  readonly exclude?: ReadonlySet<string>;
+}
+
+export function PickerSearch(props: PickerSearchProps): React.ReactElement {
+  const exclude = props.exclude ?? new Set<string>();
+  const matches = filterWidgets(props.entries, props.query, exclude);
+  const highlight = clampIndex(props.highlight, matches.length);
+  const { start, rows } = windowSlice(matches, highlight);
+  const widestType = rows.reduce((n, e) => Math.max(n, e.type.length), 0);
+  const widestCategory = rows.reduce((n, e) => Math.max(n, e.category.length), 0);
+  const previews = rows.map((e) => previewWidget(e.type).text || e.type);
+  const widestPreview = previews.reduce((n, p) => Math.max(n, p.length), 0);
+  const countLabel = `${matches.length} match${matches.length === 1 ? "" : "es"}`;
+
+  const body =
+    matches.length === 0
+      ? [React.createElement(Text, { key: "none", dimColor: true }, "  (no widgets match)")]
+      : rows.map((e, i) => {
+          const idx = start + i;
+          const selected = idx === highlight;
+          const preview = previews[i] ?? "";
+          const accent = CATEGORY_COLOR[e.category];
+          const head = `  ${selected ? "▸ " : "  "}${e.type.padEnd(widestType, " ")}`;
+          const categoryBadge = `[${e.category.padEnd(widestCategory, " ")}]`;
+          return React.createElement(
+            Box,
+            { key: e.type, flexDirection: "row" },
+            React.createElement(Text, { color: accent, bold: selected }, head),
+            React.createElement(Text, null, `  ${preview.padEnd(widestPreview, " ")}`),
+            React.createElement(Text, { color: accent, dimColor: !selected }, `  ${categoryBadge}`),
+            React.createElement(Text, { dimColor: true }, `  ${e.description}`),
+          );
+        });
+
+  return React.createElement(
+    Box,
+    {
+      flexDirection: "column",
+      borderStyle: "round",
+      borderColor: "cyan",
+      paddingX: 1,
+      marginTop: 1,
+    },
+    React.createElement(Text, { bold: true }, "Pick a widget — search"),
+    React.createElement(Text, null, `search: ${props.query}▏`),
+    React.createElement(
+      Text,
+      { dimColor: true },
+      `${countLabel} · type to filter · ⌫ clear · ↑↓ navigate · ↵ select · Esc cancel`,
+    ),
+    ...body,
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // step 3 — pick a variant
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -315,33 +383,3 @@ function previewForVariant(widgetType: string, row: VariantRow): string {
   return cell.text || widgetType;
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// legacy export — kept for `Picker`-using ad-hoc callers (none in-tree now)
-// ────────────────────────────────────────────────────────────────────────────
-
-export interface PickerProps {
-  readonly title: string;
-  readonly entries: readonly WidgetMetaEntry[];
-  readonly query: string;
-  readonly highlight: number;
-}
-
-/** @deprecated Use the three-step picker (`PickerGroup`/`PickerWidget`/`PickerVariant`). */
-export function Picker(props: PickerProps): React.ReactElement {
-  return PickerWidget({
-    category: "session",
-    entries: props.entries,
-    query: props.query,
-    highlight: props.highlight,
-  });
-}
-
-/** @deprecated Use `selectedAt(widgetsInCategory(...), highlight)`. */
-export function selectedEntry(
-  entries: readonly WidgetMetaEntry[],
-  query: string,
-  highlight: number,
-): WidgetMetaEntry | undefined {
-  const matches = filterWidgets(entries, query);
-  return selectedAt(matches, highlight);
-}

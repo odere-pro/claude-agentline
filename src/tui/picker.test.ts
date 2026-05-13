@@ -16,12 +16,12 @@ import { pickGlyphs } from "./glyphs.js";
 import {
   PICKER_PAGE,
   PickerGroup,
+  PickerSearch,
   PickerVariant,
   PickerWidget,
   categoriesWithWidgets,
   filterWidgets,
   selectedAt,
-  selectedEntry,
   variantRows,
   widgetsInCategory,
 } from "./picker.js";
@@ -90,17 +90,24 @@ describe("selectedAt", () => {
   });
 });
 
-describe("filterWidgets / selectedEntry (legacy)", () => {
-  it("filterWidgets still substring-matches over name and type", () => {
+describe("filterWidgets", () => {
+  it("substring-matches over type and name across every category", () => {
     expect(filterWidgets(ENTRIES, "git").map((e) => e.type)).toEqual([
       "git-branch",
       "git-changes",
     ]);
+    expect(filterWidgets(ENTRIES, "MODEL").map((e) => e.type)).toEqual(["model"]);
   });
 
-  it("selectedEntry returns the highlighted entry within the filtered list", () => {
-    expect(selectedEntry(ENTRIES, "git", 1)?.type).toBe("git-changes");
-    expect(selectedEntry(ENTRIES, "zzz", 0)).toBeUndefined();
+  it("drops `exclude` types regardless of query", () => {
+    const exclude = new Set(["model"]);
+    expect(filterWidgets(ENTRIES, "", exclude).map((e) => e.type)).toEqual([
+      "git-branch",
+      "git-changes",
+      "skills",
+      "clock",
+    ]);
+    expect(filterWidgets(ENTRIES, "model", exclude)).toEqual([]);
   });
 });
 
@@ -137,6 +144,35 @@ describe("Picker components — smoke", () => {
     // rendered tree (separate dim-coloured Text children).
     expect(serialised).toContain("branch");
     expect(serialised).toContain("changes");
+  });
+
+  it("PickerSearch renders flat results across categories filtered by query", () => {
+    const node = PickerSearch({ entries: ENTRIES, query: "git", highlight: 0 });
+    const serialised = JSON.stringify(node);
+    expect(serialised).toContain("git-branch");
+    expect(serialised).toContain("git-changes");
+    // Out-of-query entries do not appear.
+    expect(serialised).not.toContain("clock");
+    // Each row carries its category badge.
+    expect(serialised).toContain("[git");
+  });
+
+  it("PickerSearch hides excluded types", () => {
+    const node = PickerSearch({
+      entries: ENTRIES,
+      query: "git",
+      highlight: 0,
+      exclude: new Set(["git-branch"]),
+    });
+    const serialised = JSON.stringify(node);
+    expect(serialised).not.toContain("git-branch");
+    expect(serialised).toContain("git-changes");
+  });
+
+  it("PickerSearch renders gracefully when nothing matches", () => {
+    expect(() =>
+      PickerSearch({ entries: ENTRIES, query: "zzz", highlight: 0 }),
+    ).not.toThrow();
   });
 
   it("PickerVariant renders for a widget with variants and one without", () => {

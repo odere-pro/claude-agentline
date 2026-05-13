@@ -342,7 +342,11 @@ function pickCategory(state: EditorState, category: WidgetCategory): EditorState
 }
 
 function pickWidget(state: EditorState, widgetType: string): EditorState {
-  if (state.mode !== "picker-widget") return state;
+  // Allow `pickWidget` from either step — `picker-widget` is the in-category
+  // path; `picker-group` is the flat-search path (App-side: typing in step 1
+  // turns the group list into a global filtered list, and Enter commits the
+  // highlighted result without an intermediate category step).
+  if (state.mode !== "picker-widget" && state.mode !== "picker-group") return state;
   if (!widgetType) return backToEdit(state);
   const variants = widgetVariants(widgetType);
   if (variants.length === 0) {
@@ -374,9 +378,13 @@ function pickVariant(state: EditorState, variantId: string | null): EditorState 
 
 function pickerBack(state: EditorState): EditorState {
   if (state.mode === "picker-variant") {
+    // Route back to the step the user came from: `picker-widget` if they
+    // drilled in via a category, `picker-group` if they picked from the
+    // flat-search list (no category in the draft).
+    const back: EditorMode = state.pickerDraft.category ? "picker-widget" : "picker-group";
     return {
       ...state,
-      mode: "picker-widget",
+      mode: back,
       pickerDraft: { ...state.pickerDraft, widgetType: undefined },
     };
   }

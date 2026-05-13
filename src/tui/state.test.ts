@@ -306,6 +306,37 @@ describe("picker drill-down — replace target", () => {
   });
 });
 
+describe("picker drill-down — flat search from picker-group", () => {
+  it("pick-widget commits directly from picker-group when the widget has no variants", () => {
+    let s = multiLine([["a"]]);
+    s = reduce(s, { type: "open-picker", intent: "add" });
+    expect(s.mode).toBe("picker-group");
+    // Flat-search path: skip pick-category, dispatch pick-widget straight away.
+    s = reduce(s, { type: "pick-widget", widgetType: "git-branch" });
+    expect(s.mode).toBe("edit");
+    expect(s.lines[0]?.widgets[1]).toEqual({ type: "git-branch" });
+  });
+
+  it("pick-widget routes to picker-variant from picker-group without setting a category", () => {
+    let s = multiLine([["a"]]);
+    s = reduce(s, { type: "open-picker", intent: "add" });
+    s = reduce(s, { type: "pick-widget", widgetType: "skills" });
+    expect(s.mode).toBe("picker-variant");
+    expect(s.pickerDraft.widgetType).toBe("skills");
+    expect(s.pickerDraft.category).toBeUndefined();
+  });
+
+  it("picker-back from picker-variant returns to picker-group when no category was chosen", () => {
+    let s = multiLine([["a"]]);
+    s = reduce(s, { type: "open-picker", intent: "add" });
+    s = reduce(s, { type: "pick-widget", widgetType: "skills" }); // flat-search path
+    expect(s.mode).toBe("picker-variant");
+    s = reduce(s, { type: "picker-back" });
+    expect(s.mode).toBe("picker-group");
+    expect(s.pickerDraft.widgetType).toBeUndefined();
+  });
+});
+
 describe("picker drill-down — picker-back and close-picker", () => {
   it("picker-back from picker-variant returns to picker-widget for add/replace", () => {
     let s = multiLine([["a"]]);
