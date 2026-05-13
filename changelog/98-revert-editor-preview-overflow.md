@@ -1,0 +1,1 @@
+- Revert the editor preview overflow-into-empty-rows behaviour from #101: preview again stays within its allotted rows and does not flow into the empty space below.
