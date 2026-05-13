@@ -186,11 +186,7 @@ export function PickerGroup(props: PickerGroupProps): React.ReactElement {
         Box,
         { key: cat, flexDirection: "row" },
         React.createElement(Text, { color: accent, bold: selected }, `  ${body}`),
-        React.createElement(
-          Text,
-          { dimColor: true },
-          `  ${count} widget${count === 1 ? "" : "s"}`,
-        ),
+        React.createElement(Text, { dimColor: true }, `  ${count} widget${count === 1 ? "" : "s"}`),
       );
     }),
   );
@@ -233,12 +229,15 @@ export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
           const selected = idx === highlight;
           const preview = previews[i] ?? "";
           const head = `  ${selected ? "▸ " : "  "}${e.type.padEnd(widestType, " ")}`;
+          // Only the group label carries the category accent — individual
+          // widget rows stay neutral so the accent doesn't bleed onto every
+          // line. Selection emphasis is bold + cyan on the highlighted row.
           return React.createElement(
             Box,
             { key: e.type, flexDirection: "row" },
             React.createElement(
               Text,
-              { color: accent, bold: selected },
+              { color: selected ? "cyan" : undefined, bold: selected },
               head,
             ),
             React.createElement(Text, null, `  ${preview.padEnd(widestPreview, " ")}`),

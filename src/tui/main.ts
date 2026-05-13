@@ -36,7 +36,7 @@ import type { Theme } from "../theme/index.js";
 import { resolveConfiguredTheme } from "../theme/resolve.js";
 
 import { defaultRegistry, registerAllBuiltins, type WidgetMetaEntry } from "../widgets/index.js";
-import { widgetMeta, type WidgetCategory } from "../widgets/catalog.js";
+import { widgetMeta, widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
 
 import { pickGlyphs, type EditorGlyphs } from "./glyphs.js";
 import { saveEditedConfig } from "./persist.js";
@@ -162,14 +162,17 @@ function App({
 
   // Types already placed in the layout. The picker hides these so the user
   // can't add the same widget twice. In replace mode the widget under the
-  // cursor is on its way out, so its type isn't considered "used".
+  // cursor is on its way out — but we only let its type back into the
+  // picker when the widget has variants, so users on a variant-bearing
+  // widget can still swap variants via replace. For variant-less widgets,
+  // re-picking the same type would be a no-op and is excluded.
   const usedTypes = useMemo(() => {
     const set = new Set<string>();
     for (const line of state.lines) for (const w of line.widgets) set.add(w.type);
     if (state.mode !== "edit" && state.pickerTarget.kind === "replace") {
       const line = state.lines[state.pickerTarget.line];
       const target = line?.widgets[state.pickerTarget.index];
-      if (target) set.delete(target.type);
+      if (target && widgetVariants(target.type).length > 0) set.delete(target.type);
     }
     return set;
   }, [state.lines, state.mode, state.pickerTarget]);
