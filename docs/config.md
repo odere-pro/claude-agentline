@@ -1,17 +1,17 @@
 # Configuration
 
-`agentline` is configured by a JSON file. Four shipped presets are
+`agentline` is configured by a JSON file. Three shipped presets are
 available via `agentline config init --preset <name>`:
 
-- **`minimal`** (`templates/minimal.config.json`) — model, git-branch, clock. The smallest sensible bar.
-- **`default`** (`templates/default.config.json`) — model, git, context, tokens, cost, session usage, clock. The recommended starting point; what `scripts/install.sh` seeds on first run.
-- **`focus`** (`templates/presets/focus.config.json`) — model, git, context-percentage, clock. The "I'm trying to read code" bar.
-- **`power`** (`templates/presets/power.config.json`) — full default plus `thinking-effort`, `weekly-usage`, `block-timer`. Everything.
+- **`minimal`** (`templates/minimal.config.json`) — `model`, `context-length`, `block-reset-timer`. The smallest sensible bar.
+- **`default`** (`templates/default.config.json`) — model, git, context, tokens, cost, session usage, clock. The recommended starting point; what `agentline install` seeds on first run.
+- **`maximal`** — `default` plus `thinking-effort`, `weekly-usage`, the weekly + block reset timers, and `clock`. A curated "everything useful" line.
 
-`agentline config init` defaults to the `default` preset and writes
-`.claude/agentline.json` in the current directory; pass `--scope user` to
-write the user config instead, or `--target <path>` for an explicit
-location. Existing targets are preserved unless `--force` is passed.
+`agentline config init` defaults to the `default` preset and writes the
+user config at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`
+(pass `--target <path>` for an explicit location). agentline is
+configured globally only — there is no per-project config layer.
+Existing targets are preserved unless `--force` is passed.
 
 The canonical schema lives at `schemas/config.schema.json` and is also
 embedded in the binary so validation works offline. To drop a copy into
