@@ -1,22 +1,26 @@
 /**
  * Custom widget family (§7.8): `separator`, `flex-separator`,
- * `command`. Same registration shape as the other families — a
- * frozen `CUSTOM_WIDGETS` array plus a `registerCustomWidgets(registry)`
- * helper for the default-registry bootstrap.
+ * `command`, `key-hints`. Same registration shape as the other
+ * families — a frozen `CUSTOM_WIDGETS` array plus a
+ * `registerCustomWidgets(registry)` helper for the default-registry
+ * bootstrap.
  */
 
 import type { WidgetDef } from "../widget.js";
 import type { WidgetRegistry } from "../registry.js";
 
 import { clearCommandCache, commandWidget } from "./command.js";
+import { keyHintsWidget } from "./key-hints.js";
 import { flexSeparatorWidget, separatorWidget, SEPARATOR_CYCLE } from "./separator.js";
 
 export { clearCommandCache, commandWidget } from "./command.js";
+export { DEFAULT_KEY_HINTS, keyHintsWidget } from "./key-hints.js";
 export { flexSeparatorWidget, separatorWidget, SEPARATOR_CYCLE } from "./separator.js";
 
 export const CUSTOM_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   commandWidget as WidgetDef<unknown>,
   flexSeparatorWidget as WidgetDef<unknown>,
+  keyHintsWidget as WidgetDef<unknown>,
   separatorWidget as WidgetDef<unknown>,
 ]);
 

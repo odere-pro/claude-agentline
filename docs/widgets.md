@@ -46,7 +46,7 @@ widget instances with different `reset` axes.
 
 ## Built-in widgets
 
-53 widgets ship with v0.1.0, organised into seven families. The
+54 widgets ship with v0.1.0, organised into seven families. The
 authoritative registry is `src/widgets/registry.ts`; this page tracks
 it.
 
@@ -144,13 +144,14 @@ so a line with sixteen git widgets only spawns `git` once.
 | `uptime-session` | session uptime (since Claude Code launch)          |
 | `uptime-block`   | uptime of the active conversation block            |
 
-### Layout / custom (3)
+### Layout / custom (4)
 
 | Type             | Behaviour                                                                                                                                  |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `separator`      | a single user-defined glyph (`options.char`); honours `merged` like any other widget                                                       |
 | `flex-separator` | absorbs all remaining space on the line; in Powerline mode it is silently dropped                                                          |
 | `command`        | runs `options.cmd` in a sandboxed shell (250 ms default / 2 000 ms hard timeout, 1 KiB stdout cap, no stdin, stderr discarded). See below. |
+| `key-hints`      | a rotating Claude Code REPL keyboard-shortcut hint (`options.intervalMs`, optional `options.hints[]` override). See below.                 |
 
 The `command` widget is the only built-in that spawns a child process.
 The user owns the command string; it runs through `/bin/sh -c` (or
@@ -172,6 +173,15 @@ configurable `cacheTtlMs`.
   whose name ends in `_TOKEN`, `_KEY`, `_SECRET`, `_PASSWORD`, `_PASS`,
   or `_AUTH`. Credential-shaped Claude integration vars never reach
   the child.
+
+The `key-hints` widget surfaces a rotating Claude Code REPL keyboard
+shortcut. Per the determinism rule (§1.2 N7) the rotation is seeded
+from `ctx.clock.now()` — `floor(now / intervalMs) % hints.length` — so
+the same clock + config always renders the same hint and the golden
+suite stays stable. Defaults: `intervalMs: 30000` (clamped to ≥ 1 s),
+hint list curated in `src/widgets/custom/key-hints.ts`. Override the
+hint list with `options.hints: string[]`; blank entries are dropped
+and an all-blank list falls back to the catalogue.
 
 ## Choosing widgets
 

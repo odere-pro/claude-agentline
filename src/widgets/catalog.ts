@@ -257,7 +257,7 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freez
     v("clock", "Clock (01:23:45)", { format: "clock" }),
   ]),
 
-  // Layout / custom (3)
+  // Layout / custom (4)
   separator: entry("Separator", "A single user-defined glyph (options.char)", "custom"),
   "flex-separator": entry(
     "Flex separator",
@@ -265,6 +265,11 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freez
     "custom",
   ),
   command: entry("Command", "Output of options.cmd run in a sandboxed shell", "custom"),
+  "key-hints": entry(
+    "Key hints",
+    "Rotating Claude Code REPL keyboard-shortcut hint",
+    "custom",
+  ),
 });
 
 /** Look up a widget's metadata by `type`. */

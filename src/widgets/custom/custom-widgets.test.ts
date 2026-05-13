@@ -29,11 +29,11 @@ function makeCtx(overrides: Partial<WidgetContext> = {}): WidgetContext {
 }
 
 describe("registerCustomWidgets", () => {
-  it("ships separator, flex-separator, command", () => {
+  it("ships separator, flex-separator, command, key-hints", () => {
     const r = new WidgetRegistry();
     registerCustomWidgets(r);
-    expect(r.size()).toBe(3);
-    expect(r.list()).toEqual(["command", "flex-separator", "separator"]);
+    expect(r.size()).toBe(4);
+    expect(r.list()).toEqual(["command", "flex-separator", "key-hints", "separator"]);
     expect(Object.isFrozen(CUSTOM_WIDGETS)).toBe(true);
   });
 });
