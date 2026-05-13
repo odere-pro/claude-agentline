@@ -1,6 +1,7 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { parseInitArgs, runInitCommand } from "./command.js";
@@ -120,5 +121,23 @@ describe("runInitCommand", () => {
     });
     expect(code).toBe(0);
     expect(readFileSync(target, "utf8")).not.toBe("user content");
+  });
+
+  it("project gate skips silently outside a Claude project on a non-TTY stdin", async () => {
+    // tmp has no `.claude/` or `CLAUDE.md`; an explicit non-TTY stdin
+    // mimics a scripted run. The gate returns "skip"; init must not
+    // touch the target file.
+    const target = join(tmp, "config.json");
+    const stdin = new PassThrough() as NodeJS.ReadableStream & { isTTY?: boolean };
+    stdin.isTTY = false;
+    const code = await runInitCommand({
+      args: { force: false },
+      target,
+      templateDir,
+      cwd: tmp,
+      stdin,
+    });
+    expect(code).toBe(0);
+    expect(existsSync(target)).toBe(false);
   });
 });
