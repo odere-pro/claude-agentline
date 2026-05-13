@@ -59,7 +59,7 @@ describe("WIDGET_CATALOG", () => {
 
 describe("widgetMeta", () => {
   it("returns the entry for a known type without variants", () => {
-    expect(widgetMeta("git-branch")).toEqual({
+    expect(widgetMeta("git-branch")).toMatchObject({
       name: "Git branch",
       description: "Current branch, or short SHA when detached",
       category: "git",
@@ -104,6 +104,34 @@ describe("WIDGET_CATALOG — variants", () => {
         expect(Object.isFrozen(variant.options), `${type}/${variant.id}: options frozen`).toBe(true);
       }
     }
+  });
+});
+
+describe("WIDGET_CATALOG — glyphs", () => {
+  it("every glyph (when present) is a non-empty single grapheme", () => {
+    for (const [type, meta] of Object.entries(WIDGET_CATALOG)) {
+      const glyph = meta.glyph;
+      if (glyph === undefined) continue;
+      expect(glyph.length, `${type}: empty glyph`).toBeGreaterThan(0);
+      // Iterator splits surrogate pairs at code-point boundaries; we
+      // require exactly one user-perceived character per slot.
+      expect([...glyph], `${type}: multi-grapheme glyph ${JSON.stringify(glyph)}`).toHaveLength(1);
+    }
+  });
+
+  it("populates glyphs for the most-shipped widget types so default lines benefit immediately", () => {
+    expect(widgetMeta("model")?.glyph).toBeTruthy();
+    expect(widgetMeta("git-branch")?.glyph).toBeTruthy();
+    expect(widgetMeta("clock")?.glyph).toBeTruthy();
+    expect(widgetMeta("cost")?.glyph).toBeTruthy();
+    expect(widgetMeta("tokens-total")?.glyph).toBeTruthy();
+    expect(widgetMeta("git-pr")?.glyph).toBeTruthy();
+    expect(widgetMeta("key-hints")?.glyph).toBeTruthy();
+  });
+
+  it("layout-only widgets carry no glyph (separator / flex-separator)", () => {
+    expect(widgetMeta("separator")?.glyph).toBeUndefined();
+    expect(widgetMeta("flex-separator")?.glyph).toBeUndefined();
   });
 });
 

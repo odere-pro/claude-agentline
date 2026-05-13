@@ -63,6 +63,14 @@ export interface WidgetMeta {
    * of the picker and as the targets of the `u` (update) verb.
    */
   readonly variants?: readonly WidgetVariant[];
+  /**
+   * Single grapheme prepended to the widget's text when
+   * `config.glyphs === "nerd-font"`. Codepoints come from the Nerd Font
+   * Private Use Area (PUA) — they only render correctly with a Nerd Font
+   * installed in the user's terminal, which is why glyph mode is opt-in.
+   * Widgets without a glyph are unaffected by the mode toggle.
+   */
+  readonly glyph?: string;
 }
 
 /** A catalogue entry paired with the `type` it describes. */
@@ -90,8 +98,79 @@ function v(id: string, label: string, options: Readonly<Record<string, unknown>>
   return { id, label, options };
 }
 
-/** Canonical metadata for every built-in widget, keyed by `type`. */
-export const WIDGET_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
+/**
+ * Glyph mode codepoints, kept in a separate table so the entry list stays
+ * scannable. Codepoints are Nerd Font v3 PUA — they only render correctly
+ * in a terminal whose font ships those ranges (which is exactly why
+ * `config.glyphs` defaults to `"off"`). Add entries opportunistically;
+ * widgets without a glyph here are unaffected by the mode toggle.
+ */
+const WIDGET_GLYPHS: Readonly<Record<string, string>> = Object.freeze({
+  // Session
+  model: "", // nf-md-robot
+  "account-email": "", // nf-fa-envelope
+  "vim-mode": "", // nf-dev-vim
+  skills: "", // nf-fa-puzzle_piece
+  "thinking-effort": "", // nf-fa-bolt
+  "session-name": "", // nf-fa-user
+  org: "", // nf-fa-sitemap
+
+  // Tokens & cost
+  "tokens-total": "", // nf-fa-calculator
+  "tokens-input": "", // nf-fa-arrow_down
+  "tokens-output": "", // nf-fa-arrow_up
+  "tokens-cached": "", // nf-md-database
+  cost: "", // nf-fa-dollar
+  "input-speed": "", // nf-fa-rocket
+  "output-speed": "",
+  "total-speed": "",
+
+  // Context
+  "context-length": "", // nf-fa-tasks
+  "context-percentage": "", // nf-fa-tachometer
+  "context-percentage-usable": "",
+  "context-bar": "", // nf-fa-bar_chart
+
+  // Rate limits
+  "session-usage": "", // nf-fa-percent
+  "weekly-usage": "",
+  "block-timer": "", // nf-fa-clock_o
+  "block-reset-timer": "", // nf-fa-refresh
+  "weekly-reset-timer": "",
+  "model-usage": "",
+  "effort-usage": "",
+  "compaction-counter": "", // nf-fa-compress
+
+  // Git
+  "git-branch": "", // nf-pl-branch
+  "git-sha": "", // nf-oct-git_commit
+  "git-worktree": "", // nf-fa-folder
+  "git-status": "", // nf-fa-git
+  "git-changes": "", // nf-md-pencil
+  "git-staged": "", // nf-fa-plus
+  "git-unstaged": "",
+  "git-untracked": "", // nf-fa-question
+  "git-insertions": "",
+  "git-deletions": "", // nf-fa-minus
+  "git-conflicts": "", // nf-fa-warning
+  "git-ahead-behind": "", // nf-fa-arrows_h
+  "git-upstream": "",
+  "git-origin-owner": "", // nf-fa-github
+  "git-origin-repo": "",
+  "git-is-fork": "", // nf-fa-code_fork
+  "git-pr": "", // nf-oct-git_pull_request
+
+  // Time
+  clock: "",
+  "uptime-session": "", // nf-fa-hourglass_half
+  "uptime-block": "",
+
+  // Custom
+  command: "", // nf-fa-terminal
+  "key-hints": "", // nf-fa-keyboard_o
+});
+
+const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
   // Session (11)
   model: entry("Model", "Active model id (e.g. Sonnet 4.6)", "session"),
   version: entry("Version", "Claude Code version", "session"),
@@ -283,9 +362,32 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freez
   ),
 });
 
+function applyGlyphs(
+  base: Readonly<Record<string, WidgetMeta>>,
+  glyphs: Readonly<Record<string, string>>,
+): Readonly<Record<string, WidgetMeta>> {
+  const out: Record<string, WidgetMeta> = {};
+  for (const [type, meta] of Object.entries(base)) {
+    const glyph = glyphs[type];
+    out[type] = glyph ? Object.freeze({ ...meta, glyph }) : meta;
+  }
+  return Object.freeze(out);
+}
+
+/** Canonical metadata for every built-in widget, keyed by `type`. */
+export const WIDGET_CATALOG: Readonly<Record<string, WidgetMeta>> = applyGlyphs(
+  BASE_CATALOG,
+  WIDGET_GLYPHS,
+);
+
 /** Look up a widget's metadata by `type`. */
 export function widgetMeta(type: string): WidgetMeta | undefined {
   return WIDGET_CATALOG[type];
+}
+
+/** Catalogue glyph for `type`, or `undefined` when none is registered. */
+export function widgetGlyph(type: string): string | undefined {
+  return WIDGET_CATALOG[type]?.glyph;
 }
 
 /** Variants for `type`, or an empty list when the widget has no variants. */

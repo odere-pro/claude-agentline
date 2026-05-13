@@ -130,13 +130,21 @@ export interface DemoOptions {
    * preview passes `process.env` so its colours match the user's terminal.
    */
   readonly env?: NodeJS.ProcessEnv;
+  /**
+   * Override `config.glyphs` for the preview without mutating the loaded
+   * config. The editor passes the live mode here so toggling it is visible
+   * in the live preview.
+   */
+  readonly glyphs?: AgentlineConfig["glyphs"];
 }
 
 /** Assemble `RenderInputs` for the demo session against a caller-supplied config. */
 export function demoRenderInputs(config: AgentlineConfig, opts: DemoOptions = {}): RenderInputs {
+  const effectiveConfig: AgentlineConfig =
+    opts.glyphs !== undefined ? { ...config, glyphs: opts.glyphs } : config;
   return {
     payload: demoStdinPayload,
-    config,
+    config: effectiveConfig,
     theme: opts.theme ?? null,
     clock: demoClock(),
     env: opts.env ?? {},
@@ -154,9 +162,11 @@ export function previewStatusline(config: AgentlineConfig, opts: DemoOptions = {
 
 /** Build the demo `WidgetContext` directly, for previewing a single widget out of line context. */
 export function demoContext(opts: DemoOptions = {}): WidgetContext {
+  const config: AgentlineConfig =
+    opts.glyphs !== undefined ? { ...DEFAULT_CONFIG, glyphs: opts.glyphs } : DEFAULT_CONFIG;
   return {
     stdin: demoStdinPayload,
-    config: DEFAULT_CONFIG,
+    config,
     theme: opts.theme ?? null,
     clock: demoClock(),
     env: {},

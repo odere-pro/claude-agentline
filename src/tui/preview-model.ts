@@ -77,7 +77,7 @@ function buildRow(line: number, row: LineConfig, base: AgentlineConfig): Preview
       const join = computeJoin(widget, base);
       if (join.length > 0) slots.push({ kind: "join", text: join });
     }
-    slots.push(renderSlot(widget, i));
+    slots.push(renderSlot(widget, i, base.glyphs));
   }
   slots.push({ kind: "add", column: row.widgets.length });
   return { line, slots, widgetCount: row.widgets.length };
@@ -88,7 +88,11 @@ function buildRow(line: number, row: LineConfig, base: AgentlineConfig): Preview
  * compact `[hidden:type]` chip so the user can still reach them with the
  * arrows and toggle them back on via the options sheet.
  */
-function renderSlot(widget: WidgetConfig, idx: number): PreviewSlot {
+function renderSlot(
+  widget: WidgetConfig,
+  idx: number,
+  glyphs: AgentlineConfig["glyphs"],
+): PreviewSlot {
   if (widget.hidden === true) {
     return {
       kind: "widget",
@@ -97,7 +101,7 @@ function renderSlot(widget: WidgetConfig, idx: number): PreviewSlot {
       hidden: true,
     };
   }
-  const cell: Cell = previewWidget(widget.type, widget.options);
+  const cell: Cell = previewWidget(widget.type, widget.options, { glyphs });
   // `previewWidget` returns HIDDEN_CELL (`text: "", hidden: true`) when the
   // widget self-hides (data absent). Surface that as a `(no data)` chip
   // tagged with the type so the user understands why nothing is shown.
