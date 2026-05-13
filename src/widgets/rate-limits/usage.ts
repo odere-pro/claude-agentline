@@ -1,10 +1,8 @@
 /**
- * `session-usage` and `weekly-usage` widgets (§7.5).
+ * `session-usage` widget (§7.5).
  *
- * Both compute total tokens consumed in a fixed window (5-h block for
- * session-usage, the rolling 7-day boundary for weekly-usage) and
- * render a usage indicator. Display is cycled by the TUI via
- * `options.display`:
+ * Computes total tokens consumed in the active 5-h block and renders a
+ * usage indicator. Display is cycled by the TUI via `options.display`:
  *
  *   - `percent`    `65%` (default)
  *   - `bar`        `█████░░░░░░░` (default 12 cells)
@@ -104,8 +102,4 @@ function renderUsage(
 
 export const sessionUsageWidget = defineWidget<Options>("session-usage", (ctx, settings) =>
   renderUsage(ctx, settings, "block"),
-);
-
-export const weeklyUsageWidget = defineWidget<Options>("weekly-usage", (ctx, settings) =>
-  renderUsage(ctx, settings, "week"),
 );

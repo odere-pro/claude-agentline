@@ -9,18 +9,9 @@ import { frozenClock } from "../clock.js";
 import type { WidgetContext } from "../context.js";
 import { WidgetRegistry } from "../registry.js";
 
-import {
-  compactionCounterWidget,
-  effortUsageWidget,
-  modelUsageWidget,
-} from "./aggregates.js";
 import { formatDuration, resolveDurationFormat } from "./duration.js";
-import {
-  blockResetTimerWidget,
-  blockTimerWidget,
-  weeklyResetTimerWidget,
-} from "./timers.js";
-import { sessionUsageWidget, weeklyUsageWidget } from "./usage.js";
+import { blockResetTimerWidget, weeklyResetTimerWidget } from "./timers.js";
+import { sessionUsageWidget } from "./usage.js";
 import { RATE_LIMIT_WIDGETS, registerRateLimitWidgets } from "./index.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
@@ -109,22 +100,17 @@ describe("formatDuration", () => {
 });
 
 describe("registerRateLimitWidgets", () => {
-  it("ships exactly eight widgets in sorted order", () => {
+  it("ships exactly three widgets in sorted order", () => {
     const r = new WidgetRegistry();
     registerRateLimitWidgets(r);
-    expect(r.size()).toBe(8);
+    expect(r.size()).toBe(3);
     expect(r.list()).toEqual([
       "block-reset-timer",
-      "block-timer",
-      "compaction-counter",
-      "effort-usage",
-      "model-usage",
       "session-usage",
       "weekly-reset-timer",
-      "weekly-usage",
     ]);
     expect(Object.isFrozen(RATE_LIMIT_WIDGETS)).toBe(true);
-    expect(RATE_LIMIT_WIDGETS).toHaveLength(8);
+    expect(RATE_LIMIT_WIDGETS).toHaveLength(3);
   });
 });
 
@@ -195,11 +181,11 @@ describe("session-usage widget", () => {
       timestamp: Date.parse("2026-05-01T03:00:00Z"),
       inputTokens: 999_999,
     });
-    const recent = ev({
+    const recentEv = ev({
       timestamp: Date.parse("2026-05-01T09:30:00Z"),
       inputTokens: 1_000,
     });
-    const snap = makeSnapshot([oldEv, recent], { now, blockAnchor: oldEv.timestamp });
+    const snap = makeSnapshot([oldEv, recentEv], { now, blockAnchor: oldEv.timestamp });
     const cell = sessionUsageWidget.render(makeCtx(snap), {
       options: { limit: 10_000 },
       rawValue: false,
@@ -214,62 +200,6 @@ describe("session-usage widget", () => {
       rawValue: true,
     });
     expect(cell.text).toBe("10%");
-  });
-});
-
-describe("weekly-usage widget", () => {
-  it("uses the week reset boundary", async () => {
-    // Compute the week boundary against the local TZ so the assertion
-    // is host-agnostic.
-    const { weekStart } = await import("../../tokens/index.js");
-    const now = Date.parse("2026-04-30T12:00:00Z");
-    const wkStart = weekStart(now);
-    const beforeWeek = ev({ timestamp: wkStart - HOUR_MS, inputTokens: 999_999 });
-    const inWeek = ev({ timestamp: wkStart + HOUR_MS, inputTokens: 5_000 });
-    const snap = makeSnapshot([beforeWeek, inWeek], { now });
-    const cell = weeklyUsageWidget.render(makeCtx(snap), {
-      options: { limit: 50_000 },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("10%");
-  });
-
-  it("hides without snapshot", () => {
-    expect(
-      weeklyUsageWidget.render(makeCtx(undefined), { options: {}, rawValue: false }).hidden,
-    ).toBe(true);
-  });
-});
-
-describe("block-timer widget", () => {
-  it("shows remaining time anchored to the first event", () => {
-    const anchor = Date.parse("2026-05-01T00:00:00Z");
-    const now = anchor + 90 * 60 * 1000;
-    const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
-      now,
-      blockAnchor: anchor,
-    });
-    const cell = blockTimerWidget.render(makeCtx(snap), { options: {}, rawValue: false });
-    expect(cell.text).toBe("3h30m");
-  });
-
-  it("clock format renders HH:MM:SS", () => {
-    const anchor = Date.parse("2026-05-01T00:00:00Z");
-    const now = anchor + 90 * 60 * 1000;
-    const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
-      now,
-      blockAnchor: anchor,
-    });
-    const cell = blockTimerWidget.render(makeCtx(snap), {
-      options: { format: "clock" },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("03:30:00");
-  });
-
-  it("falls back to current time when no snapshot is present", () => {
-    const cell = blockTimerWidget.render(makeCtx(undefined), { options: {}, rawValue: false });
-    expect(cell.text).toBe("5h0m");
   });
 });
 
@@ -301,6 +231,28 @@ describe("block-reset-timer widget", () => {
     });
     expect(cell.text).toBe("1h0m");
   });
+
+  it("clock format renders HH:MM:SS", () => {
+    const anchor = Date.parse("2026-05-01T00:00:00Z");
+    const now = anchor + 4 * HOUR_MS;
+    const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
+      now,
+      blockAnchor: anchor,
+    });
+    const cell = blockResetTimerWidget.render(makeCtx(snap), {
+      options: { format: "clock" },
+      rawValue: false,
+    });
+    expect(cell.text).toBe("resets 01:00:00");
+  });
+
+  it("falls back to current time when no snapshot is present", () => {
+    const cell = blockResetTimerWidget.render(makeCtx(undefined), {
+      options: { format: "short" },
+      rawValue: true,
+    });
+    expect(cell.text).toBe("5h0m");
+  });
 });
 
 describe("weekly-reset-timer widget", () => {
@@ -325,93 +277,5 @@ describe("weekly-reset-timer widget", () => {
       rawValue: false,
     });
     expect(cell.text.startsWith("week resets ")).toBe(true);
-  });
-});
-
-describe("model-usage widget", () => {
-  it("hides without a model id", () => {
-    const snap = makeSnapshot([ev({ model: "claude-opus-4-7", inputTokens: 1_000 })]);
-    expect(
-      modelUsageWidget.render(makeCtx(snap), { options: {}, rawValue: false }).hidden,
-    ).toBe(true);
-  });
-
-  it("aggregates only events that match the active model", () => {
-    const snap = makeSnapshot([
-      ev({ model: "claude-opus-4-7", inputTokens: 5_000 }),
-      ev({ model: "claude-haiku-4-5", inputTokens: 99_999 }),
-      ev({ model: "claude-opus-4-7", outputTokens: 2_000 }),
-    ]);
-    const ctx = makeCtx(snap, {
-      stdin: { ...baseStdin, model: "claude-opus-4-7" },
-    });
-    const cell = modelUsageWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.text).toBe("7k");
-  });
-
-  it("hides when snapshot missing", () => {
-    expect(
-      modelUsageWidget.render(makeCtx(undefined), { options: {}, rawValue: false }).hidden,
-    ).toBe(true);
-  });
-});
-
-describe("effort-usage widget", () => {
-  it("hides without a thinkingEffort", () => {
-    const snap = makeSnapshot([ev({ effort: "high", inputTokens: 1_000 })]);
-    expect(
-      effortUsageWidget.render(makeCtx(snap), { options: {}, rawValue: false }).hidden,
-    ).toBe(true);
-  });
-
-  it("aggregates events that match the active effort", () => {
-    const snap = makeSnapshot([
-      ev({ effort: "high", inputTokens: 5_000 }),
-      ev({ effort: "low", inputTokens: 99_999 }),
-      ev({ effort: "high", cachedTokens: 1_000 }),
-    ]);
-    const ctx = makeCtx(snap, {
-      stdin: { ...baseStdin, thinkingEffort: "high" },
-    });
-    const cell = effortUsageWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.text).toBe("6k");
-  });
-});
-
-describe("compaction-counter widget", () => {
-  it("hides when zero by default", () => {
-    const snap = makeSnapshot([ev({ inputTokens: 100 })]);
-    expect(
-      compactionCounterWidget.render(makeCtx(snap), { options: {}, rawValue: false }).hidden,
-    ).toBe(true);
-  });
-
-  it("counts compaction events", () => {
-    const snap = makeSnapshot([
-      ev({ compaction: true }),
-      ev({ inputTokens: 10 }),
-      ev({ compaction: true }),
-      ev({ compaction: true }),
-    ]);
-    const cell = compactionCounterWidget.render(makeCtx(snap), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("3");
-  });
-
-  it("can render zero when hideZero is disabled", () => {
-    const snap = makeSnapshot([ev({ inputTokens: 100 })]);
-    const cell = compactionCounterWidget.render(makeCtx(snap), {
-      options: { hideZero: false, label: "compactions: " },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("compactions: 0");
-  });
-
-  it("hides when snapshot missing", () => {
-    expect(
-      compactionCounterWidget.render(makeCtx(undefined), { options: {}, rawValue: false }).hidden,
-    ).toBe(true);
   });
 });

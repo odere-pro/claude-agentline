@@ -76,20 +76,19 @@ To activate a theme, set `"theme": "<name>"` in your config (or use the TUI edit
 Built-in widgets ask the active theme for these roles. Widgets that
 don't declare a role fall back to `fg` / `bg`.
 
-| Role                                  | Used by                                         |
-| ------------------------------------- | ----------------------------------------------- |
-| `fg`                                  | default foreground when no widget colour is set |
-| `bg`                                  | default background                              |
-| `accent`                              | session widgets (`model`, `version`, `org`)     |
-| `info`                                | context, tokens (low usage)                     |
-| `warning`                             | context / tokens approaching their cap          |
-| `danger`                              | rate-limit hit, error states                    |
-| `muted`                               | separators, labels in `minimalist` mode         |
-| `git.branch`                          | `git-branch`                                    |
-| `git.dirty`                           | `git-changes` when the worktree is dirty        |
-| `git.clean`                           | `git-changes` when the worktree is clean        |
-| `cost.low` / `cost.mid` / `cost.high` | `cost` widget tiers                             |
-| `clock`                               | `clock`, `uptime`                               |
+| Role         | Used by                                         |
+| ------------ | ----------------------------------------------- |
+| `fg`         | default foreground when no widget colour is set |
+| `bg`         | default background                              |
+| `accent`     | session widgets (`model`, `version`, `org`)     |
+| `info`       | context, tokens (low usage)                     |
+| `warning`    | context / tokens approaching their cap          |
+| `danger`     | rate-limit hit, error states                    |
+| `muted`      | separators, labels in `minimalist` mode         |
+| `git.branch` | `git-branch`                                    |
+| `git.dirty`  | `git-changes` when the worktree is dirty        |
+| `git.clean`  | `git-changes` when the worktree is clean        |
+| `clock`      | `clock`, `uptime`                               |
 
 Themes can supply a subset of the role keys; missing roles fall back to
 the in-code defaults so an old theme keeps working when new widgets
@@ -142,8 +141,6 @@ When `enabled` is `true`:
 - Adjoining colours are computed automatically: the chevron's
   foreground is the previous widget's background, and its background
   is the next widget's background.
-- `flex-separator` is silently dropped — Powerline lines are
-  right-padded by `autoAlign` instead.
 - Without a Nerd Font installed, `agentline doctor` emits the D05
   warning and the binary falls back to ASCII chevrons (`>`, `<`).
 

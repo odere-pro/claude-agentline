@@ -11,10 +11,8 @@
         { "type": "git-changes" },
         { "type": "context-percentage" },
         { "type": "tokens-total", "options": { "reset": "block" } },
-        { "type": "cost", "options": { "reset": "block" } },
         { "type": "session-usage", "options": { "reset": "block" } },
         { "type": "block-reset-timer" },
-        { "type": "flex-separator" },
         { "type": "clock" }
       ]
     }

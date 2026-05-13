@@ -155,10 +155,10 @@ describe("glyph layer", () => {
     expect(cell.text).toBe("hi");
   });
 
-  it("leaves flex-separator cells alone (their text is the fill character)", () => {
+  it("leaves flex cells alone (their text is the fill character)", () => {
     const r = new WidgetRegistry();
-    r.register(defineWidget("flex-separator", () => ({ text: " ", flex: true })));
-    const cell = renderWidget(r, { type: "flex-separator" }, ctxWithGlyphs("nerd-font"));
+    r.register(defineWidget("test-flex", () => ({ text: " ", flex: true })));
+    const cell = renderWidget(r, { type: "test-flex" }, ctxWithGlyphs("nerd-font"));
     expect(cell.text).toBe(" ");
     expect(cell.flex).toBe(true);
   });

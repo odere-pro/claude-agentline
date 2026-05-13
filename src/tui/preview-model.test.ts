@@ -99,14 +99,11 @@ describe("buildPreview", () => {
   });
 
   it("surfaces a self-hiding widget (no data in the demo session) as a [type: no data] chip", () => {
-    // `vim-mode` exists in DEFAULT demo session ("INSERT"), so use a widget
-    // we know self-hides without data. Per the catalogue, custom widgets
-    // hide cleanly when context is absent.
+    // `git-conflicts` hides cleanly when conflicts === 0 — the demo
+    // session has none, so its preview surfaces a "no data" chip.
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
-      // `command` widget hides without options.cmd → demo path returns
-      // HIDDEN_CELL; the preview surfaces a "no data" chip.
-      lines: [{ widgets: [{ type: "command" }] }],
+      lines: [{ widgets: [{ type: "git-conflicts" }] }],
     });
     const widget = rows[0]?.slots.find((s) => s.kind === "widget");
     expect(widget?.kind === "widget" && widget.text).toContain("no data");

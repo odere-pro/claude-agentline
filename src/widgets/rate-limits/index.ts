@@ -5,38 +5,19 @@
  * bootstrap.
  *
  * Widgets shipped:
- *   - session-usage / weekly-usage  (block / week token usage)
- *   - block-timer / block-reset-timer / weekly-reset-timer
- *   - model-usage / effort-usage    (per-axis token aggregates)
- *   - compaction-counter            (transcript JSONL compaction marker)
+ *   - session-usage          (block token usage)
+ *   - block-reset-timer      (countdown to the next block reset)
+ *   - weekly-reset-timer     (countdown to the next weekly reset)
  */
 
 import type { WidgetDef } from "../widget.js";
 import type { WidgetRegistry } from "../registry.js";
 
-import {
-  compactionCounterWidget,
-  effortUsageWidget,
-  modelUsageWidget,
-} from "./aggregates.js";
-import {
-  blockResetTimerWidget,
-  blockTimerWidget,
-  weeklyResetTimerWidget,
-} from "./timers.js";
-import { sessionUsageWidget, weeklyUsageWidget } from "./usage.js";
+import { blockResetTimerWidget, weeklyResetTimerWidget } from "./timers.js";
+import { sessionUsageWidget } from "./usage.js";
 
-export {
-  compactionCounterWidget,
-  effortUsageWidget,
-  modelUsageWidget,
-} from "./aggregates.js";
-export {
-  blockResetTimerWidget,
-  blockTimerWidget,
-  weeklyResetTimerWidget,
-} from "./timers.js";
-export { sessionUsageWidget, weeklyUsageWidget } from "./usage.js";
+export { blockResetTimerWidget, weeklyResetTimerWidget } from "./timers.js";
+export { sessionUsageWidget } from "./usage.js";
 export {
   formatDuration,
   resolveDurationFormat,
@@ -45,13 +26,8 @@ export {
 
 export const RATE_LIMIT_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   blockResetTimerWidget as WidgetDef<unknown>,
-  blockTimerWidget as WidgetDef<unknown>,
-  compactionCounterWidget as WidgetDef<unknown>,
-  effortUsageWidget as WidgetDef<unknown>,
-  modelUsageWidget as WidgetDef<unknown>,
   sessionUsageWidget as WidgetDef<unknown>,
   weeklyResetTimerWidget as WidgetDef<unknown>,
-  weeklyUsageWidget as WidgetDef<unknown>,
 ]);
 
 export function registerRateLimitWidgets(registry: WidgetRegistry): void {

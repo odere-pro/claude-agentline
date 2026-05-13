@@ -28,9 +28,9 @@ describe("WIDGET_CATALOG", () => {
     expect({ missing, extra }).toEqual({ missing: [], extra: [] });
   });
 
-  it("covers all 55 shipped widgets", () => {
-    expect(Object.keys(WIDGET_CATALOG)).toHaveLength(55);
-    expect(builtinRegistry().size()).toBe(55);
+  it("covers all 37 shipped widgets", () => {
+    expect(Object.keys(WIDGET_CATALOG)).toHaveLength(37);
+    expect(builtinRegistry().size()).toBe(37);
   });
 
   it("every entry has a non-empty description of at most 80 chars", () => {
@@ -72,13 +72,10 @@ describe("widgetMeta", () => {
 });
 
 describe("WIDGET_CATALOG — variants", () => {
-  it("declares variants for widgets that branch on an option (skills/usage/clock/timers/uptime/account-email/vim-mode)", () => {
+  it("declares variants for widgets that branch on an option (skills/usage/clock/timers/uptime/account-email)", () => {
     expect(widgetVariants("skills").map((v) => v.id)).toEqual(["count", "list", "last"]);
     expect(widgetVariants("session-usage").map((v) => v.id)).toEqual(["percent", "bar", "short-bar"]);
-    expect(widgetVariants("weekly-usage").map((v) => v.id)).toEqual(["percent", "bar", "short-bar"]);
-    expect(widgetVariants("vim-mode").map((v) => v.id)).toEqual(["long", "short", "bracket"]);
     expect(widgetVariants("account-email").map((v) => v.id)).toEqual(["full", "domain", "localpart"]);
-    expect(widgetVariants("block-timer").map((v) => v.id)).toEqual(["short", "long", "clock"]);
     expect(widgetVariants("block-reset-timer").map((v) => v.id)).toEqual(["short", "long", "clock"]);
     expect(widgetVariants("weekly-reset-timer").map((v) => v.id)).toEqual(["short", "long", "clock"]);
     expect(widgetVariants("uptime-session").map((v) => v.id)).toEqual(["short", "long", "clock"]);
@@ -123,15 +120,13 @@ describe("WIDGET_CATALOG — glyphs", () => {
     expect(widgetMeta("model")?.glyph).toBeTruthy();
     expect(widgetMeta("git-branch")?.glyph).toBeTruthy();
     expect(widgetMeta("clock")?.glyph).toBeTruthy();
-    expect(widgetMeta("cost")?.glyph).toBeTruthy();
     expect(widgetMeta("tokens-total")?.glyph).toBeTruthy();
     expect(widgetMeta("git-pr")?.glyph).toBeTruthy();
-    expect(widgetMeta("key-hints")?.glyph).toBeTruthy();
+    expect(widgetMeta("session-usage")?.glyph).toBeTruthy();
   });
 
-  it("layout-only widgets carry no glyph (separator / flex-separator)", () => {
+  it("layout-only widgets carry no glyph (separator)", () => {
     expect(widgetMeta("separator")?.glyph).toBeUndefined();
-    expect(widgetMeta("flex-separator")?.glyph).toBeUndefined();
   });
 });
 
@@ -140,7 +135,7 @@ describe("activeVariantId", () => {
     expect(activeVariantId("skills", { variant: "list" })).toBe("list");
     expect(activeVariantId("skills", { variant: "count" })).toBe("count");
     expect(activeVariantId("session-usage", { display: "bar" })).toBe("bar");
-    expect(activeVariantId("vim-mode", { format: "short" })).toBe("short");
+    expect(activeVariantId("block-reset-timer", { format: "long" })).toBe("long");
     expect(activeVariantId("clock", { format: "%H:%M" })).toBe("time-24h");
   });
 

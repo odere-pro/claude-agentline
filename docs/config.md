@@ -4,8 +4,8 @@
 available via `agentline config init --preset <name>`:
 
 - **`minimal`** (`templates/minimal.config.json`) — `model`, `context-length`, `block-reset-timer`. The smallest sensible bar.
-- **`default`** (`templates/default.config.json`) — model, git, context, tokens, cost, session usage, clock. The recommended starting point; what `agentline install` seeds on first run.
-- **`maximal`** — `default` plus `thinking-effort`, `weekly-usage`, the weekly + block reset timers, and `clock`. A curated "everything useful" line.
+- **`default`** (`templates/default.config.json`) — model, git, context, tokens, session usage, block reset timer, clock. The recommended starting point; what `agentline install` seeds on first run.
+- **`maximal`** — `default` plus `git-ahead-behind` and the weekly reset timer. A curated "everything useful" line.
 
 `agentline config init` defaults to the `default` preset and writes the
 user config at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`
@@ -134,8 +134,8 @@ Top-level glyph mode. Two values:
   the [Nerd Fonts v3](https://www.nerdfonts.com/) Private Use Area, so
   this only renders correctly with a Nerd Font installed in the
   terminal — that's why it's opt-in. Widgets without a catalogued glyph
-  are unaffected. Layout-only widgets (`separator`, `flex-separator`)
-  are always unaffected.
+  are unaffected. The layout-only `separator` widget is always
+  unaffected.
 
 ## Widget shape
 
