@@ -26,7 +26,7 @@ vi.mock("ink", () => {
 
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import { DEFAULT_KEY_BINDINGS } from "../keys/bindings.js";
-import { enterAltScreen, footerLines, runConfigCommand } from "./main.js";
+import { enterAltScreen, footerLines, pruneStaleWidgets, runConfigCommand } from "./main.js";
 
 describe("runConfigCommand (entry-point wiring)", () => {
   let tmp: string;
@@ -63,6 +63,29 @@ describe("runConfigCommand (entry-point wiring)", () => {
     expect(result.skipped).toBe(true);
     expect(result.saved).toBe(false);
     expect(result.path).toBe("");
+  });
+});
+
+describe("pruneStaleWidgets", () => {
+  it("drops widgets whose type isn't in the catalogue", () => {
+    const config = {
+      ...DEFAULT_CONFIG,
+      lines: [
+        { widgets: [{ type: "model" }, { type: "legacy-deleted-widget" }, { type: "git-branch" }] },
+        { widgets: [{ type: "unknown-thing" }] },
+      ],
+    };
+    const pruned = pruneStaleWidgets(config);
+    expect(pruned.lines[0]?.widgets.map((w) => w.type)).toEqual(["model", "git-branch"]);
+    expect(pruned.lines[1]?.widgets).toEqual([]);
+  });
+
+  it("returns the same object reference when no widgets are stale", () => {
+    const config = {
+      ...DEFAULT_CONFIG,
+      lines: [{ widgets: [{ type: "model" }, { type: "git-branch" }] }],
+    };
+    expect(pruneStaleWidgets(config)).toBe(config);
   });
 });
 

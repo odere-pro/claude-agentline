@@ -84,9 +84,12 @@ function buildRow(line: number, row: LineConfig, base: AgentlineConfig): Preview
 }
 
 /**
- * Render one widget into a preview slot. Hidden widgets are surfaced as a
- * compact `[hidden:type]` chip so the user can still reach them with the
- * arrows and toggle them back on via the options sheet.
+ * Render one widget into a preview slot. Hidden widgets and self-hiding
+ * widgets (no data available right now) fall back to the widget's type
+ * name with `hidden: true` so the renderer dims them. The previous
+ * decorative chip text (`[hidden:type]`, `[type: no data]`) treated
+ * those cases as their own demo string, which is not a real demonstration
+ * of what the widget renders.
  */
 function renderSlot(
   widget: WidgetConfig,
@@ -97,19 +100,19 @@ function renderSlot(
     return {
       kind: "widget",
       widgetIndex: idx,
-      text: `[hidden:${widget.type}]`,
+      text: widget.type,
       hidden: true,
     };
   }
   const cell: Cell = previewWidget(widget.type, widget.options, { glyphs });
   // `previewWidget` returns HIDDEN_CELL (`text: "", hidden: true`) when the
-  // widget self-hides (data absent). Surface that as a `(no data)` chip
-  // tagged with the type so the user understands why nothing is shown.
+  // widget self-hides (data absent). Fall back to the widget's type name
+  // so the user still sees *what* widget is there, dimmed.
   if (cell.hidden || cell.text === "") {
     return {
       kind: "widget",
       widgetIndex: idx,
-      text: `[${widget.type}: no data]`,
+      text: widget.type,
       hidden: true,
     };
   }

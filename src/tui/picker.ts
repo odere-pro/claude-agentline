@@ -49,9 +49,7 @@ export function widgetsInCategory(
   const q = query.trim().toLowerCase();
   const scoped = entries.filter((e) => e.category === category);
   if (q === "") return scoped;
-  return scoped.filter(
-    (e) => e.type.toLowerCase().includes(q) || e.name.toLowerCase().includes(q),
-  );
+  return scoped.filter((e) => e.type.toLowerCase().includes(q) || e.name.toLowerCase().includes(q));
 }
 
 /**
@@ -81,10 +79,7 @@ export interface VariantRow {
  *   - mode `"update"`  → `"Keep current options"` (cancels the variant change).
  *   - mode `"fresh"`   → `"Default options"` (insert/replace without a patch).
  */
-export function variantRows(
-  type: string,
-  mode: "update" | "fresh",
-): readonly VariantRow[] {
+export function variantRows(type: string, mode: "update" | "fresh"): readonly VariantRow[] {
   const head: VariantRow =
     mode === "update"
       ? { id: null, label: "Keep current options" }
@@ -108,7 +103,10 @@ function clampIndex(value: number, length: number): number {
   return value;
 }
 
-function windowSlice<T>(matches: readonly T[], highlight: number): { start: number; rows: readonly T[] } {
+function windowSlice<T>(
+  matches: readonly T[],
+  highlight: number,
+): { start: number; rows: readonly T[] } {
   if (matches.length <= PICKER_PAGE) return { start: 0, rows: matches };
   const half = Math.floor(PICKER_PAGE / 2);
   const maxStart = matches.length - PICKER_PAGE;
@@ -133,7 +131,13 @@ export function PickerGroup(props: PickerGroupProps): React.ReactElement {
   const widest = cats.reduce((n, c) => Math.max(n, c.length), 0);
   return React.createElement(
     Box,
-    { flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, marginTop: 1 },
+    {
+      flexDirection: "column",
+      borderStyle: "round",
+      borderColor: "cyan",
+      paddingX: 1,
+      marginTop: 1,
+    },
     React.createElement(Text, { bold: true }, props.title ?? "Pick a group"),
     React.createElement(
       Text,
@@ -169,8 +173,12 @@ export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
   const highlight = clampIndex(props.highlight, matches.length);
   const { start, rows } = windowSlice(matches, highlight);
   const widestType = rows.reduce((n, e) => Math.max(n, e.type.length), 0);
-  // Pad preview text so descriptions line up in their own column.
-  const previews = rows.map((e) => previewWidget(e.type).text || "(hidden)");
+  // Pad preview text so descriptions line up in their own column. When a
+  // widget returns no data (real mode, source absent) we fall back to its
+  // type name so the picker still demonstrates *which* widget is on offer
+  // — `(hidden)` here would be misleading because the widget itself is
+  // not configured as hidden, it just can't produce data right now.
+  const previews = rows.map((e) => previewWidget(e.type).text || e.type);
   const widestPreview = previews.reduce((n, p) => Math.max(n, p.length), 0);
   const countLabel = `${matches.length} match${matches.length === 1 ? "" : "es"}`;
 
@@ -192,7 +200,13 @@ export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
 
   return React.createElement(
     Box,
-    { flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, marginTop: 1 },
+    {
+      flexDirection: "column",
+      borderStyle: "round",
+      borderColor: "cyan",
+      paddingX: 1,
+      marginTop: 1,
+    },
     React.createElement(Text, { bold: true }, `Pick a widget — group ‹${props.category}›`),
     React.createElement(Text, null, `filter: ${props.query}▏`),
     React.createElement(
@@ -221,13 +235,15 @@ export function PickerVariant(props: PickerVariantProps): React.ReactElement {
   const widest = rows.reduce((n, r) => Math.max(n, r.label.length), 0);
   return React.createElement(
     Box,
-    { flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, marginTop: 1 },
+    {
+      flexDirection: "column",
+      borderStyle: "round",
+      borderColor: "cyan",
+      paddingX: 1,
+      marginTop: 1,
+    },
     React.createElement(Text, { bold: true }, `Pick a variant — ‹${props.widgetType}›`),
-    React.createElement(
-      Text,
-      { dimColor: true },
-      `↑↓ navigate · ↵ select · Esc back`,
-    ),
+    React.createElement(Text, { dimColor: true }, `↑↓ navigate · ↵ select · Esc back`),
     ...rows.map((row, idx) => {
       const selected = idx === highlight;
       const preview = previewForVariant(props.widgetType, row);
@@ -241,10 +257,10 @@ export function PickerVariant(props: PickerVariantProps): React.ReactElement {
 }
 
 function previewForVariant(widgetType: string, row: VariantRow): string {
-  if (row.id === null) return previewWidget(widgetType).text || "(hidden)";
+  if (row.id === null) return previewWidget(widgetType).text || widgetType;
   const variant = widgetVariants(widgetType).find((v) => v.id === row.id);
   const cell = previewWidget(widgetType, variant ? { ...variant.options } : undefined);
-  return cell.text || "(hidden)";
+  return cell.text || widgetType;
 }
 
 // ────────────────────────────────────────────────────────────────────────────

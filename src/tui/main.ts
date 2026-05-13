@@ -37,7 +37,7 @@ import type { Theme } from "../theme/index.js";
 import { resolveConfiguredTheme } from "../theme/resolve.js";
 
 import { defaultRegistry, registerAllBuiltins, type WidgetMetaEntry } from "../widgets/index.js";
-import { widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
+import { widgetMeta, widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
 
 import { pickGlyphs, type EditorGlyphs } from "./glyphs.js";
 import { saveEditedConfig } from "./persist.js";
@@ -471,15 +471,36 @@ function mountEditor(
 async function resolveStartingConfig(
   input: RunConfigInput,
 ): Promise<{ config: AgentlineConfig; path: string }> {
-  if (input.preloaded) return input.preloaded;
+  if (input.preloaded) {
+    return { config: pruneStaleWidgets(input.preloaded.config), path: input.preloaded.path };
+  }
   const env = resolveEnv(input);
   const paths = resolveConfigPaths(env);
   try {
     const loaded = await loadConfig({ env });
-    return { config: loaded.config, path: paths.userConfig };
+    return { config: pruneStaleWidgets(loaded.config), path: paths.userConfig };
   } catch {
     return { config: DEFAULT_CONFIG, path: paths.userConfig };
   }
+}
+
+/**
+ * Drop widgets whose `type` isn't in the catalogue. Such widgets can't be
+ * recreated through the picker (`add` / `update` only know catalogued
+ * types), so leaving them in the edit view would show navigable chips
+ * the user has no way to repair. Removing them at load time keeps the
+ * editor's `lines` and the preview slots in lock-step, and a subsequent
+ * save cleans the on-disk config.
+ */
+export function pruneStaleWidgets(config: AgentlineConfig): AgentlineConfig {
+  let changed = false;
+  const lines = config.lines.map((line) => {
+    const kept = line.widgets.filter((w) => widgetMeta(w.type) !== undefined);
+    if (kept.length === line.widgets.length) return line;
+    changed = true;
+    return { ...line, widgets: kept };
+  });
+  return changed ? { ...config, lines } : config;
 }
 
 export default runConfigCommand;
