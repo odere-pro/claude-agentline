@@ -45,7 +45,7 @@
  *   - `dirty`        whether anything changed since the last save.
  */
 
-import type { LineConfig, WidgetConfig } from "../config/types.js";
+import type { GlyphMode, LineConfig, WidgetConfig } from "../config/types.js";
 import { widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
 
 type MergeMode = NonNullable<WidgetConfig["merged"]>;
@@ -86,6 +86,14 @@ export interface EditorState {
   readonly pickerTarget: PickerTarget;
   readonly pickerDraft: PickerDraft;
   readonly dirty: boolean;
+  /**
+   * Live mirror of `config.glyphs`. The `g` keybinding toggles between
+   * `"off"` and `"nerd-font"`; the editor preview reads this value (not
+   * the loaded config's snapshot) so flipping the mode is reflected
+   * immediately. `saveEditedConfig` writes it back so the disk config
+   * tracks the editor.
+   */
+  readonly glyphs: GlyphMode;
 }
 
 export type EditorAction =
@@ -99,6 +107,8 @@ export type EditorAction =
   | { readonly type: "toggle-raw" }
   | { readonly type: "cycle-merge" }
   | { readonly type: "set-option"; readonly key: string; readonly value: unknown }
+  // ── top-level config toggles ─────────────────────────────────────────────
+  | { readonly type: "toggle-glyphs" }
   // ── picker drill-down (add / replace / update) ───────────────────────────
   | { readonly type: "open-picker"; readonly intent: "add" | "replace" }
   | { readonly type: "open-update" }
@@ -124,7 +134,10 @@ function padToMaxLines(lines: readonly LineConfig[]): readonly LineConfig[] {
   return trimmed;
 }
 
-export function initialState(lines: readonly LineConfig[]): EditorState {
+export function initialState(
+  lines: readonly LineConfig[],
+  glyphs: GlyphMode = "off",
+): EditorState {
   const padded = padToMaxLines(lines);
   const first = padded[0]!;
   return Object.freeze<EditorState>({
@@ -134,6 +147,7 @@ export function initialState(lines: readonly LineConfig[]): EditorState {
     pickerTarget: { kind: "insert", line: 0, index: 0 },
     pickerDraft: {},
     dirty: false,
+    glyphs,
   });
 }
 
@@ -153,6 +167,12 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
       return mutateCurrent(state, (w) => ({ ...w, merged: nextMerge(w.merged) }));
     case "set-option":
       return setOption(state, action.key, action.value);
+    case "toggle-glyphs":
+      return {
+        ...state,
+        glyphs: state.glyphs === "nerd-font" ? "off" : "nerd-font",
+        dirty: true,
+      };
     case "open-picker":
       return openPicker(state, action.intent);
     case "open-update":

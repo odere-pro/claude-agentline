@@ -220,6 +220,31 @@ describe("reduce: toggle / cycle", () => {
   });
 });
 
+describe("reduce: toggle-glyphs", () => {
+  it("flips between off and nerd-font and marks dirty", () => {
+    let s = initialState([], "off");
+    expect(s.glyphs).toBe("off");
+    expect(s.dirty).toBe(false);
+    s = reduce(s, { type: "toggle-glyphs" });
+    expect(s.glyphs).toBe("nerd-font");
+    expect(s.dirty).toBe(true);
+    s = reduce(s, { type: "toggle-glyphs" });
+    expect(s.glyphs).toBe("off");
+    expect(s.dirty).toBe(true);
+  });
+
+  it("starts in nerd-font when initialState seeds it that way", () => {
+    const s = initialState([{ widgets: [{ type: "a" }] }], "nerd-font");
+    expect(s.glyphs).toBe("nerd-font");
+    expect(reduce(s, { type: "toggle-glyphs" }).glyphs).toBe("off");
+  });
+
+  it("works in any mode (does not require an active widget)", () => {
+    const empty = initialState([], "off");
+    expect(reduce(empty, { type: "toggle-glyphs" }).glyphs).toBe("nerd-font");
+  });
+});
+
 describe("widgetCountAt", () => {
   it("returns the number of real widgets in the given row", () => {
     const s = multiLine([["a", "b"], [], ["c"]]);

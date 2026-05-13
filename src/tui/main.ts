@@ -102,7 +102,11 @@ interface AppProps {
 
 function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): React.ReactElement {
   const { exit } = useApp();
-  const [state, dispatch] = useReducer(reduce, initialConfig.lines, (lines) => initialState(lines));
+  const [state, dispatch] = useReducer(
+    reduce,
+    initialConfig,
+    (cfg) => initialState(cfg.lines, cfg.glyphs),
+  );
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [showHelp, setShowHelp] = useState(false);
   // Per-step transient UI state — reset on every mode change so each step
@@ -131,6 +135,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
         path,
         base: initialConfig,
         lines: state.lines,
+        glyphs: state.glyphs,
       });
       dispatch({ type: "mark-clean" });
       setStatusMessage(`saved → ${path}`);
@@ -140,7 +145,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
     } finally {
       saveInFlight.current = false;
     }
-  }, [initialConfig, onSaved, path, state.lines]);
+  }, [initialConfig, onSaved, path, state.lines, state.glyphs]);
 
   useInput((input, key) => {
     if (showHelp) {
@@ -271,6 +276,15 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       return dispatch({ type: "delete" });
     }
     if (input === "o") return dispatch({ type: "open-options" });
+    if (input === "g") {
+      dispatch({ type: "toggle-glyphs" });
+      // Surface the new value so the user can see the toggle landed even if
+      // their terminal lacks a Nerd Font (the prepended glyphs would render
+      // as tofu boxes — without a status line they'd look like noise).
+      const next = state.glyphs === "nerd-font" ? "off" : "nerd-font";
+      setStatusMessage(`glyphs: ${next}`);
+      return;
+    }
   });
 
   return React.createElement(
@@ -282,7 +296,10 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       Box,
       { marginTop: 1 },
       React.createElement(Preview, {
-        base: initialConfig,
+        // Synthesize an effective base that reflects the editor's live
+        // glyph mode so toggling `g` is visible immediately. Everything
+        // else — theme, global, powerline — comes from the loaded config.
+        base: { ...initialConfig, glyphs: state.glyphs },
         lines: state.lines,
         cursor: state.cursor,
         theme: previewTheme,
@@ -385,6 +402,7 @@ const FOOTER_LABEL: Record<string, string> = {
   delete: "delete",
   options: "options",
   save: "save",
+  "toggle-glyphs": "glyphs on/off",
   "picker-filter": "type to filter",
   "picker-navigate": "navigate",
   "picker-confirm": "confirm",
