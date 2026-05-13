@@ -280,7 +280,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
   return React.createElement(
     Box,
     { flexDirection: "column" },
-    React.createElement(Text, { bold: true }, "agentline config"),
+    React.createElement(Text, { bold: true }, "agentline edit"),
     React.createElement(Text, { dimColor: true }, `editing ${path}`),
     React.createElement(
       Box,

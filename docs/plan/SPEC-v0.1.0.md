@@ -573,21 +573,19 @@ A widget MUST declare its axis; mixed-axis sums are not supported.
 
 ### 9.1 Subcommands
 
-Top-level surface (intentionally small: four verbs plus the default render path). Everything configuration-adjacent lives under `agentline config <sub>`.
+Top-level surface — intentionally flat. The default no-arg path is the render-on-stdin contract; every other verb is a top-level command (no nested `config <sub>` dispatcher).
 
-| Command                                                        | Purpose                                                                      |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `agentline` (no args)                                          | Read stdin, render, exit. Default behaviour wired into `statusLine`          |
-| `agentline render`                                             | Same as no-args; `--fixture <path>` and `--config <path>` flags supported    |
-| `agentline install`                                            | Wire `statusLine` + install agentline skill files                            |
-| `agentline uninstall [--purge]`                                | Reverse install; restore prior `statusLine` from backup                      |
-| `agentline doctor [--fix] [--json]`                            | Diagnose and (optionally) repair                                             |
-| `agentline config`                                             | TUI editor (Ink); writes config atomically. Lazy-imports Ink only here.      |
-| `agentline config init [--preset <name>]`                      | Scaffold the user config from a shipped preset (`minimal\|default\|maximal`) |
-| `agentline config theme [--list\|--show <name>\|--set <name>]` | Inspect themes; `--set` writes `theme: "<name>"` into the config atomically  |
-| `agentline config keys [--json]`                               | Print active keymap                                                          |
-| `agentline config schema [--write <dir>]`                      | Print or write JSON Schema                                                   |
-| `agentline version`                                            | Print version + build metadata                                               |
+| Command                             | Purpose                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| `agentline` (no args)               | Read stdin, render, exit. Default behaviour wired into `statusLine`       |
+| `agentline render`                  | Same as no-args; `--fixture <path>` and `--config <path>` flags supported |
+| `agentline install`                 | Wire `statusLine` + install agentline skill files                         |
+| `agentline uninstall [--purge]`     | Reverse install; restore prior `statusLine` from backup                   |
+| `agentline doctor [--fix] [--json]` | Diagnose and (optionally) repair                                          |
+| `agentline edit`                    | TUI editor (Ink); writes config atomically. Lazy-imports Ink only here.   |
+| `agentline init [--force]`          | Write the default user config (refuses to overwrite without `--force`)    |
+| `agentline keys [--json]`           | Print active keymap                                                       |
+| `agentline version`                 | Print version + build metadata                                            |
 
 ### 9.2 Doctor checks
 
