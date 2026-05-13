@@ -11,32 +11,56 @@
  * (`./preview.ts`) is the editing surface — there is no separate
  * "layout list" view; the cursor moves through the rendered statusline
  * itself, with each row ending in a navigable "+ add widget" cell.
+ *
+ * Add / replace / update share a three-step picker drill-down:
+ *
+ *   step 1 (`picker-group`)   — pick a category.
+ *   step 2 (`picker-widget`)  — pick a widget within that category.
+ *   step 3 (`picker-variant`) — pick a variant (skipped for widgets that
+ *                                have none in the catalogue).
+ *
+ * `u` (update) jumps straight to step 3 for the selected widget.
  */
 
 import { Box, Text, render, useApp, useInput } from "ink";
-import React, { useCallback, useMemo, useReducer, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import { loadConfig } from "../config/load.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import type { AgentlineConfig } from "../config/types.js";
-import { listBindings, type KeyBinding } from "../keys/index.js";
+import { listBindings, type KeyBinding, type KeyScope } from "../keys/index.js";
 import { resolveEnv } from "../lib/env.js";
 import type { Theme } from "../theme/index.js";
 import { resolveConfiguredTheme } from "../theme/resolve.js";
 
-import { defaultRegistry, registerAllBuiltins, type WidgetMetaEntry } from "../widgets/index.js";
+import {
+  defaultRegistry,
+  registerAllBuiltins,
+  type WidgetMetaEntry,
+} from "../widgets/index.js";
+import { widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
 
 import { pickGlyphs, type EditorGlyphs } from "./glyphs.js";
 import { saveEditedConfig } from "./persist.js";
 import { OptionsSheet } from "./options-sheet.js";
-import { Picker, selectedEntry } from "./picker.js";
+import {
+  PickerGroup,
+  PickerVariant,
+  PickerWidget,
+  categoriesWithWidgets,
+  selectedAt,
+  variantRows,
+  widgetsInCategory,
+} from "./picker.js";
 import { Preview } from "./preview.js";
 import {
   currentWidget,
   initialState,
   isAddCell,
+  isPickerMode,
   reduce,
+  type EditorMode,
 } from "./state.js";
 
 /** The catalogued built-in widgets, populating the default registry once. */
@@ -60,8 +84,6 @@ export interface RunConfigResult {
 export async function runConfigCommand(input: RunConfigInput = {}): Promise<RunConfigResult> {
   const { config, path } = await resolveStartingConfig(input);
   const env = resolveEnv(input);
-  // Resolve `config.theme` once at startup so the live preview matches what
-  // the real statusline renders. Themes don't change during an edit session.
   const previewTheme = await resolveConfiguredTheme(config.theme, { env });
   const glyphs = pickGlyphs({ env });
   const { waitUntilExit, unmount, savedRef } = mountEditor(config, path, previewTheme, glyphs);
@@ -83,8 +105,10 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
   const [state, dispatch] = useReducer(reduce, initialConfig.lines, (lines) => initialState(lines));
   const [statusMessage, setStatusMessage] = useState<string>("");
   const [showHelp, setShowHelp] = useState(false);
-  const [pickerQuery, setPickerQuery] = useState("");
-  const [pickerHighlight, setPickerHighlight] = useState(0);
+  // Per-step transient UI state — reset on every mode change so each step
+  // starts with a clean filter and the highlight at row 0.
+  const [stepQuery, setStepQuery] = useState("");
+  const [stepHighlight, setStepHighlight] = useState(0);
   const saveInFlight = React.useRef(false);
   const bindings = useMemo(
     () => listBindings(initialConfig.keymap as Record<string, string> | undefined),
@@ -93,10 +117,11 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
   const widgetEntries = useMemo(() => builtinWidgetEntries(), []);
   const optionsWidget = state.mode === "options" ? currentWidget(state) : undefined;
 
-  const resetPicker = useCallback(() => {
-    setPickerQuery("");
-    setPickerHighlight(0);
-  }, []);
+  // Reset per-step state on every transition.
+  useEffect(() => {
+    setStepQuery("");
+    setStepHighlight(0);
+  }, [state.mode, state.pickerDraft.category, state.pickerDraft.widgetType]);
 
   const onSave = useCallback(async () => {
     if (saveInFlight.current) return;
@@ -122,34 +147,72 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       setShowHelp(false);
       return;
     }
-    if (state.mode === "picker") {
-      if (key.escape) {
-        dispatch({ type: "close-picker" });
-        resetPicker();
-        return;
-      }
+
+    // ── picker steps ─────────────────────────────────────────────────────
+    if (state.mode === "picker-group") {
+      const cats = categoriesWithWidgets(widgetEntries);
+      if (key.escape) return dispatch({ type: "picker-back" });
       if (key.return) {
-        const picked = selectedEntry(widgetEntries, pickerQuery, pickerHighlight);
-        dispatch(
-          picked
-            ? { type: "apply-picker", widgetType: picked.type }
-            : { type: "close-picker" },
-        );
-        resetPicker();
+        const cat = selectedAt(cats, stepHighlight);
+        if (cat) dispatch({ type: "pick-category", category: cat });
         return;
       }
-      if (key.upArrow) return setPickerHighlight((h) => Math.max(0, h - 1));
-      if (key.downArrow) return setPickerHighlight((h) => h + 1);
+      if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
+      if (key.downArrow)
+        return setStepHighlight((h) => Math.min(cats.length - 1, h + 1));
+      return;
+    }
+    if (state.mode === "picker-widget") {
+      const category = state.pickerDraft.category;
+      if (!category) {
+        // Should never happen — defensive fall-through.
+        dispatch({ type: "picker-back" });
+        return;
+      }
+      if (key.escape) return dispatch({ type: "picker-back" });
+      if (key.return) {
+        const matches = widgetsInCategory(widgetEntries, category, stepQuery);
+        const picked = selectedAt(matches, stepHighlight);
+        if (picked) dispatch({ type: "pick-widget", widgetType: picked.type });
+        return;
+      }
+      if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
+      if (key.downArrow) {
+        const matches = widgetsInCategory(widgetEntries, category, stepQuery);
+        return setStepHighlight((h) => Math.min(Math.max(0, matches.length - 1), h + 1));
+      }
       if (key.backspace || key.delete) {
-        setPickerQuery((q) => q.slice(0, -1));
-        return setPickerHighlight(0);
+        setStepQuery((q) => q.slice(0, -1));
+        return setStepHighlight(0);
       }
       if (input.length === 1 && input >= " " && !key.ctrl && !key.meta) {
-        setPickerQuery((q) => q + input);
-        return setPickerHighlight(0);
+        setStepQuery((q) => q + input);
+        return setStepHighlight(0);
       }
       return;
     }
+    if (state.mode === "picker-variant") {
+      const widgetType = state.pickerDraft.widgetType;
+      if (!widgetType) {
+        dispatch({ type: "picker-back" });
+        return;
+      }
+      const mode: "update" | "fresh" =
+        state.pickerTarget.kind === "update" ? "update" : "fresh";
+      const rows = variantRows(widgetType, mode);
+      if (key.escape) return dispatch({ type: "picker-back" });
+      if (key.return) {
+        const row = selectedAt(rows, stepHighlight);
+        if (row) dispatch({ type: "pick-variant", variantId: row.id });
+        return;
+      }
+      if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
+      if (key.downArrow)
+        return setStepHighlight((h) => Math.min(rows.length - 1, h + 1));
+      return;
+    }
+
+    // ── options sheet ────────────────────────────────────────────────────
     if (state.mode === "options") {
       if (key.escape) return dispatch({ type: "close-options" });
       if (input === "v") return dispatch({ type: "toggle-hidden" });
@@ -157,6 +220,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       if (input === "m") return dispatch({ type: "cycle-merge" });
       return;
     }
+
     // ── edit scope ───────────────────────────────────────────────────────
     if (input === "?") return setShowHelp(true);
     if (key.escape || input === "q") {
@@ -170,24 +234,39 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       return;
     }
     if (key.leftArrow)
-      return dispatch(key.shift ? { type: "move-widget", dx: -1 } : { type: "move-cursor", dx: -1 });
+      return dispatch(
+        key.shift ? { type: "move-widget", dx: -1 } : { type: "move-cursor", dx: -1 },
+      );
     if (key.rightArrow)
-      return dispatch(key.shift ? { type: "move-widget", dx: 1 } : { type: "move-cursor", dx: 1 });
+      return dispatch(
+        key.shift ? { type: "move-widget", dx: 1 } : { type: "move-cursor", dx: 1 },
+      );
     if (key.upArrow)
-      return dispatch(key.shift ? { type: "move-widget", dy: -1 } : { type: "move-cursor", dy: -1 });
+      return dispatch(
+        key.shift ? { type: "move-widget", dy: -1 } : { type: "move-cursor", dy: -1 },
+      );
     if (key.downArrow)
-      return dispatch(key.shift ? { type: "move-widget", dy: 1 } : { type: "move-cursor", dy: 1 });
+      return dispatch(
+        key.shift ? { type: "move-widget", dy: 1 } : { type: "move-cursor", dy: 1 },
+      );
     if (key.return) {
-      // On the +add cell → open the picker. On a widget → open the options
-      // sheet (the "edit this widget" affordance). Verbs `a`/`r`/`d`/`o`
-      // remain available too.
-      if (isAddCell(state)) {
-        return dispatch({ type: "open-picker", target: "insert" });
-      }
+      if (isAddCell(state)) return dispatch({ type: "open-picker", intent: "add" });
       return dispatch({ type: "open-options" });
     }
-    if (input === "a") return dispatch({ type: "open-picker", target: "insert" });
-    if (input === "r") return dispatch({ type: "open-picker", target: "replace" });
+    if (input === "a") return dispatch({ type: "open-picker", intent: "add" });
+    if (input === "r") return dispatch({ type: "open-picker", intent: "replace" });
+    if (input === "u") {
+      const widget = currentWidget(state);
+      if (!widget) {
+        setStatusMessage("update: select a widget first");
+        return;
+      }
+      if (widgetVariants(widget.type).length === 0) {
+        setStatusMessage(`no variants for "${widget.type}"`);
+        return;
+      }
+      return dispatch({ type: "open-update" });
+    }
     if (input === "d" || input === "x" || key.delete || key.backspace) {
       return dispatch({ type: "delete" });
     }
@@ -225,12 +304,26 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
     statusMessage
       ? React.createElement(Text, { color: "green" }, ` ${statusMessage} `)
       : null,
-    state.mode === "picker"
-      ? React.createElement(Picker, {
-          title: state.pickerTarget === "replace" ? "Replace the widget with…" : "Insert a widget",
+    state.mode === "picker-group"
+      ? React.createElement(PickerGroup, {
           entries: widgetEntries,
-          query: pickerQuery,
-          highlight: pickerHighlight,
+          highlight: stepHighlight,
+          glyphs,
+        })
+      : null,
+    state.mode === "picker-widget" && state.pickerDraft.category
+      ? React.createElement(PickerWidget, {
+          category: state.pickerDraft.category as WidgetCategory,
+          entries: widgetEntries,
+          query: stepQuery,
+          highlight: stepHighlight,
+        })
+      : null,
+    state.mode === "picker-variant" && state.pickerDraft.widgetType
+      ? React.createElement(PickerVariant, {
+          widgetType: state.pickerDraft.widgetType,
+          mode: state.pickerTarget.kind === "update" ? "update" : "fresh",
+          highlight: stepHighlight,
         })
       : null,
     optionsWidget ? React.createElement(OptionsSheet, { widget: optionsWidget }) : null,
@@ -239,12 +332,20 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
 }
 
 const SCOPE_ORDER = ["edit", "picker", "options", "any"] as const;
-const SCOPE_HEADING: Record<KeyBinding["scope"], string> = {
+const SCOPE_HEADING: Record<KeyScope, string> = {
   edit: "in the preview",
   picker: "in the widget picker",
   options: "in the options sheet",
   any: "any time",
 };
+
+/** Map the reducer's mode (which includes the three picker steps) onto the
+ *  display scope used by the footer + help overlay. */
+function modeToScope(mode: EditorMode): KeyScope {
+  if (mode === "options") return "options";
+  if (isPickerMode(mode)) return "picker";
+  return "edit";
+}
 
 function helpOverlay(bindings: readonly KeyBinding[]): React.ReactElement {
   const widest = bindings.reduce((n, b) => Math.max(n, b.key.length), 0);
@@ -271,8 +372,7 @@ function helpOverlay(bindings: readonly KeyBinding[]): React.ReactElement {
   );
 }
 
-/** Compact one-line footer of the keys active in the current mode (plus `any`),
- *  keyed by action so it survives `config.keymap` overrides. */
+/** Compact one-line footer of the keys active in the current mode (plus `any`). */
 const FOOTER_LABEL: Record<string, string> = {
   "move-cursor": "move",
   "move-cursor-row": "row",
@@ -281,13 +381,15 @@ const FOOTER_LABEL: Record<string, string> = {
   "edit-widget": "+add or edit",
   add: "add",
   replace: "replace",
+  update: "update (variant)",
   delete: "delete",
   options: "options",
   save: "save",
   "picker-filter": "type to filter",
   "picker-navigate": "navigate",
   "picker-confirm": "confirm",
-  "picker-cancel": "cancel",
+  "picker-cancel": "cancel / back",
+  "picker-back": "back",
   "toggle-visible": "show/hide",
   "toggle-label": "label",
   "cycle-spacing": "spacing",
@@ -296,9 +398,10 @@ const FOOTER_LABEL: Record<string, string> = {
   help: "help",
 };
 
-function footerText(bindings: readonly KeyBinding[], mode: KeyBinding["scope"]): string {
+function footerText(bindings: readonly KeyBinding[], mode: EditorMode): string {
+  const scope = modeToScope(mode);
   return bindings
-    .filter((b) => b.scope === mode || b.scope === "any")
+    .filter((b) => b.scope === scope || b.scope === "any")
     .map((b) => `${b.key} ${FOOTER_LABEL[b.action] ?? b.description}`)
     .join(" · ");
 }

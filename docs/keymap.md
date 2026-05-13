@@ -23,10 +23,14 @@ The editor has three modes; a binding's **scope** says where it applies
   slots are always rendered; the selected widget is highlighted in
   place; each row ends in a navigable **+ add widget** cell that the
   cursor walks onto and confirms to insert.
-- **picker** — the widget chooser, opened by `a` (insert), `r`
-  (replace), or <kbd>↵</kbd> on the +add cell: a live filter over all
-  built-in widgets, each row showing what it renders against a demo
-  session.
+- **picker** — a three-step drill-down opened by `a` (add), `r`
+  (replace), <kbd>↵</kbd> on the +add cell, or `u` (update — same as
+  step 3 only). Step 1 picks the group (`session`, `git`, …); step 2
+  picks the widget within that group, with a live filter and a per-row
+  mini-preview; step 3 picks a *variant* (the same widget rendered a
+  different way, e.g. `skills` as count / list / last). Widgets with no
+  variants in the catalogue skip step 3 and commit straight from step 2.
+  <kbd>Esc</kbd> steps back one level (cancels at step 1).
 - **options** — the per-widget options sheet, opened by `o` or
   <kbd>↵</kbd> on a widget: visible / hidden, the widget's own label,
   spacing to the neighbour.
@@ -42,13 +46,14 @@ The editor has three modes; a binding's **scope** says where it applies
 | <kbd>↵</kbd>                | edit    | +add cell → open the picker; on a widget → open the options sheet |
 | <kbd>a</kbd>                | edit    | add a widget (opens the picker)                                   |
 | <kbd>r</kbd>                | edit    | replace the selected widget (opens the picker)                    |
+| <kbd>u</kbd>                | edit    | update — pick a different variant of the selected widget          |
 | <kbd>d</kbd>                | edit    | delete the selected widget                                        |
 | <kbd>o</kbd>                | edit    | open the selected widget's options sheet                          |
 | <kbd>S</kbd>                | edit    | save (Ctrl+S also works)                                          |
-| _(type)_                    | picker  | filter widgets by name or type                                    |
-| <kbd>↑</kbd> <kbd>↓</kbd>   | picker  | highlight a widget                                                |
-| <kbd>↵</kbd>                | picker  | insert / replace with the highlighted widget                      |
-| <kbd>Esc</kbd>              | picker  | close the picker                                                  |
+| _(type)_                    | picker  | filter widgets by name or type (step 2)                           |
+| <kbd>↑</kbd> <kbd>↓</kbd>   | picker  | highlight a row                                                   |
+| <kbd>↵</kbd>                | picker  | confirm the highlighted row and advance / commit                  |
+| <kbd>Esc</kbd>              | picker  | step back one level (cancels at step 1)                           |
 | <kbd>v</kbd>                | options | show / hide the widget                                            |
 | <kbd>l</kbd>                | options | show / hide the widget's own label                                |
 | <kbd>m</kbd>                | options | spacing to neighbour: full / single space / none                  |

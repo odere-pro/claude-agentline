@@ -76,16 +76,18 @@ const SPEC_ACTIONS = [
   "move-cursor-row",
   "move-widget",
   "move-widget-row",
+  "edit-widget",
   "add",
   "replace",
+  "update",
   "delete",
   "options",
   "save",
-  // picker
+  // picker (three steps share one scope)
   "picker-filter",
   "picker-navigate",
   "picker-confirm",
-  "picker-cancel",
+  "picker-back",
   // options sheet
   "toggle-visible",
   "toggle-label",

@@ -30,14 +30,15 @@ export const DEFAULT_KEY_BINDINGS: readonly KeyBinding[] = Object.freeze([
   { key: "↵", action: "edit-widget", scope: "edit", description: "+add cell → open the picker; on a widget → open the options sheet" },
   { key: "a", action: "add", scope: "edit", description: "add a widget (opens the picker)" },
   { key: "r", action: "replace", scope: "edit", description: "replace the selected widget (opens the picker)" },
+  { key: "u", action: "update", scope: "edit", description: "update the selected widget — pick a different variant of the same widget" },
   { key: "d", action: "delete", scope: "edit", description: "delete the selected widget" },
   { key: "o", action: "options", scope: "edit", description: "open the selected widget's options sheet" },
-  { key: "S", action: "save", scope: "edit", description: "save" },
-  // ── picker (the widget chooser overlay) ──────────────────────────────────
-  { key: "(type)", action: "picker-filter", scope: "picker", description: "type to filter widgets by name or type" },
-  { key: "↑ ↓", action: "picker-navigate", scope: "picker", description: "highlight a widget" },
-  { key: "↵", action: "picker-confirm", scope: "picker", description: "insert / replace with the highlighted widget" },
-  { key: "Esc", action: "picker-cancel", scope: "picker", description: "close the picker" },
+  { key: "S", action: "save", scope: "edit", description: "save (Ctrl+S also works)" },
+  // ── picker (the three-step widget chooser overlay) ───────────────────────
+  { key: "(type)", action: "picker-filter", scope: "picker", description: "type to filter widgets by name or type (step 2)" },
+  { key: "↑ ↓", action: "picker-navigate", scope: "picker", description: "highlight a row" },
+  { key: "↵", action: "picker-confirm", scope: "picker", description: "confirm the highlighted row and advance / commit" },
+  { key: "Esc", action: "picker-back", scope: "picker", description: "step back one level (cancels at step 1)" },
   // ── options (the per-widget options sheet) ───────────────────────────────
   { key: "v", action: "toggle-visible", scope: "options", description: "show / hide the widget" },
   { key: "l", action: "toggle-label", scope: "options", description: "show / hide the widget's own label" },
