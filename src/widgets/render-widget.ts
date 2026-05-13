@@ -74,8 +74,16 @@ function applyOverrides(cell: Cell, config: WidgetConfig, ctx: WidgetContext): C
       : cell.bg !== undefined
         ? { bg: cell.bg }
         : {}),
-    ...(config.bold !== undefined ? { bold: config.bold } : cell.bold !== undefined ? { bold: cell.bold } : {}),
-    ...(config.italic !== undefined ? { italic: config.italic } : cell.italic !== undefined ? { italic: cell.italic } : {}),
+    ...(config.bold !== undefined
+      ? { bold: config.bold }
+      : cell.bold !== undefined
+        ? { bold: cell.bold }
+        : {}),
+    ...(config.italic !== undefined
+      ? { italic: config.italic }
+      : cell.italic !== undefined
+        ? { italic: cell.italic }
+        : {}),
     ...(cell.hidden !== undefined ? { hidden: cell.hidden } : {}),
     ...(cell.flex === true ? { flex: true } : {}),
   };
@@ -111,10 +119,15 @@ export function renderWidget(
  * choices land. `hidden: true` widgets short-circuit, matching
  * `renderWidget`.
  */
-export function renderWidgetLabel(config: WidgetConfig): Cell {
+export function renderWidgetLabel(
+  config: WidgetConfig,
+  opts: { readonly glyphs?: "off" | "nerd-font" } = {},
+): Cell {
   if (config.hidden === true) return HIDDEN_CELL;
+  const glyph = opts.glyphs === "nerd-font" ? widgetGlyph(config.type) : undefined;
+  const text = glyph ? `${glyph}${GLYPH_SEPARATOR}${config.type}` : config.type;
   const next: Cell = {
-    text: config.type,
+    text,
     merged: config.merged ?? "off",
     ...(config.fg !== undefined && config.fg !== null ? { fg: config.fg as Colour } : {}),
     ...(config.bg !== undefined && config.bg !== null ? { bg: config.bg as Colour } : {}),

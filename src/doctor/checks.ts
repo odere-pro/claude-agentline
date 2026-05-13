@@ -169,21 +169,36 @@ async function checkD04(ctx: CheckCtx): Promise<CheckResult> {
   };
 }
 
-/** D05 — Nerd Font installed (Powerline only). Heuristic; report-only. */
+/**
+ * D05 — Nerd Font installed. Required by Powerline mode and by
+ * `config.glyphs === "nerd-font"` (the default), since both prepend
+ * Nerd Font PUA codepoints that render as tofu boxes without the
+ * font. Heuristic; report-only.
+ */
 async function checkD05(ctx: CheckCtx): Promise<CheckResult> {
-  if (!ctx.config?.powerline.enabled) {
-    return ok("D05", "Nerd Font present (Powerline)", "powerline disabled — skipped");
+  const wantsPowerline = ctx.config?.powerline.enabled === true;
+  const wantsGlyphs = ctx.config?.glyphs === "nerd-font";
+  if (!wantsPowerline && !wantsGlyphs) {
+    return ok("D05", "Nerd Font present", "powerline + glyphs both off — skipped");
   }
   const installed = await detectNerdFont();
   if (installed) {
-    return ok("D05", "Nerd Font present (Powerline)", "nerd font detected");
+    return ok("D05", "Nerd Font present", "nerd font detected");
   }
+  const reason = wantsPowerline && wantsGlyphs
+    ? "no Nerd Font detected for Powerline + glyphs"
+    : wantsPowerline
+      ? "no Nerd Font detected for Powerline glyphs"
+      : "no Nerd Font detected for config.glyphs=\"nerd-font\"";
   return {
     id: "D05",
-    title: "Nerd Font present (Powerline)",
+    title: "Nerd Font present",
     status: "warn",
-    message: "no Nerd Font detected for Powerline glyphs",
-    hint: "macOS: brew install --cask font-jetbrains-mono-nerd-font · Linux: see docs/install.md · Windows: see docs/install.md",
+    message: reason,
+    hint:
+      "download a Nerd Font from https://www.nerdfonts.com (e.g. JetBrainsMono, FiraCode, Hack)" +
+      " · macOS: brew install --cask font-jetbrains-mono-nerd-font" +
+      " · or set glyphs=\"off\" in your config to disable",
   };
 }
 

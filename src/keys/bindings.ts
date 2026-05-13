@@ -22,24 +22,73 @@ export interface KeyBinding {
 
 export const DEFAULT_KEY_BINDINGS: readonly KeyBinding[] = Object.freeze([
   // ── edit (the layout view) ───────────────────────────────────────────────
-  { key: "← →", action: "move-cursor", scope: "edit", description: "move the selection within the row (incl. the trailing +add cell)" },
-  { key: "↑ ↓", action: "move-cursor-row", scope: "edit", description: "move the selection between rows" },
-  { key: "⇧← ⇧→", action: "move-widget", scope: "edit", description: "move the selected widget within its row" },
-  { key: "⇧↑ ⇧↓", action: "move-widget-row", scope: "edit", description: "move the selected widget to the adjacent row" },
+  {
+    key: "← →",
+    action: "move-cursor",
+    scope: "edit",
+    description: "move the selection within the row (incl. the trailing +add cell)",
+  },
+  {
+    key: "↑ ↓",
+    action: "move-cursor-row",
+    scope: "edit",
+    description: "move the selection between rows",
+  },
+  {
+    key: "⇧← ⇧→",
+    action: "move-widget",
+    scope: "edit",
+    description: "move the selected widget within its row",
+  },
+  {
+    key: "⇧↑ ⇧↓",
+    action: "move-widget-row",
+    scope: "edit",
+    description: "move the selected widget to the adjacent row",
+  },
   { key: "↵", action: "edit-widget", scope: "edit", description: "+add cell → open the picker" },
   { key: "a", action: "add", scope: "edit", description: "add a widget (opens the picker)" },
-  { key: "r", action: "replace", scope: "edit", description: "replace the selected widget (opens the picker)" },
-  { key: "u", action: "update", scope: "edit", description: "update the selected widget — pick a different variant of the same widget" },
+  {
+    key: "r",
+    action: "replace",
+    scope: "edit",
+    description: "replace the selected widget (opens the picker)",
+  },
   { key: "d", action: "delete", scope: "edit", description: "delete the selected widget" },
-  { key: "g", action: "toggle-glyphs", scope: "edit", description: "toggle Nerd Font glyphs on / off (top-level config.glyphs)" },
-  { key: "S", action: "save", scope: "edit", description: "save (Ctrl+S also works)" },
+  {
+    key: "g",
+    action: "toggle-glyphs",
+    scope: "edit",
+    description: "toggle Nerd Font glyphs on / off (top-level config.glyphs)",
+  },
+  { key: "s", action: "save", scope: "edit", description: "save (S and Ctrl+S also work)" },
   // ── picker (the three-step widget chooser overlay) ───────────────────────
-  { key: "(type)", action: "picker-filter", scope: "picker", description: "type to filter widgets by name or type (step 2)" },
+  {
+    key: "(type)",
+    action: "picker-filter",
+    scope: "picker",
+    description: "type to filter widgets by name or type (step 2)",
+  },
   { key: "↑ ↓", action: "picker-navigate", scope: "picker", description: "highlight a row" },
-  { key: "↵", action: "picker-confirm", scope: "picker", description: "confirm the highlighted row and advance / commit" },
-  { key: "Esc", action: "picker-back", scope: "picker", description: "step back one level (cancels at step 1)" },
+  {
+    key: "↵",
+    action: "picker-confirm",
+    scope: "picker",
+    description: "confirm the highlighted row and advance / commit",
+  },
+  {
+    key: "Esc",
+    action: "picker-back",
+    scope: "picker",
+    description: "step back one level (cancels at step 1)",
+  },
   // ── any mode ─────────────────────────────────────────────────────────────
-  { key: "q", action: "quit", scope: "any", description: "quit (prompts if there are unsaved changes)" },
+  {
+    key: "q",
+    action: "quit",
+    scope: "any",
+    description: "quit (prompts if there are unsaved changes)",
+  },
 ] as const) as readonly KeyBinding[];
 
 export function listBindings(

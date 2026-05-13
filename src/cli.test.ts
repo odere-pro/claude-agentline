@@ -18,6 +18,7 @@ const EXPECTED_COMMANDS = [
   "install",
   "uninstall",
   "doctor",
+  "start",
   "help",
   "--help",
   "-h",
@@ -26,15 +27,7 @@ const EXPECTED_COMMANDS = [
   "-v",
 ] as const;
 
-const DROPPED_COMMANDS = [
-  "config",
-  "theme",
-  "themes",
-  "widget",
-  "schema",
-  "init",
-  "keys",
-] as const;
+const DROPPED_COMMANDS = ["config", "theme", "themes", "widget", "schema", "init", "keys"] as const;
 
 describe("CLI dispatch table", () => {
   it("exposes every flat command", () => {

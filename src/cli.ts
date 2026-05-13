@@ -22,6 +22,7 @@ import { parseDoctorArgs, runDoctorCommand } from "./doctor/command.js";
 import { parseInstallArgs, runInstallCommand } from "./install/command.js";
 import { parseUninstallArgs, runUninstallCommand } from "./uninstall/command.js";
 import { parseRenderArgs, runRenderCommand } from "./render/fixture-command.js";
+import { parseStartArgs, runStartCommand } from "./start/command.js";
 
 type ParsedArgs = {
   command: string;
@@ -95,6 +96,7 @@ function runHelp(): number {
       "  uninstall            remove agentline + restore prior statusLine",
       "  doctor [--fix]       diagnose + repair host wiring",
       "  edit                 open the TUI editor",
+      "  start                preview the statusline using the last cached stdin",
       "  version              print version (alias: -v, --version)",
       "  help                 print this message (alias: -h, --help)",
       "",
@@ -160,6 +162,7 @@ export const COMMANDS: Readonly<Record<string, Subcommand>> = Object.freeze({
   install: (rest) => dispatch(() => runInstallCommand(parseInstallArgs(rest)), "agentline install"),
   uninstall: (rest) =>
     dispatch(() => runUninstallCommand(parseUninstallArgs(rest)), "agentline uninstall"),
+  start: (rest) => dispatch(() => runStartCommand(parseStartArgs(rest)), "agentline start"),
 });
 
 async function main(): Promise<number> {

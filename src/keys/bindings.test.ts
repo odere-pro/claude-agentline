@@ -16,7 +16,6 @@ describe("DEFAULT_KEY_BINDINGS", () => {
       "edit-widget",
       "add",
       "replace",
-      "update",
       "delete",
       "toggle-glyphs",
       "save",
@@ -40,11 +39,7 @@ describe("DEFAULT_KEY_BINDINGS", () => {
   });
 
   it("scopes are drawn from the editor's modes", () => {
-    const allowedScopes: ReadonlySet<KeyScope> = new Set<KeyScope>([
-      "edit",
-      "picker",
-      "any",
-    ]);
+    const allowedScopes: ReadonlySet<KeyScope> = new Set<KeyScope>(["edit", "picker", "any"]);
     for (const b of DEFAULT_KEY_BINDINGS) {
       expect(allowedScopes.has(b.scope)).toBe(true);
     }

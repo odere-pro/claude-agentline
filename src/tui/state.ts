@@ -17,16 +17,13 @@
  *
  * The picker drill-down
  * ---------------------
- * Add / replace / update share one drill-down:
+ * Add / replace share one drill-down:
  *
  *   step 1 — `picker-group`   — pick a category (`session`, `git`, …).
  *   step 2 — `picker-widget`  — pick a widget within the chosen category.
  *   step 3 — `picker-variant` — pick a variant (same widget, different
  *                                rendering) — *skipped* when the widget
  *                                has no `variants` in the catalogue.
- *
- * `update` is "step 3 only" — the variant of the already-selected
- * widget; the first two steps are skipped (`pickerDraft` is pre-seeded).
  *
  * State shape
  * -----------
@@ -38,8 +35,7 @@
  *   - `mode`         `"edit"` or one of the three `picker-*` steps.
  *   - `pickerTarget` while a `picker-*` mode is active, what to do when
  *                    the variant step confirms — `insert` at `(line,index)`,
- *                    `replace` the widget at `(line,index)`, or `update`
- *                    the variant of the widget at `(line,index)`.
+ *                    or `replace` the widget at `(line,index)`.
  *   - `pickerDraft`  the choices accumulated so far during the drill-down.
  *   - `dirty`        whether anything changed since the last save.
  */
@@ -52,7 +48,7 @@ export const MAX_LINES = 3;
 
 export type EditorMode = "edit" | "picker-group" | "picker-widget" | "picker-variant";
 
-export type PickerTargetKind = "insert" | "replace" | "update";
+export type PickerTargetKind = "insert" | "replace";
 
 export interface PickerTarget {
   readonly kind: PickerTargetKind;
@@ -109,9 +105,8 @@ export type EditorAction =
   | { readonly type: "set-option"; readonly key: string; readonly value: unknown }
   // ── top-level config toggles ─────────────────────────────────────────────
   | { readonly type: "toggle-glyphs" }
-  // ── picker drill-down (add / replace / update) ───────────────────────────
+  // ── picker drill-down (add / replace) ────────────────────────────────────
   | { readonly type: "open-picker"; readonly intent: "add" | "replace" }
-  | { readonly type: "open-update" }
   | { readonly type: "pick-category"; readonly category: WidgetCategory }
   | { readonly type: "pick-widget"; readonly widgetType: string }
   | { readonly type: "pick-variant"; readonly variantId: string | null }
@@ -165,8 +160,6 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
       };
     case "open-picker":
       return openPicker(state, action.intent);
-    case "open-update":
-      return openUpdate(state);
     case "pick-category":
       return pickCategory(state, action.category);
     case "pick-widget":
@@ -339,20 +332,6 @@ function openPicker(state: EditorState, intent: "add" | "replace"): EditorState 
   };
 }
 
-function openUpdate(state: EditorState): EditorState {
-  const widget = currentWidget(state);
-  if (!widget) return state;
-  // No-op when the widget has no variants — the editor surfaces a status
-  // message in that case rather than opening an empty picker step.
-  if (widgetVariants(widget.type).length === 0) return state;
-  return {
-    ...state,
-    mode: "picker-variant",
-    pickerTarget: { kind: "update", line: state.cursor.line, index: state.cursor.widget },
-    pickerDraft: { widgetType: widget.type },
-  };
-}
-
 function pickCategory(state: EditorState, category: WidgetCategory): EditorState {
   if (state.mode !== "picker-group") return state;
   return {
@@ -395,8 +374,6 @@ function pickVariant(state: EditorState, variantId: string | null): EditorState 
 
 function pickerBack(state: EditorState): EditorState {
   if (state.mode === "picker-variant") {
-    // Update-target skips the earlier steps; back-out lands on edit.
-    if (state.pickerTarget.kind === "update") return backToEdit(state);
     return {
       ...state,
       mode: "picker-widget",
@@ -418,28 +395,6 @@ function pickerBack(state: EditorState): EditorState {
 
 function backToEdit(state: EditorState): EditorState {
   return { ...state, mode: "edit", pickerDraft: {} };
-}
-
-function commitUpdate(
-  state: EditorState,
-  targetLine: number,
-  index: number,
-  variantOptions: Readonly<Record<string, unknown>> | undefined,
-): EditorState {
-  const line = lineAt(state, targetLine);
-  if (!line) return backToEdit(state);
-  const existing = line.widgets[index];
-  if (!existing) return backToEdit(state);
-  const merged = sanitiseOptions({ ...(existing.options ?? {}), ...(variantOptions ?? {}) });
-  const next: WidgetConfig = { ...existing, options: merged };
-  return {
-    ...state,
-    lines: replaceLine(state.lines, targetLine, { widgets: replaceAt(line.widgets, index, next) }),
-    cursor: { line: targetLine, widget: index },
-    mode: "edit",
-    pickerDraft: {},
-    dirty: true,
-  };
 }
 
 function commitReplace(
@@ -485,8 +440,6 @@ function commitInsert(
  *   - `replace` — swap the widget at `target.index`. Prior colour/style
  *                 overrides are dropped so a new widget doesn't inherit
  *                 the previous one's accidents.
- *   - `update`  — keep the widget's `type`, merge the variant patch over
- *                 its existing options.
  */
 function commit(
   state: EditorState,
@@ -496,10 +449,6 @@ function commit(
   const { line: targetLine, index, kind } = state.pickerTarget;
   const line = lineAt(state, targetLine);
   if (!line) return backToEdit(state);
-
-  if (kind === "update") {
-    return commitUpdate(state, targetLine, index, variantOptions);
-  }
 
   const fresh: WidgetConfig = variantOptions
     ? { type: widgetType, options: sanitiseOptions({ ...variantOptions }) }

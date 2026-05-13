@@ -12,14 +12,12 @@
  * "layout list" view; the cursor moves through the rendered statusline
  * itself, with each row ending in a navigable "+ add widget" cell.
  *
- * Add / replace / update share a three-step picker drill-down:
+ * Add / replace share a three-step picker drill-down:
  *
  *   step 1 (`picker-group`)   — pick a category.
  *   step 2 (`picker-widget`)  — pick a widget within that category.
  *   step 3 (`picker-variant`) — pick a variant (skipped for widgets that
  *                                have none in the catalogue).
- *
- * `u` (update) jumps straight to step 3 for the selected widget.
  */
 
 import { Box, Text, render, useApp, useInput } from "ink";
@@ -37,7 +35,7 @@ import type { Theme } from "../theme/index.js";
 import { resolveConfiguredTheme } from "../theme/resolve.js";
 
 import { defaultRegistry, registerAllBuiltins, type WidgetMetaEntry } from "../widgets/index.js";
-import { widgetMeta, widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
+import { widgetMeta, type WidgetCategory } from "../widgets/catalog.js";
 
 import { pickGlyphs, type EditorGlyphs } from "./glyphs.js";
 import { saveEditedConfig } from "./persist.js";
@@ -65,6 +63,12 @@ function builtinWidgetEntries(): readonly WidgetMetaEntry[] {
   const registry = defaultRegistry();
   if (registry.size() === 0) registerAllBuiltins(registry);
   return registry.listMeta();
+}
+
+/** Human-readable label for the currently selected widget (catalogue name + type). */
+function selectedWidgetLabel(type: string): string {
+  const meta = widgetMeta(type);
+  return meta ? `${meta.name} (${type})` : type;
 }
 
 export interface RunConfigInput {
@@ -143,7 +147,9 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
         glyphs: state.glyphs,
       });
       dispatch({ type: "mark-clean" });
-      setStatusMessage(`saved → ${path} (reloads on next prompt)`);
+      setStatusMessage(
+        `saved → ${path} — run "agentline start" to preview, or Restart Claude Code`,
+      );
       onSaved(true);
     } catch (err) {
       setStatusMessage(`save failed: ${(err as Error).message}`);
@@ -153,7 +159,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
   }, [initialConfig, onSaved, path, state.lines, state.glyphs]);
 
   useInput((input, key) => {
-    const { mode, pickerDraft, pickerTarget, glyphs } = state;
+    const { mode, pickerDraft, glyphs } = state;
 
     // ── picker steps ─────────────────────────────────────────────────────
     if (mode === "picker-group") {
@@ -203,8 +209,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
         dispatch({ type: "picker-back" });
         return;
       }
-      const variantMode: "update" | "fresh" = pickerTarget.kind === "update" ? "update" : "fresh";
-      const rows = variantRows(widgetType, variantMode);
+      const rows = variantRows(widgetType, "fresh");
       if (key.escape) return dispatch({ type: "picker-back" });
       if (key.return) {
         const row = selectedAt(rows, stepHighlight);
@@ -222,7 +227,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       exit();
       return;
     }
-    if (input === "S" || (key.ctrl && input === "s")) {
+    if (input === "s" || input === "S" || (key.ctrl && input === "s")) {
       if (saveInFlight.current) return;
       // Defense-in-depth: `onSave` catches its own errors today, but
       // `void` would silently swallow any rejection that ever leaked
@@ -252,18 +257,6 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
     }
     if (input === "a") return dispatch({ type: "open-picker", intent: "add" });
     if (input === "r") return dispatch({ type: "open-picker", intent: "replace" });
-    if (input === "u") {
-      const widget = currentWidget(state);
-      if (!widget) {
-        setStatusMessage("update: select a widget first");
-        return;
-      }
-      if (widgetVariants(widget.type).length === 0) {
-        setStatusMessage(`no variants for "${widget.type}"`);
-        return;
-      }
-      return dispatch({ type: "open-update" });
-    }
     if (input === "d" || input === "x" || key.delete || key.backspace) {
       return dispatch({ type: "delete" });
     }
@@ -283,6 +276,11 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
     { flexDirection: "column" },
     React.createElement(Text, { bold: true }, "agentline edit"),
     React.createElement(Text, { dimColor: true }, `editing ${path}`),
+    (() => {
+      const widget = currentWidget(state);
+      const label = widget ? selectedWidgetLabel(widget.type) : "(+ add widget)";
+      return React.createElement(Text, { color: "cyan" }, `selected: ${label}`);
+    })(),
     React.createElement(
       Box,
       { marginTop: 1 },
@@ -314,7 +312,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       ? React.createElement(
           Text,
           { color: "yellow" },
-          " ● unsaved changes — press S to save, q/Esc to discard ",
+          " ● unsaved changes — press s to save, q/Esc to discard ",
         )
       : null,
     statusMessage ? React.createElement(Text, { color: "green" }, ` ${statusMessage} `) : null,
@@ -336,7 +334,7 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
     state.mode === "picker-variant" && state.pickerDraft.widgetType
       ? React.createElement(PickerVariant, {
           widgetType: state.pickerDraft.widgetType,
-          mode: state.pickerTarget.kind === "update" ? "update" : "fresh",
+          mode: "fresh",
           highlight: stepHighlight,
         })
       : null,
@@ -359,7 +357,6 @@ const FOOTER_LABEL: Record<string, string> = {
   "edit-widget": "+add",
   add: "add",
   replace: "replace",
-  update: "update (variant)",
   delete: "delete",
   save: "save",
   "toggle-glyphs": "glyphs on/off",
