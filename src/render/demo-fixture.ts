@@ -103,7 +103,7 @@ export const demoGit: GitState = Object.freeze({
   detached: false,
   sha: "a1b2c3def4567890abcdef1234567890abcdef12",
   shortSha: "a1b2c3d",
-  status: Object.freeze({ staged: 2, unstaged: 1, untracked: 0, conflicts: 0, modified: 1, added: 1 }),
+  status: Object.freeze({ staged: 2, unstaged: 1, untracked: 0, conflicts: 1, modified: 1, added: 1 }),
   diff: Object.freeze({ insertions: 12, deletions: 3, filesChanged: 2 }),
   diffStaged: Object.freeze({ insertions: 8, deletions: 1, filesChanged: 1 }),
   aheadBehind: Object.freeze({ ahead: 1, behind: 0 }),
