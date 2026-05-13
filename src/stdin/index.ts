@@ -4,6 +4,15 @@
  * The bin reads stdin until EOF or 256 KB, whichever first (§8.1).
  * Unknown fields are preserved untouched on `raw`. A malformed payload
  * produces a structured error the caller can render as an ASCII fallback.
+ *
+ * Two responsibilities, intentionally split:
+ *
+ *   - `readStdinPayload` — the I/O step (read bounded bytes, JSON.parse,
+ *     reject non-object payloads).
+ *   - `adaptStatuslinePayload` — the pure adapter at the external→internal
+ *     seam (the only place that knows the Claude Code statusline contract
+ *     field names). Forward-compatibility absorptions for contract drift
+ *     live here.
  */
 
 import { pickString } from "../lib/object.js";
@@ -28,10 +37,39 @@ export interface StdinPayload {
 }
 
 export class StdinParseError extends Error {
-  constructor(message: string, readonly cause?: unknown) {
+  constructor(
+    message: string,
+    readonly cause?: unknown,
+  ) {
     super(message);
     this.name = "StdinParseError";
   }
+}
+
+/**
+ * Pure adapter: Claude Code statusline JSON → internal `StdinPayload`.
+ *
+ * Exported so consumers that already have parsed JSON (tests, future
+ * cache replay, contract-drift shims) can hit the seam directly without
+ * routing through stdin I/O.
+ */
+export function adaptStatuslinePayload(
+  raw: Record<string, unknown>,
+  opts: { truncated?: boolean } = {},
+): StdinPayload {
+  return {
+    raw,
+    truncated: opts.truncated ?? false,
+    model: pickString(raw, "model"),
+    version: pickString(raw, "version"),
+    outputStyle: pickString(raw, "outputStyle"),
+    sessionId: pickString(raw, "sessionId"),
+    sessionName: pickString(raw, "sessionName"),
+    cwd: pickString(raw, "cwd"),
+    thinkingEffort: pickString(raw, "thinkingEffort"),
+    vimMode: pickString(raw, "vimMode"),
+    transcriptPath: pickString(raw, "transcriptPath"),
+  };
 }
 
 export async function readStdinPayload(stream: NodeJS.ReadableStream): Promise<StdinPayload> {
@@ -48,20 +86,9 @@ export async function readStdinPayload(stream: NodeJS.ReadableStream): Promise<S
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new StdinParseError("stdin payload must be a JSON object");
   }
-  const raw = parsed as Record<string, unknown>;
-  return {
-    raw,
+  return adaptStatuslinePayload(parsed as Record<string, unknown>, {
     truncated: buf.byteLength === MAX_PAYLOAD_BYTES,
-    model: pickString(raw, "model"),
-    version: pickString(raw, "version"),
-    outputStyle: pickString(raw, "outputStyle"),
-    sessionId: pickString(raw, "sessionId"),
-    sessionName: pickString(raw, "sessionName"),
-    cwd: pickString(raw, "cwd"),
-    thinkingEffort: pickString(raw, "thinkingEffort"),
-    vimMode: pickString(raw, "vimMode"),
-    transcriptPath: pickString(raw, "transcriptPath"),
-  };
+  });
 }
 
 async function readBounded(stream: NodeJS.ReadableStream, limit: number): Promise<Buffer> {

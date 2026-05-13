@@ -3,13 +3,18 @@
  * The schema is authoritative; these types follow it.
  */
 
-export type Colour = string;
+/**
+ * Pre-validation colour: any string from the config file. Validated and
+ * narrowed to `Colour` (the strict union of named / 256-indexed / hex
+ * forms) in `src/theme/colours.ts` before reaching the render path.
+ */
+export type RawColour = string;
 
 export interface WidgetConfig {
   type: string;
   id?: string;
-  fg?: Colour | null;
-  bg?: Colour | null;
+  fg?: RawColour | null;
+  bg?: RawColour | null;
   bold?: boolean;
   italic?: boolean;
   rawValue?: boolean;
@@ -29,8 +34,8 @@ export interface GlobalConfig {
   bold: boolean;
   italic: boolean;
   minimalist: boolean;
-  overrideFg: Colour | null;
-  overrideBg: Colour | null;
+  overrideFg: RawColour | null;
+  overrideBg: RawColour | null;
 }
 
 export interface PowerlineCaps {

@@ -21,6 +21,7 @@ import { Readable } from "node:stream";
 import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import { pathExists } from "../lib/fs.js";
+import { saveLastRender } from "../state/render-cache.js";
 import { saveLastStdin } from "../state/stdin-cache.js";
 import { readStdinPayload } from "../stdin/index.js";
 import { parseAccessibilityArgs, type AccessibilityFlags } from "./accessibility.js";
@@ -105,11 +106,18 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     flags: input.args.accessibility,
   });
   process.stdout.write(out);
-  // Cache the live stdin so `agentline edit` can show real values in its
-  // preview on the next launch. Best-effort and intentionally only on the
-  // live path — fixture replays and golden tests must stay deterministic.
+  // Cache the live stdin and the rendered output. Best-effort and
+  // intentionally only on the live path — fixture replays and golden
+  // tests must stay deterministic. The render-cache file backs the
+  // "last statusline" view in `agentline uninstall`.
   if (!fixture && input.args.configPath === undefined) {
     await persistLastStdin(payload);
+    await saveLastRender(out, {
+      meta: {
+        ...(input.args.width !== undefined ? { width: input.args.width } : {}),
+        lineCount: out === "" ? 0 : out.split("\n").length,
+      },
+    });
   }
   return 0;
 }

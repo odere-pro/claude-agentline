@@ -50,11 +50,7 @@ import { widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
 /** Hard cap on statusline rows the editor will create (mirrors `src/config/mutate.ts`). */
 export const MAX_LINES = 3;
 
-export type EditorMode =
-  | "edit"
-  | "picker-group"
-  | "picker-widget"
-  | "picker-variant";
+export type EditorMode = "edit" | "picker-group" | "picker-widget" | "picker-variant";
 
 export type PickerTargetKind = "insert" | "replace" | "update";
 
@@ -90,6 +86,17 @@ export interface EditorState {
    * tracks the editor.
    */
   readonly glyphs: GlyphMode;
+  /**
+   * Memento — snapshot of `lines` + `glyphs` at the last save (or at
+   * initial load). `revert` restores from this snapshot, discarding any
+   * unsaved edits. `mark-clean` refreshes it on successful save.
+   */
+  readonly lastSaved: EditorSnapshot;
+}
+
+export interface EditorSnapshot {
+  readonly lines: readonly LineConfig[];
+  readonly glyphs: GlyphMode;
 }
 
 export type EditorAction =
@@ -112,7 +119,9 @@ export type EditorAction =
   | { readonly type: "close-picker" }
   // ── dirty bookkeeping ────────────────────────────────────────────────────
   | { readonly type: "mark-clean" }
-  | { readonly type: "mark-dirty" };
+  | { readonly type: "mark-dirty" }
+  // ── memento (discard unsaved edits, restore last-saved snapshot) ─────────
+  | { readonly type: "revert" };
 
 const FORBIDDEN_OPTION_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
@@ -123,10 +132,7 @@ function padToMaxLines(lines: readonly LineConfig[]): readonly LineConfig[] {
   return trimmed;
 }
 
-export function initialState(
-  lines: readonly LineConfig[],
-  glyphs: GlyphMode = "off",
-): EditorState {
+export function initialState(lines: readonly LineConfig[], glyphs: GlyphMode = "off"): EditorState {
   const padded = padToMaxLines(lines);
   const first = padded[0]!;
   return Object.freeze<EditorState>({
@@ -137,6 +143,7 @@ export function initialState(
     pickerDraft: {},
     dirty: false,
     glyphs,
+    lastSaved: { lines: padded, glyphs },
   });
 }
 
@@ -171,10 +178,33 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
     case "close-picker":
       return isPickerMode(state.mode) ? backToEdit(state) : state;
     case "mark-clean":
-      return state.dirty ? { ...state, dirty: false } : state;
+      // Refresh the memento on save so a subsequent `revert` returns
+      // here, not to the original loaded config.
+      return {
+        ...state,
+        dirty: false,
+        lastSaved: { lines: state.lines, glyphs: state.glyphs },
+      };
     case "mark-dirty":
       return state.dirty ? state : { ...state, dirty: true };
+    case "revert":
+      if (!state.dirty) return state;
+      return {
+        ...state,
+        lines: state.lastSaved.lines,
+        glyphs: state.lastSaved.glyphs,
+        dirty: false,
+        // Pull cursor back into bounds in case the discarded edits had
+        // extended a row beyond what the snapshot contains.
+        cursor: clampCursor(state.cursor, state.lastSaved.lines),
+      };
   }
+}
+
+function clampCursor(cursor: EditorCursor, lines: readonly LineConfig[]): EditorCursor {
+  const line = clamp(cursor.line, 0, Math.max(0, lines.length - 1));
+  const count = lines[line]?.widgets.length ?? 0;
+  return { line, widget: clamp(cursor.widget, 0, count) };
 }
 
 // ─── selectors ──────────────────────────────────────────────────────────────
@@ -295,8 +325,7 @@ function openPicker(state: EditorState, intent: "add" | "replace"): EditorState 
   const onAdd = state.cursor.widget >= widgetCount;
   // "replace" requires a real widget under the cursor — on the add-cell,
   // degrade gracefully to "insert".
-  const effective: PickerTargetKind =
-    intent === "replace" && !onAdd ? "replace" : "insert";
+  const effective: PickerTargetKind = intent === "replace" && !onAdd ? "replace" : "insert";
   // Insert *after* the cursor for `add` on a widget; *at* the cursor for the
   // add-cell (which already points at the row's end). Replace targets the
   // selected widget directly.
@@ -405,11 +434,7 @@ function commitUpdate(
   const next: WidgetConfig = { ...existing, options: merged };
   return {
     ...state,
-    lines: replaceLine(
-      state.lines,
-      targetLine,
-      { widgets: replaceAt(line.widgets, index, next) },
-    ),
+    lines: replaceLine(state.lines, targetLine, { widgets: replaceAt(line.widgets, index, next) }),
     cursor: { line: targetLine, widget: index },
     mode: "edit",
     pickerDraft: {},
@@ -425,11 +450,9 @@ function commitReplace(
 ): EditorState {
   return {
     ...state,
-    lines: replaceLine(
-      state.lines,
-      targetLine,
-      { widgets: replaceAt(lineAt(state, targetLine)!.widgets, index, fresh) },
-    ),
+    lines: replaceLine(state.lines, targetLine, {
+      widgets: replaceAt(lineAt(state, targetLine)!.widgets, index, fresh),
+    }),
     cursor: { line: targetLine, widget: index },
     mode: "edit",
     pickerDraft: {},
@@ -444,11 +467,7 @@ function commitInsert(
   fresh: WidgetConfig,
 ): EditorState {
   const line = lineAt(state, targetLine)!;
-  const widgets = [
-    ...line.widgets.slice(0, index),
-    fresh,
-    ...line.widgets.slice(index),
-  ];
+  const widgets = [...line.widgets.slice(0, index), fresh, ...line.widgets.slice(index)];
   return {
     ...state,
     lines: replaceLine(state.lines, targetLine, { widgets }),

@@ -44,5 +44,5 @@ export type {
   PowerlineCaps,
   PowerlineGlyphs,
   TerminalWidthConfig,
-  Colour,
+  RawColour,
 } from "./types.js";
