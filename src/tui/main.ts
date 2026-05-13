@@ -306,11 +306,19 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
         glyphs,
       }),
     ),
-    React.createElement(
-      Box,
-      { marginTop: 1 },
-      React.createElement(Text, { dimColor: true }, footerText(bindings, state.mode)),
-    ),
+    (() => {
+      const lines = footerLines(bindings, state.mode);
+      return React.createElement(
+        Box,
+        { flexDirection: "column", marginTop: 1 },
+        lines.motion
+          ? React.createElement(Text, { key: "motion", dimColor: true }, lines.motion)
+          : null,
+        lines.actions
+          ? React.createElement(Text, { key: "actions", dimColor: true }, lines.actions)
+          : null,
+      );
+    })(),
     state.dirty
       ? React.createElement(
           Text,
@@ -416,12 +424,31 @@ const FOOTER_LABEL: Record<string, string> = {
   help: "help",
 };
 
-function footerText(bindings: readonly KeyBinding[], mode: EditorMode): string {
+/** Actions that describe navigation / motion — surfaced on the footer's first line. */
+const MOTION_ACTIONS: ReadonlySet<string> = new Set([
+  "move-cursor",
+  "move-cursor-row",
+  "move-widget",
+  "move-widget-row",
+  "picker-navigate",
+]);
+
+/** Footer split into a navigation/motion row and an actions row. */
+export function footerLines(
+  bindings: readonly KeyBinding[],
+  mode: EditorMode,
+): { readonly motion: string; readonly actions: string } {
   const scope = modeToScope(mode);
-  return bindings
-    .filter((b) => b.scope === scope || b.scope === "any")
-    .map((b) => `${b.key} ${FOOTER_LABEL[b.action] ?? b.description}`)
-    .join(" · ");
+  const inScope = bindings.filter((b) => b.scope === scope || b.scope === "any");
+  const fmt = (b: KeyBinding) => `${b.key} ${FOOTER_LABEL[b.action] ?? b.description}`;
+  // Motion bindings come from the current scope only — `any`-scope bindings
+  // (quit, help) belong on the actions line so they sit beside the verbs.
+  const motion = inScope.filter((b) => b.scope !== "any" && MOTION_ACTIONS.has(b.action));
+  const actions = inScope.filter((b) => b.scope === "any" || !MOTION_ACTIONS.has(b.action));
+  return {
+    motion: motion.map(fmt).join(" · "),
+    actions: actions.map(fmt).join(" · "),
+  };
 }
 
 function mountEditor(
