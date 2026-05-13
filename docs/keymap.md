@@ -19,7 +19,7 @@ help overlay (press `?`) listing every binding grouped by scope.
 The editor has three modes; a binding's **scope** says where it applies
 (`any` applies everywhere):
 
-- **edit** — the *live preview is the editing surface*. All three line
+- **edit** — the _live preview is the editing surface_. All three line
   slots are always rendered; the selected widget is highlighted in
   place; each row ends in a navigable **+ add widget** cell that the
   cursor walks onto and confirms to insert.
@@ -33,28 +33,28 @@ The editor has three modes; a binding's **scope** says where it applies
 
 ## Default bindings
 
-| Key                         | Scope   | Action                                                                |
-| --------------------------- | ------- | --------------------------------------------------------------------- |
-| <kbd>←</kbd> <kbd>→</kbd>   | edit    | move the selection within the row (incl. the trailing +add cell)      |
-| <kbd>↑</kbd> <kbd>↓</kbd>   | edit    | move the selection between rows                                       |
-| <kbd>⇧←</kbd> <kbd>⇧→</kbd> | edit    | move the selected widget within its row                               |
-| <kbd>⇧↑</kbd> <kbd>⇧↓</kbd> | edit    | move the selected widget to the adjacent row                          |
-| <kbd>↵</kbd>                | edit    | +add cell → open the picker; on a widget → open the options sheet     |
-| <kbd>a</kbd>                | edit    | add a widget (opens the picker)                                       |
-| <kbd>r</kbd>                | edit    | replace the selected widget (opens the picker)                        |
-| <kbd>d</kbd>                | edit    | delete the selected widget                                            |
-| <kbd>o</kbd>                | edit    | open the selected widget's options sheet                              |
-| <kbd>S</kbd>                | edit    | save (Ctrl+S also works)                                              |
-| _(type)_                    | picker  | filter widgets by name or type                                        |
-| <kbd>↑</kbd> <kbd>↓</kbd>   | picker  | highlight a widget                                                    |
-| <kbd>↵</kbd>                | picker  | insert / replace with the highlighted widget                          |
-| <kbd>Esc</kbd>              | picker  | close the picker                                                      |
-| <kbd>v</kbd>                | options | show / hide the widget                                                |
-| <kbd>l</kbd>                | options | show / hide the widget's own label                                    |
-| <kbd>m</kbd>                | options | spacing to neighbour: full / single space / none                      |
-| <kbd>Esc</kbd>              | options | close the options sheet                                               |
-| <kbd>q</kbd>                | any     | quit (prompts if there are unsaved changes)                           |
-| <kbd>?</kbd>                | any     | toggle the help overlay                                               |
+| Key                         | Scope   | Action                                                            |
+| --------------------------- | ------- | ----------------------------------------------------------------- |
+| <kbd>←</kbd> <kbd>→</kbd>   | edit    | move the selection within the row (incl. the trailing +add cell)  |
+| <kbd>↑</kbd> <kbd>↓</kbd>   | edit    | move the selection between rows                                   |
+| <kbd>⇧←</kbd> <kbd>⇧→</kbd> | edit    | move the selected widget within its row                           |
+| <kbd>⇧↑</kbd> <kbd>⇧↓</kbd> | edit    | move the selected widget to the adjacent row                      |
+| <kbd>↵</kbd>                | edit    | +add cell → open the picker; on a widget → open the options sheet |
+| <kbd>a</kbd>                | edit    | add a widget (opens the picker)                                   |
+| <kbd>r</kbd>                | edit    | replace the selected widget (opens the picker)                    |
+| <kbd>d</kbd>                | edit    | delete the selected widget                                        |
+| <kbd>o</kbd>                | edit    | open the selected widget's options sheet                          |
+| <kbd>S</kbd>                | edit    | save (Ctrl+S also works)                                          |
+| _(type)_                    | picker  | filter widgets by name or type                                    |
+| <kbd>↑</kbd> <kbd>↓</kbd>   | picker  | highlight a widget                                                |
+| <kbd>↵</kbd>                | picker  | insert / replace with the highlighted widget                      |
+| <kbd>Esc</kbd>              | picker  | close the picker                                                  |
+| <kbd>v</kbd>                | options | show / hide the widget                                            |
+| <kbd>l</kbd>                | options | show / hide the widget's own label                                |
+| <kbd>m</kbd>                | options | spacing to neighbour: full / single space / none                  |
+| <kbd>Esc</kbd>              | options | close the options sheet                                           |
+| <kbd>q</kbd>                | any     | quit (prompts if there are unsaved changes)                       |
+| <kbd>?</kbd>                | any     | toggle the help overlay                                           |
 
 The editor always shows three rows so up/down navigation has somewhere
 to go even on a single-line config; on save, trailing empty rows are
