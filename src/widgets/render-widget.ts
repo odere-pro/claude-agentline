@@ -35,8 +35,13 @@ export interface RenderWidgetOptions {
   readonly strict?: boolean;
 }
 
-/** Thin space (U+2009) — keeps the glyph from sticking to the value. */
-const GLYPH_SEPARATOR = " ";
+/**
+ * Plain space (U+0020) between glyph and value. The earlier thin
+ * space (U+2009) rendered fractional-width in monospace terminals and
+ * collided with the width-2 Nerd-Font PUA glyphs, leaving the cell
+ * looking kerned. A regular space lines up cleanly with the value.
+ */
+const GLYPH_SEPARATOR = " ";
 
 function applyGlyph(text: string, type: string, ctx: WidgetContext): string {
   if (ctx.config.glyphs !== "nerd-font") return text;

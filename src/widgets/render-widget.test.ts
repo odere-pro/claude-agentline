@@ -133,7 +133,7 @@ describe("glyph layer", () => {
     expect(cell.text).toBe("hi");
   });
 
-  it("prepends the catalogued glyph + thin space when config.glyphs is 'nerd-font'", () => {
+  it("prepends the catalogued glyph + plain space when config.glyphs is 'nerd-font'", () => {
     const r = new WidgetRegistry();
     // `echo` is a fixture type with no catalogue glyph, so we register a
     // widget under a real catalogue type to exercise the lookup.
@@ -141,7 +141,7 @@ describe("glyph layer", () => {
     const glyph = widgetGlyph("git-branch");
     expect(glyph).toBeTruthy();
     const cell = renderWidget(r, { type: "git-branch" }, ctxWithGlyphs("nerd-font"));
-    expect(cell.text).toBe(`${glyph}\u2009main`);
+    expect(cell.text).toBe(`${glyph} main`);
   });
 
   it("leaves widgets without a catalogue glyph unchanged in nerd-font mode", () => {
