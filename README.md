@@ -27,7 +27,7 @@ A standalone, fast, themeable Claude Code statusline. Reads the Claude Code stdi
 
 ## Get started
 
-The CLI surface is small on purpose: `install` · `uninstall` · `doctor` · `config`. Everything else lives under `agentline config <sub>`.
+The CLI surface is small on purpose: `install` · `uninstall` · `doctor` · `edit` · `start`. Everything else is driven by editing the global config file (directly, via the TUI, or by asking the installed agentline skills inside Claude Code).
 
 ### 1 — install
 
@@ -61,7 +61,7 @@ In a fresh session, ask the agent:
 > "add a context-percentage widget"
 > "remove the session-usage widget"
 
-The installed skills (`agentline.md`, `agentline-onboarding.md`, `agentline-configure.md`, `agentline-themes.md`, `agentline-troubleshoot.md`) give the agent the schema, paths, and guardrails it needs to edit `~/.config/agentline/config.json` for you — or it can run the `agentline config widget …` subcommands for precise, validated edits. The change shows up on the next prompt render; no restart needed.
+The installed skills (`agentline.md`, `agentline-onboarding.md`, `agentline-configure.md`, `agentline-themes.md`, `agentline-troubleshoot.md`) give the agent the schema, paths, and guardrails it needs to edit `~/.config/agentline/config.json` for you. Prefer the visual route? Run `agentline edit` to open the TUI editor with a live preview. The change shows up on the next prompt render; no restart needed.
 
 ### 4 — remove
 

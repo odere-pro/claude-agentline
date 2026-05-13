@@ -60,14 +60,22 @@ function renderRow(
   glyphs: EditorGlyphs,
 ): React.ReactElement {
   const onRow = cursor.line === row.line;
+  // `flexWrap: "wrap"` so an overflowing widget moves to a new visual line
+  // (Yoga pushes the next child to a new wrap line). Each slot lives in a
+  // `flexShrink: 0` Box so it keeps its natural width — without that Yoga
+  // would shrink cells in place rather than wrapping them, which is what
+  // produced the "thinking-effo / t" two-line squeeze the user reported.
   return React.createElement(
     Box,
-    { key: `row-${row.line}`, flexDirection: "row" },
-    // Left gutter — line number + active marker.
+    { key: `row-${row.line}`, flexDirection: "row", flexWrap: "wrap" },
     React.createElement(
-      Text,
-      { dimColor: !onRow, color: onRow ? "cyan" : undefined },
-      `${onRow ? glyphs.activeRow : " "} ${row.line} ${glyphs.gutter} `,
+      Box,
+      { flexShrink: 0 },
+      React.createElement(
+        Text,
+        { dimColor: !onRow, color: onRow ? "cyan" : undefined },
+        `${onRow ? glyphs.activeRow : " "} ${row.line} ${glyphs.gutter} `,
+      ),
     ),
     ...row.slots.map((slot, idx) => renderSlot(row, slot, idx, cursor, glyphs)),
   );
@@ -82,19 +90,31 @@ function renderSlot(
 ): React.ReactElement {
   const key = `row-${row.line}-slot-${idx}`;
   if (slot.kind === "join") {
-    return React.createElement(Text, { key, dimColor: true }, slot.text);
+    return React.createElement(
+      Box,
+      { key, flexShrink: 0 },
+      React.createElement(Text, { dimColor: true }, slot.text),
+    );
   }
   if (slot.kind === "add") {
     const selected = cursor.line === row.line && cursor.widget === slot.column;
     return React.createElement(
-      Text,
-      { key, dimColor: !selected, inverse: selected, color: selected ? undefined : "gray" },
-      `  ${glyphs.addCell}`,
+      Box,
+      { key, flexShrink: 0 },
+      React.createElement(
+        Text,
+        {
+          dimColor: !selected,
+          inverse: selected,
+          color: selected ? undefined : "gray",
+        },
+        `  ${glyphs.addCell}`,
+      ),
     );
   }
   // widget
   const selected = cursor.line === row.line && cursor.widget === slot.widgetIndex;
-  const textProps: Record<string, unknown> = { key };
+  const textProps: Record<string, unknown> = {};
   if (selected) textProps.inverse = true;
   if (slot.hidden) textProps.dimColor = true;
   if (slot.fg) textProps.color = slot.fg;
@@ -106,5 +126,9 @@ function renderSlot(
   const body = selected
     ? `${glyphs.selectionOpen}${slot.text}${glyphs.selectionClose}`
     : slot.text;
-  return React.createElement(Text, textProps, body);
+  return React.createElement(
+    Box,
+    { key, flexShrink: 0 },
+    React.createElement(Text, textProps, body),
+  );
 }
