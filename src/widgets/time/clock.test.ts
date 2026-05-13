@@ -5,8 +5,10 @@ import type { StdinPayload } from "../../stdin/index.js";
 
 import { frozenClock } from "../clock.js";
 import type { WidgetContext } from "../context.js";
+import { WidgetRegistry } from "../registry.js";
 
 import { clockWidget, formatClock } from "./clock.js";
+import { registerTimeWidgets, TIME_WIDGETS } from "./index.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
 
@@ -20,6 +22,16 @@ function makeCtx(at: string, overrides: Partial<WidgetContext> = {}): WidgetCont
     ...overrides,
   };
 }
+
+describe("registerTimeWidgets", () => {
+  it("ships exactly three widgets in sorted order", () => {
+    const r = new WidgetRegistry();
+    registerTimeWidgets(r);
+    expect(r.size()).toBe(3);
+    expect(r.list()).toEqual(["clock", "uptime-block", "uptime-session"]);
+    expect(Object.isFrozen(TIME_WIDGETS)).toBe(true);
+  });
+});
 
 describe("formatClock", () => {
   const clock = frozenClock("2026-05-01T14:32:05Z");
