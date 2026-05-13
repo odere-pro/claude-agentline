@@ -55,9 +55,6 @@ export type EditorAction =
   // ── selection / widget movement ──────────────────────────────────────────
   | { readonly type: "move-cursor"; readonly dx?: number; readonly dy?: number }
   | { readonly type: "move-widget"; readonly dx?: number; readonly dy?: number }
-  // ── deprecated single-line aliases (kept for callers / tests using them) ──
-  | { readonly type: "navigate"; readonly delta: number }
-  | { readonly type: "select-widget"; readonly delta: number }
   // ── structural edits ─────────────────────────────────────────────────────
   | { readonly type: "add"; readonly widgetType: string }
   | { readonly type: "delete" }
@@ -97,9 +94,6 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
       return moveCursor(state, action.dx ?? 0, action.dy ?? 0);
     case "move-widget":
       return moveWidget(state, action.dx ?? 0, action.dy ?? 0);
-    case "navigate":
-    case "select-widget":
-      return moveCursor(state, action.delta, 0);
     case "add":
       return insertWidget(state, action.widgetType);
     case "delete":
