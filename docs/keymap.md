@@ -19,41 +19,48 @@ help overlay (press `?`) listing every binding grouped by scope.
 The editor has three modes; a binding's **scope** says where it applies
 (`any` applies everywhere):
 
-- **edit** — the layout view: rows of widgets, the selected one
-  highlighted.
-- **picker** — the widget chooser, opened by `a` (insert) or `r`
-  (replace): a live filter over all built-in widgets, each row showing
-  what it renders against a demo session.
-- **options** — the per-widget options sheet, opened by `o`: visible /
-  hidden, the widget's own label, spacing to the neighbour.
+- **edit** — the *live preview is the editing surface*. All three line
+  slots are always rendered; the selected widget is highlighted in
+  place; each row ends in a navigable **+ add widget** cell that the
+  cursor walks onto and confirms to insert.
+- **picker** — the widget chooser, opened by `a` (insert), `r`
+  (replace), or <kbd>↵</kbd> on the +add cell: a live filter over all
+  built-in widgets, each row showing what it renders against a demo
+  session.
+- **options** — the per-widget options sheet, opened by `o` or
+  <kbd>↵</kbd> on a widget: visible / hidden, the widget's own label,
+  spacing to the neighbour.
 
 ## Default bindings
 
-| Key                         | Scope   | Action                                           |
-| --------------------------- | ------- | ------------------------------------------------ |
-| <kbd>←</kbd> <kbd>→</kbd>   | edit    | move the selection within the row                |
-| <kbd>↑</kbd> <kbd>↓</kbd>   | edit    | move the selection to the adjacent row           |
-| <kbd>⇧←</kbd> <kbd>⇧→</kbd> | edit    | move the selected widget within its row          |
-| <kbd>⇧↑</kbd> <kbd>⇧↓</kbd> | edit    | move the selected widget to the adjacent row     |
-| <kbd>a</kbd>                | edit    | add a widget (opens the picker)                  |
-| <kbd>r</kbd>                | edit    | replace the selected widget (opens the picker)   |
-| <kbd>x</kbd>                | edit    | delete the selected widget                       |
-| <kbd>o</kbd>                | edit    | open the selected widget's options sheet         |
-| <kbd>S</kbd>                | edit    | save                                             |
-| _(type)_                    | picker  | filter widgets by name or type                   |
-| <kbd>↑</kbd> <kbd>↓</kbd>   | picker  | highlight a widget                               |
-| <kbd>↵</kbd>                | picker  | insert / replace with the highlighted widget     |
-| <kbd>Esc</kbd>              | picker  | close the picker                                 |
-| <kbd>v</kbd>                | options | show / hide the widget                           |
-| <kbd>l</kbd>                | options | show / hide the widget's own label               |
-| <kbd>m</kbd>                | options | spacing to neighbour: full / single space / none |
-| <kbd>Esc</kbd>              | options | close the options sheet                          |
-| <kbd>q</kbd>                | any     | quit (prompts if there are unsaved changes)      |
-| <kbd>?</kbd>                | any     | toggle the help overlay                          |
+| Key                         | Scope   | Action                                                                |
+| --------------------------- | ------- | --------------------------------------------------------------------- |
+| <kbd>←</kbd> <kbd>→</kbd>   | edit    | move the selection within the row (incl. the trailing +add cell)      |
+| <kbd>↑</kbd> <kbd>↓</kbd>   | edit    | move the selection between rows                                       |
+| <kbd>⇧←</kbd> <kbd>⇧→</kbd> | edit    | move the selected widget within its row                               |
+| <kbd>⇧↑</kbd> <kbd>⇧↓</kbd> | edit    | move the selected widget to the adjacent row                          |
+| <kbd>↵</kbd>                | edit    | +add cell → open the picker; on a widget → open the options sheet     |
+| <kbd>a</kbd>                | edit    | add a widget (opens the picker)                                       |
+| <kbd>r</kbd>                | edit    | replace the selected widget (opens the picker)                        |
+| <kbd>d</kbd>                | edit    | delete the selected widget                                            |
+| <kbd>o</kbd>                | edit    | open the selected widget's options sheet                              |
+| <kbd>S</kbd>                | edit    | save (Ctrl+S also works)                                              |
+| _(type)_                    | picker  | filter widgets by name or type                                        |
+| <kbd>↑</kbd> <kbd>↓</kbd>   | picker  | highlight a widget                                                    |
+| <kbd>↵</kbd>                | picker  | insert / replace with the highlighted widget                          |
+| <kbd>Esc</kbd>              | picker  | close the picker                                                      |
+| <kbd>v</kbd>                | options | show / hide the widget                                                |
+| <kbd>l</kbd>                | options | show / hide the widget's own label                                    |
+| <kbd>m</kbd>                | options | spacing to neighbour: full / single space / none                      |
+| <kbd>Esc</kbd>              | options | close the options sheet                                               |
+| <kbd>q</kbd>                | any     | quit (prompts if there are unsaved changes)                           |
+| <kbd>?</kbd>                | any     | toggle the help overlay                                               |
 
-Up to three rows are editable; the cap matches the schema and the
-`agentline config widget` CLI. Moving a widget down off the last row
-creates a new row when there is headroom.
+The editor always shows three rows so up/down navigation has somewhere
+to go even on a single-line config; on save, trailing empty rows are
+trimmed so the on-disk config still reflects your intent. Moving a
+widget across rows lands it just before the destination row's +add
+cell.
 
 ## Overrides
 

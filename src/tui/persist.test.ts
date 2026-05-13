@@ -48,4 +48,39 @@ describe("saveEditedConfig", () => {
     await expect(saveEditedConfig({ path, base: bad, lines: [] })).rejects.toThrow();
     await expect(fs.access(path)).rejects.toThrow();
   });
+
+  it("trims trailing empty rows the editor padded for navigation", async () => {
+    // The editor keeps `state.lines` at exactly MAX_LINES (3) for grid
+    // navigation. The on-disk config should mirror the user's intent —
+    // here, "one row with `model`" — not the padding scaffold.
+    const path = join(dir, "padded.json");
+    const lines = [{ widgets: [{ type: "model" }] }, { widgets: [] }, { widgets: [] }];
+    const result = await saveEditedConfig({ path, base: DEFAULT_CONFIG, lines });
+    expect(result.lines).toHaveLength(1);
+    const written = JSON.parse(await fs.readFile(path, "utf8"));
+    expect(written.lines).toHaveLength(1);
+    expect(written.lines[0].widgets[0].type).toBe("model");
+  });
+
+  it("preserves an empty trailing row that sits between non-empty rows", async () => {
+    const path = join(dir, "gap.json");
+    const lines = [
+      { widgets: [{ type: "model" }] },
+      { widgets: [] },
+      { widgets: [{ type: "clock" }] },
+    ];
+    const result = await saveEditedConfig({ path, base: DEFAULT_CONFIG, lines });
+    expect(result.lines).toHaveLength(3);
+  });
+
+  it("keeps at least one row when every row is empty", async () => {
+    const path = join(dir, "all-empty.json");
+    const result = await saveEditedConfig({
+      path,
+      base: DEFAULT_CONFIG,
+      lines: [{ widgets: [] }, { widgets: [] }, { widgets: [] }],
+    });
+    expect(result.lines).toHaveLength(1);
+    expect(result.lines[0]?.widgets).toEqual([]);
+  });
 });

@@ -1,97 +1,147 @@
 /**
- * Tests for the editor's live-preview region. `previewLines` is pure and
- * tested directly; the Ink `Preview` component is exercised with Ink mocked
- * so we never need a TTY.
+ * Tests for the editor's interactive preview region. The pure layout helper
+ * `buildPreview` lives in `preview-model.ts` and is tested separately;
+ * these tests target the Ink projection (`Preview`) with Ink mocked so we
+ * never need a TTY. We assert on the React tree shape — selection
+ * (`inverse: true`), add-cell presence, gutter, and that the cursor flags
+ * one and only one slot per render.
  */
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("ink", () => {
-  const el = (...args: unknown[]) => ({ type: args[0], props: args[1] });
-  return { Box: el, Text: el };
+  const el = (type: unknown, props: unknown, ...children: unknown[]) => ({
+    type,
+    props,
+    children: children.flat(Infinity),
+  });
+  return { Box: "Box", Text: "Text", default: el };
 });
+
+import React from "react";
 
 import { DEFAULT_CONFIG } from "../config/defaults.js";
-import { loadThemeFromString } from "../theme/index.js";
-import { Preview, previewLines } from "./preview.js";
+import { pickGlyphs } from "./glyphs.js";
+import { Preview } from "./preview.js";
 
-describe("previewLines", () => {
-  it("renders the loaded config's widgets against the demo session", () => {
-    const rows = previewLines({ base: DEFAULT_CONFIG, lines: DEFAULT_CONFIG.lines });
-    expect(rows.length).toBeGreaterThanOrEqual(1);
-    // DEFAULT_CONFIG ships just the `model` widget.
-    expect(rows.join("\n")).toContain("Opus 4.7");
-  });
+// Walk the rendered tree and collect every <Text> node with its props +
+// the concatenated text of its children (each child is either a string or
+// another node — flatten to strings).
+interface TextNode {
+  readonly props: Record<string, unknown>;
+  readonly text: string;
+}
 
-  it("reflects the editor's current line list, not the base's", () => {
-    const rows = previewLines({
-      base: DEFAULT_CONFIG,
-      lines: [{ widgets: [{ type: "git-branch" }, { type: "separator", options: { char: " | " } }, { type: "model" }] }],
-    });
-    expect(rows.join("\n")).toContain("main");
-    expect(rows.join("\n")).toContain("Opus 4.7");
-  });
-
-  it("yields one row per configured line", () => {
-    const rows = previewLines({
-      base: DEFAULT_CONFIG,
-      lines: [{ widgets: [{ type: "model" }] }, { widgets: [{ type: "git-branch" }] }],
-    });
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toContain("Opus 4.7");
-    expect(rows[1]).toContain("main");
-  });
-
-  it("returns a single empty row for an all-empty config", () => {
-    expect(previewLines({ base: DEFAULT_CONFIG, lines: [{ widgets: [] }] })).toEqual([""]);
-  });
-
-  it("colours the preview when a resolved theme is supplied", () => {
-    const theme = loadThemeFromString(
-      JSON.stringify({
-        name: "test-theme",
-        palette: {
-          accent: "#ff0080",
-          info: "#000000",
-          success: "#000000",
-          warning: "#000000",
-          danger: "#000000",
-          muted: "#000000",
-          "git-clean": "#000000",
-          "git-dirty": "#000000",
-          "tokens-low": "#000000",
-          "tokens-mid": "#000000",
-          "tokens-high": "#000000",
-          "bg-section": "#000000",
-          "bg-emphasis": "#000000",
-        },
-      }),
-    );
-    // Lock truecolor so the palette is encoded as `38;2;R;G;B` regardless of host.
-    const prev = { COLORTERM: process.env.COLORTERM, TERM: process.env.TERM };
-    process.env.COLORTERM = "truecolor";
-    process.env.TERM = "xterm-256color";
-    try {
-      const rows = previewLines({ base: DEFAULT_CONFIG, lines: DEFAULT_CONFIG.lines, theme });
-      // accent #ff0080 → rgb(255, 0, 128).
-      expect(rows.join("\n")).toContain("\x1b[38;2;255;0;128m");
-    } finally {
-      process.env.COLORTERM = prev.COLORTERM;
-      process.env.TERM = prev.TERM;
+function collectTextNodes(node: unknown): TextNode[] {
+  const out: TextNode[] = [];
+  function walk(n: unknown): void {
+    if (!n || typeof n !== "object") return;
+    const el = n as { type?: unknown; props?: Record<string, unknown> };
+    const props = el.props ?? {};
+    if (el.type === "Text") {
+      const text = collectText(props.children);
+      out.push({ props, text });
+      return; // a Text's children are leaves
     }
+    walk((props as { children?: unknown }).children);
+    if (Array.isArray((props as { children?: unknown }).children)) {
+      for (const child of (props as { children: unknown[] }).children) walk(child);
+    }
+  }
+  function collectText(children: unknown): string {
+    if (children === undefined || children === null) return "";
+    if (typeof children === "string") return children;
+    if (Array.isArray(children)) return children.map(collectText).join("");
+    if (typeof children === "object") {
+      const c = children as { props?: { children?: unknown } };
+      return collectText(c.props?.children);
+    }
+    return String(children);
+  }
+  walk(node);
+  return out;
+}
+
+const GLYPHS = pickGlyphs({ unicode: true });
+
+describe("Preview — projection", () => {
+  it("renders a Text node per supplied line plus the add-cell on each row", () => {
+    const node = Preview({
+      base: DEFAULT_CONFIG,
+      lines: [
+        { widgets: [{ type: "model" }] },
+        { widgets: [] },
+        { widgets: [{ type: "git-branch" }] },
+      ],
+      cursor: { line: 0, widget: 0 },
+      glyphs: GLYPHS,
+    });
+    const texts = collectTextNodes(node);
+    const addCells = texts.filter((t) => t.text.includes("add widget"));
+    expect(addCells).toHaveLength(3); // one per row
   });
 
-  it("does not mutate the supplied lines", () => {
-    const lines = [{ widgets: [{ type: "model" as const }] }];
-    const snapshot = JSON.stringify(lines);
-    previewLines({ base: DEFAULT_CONFIG, lines });
-    expect(JSON.stringify(lines)).toBe(snapshot);
+  it("inverses exactly one slot per render — the cursor target", () => {
+    const node = Preview({
+      base: DEFAULT_CONFIG,
+      lines: [{ widgets: [{ type: "model" }, { type: "git-branch" }] }, { widgets: [] }, { widgets: [] }],
+      cursor: { line: 0, widget: 1 },
+      glyphs: GLYPHS,
+    });
+    const inversed = collectTextNodes(node).filter((t) => t.props.inverse === true);
+    expect(inversed).toHaveLength(1);
+    // The selected widget is `git-branch` — `main` in the demo session.
+    expect(inversed[0]?.text).toContain("main");
   });
-});
 
-describe("Preview", () => {
+  it("highlights the add-cell when the cursor sits on the column past the last widget", () => {
+    const node = Preview({
+      base: DEFAULT_CONFIG,
+      lines: [{ widgets: [{ type: "model" }] }, { widgets: [] }, { widgets: [] }],
+      cursor: { line: 0, widget: 1 },
+      glyphs: GLYPHS,
+    });
+    const inversed = collectTextNodes(node).filter((t) => t.props.inverse === true);
+    expect(inversed).toHaveLength(1);
+    expect(inversed[0]?.text).toContain("add widget");
+  });
+
+  it("an empty row's only navigable slot is its add-cell at column 0", () => {
+    const node = Preview({
+      base: DEFAULT_CONFIG,
+      lines: [{ widgets: [] }, { widgets: [] }, { widgets: [] }],
+      cursor: { line: 1, widget: 0 },
+      glyphs: GLYPHS,
+    });
+    const inversed = collectTextNodes(node).filter((t) => t.props.inverse === true);
+    expect(inversed).toHaveLength(1);
+    expect(inversed[0]?.text).toContain("add widget");
+  });
+
+  it("wraps the selected widget in selection brackets", () => {
+    const node = Preview({
+      base: DEFAULT_CONFIG,
+      lines: [{ widgets: [{ type: "model" }] }, { widgets: [] }, { widgets: [] }],
+      cursor: { line: 0, widget: 0 },
+      glyphs: GLYPHS,
+    });
+    const inv = collectTextNodes(node).filter((t) => t.props.inverse === true);
+    expect(inv[0]?.text.startsWith(GLYPHS.selectionOpen)).toBe(true);
+    expect(inv[0]?.text.endsWith(GLYPHS.selectionClose)).toBe(true);
+  });
+
   it("returns a React element", () => {
-    const node = Preview({ base: DEFAULT_CONFIG, lines: DEFAULT_CONFIG.lines, width: 80 });
-    expect(node).toBeTruthy();
-    expect(node).toHaveProperty("props");
+    expect(
+      Preview({
+        base: DEFAULT_CONFIG,
+        lines: [{ widgets: [] }, { widgets: [] }, { widgets: [] }],
+        cursor: { line: 0, widget: 0 },
+        glyphs: GLYPHS,
+      }),
+    ).toBeTruthy();
+  });
+
+  // Reference React so the import isn't flagged as unused on stricter TS configs.
+  it("imports React (smoke)", () => {
+    expect(React).toBeDefined();
   });
 });
