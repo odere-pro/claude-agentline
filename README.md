@@ -82,7 +82,7 @@ Full walkthrough (doctor, presets, TUI editor, JSON Schema) → [docs/get-starte
 | CLI reference    | [docs/cli.md](./docs/cli.md)                         |
 | Install          | [docs/install.md](./docs/install.md)                 |
 | Configure        | [docs/config.md](./docs/config.md)                   |
-| Widgets (all 37) | [docs/widgets.md](./docs/widgets.md)                 |
+| Widgets (all 39) | [docs/widgets.md](./docs/widgets.md)                 |
 | Themes           | [docs/themes.md](./docs/themes.md)                   |
 | TUI editor keys  | [docs/keymap.md](./docs/keymap.md)                   |
 | Doctor checks    | [docs/doctor.md](./docs/doctor.md)                   |
