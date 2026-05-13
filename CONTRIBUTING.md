@@ -20,6 +20,76 @@ npm run build
 bash tests/gates/run-all.sh
 ```
 
+## Running agentline locally
+
+After `npm run build`, the compiled bin lives at `dist/cli.mjs`. Three ways to invoke it during development:
+
+```bash
+# 1. Direct — no global link, no PATH changes. Best for quick iteration.
+node dist/cli.mjs doctor
+node dist/cli.mjs config show
+
+# 2. npm link — puts `agentline` on PATH, pointing at this checkout.
+npm link                # one-time
+agentline doctor
+
+# 3. Full local install — same as `npm link` plus seeds config, themes,
+#    skills, and wires Claude Code's statusLine setting at this checkout.
+node dist/cli.mjs install --from-source
+```
+
+`(2)` and `(3)` create two symlinks under your npm global prefix (`npm prefix -g`):
+
+- `<prefix>/lib/node_modules/@agentline/cli` → this checkout
+- `<prefix>/bin/agentline` → the `dist/cli.mjs` inside this checkout
+
+Rebuild with `npm run build` and the live `agentline` command picks up the change on its next invocation — no re-link needed.
+
+**Gotcha — `dist/` must exist before `npm link`.** If you run `npm link` in a checkout where `dist/cli.mjs` is missing (fresh clone, or after `rm -rf dist`), npm still links the package directory but **silently skips creating the `agentline` bin** — and worse, if a prior `npm link` from another checkout had put `agentline` on PATH, that bin link gets dropped. Always `npm run build` first. If `agentline` suddenly stops resolving, check `ls -la "$(npm prefix -g)/bin/agentline"`; the fix is `npm run build && npm link` from the checkout you want it to point at.
+
+The same applies if you have multiple checkouts (e.g. a worktree): `npm link` from a second checkout moves the global link to that checkout. Run it from the checkout you actually want `agentline` to resolve to.
+
+### Iterate
+
+Rebuild on save while you edit:
+
+```bash
+npx tsup --watch
+```
+
+Render a fixture (no Claude Code session needed; deterministic, offline):
+
+```bash
+node dist/cli.mjs render --fixture tests/golden/minimal/stdin.json
+```
+
+Or pipe a payload by hand:
+
+```bash
+echo '{"workspace":{"current_dir":"."}}' | node dist/cli.mjs
+```
+
+### Isolate from your real Claude Code config
+
+Both `install` and `doctor --fix` write to `~/.claude/settings.json` and `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/`. Point them at a scratch dir while developing so you don't clobber your real setup:
+
+```bash
+export CLAUDE_CONFIG_DIR="$(mktemp -d)"
+node dist/cli.mjs install --from-source
+node dist/cli.mjs doctor
+```
+
+To clean up after a real-checkout install: `node dist/cli.mjs uninstall` (add `--purge` to also drop the config + themes that install seeded). It restores any prior `statusLine` from the backup written at install time.
+
+### Tests during dev
+
+```bash
+npm test                 # one-shot
+npm run test:watch       # vitest watch mode
+npm run typecheck        # tsc --noEmit
+npm run lint             # eslint
+```
+
 ## Branching
 
 Branch from `main`. Branch name format:
