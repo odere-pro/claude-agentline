@@ -16,6 +16,7 @@ import { DEFAULT_CONFIG } from "../config/defaults.js";
 import { validateConfig } from "../config/validate.js";
 import type { AgentlineConfig } from "../config/types.js";
 import type { Theme } from "../theme/index.js";
+import { resolveConfiguredTheme } from "../theme/resolve.js";
 import { frozenClock, realClock, type Clock } from "../widgets/clock.js";
 import { readStdinPayload } from "../stdin/index.js";
 
@@ -27,6 +28,11 @@ import type { GitState } from "../git/index.js";
 export interface RenderForFixtureOptions {
   readonly config?: AgentlineConfig;
   readonly configPath?: string;
+  /**
+   * Resolved theme. When omitted, `config.theme` is loaded from the search
+   * path; pass `null` explicitly to suppress that (e.g. goldens that pin
+   * "no theme"). Pass a `Theme` to pin a specific palette.
+   */
   readonly theme?: Theme | null;
   readonly clock?: Clock;
   readonly frozenClockISO?: string;
@@ -35,6 +41,8 @@ export interface RenderForFixtureOptions {
   readonly flags?: AccessibilityFlags;
   readonly tokens?: TokensSnapshot;
   readonly git?: GitState;
+  /** Override the bundled themes directory; primarily used by tests. */
+  readonly builtinThemesDir?: string;
 }
 
 export async function renderForFixture(
@@ -44,7 +52,17 @@ export async function renderForFixture(
   const stream = Readable.from([Buffer.from(stdinJson, "utf8")]);
   const payload = await readStdinPayload(stream);
   const config = await resolveConfig(options);
-  const theme = options.theme ?? null;
+  // `theme: null` means "no theme — keep defaults"; `theme: undefined`
+  // means "fall back to config.theme". Goldens pass `null` explicitly.
+  const theme =
+    options.theme !== undefined
+      ? options.theme
+      : await resolveConfiguredTheme(config.theme, {
+          ...(options.env !== undefined ? { env: options.env } : {}),
+          ...(options.builtinThemesDir !== undefined
+            ? { builtinDir: options.builtinThemesDir }
+            : {}),
+        });
   const clock = resolveClock(options);
   return renderFromInputs({
     payload,
