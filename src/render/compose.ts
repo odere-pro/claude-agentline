@@ -188,6 +188,7 @@ function cellToSegment(cell: Cell): ComposedSegment {
     ...(cell.bg !== undefined ? { bg: cell.bg } : {}),
     ...(cell.bold === true ? { bold: true } : {}),
     ...(cell.italic === true ? { italic: true } : {}),
+    ...(typeof cell.href === "string" && cell.href.length > 0 ? { href: cell.href } : {}),
   };
 }
 

@@ -171,6 +171,32 @@ describe("glyph layer", () => {
   });
 });
 
+describe("renderWidget — href passthrough", () => {
+  it("preserves cell.href so OSC 8 widgets reach the encoder", () => {
+    const r = new WidgetRegistry();
+    r.register(
+      defineWidget<{ url?: string; label?: string }>("link", (_, s) => ({
+        text: s.options.label ?? "link",
+        href: s.options.url,
+      })),
+    );
+    const cell = renderWidget(
+      r,
+      { type: "link", options: { url: "https://example.com", label: "Docs" } },
+      makeCtx(),
+    );
+    expect(cell.text).toBe("Docs");
+    expect(cell.href).toBe("https://example.com");
+  });
+
+  it("drops an empty href so the segment stays a plain cell", () => {
+    const r = new WidgetRegistry();
+    r.register(defineWidget("link-empty", () => ({ text: "x", href: "" })));
+    const cell = renderWidget(r, { type: "link-empty" }, makeCtx());
+    expect(cell.href).toBeUndefined();
+  });
+});
+
 describe("widget contract integration", () => {
   it("accepts an empty options block when widget declares typed options", () => {
     const r = new WidgetRegistry();

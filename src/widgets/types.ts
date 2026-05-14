@@ -37,6 +37,14 @@ export interface Cell {
    * set this flag.
    */
   readonly flex?: boolean;
+  /**
+   * OSC 8 hyperlink target. When set and the colour depth is not
+   * `"none"`, the encoder wraps `text` in `ESC]8;;URL\\ESC\\` /
+   * `ESC]8;;\\ESC\\` so the visible label becomes clickable in
+   * OSC-8-capable terminals. The URL is excluded from width math —
+   * `codePointLength` only sees `text` (the visible label).
+   */
+  readonly href?: string;
 }
 
 export const HIDDEN_CELL: Cell = Object.freeze({ text: "", hidden: true });

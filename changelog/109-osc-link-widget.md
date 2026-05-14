@@ -1,0 +1,1 @@
+- Add `osc-link` custom widget that emits an OSC 8 clickable hyperlink (`options.url` + optional `options.label`). The encoder wraps the visible label in `ESC]8;;URL\ESC\` / `ESC]8;;\ESC\` so width math stays accurate; `--no-color` drops the wrap to keep plain output truly plain. Control characters in URLs are stripped before emission to keep the sequence well-formed.

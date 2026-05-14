@@ -50,6 +50,7 @@ interface PaddedCell {
   readonly bg: Colour;
   readonly bold: boolean;
   readonly italic: boolean;
+  readonly href: string | undefined;
 }
 
 function defaultBg(theme: Theme | null): Colour {
@@ -66,14 +67,23 @@ function padded(cell: Cell, theme: Theme | null): PaddedCell {
     bg: cell.bg ?? defaultBg(theme),
     bold: cell.bold ?? false,
     italic: cell.italic ?? false,
+    // The OSC 8 wrap covers the padded text too — clicking the
+    // surrounding whitespace inside the powerline chip should still
+    // open the link, matching the user's mental model of "the chip
+    // is the link".
+    href: typeof cell.href === "string" && cell.href.length > 0 ? cell.href : undefined,
   };
 }
 
 function styleSegment(cell: PaddedCell): Segment {
   const seg: Segment = { text: cell.text, bg: cell.bg };
-  return cell.fg !== undefined
-    ? { ...seg, fg: cell.fg, ...(cell.bold ? { bold: true } : {}), ...(cell.italic ? { italic: true } : {}) }
-    : { ...seg, ...(cell.bold ? { bold: true } : {}), ...(cell.italic ? { italic: true } : {}) };
+  const withFg = cell.fg !== undefined ? { ...seg, fg: cell.fg } : seg;
+  const withStyle = {
+    ...withFg,
+    ...(cell.bold ? { bold: true } : {}),
+    ...(cell.italic ? { italic: true } : {}),
+  };
+  return cell.href !== undefined ? { ...withStyle, href: cell.href } : withStyle;
 }
 
 export function applyPowerline(

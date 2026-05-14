@@ -337,8 +337,13 @@ const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
     v("clock", "Clock (01:23:45)", { format: "clock" }),
   ]),
 
-  // Layout / custom (1)
+  // Layout / custom (2)
   separator: entry("Separator", "A single user-defined glyph (options.char)", "custom"),
+  "osc-link": entry(
+    "OSC 8 link",
+    "Clickable hyperlink (options.url, options.label)",
+    "custom",
+  ),
 });
 
 function applyGlyphs(
