@@ -26,13 +26,9 @@ vi.mock("ink", () => {
 
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import { DEFAULT_KEY_BINDINGS } from "../keys/bindings.js";
-import {
-  enterAltScreen,
-  footerLines,
-  fullscreenStream,
-  pruneStaleWidgets,
-  runConfigCommand,
-} from "./main.js";
+import { footerLines } from "./footer.js";
+import { runConfigCommand } from "./main.js";
+import { enterAltScreen, fullscreenStream, pruneStaleWidgets } from "./mount.js";
 
 describe("runConfigCommand (entry-point wiring)", () => {
   let tmp: string;
