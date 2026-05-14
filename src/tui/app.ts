@@ -109,13 +109,15 @@ export function App({
   const usedTypes = useMemo(() => {
     const set = new Set<string>();
     for (const line of state.lines) for (const w of line.widgets) set.add(w.type);
+    // `state.pickerTarget` exists only on the picker branch of the
+    // discriminated union; the mode-check narrows it for TS.
     if (state.mode !== "edit" && state.pickerTarget.kind === "replace") {
       const line = state.lines[state.pickerTarget.line];
       const target = line?.widgets[state.pickerTarget.index];
       if (target && widgetVariants(target.type).length > 0) set.delete(target.type);
     }
     return set;
-  }, [state.lines, state.mode, state.pickerTarget]);
+  }, [state]);
 
   const onSave = useCallback(async (): Promise<void> => {
     // Re-entry guard: a second `s` keypress during an in-flight save

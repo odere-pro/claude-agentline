@@ -10,8 +10,22 @@ import {
   isPickerMode,
   reduce,
   widgetCountAt,
+  type EditorPickerState,
   type EditorState,
 } from "./state.js";
+
+/**
+ * Narrow an `EditorState` to its picker variant for assertions on
+ * `pickerTarget` / `pickerDraft`. Throws when the test reaches an
+ * unexpected mode so a regression in the reducer fails loudly instead
+ * of silently asserting against `undefined` fields.
+ */
+function asPicker(state: EditorState): EditorPickerState {
+  if (state.mode === "edit") {
+    throw new Error(`asPicker: expected a picker state, got mode="edit"`);
+  }
+  return state;
+}
 
 const makeState = (widgets: { type: string; hidden?: boolean }[] = []): EditorState => {
   const lines: LineConfig[] = [{ widgets: widgets.map((w) => ({ ...w })) }];
@@ -44,10 +58,12 @@ describe("initialState", () => {
     expect(currentWidget(s)).toBeUndefined();
   });
 
-  it("starts in edit mode with an empty picker draft", () => {
+  it("starts in edit mode (no picker fields)", () => {
+    // The discriminated union in `EditorState` excludes `pickerDraft` /
+    // `pickerTarget` from the edit branch — the assertion on `mode`
+    // alone covers the contract.
     const s = makeState([{ type: "a" }]);
     expect(s.mode).toBe("edit");
-    expect(s.pickerDraft).toEqual({});
   });
 });
 
@@ -191,7 +207,7 @@ describe("reduce: dirty bookkeeping", () => {
 
 describe("reduce: toggle-glyphs", () => {
   it("flips between off and nerd-font and marks dirty", () => {
-    let s = initialState([], "off");
+    let s: EditorState = initialState([], "off");
     expect(s.glyphs).toBe("off");
     expect(s.dirty).toBe(false);
     s = reduce(s, { type: "toggle-glyphs" });
@@ -228,15 +244,15 @@ describe("picker drill-down — open-picker (add intent)", () => {
     let s = multiLine([["a"]]);
     s = reduce(s, { type: "open-picker", intent: "add" });
     expect(s.mode).toBe("picker-group");
-    expect(s.pickerTarget).toEqual({ kind: "insert", line: 0, index: 1 });
-    expect(s.pickerDraft).toEqual({});
+    expect(asPicker(s).pickerTarget).toEqual({ kind: "insert", line: 0, index: 1 });
+    expect(asPicker(s).pickerDraft).toEqual({});
   });
 
   it("opens picker-group from the add-cell with index pointing at the row's end", () => {
     let s = multiLine([["a"]]);
     s = reduce(s, { type: "move-cursor", dx: 1 });
     s = reduce(s, { type: "open-picker", intent: "add" });
-    expect(s.pickerTarget).toEqual({ kind: "insert", line: 0, index: 1 });
+    expect(asPicker(s).pickerTarget).toEqual({ kind: "insert", line: 0, index: 1 });
   });
 });
 
@@ -246,13 +262,13 @@ describe("picker drill-down — open-picker (replace intent)", () => {
     s = reduce(s, { type: "move-cursor", dx: 1 });
     s = reduce(s, { type: "open-picker", intent: "replace" });
     expect(s.mode).toBe("picker-group");
-    expect(s.pickerTarget).toEqual({ kind: "replace", line: 0, index: 1 });
+    expect(asPicker(s).pickerTarget).toEqual({ kind: "replace", line: 0, index: 1 });
   });
 
   it("downgrades replace → insert when the add-cell is selected (nothing to replace)", () => {
     let s = makeState([]);
     s = reduce(s, { type: "open-picker", intent: "replace" });
-    expect(s.pickerTarget.kind).toBe("insert");
+    expect(asPicker(s).pickerTarget.kind).toBe("insert");
   });
 });
 
@@ -263,10 +279,10 @@ describe("picker drill-down — pick-category → pick-widget → pick-variant",
     s = reduce(s, { type: "open-picker", intent: "add" });
     s = reduce(s, { type: "pick-category", category: "session" });
     expect(s.mode).toBe("picker-widget");
-    expect(s.pickerDraft.category).toBe("session");
+    expect(asPicker(s).pickerDraft.category).toBe("session");
     s = reduce(s, { type: "pick-widget", widgetType: "skills" });
     expect(s.mode).toBe("picker-variant");
-    expect(s.pickerDraft.widgetType).toBe("skills");
+    expect(asPicker(s).pickerDraft.widgetType).toBe("skills");
     s = reduce(s, { type: "pick-variant", variantId: "list" });
     expect(s.mode).toBe("edit");
     expect(s.lines[0]?.widgets).toEqual([
@@ -298,7 +314,9 @@ describe("picker drill-down — pick-category → pick-widget → pick-variant",
 
 describe("picker drill-down — replace target", () => {
   it("replace swaps the widget type and drops prior colour/style overrides", () => {
-    let s = initialState([{ widgets: [{ type: "model", fg: "#ff00ff", bold: true }] }]);
+    let s: EditorState = initialState([
+      { widgets: [{ type: "model", fg: "#ff00ff", bold: true }] },
+    ]);
     s = reduce(s, { type: "open-picker", intent: "replace" });
     s = reduce(s, { type: "pick-category", category: "git" });
     s = reduce(s, { type: "pick-widget", widgetType: "git-branch" });
@@ -322,8 +340,8 @@ describe("picker drill-down — flat search from picker-group", () => {
     s = reduce(s, { type: "open-picker", intent: "add" });
     s = reduce(s, { type: "pick-widget", widgetType: "skills" });
     expect(s.mode).toBe("picker-variant");
-    expect(s.pickerDraft.widgetType).toBe("skills");
-    expect(s.pickerDraft.category).toBeUndefined();
+    expect(asPicker(s).pickerDraft.widgetType).toBe("skills");
+    expect(asPicker(s).pickerDraft.category).toBeUndefined();
   });
 
   it("picker-back from picker-variant returns to picker-group when no category was chosen", () => {
@@ -333,7 +351,7 @@ describe("picker drill-down — flat search from picker-group", () => {
     expect(s.mode).toBe("picker-variant");
     s = reduce(s, { type: "picker-back" });
     expect(s.mode).toBe("picker-group");
-    expect(s.pickerDraft.widgetType).toBeUndefined();
+    expect(asPicker(s).pickerDraft.widgetType).toBeUndefined();
   });
 });
 
@@ -346,10 +364,10 @@ describe("picker drill-down — picker-back and close-picker", () => {
     expect(s.mode).toBe("picker-variant");
     s = reduce(s, { type: "picker-back" });
     expect(s.mode).toBe("picker-widget");
-    expect(s.pickerDraft.widgetType).toBeUndefined();
+    expect(asPicker(s).pickerDraft.widgetType).toBeUndefined();
     s = reduce(s, { type: "picker-back" });
     expect(s.mode).toBe("picker-group");
-    expect(s.pickerDraft.category).toBeUndefined();
+    expect(asPicker(s).pickerDraft.category).toBeUndefined();
     s = reduce(s, { type: "picker-back" });
     expect(s.mode).toBe("edit");
   });
@@ -360,8 +378,10 @@ describe("picker drill-down — picker-back and close-picker", () => {
     s = reduce(s, { type: "pick-category", category: "session" });
     s = reduce(s, { type: "pick-widget", widgetType: "skills" });
     s = reduce(s, { type: "close-picker" });
+    // The discriminated union in `EditorState` excludes `pickerDraft` /
+    // `pickerTarget` from the edit branch — asserting on `mode` covers
+    // the contract that the picker fields are gone after close.
     expect(s.mode).toBe("edit");
-    expect(s.pickerDraft).toEqual({});
   });
 });
 
