@@ -1,11 +1,10 @@
 /**
  * CLI dispatch surface test.
  *
- * Locks the flat top-level command set: render / edit / install /
- * uninstall / doctor + the help/version aliases. Dropped commands
- * (`config`, `theme`, `widget`, `schema`, `init`, `keys`) MUST be
- * absent so the dispatch table stays the source of truth for "is
- * this a known command?".
+ * Locks the top-level command set: render / edit / install / uninstall /
+ * doctor / start / config + the help/version aliases. `config` re-entered
+ * the surface in PR #107 to host scriptable `config widget …` mutations
+ * for in-session use by the agentline configure skill.
  */
 
 import { describe, expect, it } from "vitest";
@@ -19,6 +18,7 @@ const EXPECTED_COMMANDS = [
   "uninstall",
   "doctor",
   "start",
+  "config",
   "help",
   "--help",
   "-h",
@@ -27,7 +27,7 @@ const EXPECTED_COMMANDS = [
   "-v",
 ] as const;
 
-const DROPPED_COMMANDS = ["config", "theme", "themes", "widget", "schema", "init", "keys"] as const;
+const DROPPED_COMMANDS = ["theme", "themes", "widget", "schema", "init", "keys"] as const;
 
 describe("CLI dispatch table", () => {
   it("exposes every flat command", () => {
