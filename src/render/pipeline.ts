@@ -25,26 +25,23 @@ import {
   applyAccessibility,
   effectiveDepth,
   honourNoColorEnv,
-  type AccessibilityFlags,
 } from "./accessibility.js";
 import { encodeSegments, SGR_RESET } from "./ansi.js";
 import { composeLines } from "./compose.js";
+import { buildWidgetContext } from "./context.js";
+import type { RenderInputs } from "./inputs.js";
 import type { Segment } from "./segment.js";
 
-import { detectGlyphSupport } from "../powerline/index.js";
 import type { AgentlineConfig } from "../config/types.js";
+import { resolveEnv } from "../lib/env.js";
+import { detectGlyphSupport } from "../powerline/index.js";
 import { resolveRole, type Theme } from "../theme/index.js";
 import type { Cell } from "../widgets/cell.js";
-import type { Clock } from "../widgets/clock.js";
-import type { WidgetContext } from "../widgets/context.js";
-import { realClock } from "../widgets/clock.js";
-import { renderWidget } from "../widgets/render-widget.js";
+import { realClock, type Clock } from "../widgets/clock.js";
 import { defaultRegistry, registerAllBuiltins } from "../widgets/index.js";
-import type { TokensSnapshot } from "../tokens/index.js";
-import type { GitState } from "../git/index.js";
-import type { ResolvedSessionFields } from "../session/index.js";
-import type { StdinPayload } from "../stdin/index.js";
-import { resolveEnv } from "../lib/env.js";
+import { renderWidget } from "../widgets/render-widget.js";
+
+export type { RenderInputs } from "./inputs.js";
 
 /**
  * Maximum warning lines appended below the rendered statusline (Phase 2
@@ -62,35 +59,22 @@ function ensureRegistry(): void {
   registerAllBuiltins(reg);
 }
 
-export interface RenderInputs {
-  readonly payload: StdinPayload;
-  readonly config: AgentlineConfig;
-  readonly theme: Theme | null;
-  readonly clock?: Clock;
-  readonly env?: NodeJS.ProcessEnv;
-  readonly width?: number;
-  readonly flags?: AccessibilityFlags;
-  readonly tokens?: TokensSnapshot;
-  readonly git?: GitState;
-  readonly session?: ResolvedSessionFields;
-}
-
 export function renderFromInputs(inputs: RenderInputs): string {
   ensureRegistry();
   const env = resolveEnv(inputs);
   const flags = honourNoColorEnv(inputs.flags ?? { noColor: false, noUnicode: false }, env);
   const clock: Clock = inputs.clock ?? realClock;
   const width = inputs.width ?? resolveWidth(inputs.config, env);
-  const ctx: WidgetContext = {
-    stdin: inputs.payload,
+  const ctx = buildWidgetContext({
+    payload: inputs.payload,
     config: inputs.config,
     theme: inputs.theme,
     clock,
     env,
-    ...(inputs.tokens !== undefined ? { tokens: inputs.tokens } : {}),
-    ...(inputs.git !== undefined ? { git: inputs.git } : {}),
-    ...(inputs.session !== undefined ? { session: inputs.session } : {}),
-  };
+    tokens: inputs.tokens,
+    git: inputs.git,
+    session: inputs.session,
+  });
 
   const registry = defaultRegistry();
   const unknownTypes = new Set<string>();
