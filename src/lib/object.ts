@@ -35,3 +35,26 @@ export function pickStringArray(
   }
   return out.length ? out : undefined;
 }
+
+/**
+ * Returns `obj[key]` narrowed to one of `allowed`, or `undefined` when
+ * the field is absent, non-string, or outside the allowed set.
+ *
+ * Use when a caller wants exhaustive handling of a known-enum field: a
+ * future contract revision that adds an unknown value will surface as
+ * `undefined` rather than as an arbitrary string the consumer can't
+ * exhaustively switch on. Pair with `pickString` when forward-compat
+ * with unknown values matters more than exhaustiveness (the
+ * `thinking-effort` widget, for example, passes unknown levels through
+ * uncoloured rather than hiding them).
+ */
+export function pickEnum<T extends string>(
+  obj: Record<string, unknown> | undefined,
+  key: string,
+  allowed: ReadonlySet<T>,
+): T | undefined {
+  if (!obj) return undefined;
+  const v = obj[key];
+  if (typeof v !== "string") return undefined;
+  return allowed.has(v as T) ? (v as T) : undefined;
+}

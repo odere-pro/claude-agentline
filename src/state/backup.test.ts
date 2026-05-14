@@ -79,6 +79,28 @@ describe("saveStatusLineBackup / readStatusLineBackup", () => {
     expect(written.previousStatusLine).toBe("first");
   });
 
+  it("two concurrent writers race the O_EXCL open; exactly one wins", async () => {
+    // The original implementation had a TOCTOU between `pathExists` and
+    // the temp+rename in `atomicWriteJson`: both callers could observe
+    // the file absent, both could write a temp, and the second rename
+    // would overwrite the first writer's snapshot. `O_EXCL` collapses
+    // the check-then-write to one syscall so exactly one writer wins.
+    const writers = Array.from({ length: 8 }, (_, i) =>
+      saveStatusLineBackup({
+        previousStatusLine: `writer-${i}`,
+        previousStatusLinePresent: true,
+        backupFile,
+      }),
+    );
+    const results = await Promise.all(writers);
+    const created = results.filter((r) => r === "created");
+    const skipped = results.filter((r) => r === "skipped");
+    expect(created).toHaveLength(1);
+    expect(skipped).toHaveLength(writers.length - 1);
+    const written = JSON.parse(readFileSync(backupFile, "utf8"));
+    expect(written.previousStatusLine).toMatch(/^writer-\d+$/);
+  });
+
   it("readStatusLineBackup returns null when the backup is absent", async () => {
     expect(await readStatusLineBackup({ backupFile })).toBeNull();
   });

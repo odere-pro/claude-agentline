@@ -19,11 +19,11 @@
  */
 
 import { promises as fs } from "node:fs";
+import { dirname } from "node:path";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { atomicWriteJson } from "../config/atomic.js";
-import { isEnoent, pathExists } from "../lib/fs.js";
+import { isEexist, isEnoent } from "../lib/fs.js";
 import { AGENTLINE_VERSION } from "../version.js";
 
 export const STATUS_LINE_BACKUP_VERSION = 1 as const;
@@ -65,8 +65,22 @@ export function resolveBackupPaths(
 /**
  * Save the current `statusLine` value to the backup file.
  *
- * @returns `"created"` when a fresh backup was written,
- *          `"skipped"` when a backup already existed (first install wins).
+ * Concurrency contract: only the first writer wins. Two concurrent
+ * `agentline doctor --fix` runs (or `install` + `doctor`) race the
+ * exclusive `O_EXCL` open on the target path — exactly one succeeds and
+ * writes the body; the others observe `EEXIST` and return `"skipped"`
+ * without touching the file. The earlier check-then-write pattern had a
+ * TOCTOU window between `pathExists` and the temp-rename in
+ * `atomicWriteJson` that allowed the loser to clobber the winner's
+ * snapshot of the original `statusLine`, defeating "first install wins".
+ *
+ * Trade-off: skipping the temp+rename pattern means a process killed
+ * mid-write leaves a partial JSON file at the target. The backup is
+ * written once per install and is small (≤ ~256 bytes), so the
+ * partial-write window is microseconds and recovery is `rm <file>`.
+ *
+ * @returns `"created"` when this caller wrote the backup,
+ *          `"skipped"` when another caller had already won the race.
  */
 export async function saveStatusLineBackup(args: {
   readonly previousStatusLine: unknown;
@@ -76,7 +90,7 @@ export async function saveStatusLineBackup(args: {
   readonly clock?: () => Date;
 }): Promise<"created" | "skipped"> {
   const target = args.backupFile ?? resolveBackupPaths(args.env).backupFile;
-  if (await pathExists(target)) return "skipped";
+  await fs.mkdir(dirname(target), { recursive: true, mode: 0o700 });
   const body: StatusLineBackup = {
     version: STATUS_LINE_BACKUP_VERSION,
     createdAt: (args.clock ?? (() => new Date()))().toISOString(),
@@ -84,7 +98,19 @@ export async function saveStatusLineBackup(args: {
     previousStatusLinePresent: args.previousStatusLinePresent,
     previousStatusLine: args.previousStatusLine,
   };
-  await atomicWriteJson(target, body, { mode: 0o600, dirMode: 0o700 });
+  let fh: Awaited<ReturnType<typeof fs.open>>;
+  try {
+    fh = await fs.open(target, "wx", 0o600);
+  } catch (err) {
+    if (isEexist(err)) return "skipped";
+    throw err;
+  }
+  try {
+    await fh.writeFile(`${JSON.stringify(body, null, 2)}\n`, "utf8");
+    await fh.sync();
+  } finally {
+    await fh.close();
+  }
   return "created";
 }
 
