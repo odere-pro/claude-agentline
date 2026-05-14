@@ -495,11 +495,22 @@ export function footerLines(
 }
 
 /**
- * ANSI: cursor home + erase entire screen. Prepended to every Ink frame
- * so each redraw paints into a known-blank alt-screen buffer regardless
- * of content height or terminal scroll state.
+ * ANSI: erase display + erase scrollback (xterm `3J`) + cursor home.
+ * Mirrors `ansi-escapes.clearTerminal` — the same sequence Ink itself
+ * emits when content overflows the viewport (ink.js:122). Prepended to
+ * every Ink frame so each redraw paints into a blank screen *and* a
+ * blank scrollback buffer.
+ *
+ * Why `3J` and not just `2J`: `2J` only erases the visible region;
+ * xterm-compatible terminals push the just-cleared rows into scrollback
+ * rather than discarding them. In terminals where alt-screen entry is
+ * ignored (Warp, tmux without `alternate-screen on`, some Apple Terminal
+ * configurations), `2J` alone lets every prior editor frame accumulate
+ * in the host's scrollback — exactly the stacking symptom users see when
+ * arrow-navigating. The `3J` wipes that scrollback so stacking can't
+ * survive even when alt-screen isn't fully effective.
  */
-const FULLSCREEN_RESET = "\x1b[H\x1b[2J";
+const FULLSCREEN_RESET = "\x1b[2J\x1b[3J\x1b[H";
 
 /**
  * Wrap a TTY stream so every `.write()` call is preceded by a
