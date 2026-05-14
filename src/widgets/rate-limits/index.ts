@@ -6,6 +6,8 @@
  *
  * Widgets shipped:
  *   - session-usage          (block token usage)
+ *   - weekly-sonnet-usage    (week token usage, Sonnet-only)
+ *   - weekly-opus-usage      (week token usage, Opus-only)
  *   - block-reset-timer      (countdown to the next block reset)
  *   - block-reset-at         (wall-clock of the next block reset)
  *   - weekly-reset-timer     (countdown to the next weekly reset)
@@ -17,11 +19,19 @@ import type { WidgetRegistry } from "../registry.js";
 
 import { blockResetAtWidget, weeklyResetAtWidget } from "./reset-at.js";
 import { blockResetTimerWidget, weeklyResetTimerWidget } from "./timers.js";
-import { sessionUsageWidget } from "./usage.js";
+import {
+  sessionUsageWidget,
+  weeklyOpusUsageWidget,
+  weeklySonnetUsageWidget,
+} from "./usage.js";
 
 export { blockResetAtWidget, weeklyResetAtWidget } from "./reset-at.js";
 export { blockResetTimerWidget, weeklyResetTimerWidget } from "./timers.js";
-export { sessionUsageWidget } from "./usage.js";
+export {
+  sessionUsageWidget,
+  weeklyOpusUsageWidget,
+  weeklySonnetUsageWidget,
+} from "./usage.js";
 export {
   formatDuration,
   resolveDurationFormat,
@@ -30,6 +40,8 @@ export {
 
 export const RATE_LIMIT_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   sessionUsageWidget as WidgetDef<unknown>,
+  weeklySonnetUsageWidget as WidgetDef<unknown>,
+  weeklyOpusUsageWidget as WidgetDef<unknown>,
   blockResetTimerWidget as WidgetDef<unknown>,
   blockResetAtWidget as WidgetDef<unknown>,
   weeklyResetTimerWidget as WidgetDef<unknown>,

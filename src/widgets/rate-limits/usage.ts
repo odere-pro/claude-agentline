@@ -1,8 +1,11 @@
 /**
- * `session-usage` widget (§7.5).
+ * Usage widgets (§7.5).
  *
- * Computes total tokens consumed in the active 5-h block and renders a
- * usage indicator. Display is cycled by the TUI via `options.display`:
+ *   - `session-usage`       — block-axis total
+ *   - `weekly-sonnet-usage` — week-axis total filtered to Sonnet events
+ *   - `weekly-opus-usage`   — week-axis total filtered to Opus events
+ *
+ * Display is cycled by the TUI via `options.display`:
  *
  *   - `percent`    `65%` (default)
  *   - `bar`        `█████░░░░░░░` (default 12 cells)
@@ -15,10 +18,17 @@
  * Colour grades: ratio < 0.6 → tokens-low, < 0.8 → tokens-mid,
  * else tokens-high (same role mapping as context widgets via
  * `tokenRole`).
+ *
+ * The per-model weekly widgets compose two filters: events are
+ * narrowed to a model family via `eventFilter` (a plain predicate on
+ * `TranscriptEvent`) **before** the week-axis aggregator runs. The
+ * aggregator stays single-axis — combining axes happens at the call
+ * site so the shared aggregator does not learn about model families.
  */
 
 import { resolveRole } from "../../theme/index.js";
 import { aggregate, type ResetAxis } from "../../tokens/index.js";
+import type { TranscriptEvent } from "../../tokens/index.js";
 import type { Cell } from "../cell.js";
 import type { WidgetContext } from "../context.js";
 import type { WidgetSettings } from "../widget.js";
@@ -61,11 +71,13 @@ function renderUsage(
   ctx: WidgetContext,
   settings: WidgetSettings<Options>,
   axis: ResetAxis,
+  eventFilter?: (ev: TranscriptEvent) => boolean,
 ): Cell {
   const snapshot = ctx.tokens;
   if (!snapshot) return { text: "", hidden: true };
+  const events = eventFilter ? snapshot.events.filter(eventFilter) : snapshot.events;
   const totals = aggregate({
-    events: snapshot.events,
+    events,
     axis,
     now: snapshot.now,
     sessionStart: snapshot.sessionStart,
@@ -100,6 +112,27 @@ function renderUsage(
   return fg ? { ...cell, fg } : cell;
 }
 
+/**
+ * Match a model family by id prefix. Mirrors the classification in
+ * `src/tokens/pricing.ts` (`startsWith("claude-sonnet")` etc.) so the
+ * usage widgets and pricing always agree on what counts as which
+ * family. An event whose `model` is undefined is skipped — we can't
+ * attribute usage to a family without a tag.
+ */
+function isModelFamily(ev: TranscriptEvent, family: string): boolean {
+  return typeof ev.model === "string" && ev.model.startsWith(family);
+}
+
 export const sessionUsageWidget = defineWidget<Options>("session-usage", (ctx, settings) =>
   renderUsage(ctx, settings, "block"),
+);
+
+export const weeklySonnetUsageWidget = defineWidget<Options>(
+  "weekly-sonnet-usage",
+  (ctx, settings) => renderUsage(ctx, settings, "week", (ev) => isModelFamily(ev, "claude-sonnet")),
+);
+
+export const weeklyOpusUsageWidget = defineWidget<Options>(
+  "weekly-opus-usage",
+  (ctx, settings) => renderUsage(ctx, settings, "week", (ev) => isModelFamily(ev, "claude-opus")),
 );
