@@ -196,12 +196,15 @@ describe("fullscreenStream", () => {
     expect(fullscreenStream(stream)).toBe(stream);
   });
 
-  it("prepends cursor-home + erase-screen on every write batch", () => {
+  it("prepends erase-screen + erase-scrollback + cursor-home on every write batch", () => {
     const { stream, writes } = makeStream(true);
     const wrapped = fullscreenStream(stream);
     wrapped.write("frame-one");
     wrapped.write("frame-two");
-    expect(writes).toEqual(["\x1b[H\x1b[2Jframe-one", "\x1b[H\x1b[2Jframe-two"]);
+    expect(writes).toEqual([
+      "\x1b[2J\x1b[3J\x1b[Hframe-one",
+      "\x1b[2J\x1b[3J\x1b[Hframe-two",
+    ]);
   });
 
   it("forwards passthrough properties like columns/rows", () => {
@@ -216,6 +219,6 @@ describe("fullscreenStream", () => {
     const { stream, writes } = makeStream(true);
     const wrapped = fullscreenStream(stream);
     wrapped.write(Buffer.from("buffered"));
-    expect(writes).toEqual(["\x1b[H\x1b[2Jbuffered"]);
+    expect(writes).toEqual(["\x1b[2J\x1b[3J\x1b[Hbuffered"]);
   });
 });
