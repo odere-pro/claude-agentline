@@ -15,6 +15,9 @@ import { saveAddWidget } from "../mutate.js";
 import { resolveConfigPaths } from "../paths.js";
 import { resolveEnv } from "../../lib/env.js";
 import type { WidgetConfig } from "../types.js";
+import { readIntFlag, readOptionsFlag } from "./_args.js";
+
+const PREFIX = "agentline config widget add";
 
 const HELP = `agentline config widget add — insert a widget into the layout
 
@@ -32,8 +35,6 @@ Options:
 
 Verify with \`agentline config widget list\`.
 `;
-
-const FORBIDDEN_OPTION_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 export interface WidgetAddArgs {
   readonly type: string;
@@ -75,66 +76,28 @@ export function parseWidgetAddArgs(rest: readonly string[]): WidgetAddArgs {
     if (arg === undefined) continue;
     if (isHelpFlag(arg)) requestHelp(HELP);
     else if (arg === "--line" || arg.startsWith("--line=")) {
-      line = readIntFlag(arg, rest, i, "--line");
+      line = readIntFlag(arg, rest, i, "--line", PREFIX);
       if (!arg.includes("=")) i += 1;
     } else if (arg === "--at" || arg.startsWith("--at=")) {
-      at = readIntFlag(arg, rest, i, "--at");
+      at = readIntFlag(arg, rest, i, "--at", PREFIX);
       if (!arg.includes("=")) i += 1;
     } else if (arg === "--options" || arg.startsWith("--options=")) {
-      options = readOptionsFlag(arg, rest, i);
+      options = readOptionsFlag(arg, rest, i, PREFIX);
       if (!arg.includes("=")) i += 1;
     } else if (arg.startsWith("-")) {
-      throw new Error(`agentline config widget add: unknown option '${arg}'`);
+      throw new Error(`${PREFIX}: unknown option '${arg}'`);
     } else if (type === undefined) {
       type = arg;
     } else {
-      throw new Error(`agentline config widget add: unexpected argument '${arg}'`);
+      throw new Error(`${PREFIX}: unexpected argument '${arg}'`);
     }
   }
 
   if (type === undefined || type.trim() === "") {
-    throw new Error("agentline config widget add: a widget <type> is required");
+    throw new Error(`${PREFIX}: a widget <type> is required`);
   }
   const out: WidgetAddArgs = { type, line };
   if (at !== undefined) (out as { at: number }).at = at;
   if (options !== undefined) (out as { options: Record<string, unknown> }).options = options;
   return out;
-}
-
-function readIntFlag(arg: string, rest: readonly string[], i: number, name: string): number {
-  const raw = arg.includes("=") ? arg.slice(arg.indexOf("=") + 1) : rest[i + 1];
-  if (raw === undefined || raw.startsWith("-")) {
-    throw new Error(`agentline config widget add: ${name} requires an integer`);
-  }
-  const n = Number(raw);
-  if (!Number.isInteger(n)) {
-    throw new Error(`agentline config widget add: ${name} must be an integer, got '${raw}'`);
-  }
-  return n;
-}
-
-function readOptionsFlag(
-  arg: string,
-  rest: readonly string[],
-  i: number,
-): Record<string, unknown> {
-  const raw = arg.includes("=") ? arg.slice(arg.indexOf("=") + 1) : rest[i + 1];
-  if (raw === undefined) {
-    throw new Error("agentline config widget add: --options requires a JSON object");
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (err) {
-    throw new Error(`agentline config widget add: --options is not valid JSON (${(err as Error).message})`);
-  }
-  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("agentline config widget add: --options must be a JSON object");
-  }
-  for (const key of Object.keys(parsed as object)) {
-    if (FORBIDDEN_OPTION_KEYS.has(key)) {
-      throw new Error(`agentline config widget add: option key '${key}' is not allowed`);
-    }
-  }
-  return parsed as Record<string, unknown>;
 }
