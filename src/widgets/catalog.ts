@@ -1,12 +1,17 @@
 /**
- * Widget catalogue — human-readable metadata for every built-in widget
- * (PR-PLAN follow-up; supports the TUI picker and `agentline config widget
- * catalog`).
+ * Widget catalogue — human-readable metadata for every built-in widget.
  *
  * The render-path contract (`WidgetDef = { type, render }`) stays minimal:
  * the renderer never needs a widget's display name. Metadata lives here, in
  * one auditable place, keyed by the same `type` string the registry uses.
  * `category` mirrors the source-tree family (`src/widgets/<category>/`).
+ *
+ * The catalogue is split across `src/widgets/catalog/<family>.ts` files
+ * (one per `WIDGET_CATEGORIES` entry); this module composes them into
+ * `WIDGET_CATALOG`, layers in the optional `WIDGET_GLYPHS` table, and
+ * exports the lookup helpers. Types and the small `entry` / `v` builders
+ * live in `./catalog/types.ts` so each family file can pull from one
+ * place without a circular dependency on the composition root.
  *
  * Invariants (enforced by `catalog.test.ts`):
  *   - every built-in registered type has exactly one entry here;
@@ -15,116 +20,29 @@
  *   - every `category` is one of `WIDGET_CATEGORIES`.
  */
 
-export const WIDGET_CATEGORIES = [
-  "session",
-  "tokens",
-  "context",
-  "rate-limits",
-  "git",
-  "time",
-  "custom",
-] as const;
+import { CONTEXT_CATALOG } from "./catalog/context.js";
+import { CUSTOM_CATALOG } from "./catalog/custom.js";
+import { GIT_CATALOG } from "./catalog/git.js";
+import { RATE_LIMITS_CATALOG } from "./catalog/rate-limits.js";
+import { SESSION_CATALOG } from "./catalog/session.js";
+import { TIME_CATALOG } from "./catalog/time.js";
+import { TOKENS_CATALOG } from "./catalog/tokens.js";
+import type { WidgetMeta, WidgetVariant } from "./catalog/types.js";
 
-export type WidgetCategory = (typeof WIDGET_CATEGORIES)[number];
-
-/**
- * Per-category accent colour. The editor uses this in two surfaces that
- * have to agree visually — the picker's group label and the inline preview
- * widget chips — so a user scanning the layout can tell which group every
- * widget belongs to without reading the type name. Names are from Ink's
- * 8-colour palette so they degrade cleanly on hosts without truecolor.
- *
- * This is a decorative, editor-only mapping: the real render path through
- * `pipeline.ts` keeps using the configured theme's roles.
- */
-export const CATEGORY_COLOR: Readonly<Record<WidgetCategory, string>> = Object.freeze({
-  session: "blue",
-  tokens: "yellow",
-  context: "magenta",
-  "rate-limits": "red",
-  git: "green",
-  time: "cyan",
-  custom: "white",
-});
+export {
+  CATEGORY_COLOR,
+  WIDGET_CATEGORIES,
+  type WidgetCategory,
+  type WidgetMeta,
+  type WidgetMetaEntry,
+  type WidgetVariant,
+} from "./catalog/types.js";
 
 /**
- * A *variant* is a named alternative way a single widget can render itself —
- * the same data shown differently. Skills can show a count, a list, or just
- * the last entry. Session-usage can show a percent, a long bar, or a short
- * one. The variant's `options` is a patch merged into `WidgetConfig.options`
- * when the user picks it; widgets without distinct rendering modes carry no
- * variants and the picker skips that step.
- */
-export interface WidgetVariant {
-  /** Stable identifier — e.g. "count", "bar", "short-bar". */
-  readonly id: string;
-  /** Human label for the picker. */
-  readonly label: string;
-  /** Patch merged into `WidgetConfig.options` on pick. */
-  readonly options: Readonly<Record<string, unknown>>;
-}
-
-export interface WidgetMeta {
-  /** Human label, e.g. "Git branch". */
-  readonly name: string;
-  /** One-line summary of what the widget renders; ≤ 80 chars. */
-  readonly description: string;
-  /** Source-tree family the widget belongs to. */
-  readonly category: WidgetCategory;
-  /**
-   * Optional fixture key the picker uses to render a representative
-   * preview cell. Unset means the picker resolves the cell through
-   * `previewWidget` against the cached stdin (or label-mode fallback).
-   */
-  readonly previewFixture?: string;
-  /**
-   * Named alternative rendering modes for this widget. Omit (or empty) when
-   * the widget has only one rendering. The editor surfaces these in step 3
-   * of the picker and as the targets of the `u` (update) verb.
-   */
-  readonly variants?: readonly WidgetVariant[];
-  /**
-   * Single grapheme prepended to the widget's text when
-   * `config.glyphs === "nerd-font"`. Codepoints come from the Nerd Font
-   * Private Use Area (PUA) — they only render correctly with a Nerd Font
-   * installed in the user's terminal, which is why glyph mode is opt-in.
-   * Widgets without a glyph are unaffected by the mode toggle.
-   */
-  readonly glyph?: string;
-}
-
-/** A catalogue entry paired with the `type` it describes. */
-export type WidgetMetaEntry = WidgetMeta & { readonly type: string };
-
-function entry(
-  name: string,
-  description: string,
-  category: WidgetCategory,
-  variants?: readonly WidgetVariant[],
-): WidgetMeta {
-  if (variants !== undefined) {
-    return Object.freeze({
-      name,
-      description,
-      category,
-      variants: Object.freeze(
-        variants.map((v) => Object.freeze({ ...v, options: Object.freeze({ ...v.options }) })),
-      ),
-    });
-  }
-  return Object.freeze({ name, description, category });
-}
-
-/** Variants declared in code, by widget type. Keeps the catalogue table compact. */
-function v(id: string, label: string, options: Readonly<Record<string, unknown>>): WidgetVariant {
-  return { id, label, options };
-}
-
-/**
- * Glyph mode codepoints, kept in a separate table so the entry list stays
- * scannable. Codepoints are Nerd Font v3 PUA — they only render correctly
- * in a terminal whose font ships those ranges (which is exactly why
- * `config.glyphs` defaults to `"off"`). Add entries opportunistically;
+ * Glyph mode codepoints, kept in a separate table so the family files
+ * stay scannable. Codepoints are Nerd Font v3 PUA — they only render
+ * correctly in a terminal whose font ships those ranges (which is exactly
+ * why `config.glyphs` defaults to `"off"`). Add entries opportunistically;
  * widgets without a glyph here are unaffected by the mode toggle.
  */
 const WIDGET_GLYPHS: Readonly<Record<string, string>> = Object.freeze({
@@ -178,192 +96,13 @@ const WIDGET_GLYPHS: Readonly<Record<string, string>> = Object.freeze({
 });
 
 const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
-  // Session (7) — identity first, then per-session signals, then runtime bookkeeping
-  model: entry("Model", "Active model id (e.g. Sonnet 4.6)", "session"),
-  version: entry("Version", "Claude Code version", "session"),
-  "thinking-effort": entry(
-    "Thinking effort",
-    "Thinking-effort tier: low, medium, or high",
-    "session",
-  ),
-  skills: entry("Skills", "Skills attached to the session", "session", [
-    v("count", "Count (just the number)", { variant: "count" }),
-    v("list", "List (comma-joined)", { variant: "list" }),
-    v("last", "Last (most recent only)", { variant: "last" }),
-  ]),
-  "session-id": entry("Session id", "Short session id", "session"),
-  "session-name": entry("Session name", "Session name, or the short id when unset", "session"),
-  "account-email": entry("Account email", "Logged-in account email", "session", [
-    v("full", "Full address", { mask: "none" }),
-    v("domain", "Domain only (@example.com)", { mask: "domain" }),
-    v("localpart", "Local part only (user)", { mask: "localpart" }),
-  ]),
-  // Tokens (7)
-  "tokens-total": entry(
-    "Tokens (total)",
-    "Running token total for the chosen reset axis",
-    "tokens",
-  ),
-  "tokens-input": entry(
-    "Tokens (input)",
-    "Input-token subtotal for the chosen reset axis",
-    "tokens",
-  ),
-  "tokens-output": entry(
-    "Tokens (output)",
-    "Output-token subtotal for the chosen reset axis",
-    "tokens",
-  ),
-  "tokens-cached": entry("Tokens (cached)", "Cached-token subtotal (prompt-cache hits)", "tokens"),
-  "input-speed": entry("Input speed", "Input tokens per second over the active window", "tokens"),
-  "output-speed": entry(
-    "Output speed",
-    "Output tokens per second over the active window",
-    "tokens",
-  ),
-  "total-speed": entry("Total speed", "Combined token throughput per second", "tokens"),
-
-  // Context (4)
-  "context-length": entry("Context length", "Tokens currently in the context window", "context"),
-  "context-percentage": entry(
-    "Context %",
-    "Percentage of the model's context window in use",
-    "context",
-  ),
-  "context-percentage-usable": entry(
-    "Context % (usable)",
-    "Percentage of usable context in use (excludes output budget)",
-    "context",
-  ),
-  "context-bar": entry("Context bar", "Tiny inline bar approximating context fill", "context"),
-
-  // Rate limits (7) — session usage, weekly per-model usage, then each reset paired (countdown + wall-clock)
-  "session-usage": entry(
-    "Session usage",
-    "Percentage of the session quota consumed",
-    "rate-limits",
-    [
-      v("percent", "Percent (65%)", { display: "percent" }),
-      v("bar", "Bar (12 cells)", { display: "bar" }),
-      v("short-bar", "Short bar (6 cells)", { display: "short-bar" }),
-    ],
-  ),
-  "weekly-sonnet-usage": entry(
-    "Weekly Sonnet usage",
-    "Sonnet tokens consumed this week (set options.limit for a %)",
-    "rate-limits",
-    [
-      v("percent", "Percent (65%)", { display: "percent" }),
-      v("bar", "Bar (12 cells)", { display: "bar" }),
-      v("short-bar", "Short bar (6 cells)", { display: "short-bar" }),
-    ],
-  ),
-  "weekly-opus-usage": entry(
-    "Weekly Opus usage",
-    "Opus tokens consumed this week (set options.limit for a %)",
-    "rate-limits",
-    [
-      v("percent", "Percent (65%)", { display: "percent" }),
-      v("bar", "Bar (12 cells)", { display: "bar" }),
-      v("short-bar", "Short bar (6 cells)", { display: "short-bar" }),
-    ],
-  ),
-  "block-reset-timer": entry(
-    "Block reset timer",
-    "Time remaining until the next block resets",
-    "rate-limits",
-    [
-      v("short", "Short (1h 23m)", { format: "short" }),
-      v("long", "Long (1 hour 23 minutes)", { format: "long" }),
-      v("clock", "Clock (01:23:45)", { format: "clock" }),
-    ],
-  ),
-  "block-reset-at": entry(
-    "Block reset at",
-    "Wall-clock time of the next block reset (e.g. resets 18:30)",
-    "rate-limits",
-    [
-      v("time-24h", "24-hour (18:30)", { format: "HH:mm" }),
-      v("time-12h", "12-hour (6:30pm)", { format: "h:mma" }),
-      v("seconds", "With seconds (18:30:45)", { format: "HH:mm:ss" }),
-    ],
-  ),
-  "weekly-reset-timer": entry(
-    "Weekly reset timer",
-    "Time remaining until the weekly quota resets",
-    "rate-limits",
-    [
-      v("short", "Short (3d 4h)", { format: "short" }),
-      v("long", "Long (3 days 4 hours)", { format: "long" }),
-      v("clock", "Clock", { format: "clock" }),
-    ],
-  ),
-  "weekly-reset-at": entry(
-    "Weekly reset at",
-    "Wall-clock time of the next weekly reset (e.g. resets 18:30)",
-    "rate-limits",
-    [
-      v("time-24h", "24-hour (18:30)", { format: "HH:mm" }),
-      v("time-12h", "12-hour (6:30pm)", { format: "h:mma" }),
-      v("seconds", "With seconds (18:30:45)", { format: "HH:mm:ss" }),
-    ],
-  ),
-
-  // Git (12)
-  "git-branch": entry("Git branch", "Current branch, or short SHA when detached", "git"),
-  "git-sha": entry("Git SHA", "Short commit SHA of HEAD", "git"),
-  "git-worktree": entry("Git worktree", "Basename of the current worktree", "git"),
-  "git-changes": entry("Git changes", "Staged, unstaged, and untracked file counts", "git"),
-  "git-staged": entry("Git staged", "Staged-file count", "git"),
-  "git-unstaged": entry("Git unstaged", "Unstaged-file count", "git"),
-  "git-untracked": entry("Git untracked", "Untracked-file count", "git"),
-  "git-conflicts": entry("Git conflicts", "Merge-conflict file count", "git"),
-  "git-ahead-behind": entry("Git ahead/behind", "Commits ahead of and behind upstream", "git"),
-  "git-upstream": entry("Git upstream", "Upstream branch, e.g. origin/main", "git"),
-  "git-origin-repo": entry("Git origin repo", "Repo segment of the origin remote URL", "git"),
-  "git-pr": entry(
-    "Git pull request",
-    "PR for HEAD's branch (opt-in network: requires options.allowNetwork)",
-    "git",
-    [
-      v("number", "Number (#42)", { variant: "number" }),
-      v("url", "URL (https://…/pull/42)", { variant: "url" }),
-      v("title", "Title (feat: …)", { variant: "title" }),
-      v("number-title", "Number + title (#42 feat: …)", { variant: "number-title" }),
-    ],
-  ),
-
-  // Time (3)
-  clock: entry("Clock", "Wall-clock time; options.format accepts strftime", "time", [
-    v("time-24h", "24-hour (14:30)", { format: "%H:%M" }),
-    v("time-12h", "12-hour (2:30PM)", { format: "%I:%M%p" }),
-    v("seconds", "With seconds (14:30:45)", { format: "%H:%M:%S" }),
-    v("date", "Date (2026-05-13)", { format: "%Y-%m-%d" }),
-    v("datetime", "Date + time (2026-05-13 14:30)", { format: "%Y-%m-%d %H:%M" }),
-  ]),
-  "uptime-session": entry(
-    "Session uptime",
-    "Uptime since the Claude Code session started",
-    "time",
-    [
-      v("short", "Short (1h 23m)", { format: "short" }),
-      v("long", "Long (1 hour 23 minutes)", { format: "long" }),
-      v("clock", "Clock (01:23:45)", { format: "clock" }),
-    ],
-  ),
-  "uptime-block": entry("Block uptime", "Uptime of the active conversation block", "time", [
-    v("short", "Short (1h 23m)", { format: "short" }),
-    v("long", "Long (1 hour 23 minutes)", { format: "long" }),
-    v("clock", "Clock (01:23:45)", { format: "clock" }),
-  ]),
-
-  // Layout / custom (2)
-  separator: entry("Separator", "A single user-defined glyph (options.char)", "custom"),
-  "osc-link": entry(
-    "OSC 8 link",
-    "Clickable hyperlink (options.url, options.label)",
-    "custom",
-  ),
+  ...SESSION_CATALOG,
+  ...TOKENS_CATALOG,
+  ...CONTEXT_CATALOG,
+  ...RATE_LIMITS_CATALOG,
+  ...GIT_CATALOG,
+  ...TIME_CATALOG,
+  ...CUSTOM_CATALOG,
 });
 
 function applyGlyphs(
