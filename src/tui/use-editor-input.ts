@@ -73,11 +73,17 @@ export function useEditorInput(opts: UseEditorInputOptions): UseEditorInputResul
   const [stepQuery, setStepQuery] = useState("");
   const [stepHighlight, setStepHighlight] = useState(0);
 
+  // `pickerDraft` exists only on the picker branch of the discriminated
+  // union. Derive nullable views so the dependency arrays below stay
+  // accessible without re-narrowing each time.
+  const pickerCategory = state.mode === "edit" ? undefined : state.pickerDraft.category;
+  const pickerWidgetType = state.mode === "edit" ? undefined : state.pickerDraft.widgetType;
+
   // Reset per-step state on every transition.
   useEffect(() => {
     setStepQuery("");
     setStepHighlight(0);
-  }, [state.mode, state.pickerDraft.category, state.pickerDraft.widgetType]);
+  }, [state.mode, pickerCategory, pickerWidgetType]);
 
   // Each picker step has its own handler; each returns true if it
   // consumed the keypress so `useInput` can short-circuit. The edit
@@ -147,6 +153,11 @@ export function useEditorInput(opts: UseEditorInputOptions): UseEditorInputResul
 
   const handlePickerWidget = useCallback(
     (input: string, key: KeyEvent): boolean => {
+      if (state.mode === "edit") {
+        // useInput dispatcher only routes here when state.mode is
+        // "picker-widget"; this guard is for the TS narrowing.
+        return true;
+      }
       const category = state.pickerDraft.category;
       if (!category) {
         // Should never happen — defensive fall-through.
@@ -185,11 +196,16 @@ export function useEditorInput(opts: UseEditorInputOptions): UseEditorInputResul
       }
       return true;
     },
-    [dispatch, state.pickerDraft.category, stepQuery, stepHighlight, widgetEntries, usedTypes],
+    [dispatch, state, stepQuery, stepHighlight, widgetEntries, usedTypes],
   );
 
   const handlePickerVariant = useCallback(
     (_input: string, key: KeyEvent): boolean => {
+      if (state.mode === "edit") {
+        // useInput dispatcher only routes here when state.mode is
+        // "picker-variant"; this guard is for the TS narrowing.
+        return true;
+      }
       const widgetType = state.pickerDraft.widgetType;
       if (!widgetType) {
         dispatch({ type: "picker-back" });
@@ -215,7 +231,7 @@ export function useEditorInput(opts: UseEditorInputOptions): UseEditorInputResul
       }
       return true;
     },
-    [dispatch, state.pickerDraft.widgetType, stepHighlight],
+    [dispatch, state, stepHighlight],
   );
 
   const handleEdit = useCallback(
