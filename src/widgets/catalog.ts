@@ -237,10 +237,30 @@ const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
   ),
   "context-bar": entry("Context bar", "Tiny inline bar approximating context fill", "context"),
 
-  // Rate limits (5) — session usage, then each reset paired (countdown + wall-clock)
+  // Rate limits (7) — session usage, weekly per-model usage, then each reset paired (countdown + wall-clock)
   "session-usage": entry(
     "Session usage",
     "Percentage of the session quota consumed",
+    "rate-limits",
+    [
+      v("percent", "Percent (65%)", { display: "percent" }),
+      v("bar", "Bar (12 cells)", { display: "bar" }),
+      v("short-bar", "Short bar (6 cells)", { display: "short-bar" }),
+    ],
+  ),
+  "weekly-sonnet-usage": entry(
+    "Weekly Sonnet usage",
+    "Sonnet tokens consumed this week (set options.limit for a %)",
+    "rate-limits",
+    [
+      v("percent", "Percent (65%)", { display: "percent" }),
+      v("bar", "Bar (12 cells)", { display: "bar" }),
+      v("short-bar", "Short bar (6 cells)", { display: "short-bar" }),
+    ],
+  ),
+  "weekly-opus-usage": entry(
+    "Weekly Opus usage",
+    "Opus tokens consumed this week (set options.limit for a %)",
     "rate-limits",
     [
       v("percent", "Percent (65%)", { display: "percent" }),

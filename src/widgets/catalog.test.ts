@@ -28,9 +28,9 @@ describe("WIDGET_CATALOG", () => {
     expect({ missing, extra }).toEqual({ missing: [], extra: [] });
   });
 
-  it("covers all 40 shipped widgets", () => {
-    expect(Object.keys(WIDGET_CATALOG)).toHaveLength(40);
-    expect(builtinRegistry().size()).toBe(40);
+  it("covers all 42 shipped widgets", () => {
+    expect(Object.keys(WIDGET_CATALOG)).toHaveLength(42);
+    expect(builtinRegistry().size()).toBe(42);
   });
 
   it("every entry has a non-empty description of at most 80 chars", () => {
