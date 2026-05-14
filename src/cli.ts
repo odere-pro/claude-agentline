@@ -17,12 +17,13 @@ import { fileURLToPath } from "node:url";
 
 import { StdinParseError } from "./stdin/index.js";
 import { AGENTLINE_VERSION } from "./version.js";
-import { HelpRequestedError } from "./cli/help.js";
+import { HelpRequestedError, isHelpFlag, requestHelp } from "./cli/help.js";
 import { parseDoctorArgs, runDoctorCommand } from "./doctor/command.js";
 import { parseInstallArgs, runInstallCommand } from "./install/command.js";
 import { parseUninstallArgs, runUninstallCommand } from "./uninstall/command.js";
 import { parseRenderArgs, runRenderCommand } from "./render/fixture-command.js";
 import { parseStartArgs, runStartCommand } from "./start/command.js";
+import { runWidgetSubgroup } from "./config/widget-command.js";
 
 type ParsedArgs = {
   command: string;
@@ -96,6 +97,7 @@ function runHelp(): number {
       "  uninstall            remove agentline + restore prior statusLine",
       "  doctor [--fix]       diagnose + repair host wiring",
       "  edit                 open the TUI editor",
+      "  config widget <sub>  inspect or edit the statusline layout (scriptable)",
       "  start                preview the statusline using the last cached stdin",
       "  version              print version (alias: -v, --version)",
       "  help                 print this message (alias: -h, --help)",
@@ -105,6 +107,33 @@ function runHelp(): number {
     ].join("\n"),
   );
   return 0;
+}
+
+const CONFIG_HELP = `agentline config — inspect or edit the user config without the TUI
+
+Usage:
+  agentline config <group> [<options>]
+
+Groups:
+  widget <sub>   inspect or edit the statusline layout; see \`agentline config widget --help\`
+
+For interactive editing with live preview, use \`agentline edit\` instead.
+`;
+
+async function runConfig(rest: readonly string[]): Promise<number> {
+  const group = rest[0];
+  if (group === undefined || isHelpFlag(group) || group === "help") {
+    requestHelp(CONFIG_HELP);
+  }
+  const groupRest = rest.slice(1);
+  switch (group) {
+    case "widget":
+      return runWidgetSubgroup(groupRest);
+    default:
+      process.stderr.write(`agentline config: unknown group '${group}'\n`);
+      process.stdout.write(CONFIG_HELP);
+      return 1;
+  }
 }
 
 async function runEditor(): Promise<number> {
@@ -163,6 +192,7 @@ export const COMMANDS: Readonly<Record<string, Subcommand>> = Object.freeze({
   uninstall: (rest) =>
     dispatch(() => runUninstallCommand(parseUninstallArgs(rest)), "agentline uninstall"),
   start: (rest) => dispatch(() => runStartCommand(parseStartArgs(rest)), "agentline start"),
+  config: (rest) => dispatch(() => runConfig(rest), "agentline config"),
 });
 
 async function main(): Promise<number> {
