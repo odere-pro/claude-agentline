@@ -26,7 +26,13 @@ vi.mock("ink", () => {
 
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import { DEFAULT_KEY_BINDINGS } from "../keys/bindings.js";
-import { enterAltScreen, footerLines, pruneStaleWidgets, runConfigCommand } from "./main.js";
+import {
+  enterAltScreen,
+  footerLines,
+  fullscreenStream,
+  pruneStaleWidgets,
+  runConfigCommand,
+} from "./main.js";
 
 describe("runConfigCommand (entry-point wiring)", () => {
   let tmp: string;
@@ -167,5 +173,49 @@ describe("enterAltScreen", () => {
     process.emit("SIGINT");
     expect(writes).toContain("\x1b[?1049l");
     restore(); // tidy any remaining listener
+  });
+});
+
+describe("fullscreenStream", () => {
+  function makeStream(isTTY: boolean) {
+    const writes: string[] = [];
+    const stream = {
+      isTTY,
+      columns: 80,
+      rows: 24,
+      write(chunk: string | Uint8Array): boolean {
+        writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString());
+        return true;
+      },
+    } as unknown as NodeJS.WriteStream;
+    return { stream, writes };
+  }
+
+  it("returns the stream unchanged when stdout is not a TTY", () => {
+    const { stream } = makeStream(false);
+    expect(fullscreenStream(stream)).toBe(stream);
+  });
+
+  it("prepends cursor-home + erase-screen on every write batch", () => {
+    const { stream, writes } = makeStream(true);
+    const wrapped = fullscreenStream(stream);
+    wrapped.write("frame-one");
+    wrapped.write("frame-two");
+    expect(writes).toEqual(["\x1b[H\x1b[2Jframe-one", "\x1b[H\x1b[2Jframe-two"]);
+  });
+
+  it("forwards passthrough properties like columns/rows", () => {
+    const { stream } = makeStream(true);
+    const wrapped = fullscreenStream(stream);
+    expect(wrapped.columns).toBe(80);
+    expect(wrapped.rows).toBe(24);
+    expect(wrapped.isTTY).toBe(true);
+  });
+
+  it("handles Uint8Array chunks by converting to string before prepending the reset", () => {
+    const { stream, writes } = makeStream(true);
+    const wrapped = fullscreenStream(stream);
+    wrapped.write(Buffer.from("buffered"));
+    expect(writes).toEqual(["\x1b[H\x1b[2Jbuffered"]);
   });
 });

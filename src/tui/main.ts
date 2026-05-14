@@ -495,6 +495,50 @@ export function footerLines(
 }
 
 /**
+ * ANSI: cursor home + erase entire screen. Prepended to every Ink frame
+ * so each redraw paints into a known-blank alt-screen buffer regardless
+ * of content height or terminal scroll state.
+ */
+const FULLSCREEN_RESET = "\x1b[H\x1b[2J";
+
+/**
+ * Wrap a TTY stream so every `.write()` call is preceded by a
+ * cursor-home + clear-screen sequence. Ink's default log-update pipeline
+ * tracks the cursor between frames and issues cursor-up / erase-line
+ * sequences to redraw in place. That breaks down whenever the previous
+ * frame overflowed the viewport (the cursor caps at the top of the
+ * terminal, leaving any scrolled-out content visible above the new
+ * frame). Forcing each frame to start at (1,1) on a cleared buffer
+ * eliminates the stacked-frame artefact users see when the editor
+ * preview wraps onto extra rows.
+ *
+ * Non-TTY streams (CI, redirected output, vitest) are returned
+ * unchanged so test transcripts and recorded output stay clean.
+ */
+export function fullscreenStream(target: NodeJS.WriteStream): NodeJS.WriteStream {
+  if (!target.isTTY) return target;
+  return new Proxy(target, {
+    get(t, prop, receiver) {
+      if (prop === "write") {
+        return (chunk: string | Uint8Array, ...rest: unknown[]): boolean => {
+          const data = typeof chunk === "string" ? chunk : Buffer.from(chunk).toString();
+          // Use Reflect.apply so the underlying stream's `this` is the
+          // real WriteStream — the EventEmitter machinery relies on it.
+          return Reflect.apply(t.write as (...args: unknown[]) => boolean, t, [
+            `${FULLSCREEN_RESET}${data}`,
+            ...rest,
+          ]);
+        };
+      }
+      const value = Reflect.get(t, prop, receiver);
+      // Functions on a Node stream must be invoked with the real stream
+      // as `this` — the Proxy is not a substitute for the EventEmitter.
+      return typeof value === "function" ? value.bind(t) : value;
+    },
+  }) as NodeJS.WriteStream;
+}
+
+/**
  * Enter the terminal's alternate-screen buffer for the duration of an
  * editor session and return a finalizer that restores the prior shell
  * view. Both halves are no-ops when stdout is not a TTY (CI, redirected
@@ -560,7 +604,11 @@ function mountEditor(
         savedRef.value = saved;
       },
     }),
-    { patchConsole: false, exitOnCtrlC: true },
+    {
+      stdout: fullscreenStream(process.stdout),
+      patchConsole: false,
+      exitOnCtrlC: true,
+    },
   );
   // Restore the alt-screen on every exit path — save, q, Esc, exception.
   const waitUntilExit = inst.waitUntilExit().finally(leaveAltScreen);
