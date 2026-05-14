@@ -8,17 +8,21 @@
 import type { WidgetDef } from "../widget.js";
 import type { WidgetRegistry } from "../registry.js";
 
+import {
+  tokensCachedWidget,
+  tokensInputWidget,
+  tokensOutputWidget,
+  tokensTotalWidget,
+} from "./fields.js";
 import { inputSpeedWidget, outputSpeedWidget, totalSpeedWidget } from "./speed.js";
-import { tokensCachedWidget } from "./tokens-cached.js";
-import { tokensInputWidget } from "./tokens-input.js";
-import { tokensOutputWidget } from "./tokens-output.js";
-import { tokensTotalWidget } from "./tokens-total.js";
 
+export {
+  tokensCachedWidget,
+  tokensInputWidget,
+  tokensOutputWidget,
+  tokensTotalWidget,
+} from "./fields.js";
 export { inputSpeedWidget, outputSpeedWidget, totalSpeedWidget } from "./speed.js";
-export { tokensCachedWidget } from "./tokens-cached.js";
-export { tokensInputWidget } from "./tokens-input.js";
-export { tokensOutputWidget } from "./tokens-output.js";
-export { tokensTotalWidget } from "./tokens-total.js";
 export { resolveResetAxis } from "./options.js";
 export { formatCount, formatSpeed, tokenRole } from "./format.js";
 

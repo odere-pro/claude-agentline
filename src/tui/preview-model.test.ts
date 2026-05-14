@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import type { LineConfig } from "../config/types.js";
 import type { GitState } from "../git/index.js";
-import { resetPreviewModeCache, setPreviewModeForTesting } from "../render/preview-fixture.js";
+import { resetPreviewModeCache, setPreviewModeForTesting } from "./preview-fixture.js";
 import { PRICING_TABLE_VERSION, contextWindowFor, type TokensSnapshot } from "../tokens/index.js";
 
 import { buildPreview, type PreviewRow } from "./preview-model.js";

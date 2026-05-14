@@ -16,7 +16,7 @@
 import { Box, Text } from "ink";
 import React from "react";
 
-import { previewWidget } from "../render/preview-fixture.js";
+import { previewWidget } from "./preview-fixture.js";
 import {
   CATEGORY_COLOR,
   WIDGET_CATEGORIES,

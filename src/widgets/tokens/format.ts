@@ -2,19 +2,31 @@
  * Shared formatting helpers for token widgets.
  */
 
-/**
- * Clamp a bar-width option to a sane integer in [1, 80].
- * Returns `fallback` when the value is absent, non-finite, or non-positive.
- */
-export function clampWidth(value: number | undefined, fallback: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return fallback;
-  return Math.min(Math.floor(value), 80);
-}
+/** Upper bound on the rendered bar width — see clampWidth doc. */
+const MAX_BAR_WIDTH = 80;
+
+/** Magnitude breakpoints for count + rate formatting. */
+const KILO = 1_000;
+const TEN_KILO = 10_000;
+const MEGA = 1_000_000;
+
+/** Rate magnitudes: <DECIMAL_RATE uses 1-decimal, <INTEGER_RATE uses rounded, then k/s. */
+const DECIMAL_RATE = 100;
+const INTEGER_RATE = 1_000;
 
 const ROLE_THRESHOLDS = {
   low: 0.6,
   high: 0.8,
 } as const;
+
+/**
+ * Clamp a bar-width option to a sane integer in [1, MAX_BAR_WIDTH].
+ * Returns `fallback` when the value is absent, non-finite, or non-positive.
+ */
+export function clampWidth(value: number | undefined, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return fallback;
+  return Math.min(Math.floor(value), MAX_BAR_WIDTH);
+}
 
 function trim1(value: number): string {
   const s = value.toFixed(1);
@@ -22,17 +34,17 @@ function trim1(value: number): string {
 }
 
 export function formatCount(n: number): string {
-  if (n < 1000) return Math.round(n).toString();
-  if (n < 10_000) return `${trim1(n / 1000)}k`;
-  if (n < 1_000_000) return `${Math.round(n / 1000)}k`;
-  return `${trim1(n / 1_000_000)}M`;
+  if (n < KILO) return Math.round(n).toString();
+  if (n < TEN_KILO) return `${trim1(n / KILO)}k`;
+  if (n < MEGA) return `${Math.round(n / KILO)}k`;
+  return `${trim1(n / MEGA)}M`;
 }
 
 export function formatSpeed(perSec: number): string {
   if (perSec < 1) return `0`;
-  if (perSec < 100) return `${trim1(perSec)}/s`;
-  if (perSec < 1000) return `${Math.round(perSec)}/s`;
-  return `${trim1(perSec / 1000)}k/s`;
+  if (perSec < DECIMAL_RATE) return `${trim1(perSec)}/s`;
+  if (perSec < INTEGER_RATE) return `${Math.round(perSec)}/s`;
+  return `${trim1(perSec / INTEGER_RATE)}k/s`;
 }
 
 export function tokenRole(ratio: number): "tokens-low" | "tokens-mid" | "tokens-high" {

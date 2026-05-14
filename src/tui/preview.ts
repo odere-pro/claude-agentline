@@ -22,6 +22,7 @@ import { Box, Text } from "ink";
 import React from "react";
 
 import type { AgentlineConfig, LineConfig } from "../config/types.js";
+import { FALLBACK_WIDTH } from "../render/width.js";
 import type { Theme } from "../theme/index.js";
 
 import type { EditorGlyphs } from "./glyphs.js";
@@ -46,7 +47,8 @@ export interface PreviewProps {
   readonly glyphs: EditorGlyphs;
   /**
    * Override the terminal width used for wrap calculations. Defaults to
-   * `process.stdout.columns` (or 80 if unavailable). Primarily a test hook.
+   * `process.stdout.columns` (or `FALLBACK_WIDTH` if unavailable). Primarily
+   * a test hook.
    */
   readonly columns?: number;
 }
@@ -82,7 +84,7 @@ export function Preview(props: PreviewProps): React.ReactElement {
 function resolveColumns(override: number | undefined): number {
   if (typeof override === "number" && override > 0) return override;
   const real = process.stdout && process.stdout.columns;
-  return typeof real === "number" && real > 0 ? real : 80;
+  return typeof real === "number" && real > 0 ? real : FALLBACK_WIDTH;
 }
 
 function computeGutterWidth(rows: readonly PreviewRow[], glyphs: EditorGlyphs): number {

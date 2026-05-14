@@ -24,7 +24,7 @@
  *                                have none in the catalogue).
  */
 
-import { Box, Text, render, useApp, useInput } from "ink";
+import { Box, Text, render, useApp, useInput, type Key as KeyEvent } from "ink";
 import React, { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 
 import { DEFAULT_CONFIG } from "../config/defaults.js";
@@ -211,154 +211,225 @@ function App({
     }
   }, [initialConfig, onSaved, path, state.lines, state.glyphs]);
 
-  useInput((input, key) => {
-    const { mode, pickerDraft } = state;
-
-    // ── picker steps ─────────────────────────────────────────────────────
-    if (mode === "picker-group") {
+  // Each picker step has its own handler; each returns true if it
+  // consumed the keypress so `useInput` can short-circuit. The edit
+  // scope is the final fall-through.
+  const handlePickerGroup = useCallback(
+    (input: string, key: KeyEvent): boolean => {
       // Step 1 hosts a search field on top of the group list:
       //   - empty query  → ↑↓/↵ navigate and select a category;
       //   - typed query  → the group view collapses into a flat global
-      //                    widget list filtered by substring; ↑↓/↵ act on
-      //                    that list and Enter commits the widget directly.
-      // Backspace through the query returns the user to the group view.
+      //                    widget list filtered by substring; ↑↓/↵ act
+      //                    on that list and Enter commits the widget
+      //                    directly. Backspace through the query
+      //                    returns the user to the group view.
       const searching = stepQuery.length > 0;
-      if (key.escape) return dispatch({ type: "picker-back" });
+      if (key.escape) {
+        dispatch({ type: "picker-back" });
+        return true;
+      }
       if (key.backspace || key.delete) {
-        if (stepQuery.length === 0) return;
+        if (stepQuery.length === 0) return true;
         setStepQuery((q) => q.slice(0, -1));
-        return setStepHighlight(0);
+        setStepHighlight(0);
+        return true;
       }
       if (searching) {
         const matches = filterWidgets(widgetEntries, stepQuery, usedTypes);
         if (key.return) {
           const picked = selectedAt(matches, stepHighlight);
           if (picked) dispatch({ type: "pick-widget", widgetType: picked.type });
-          return;
+          return true;
         }
-        if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
+        if (key.upArrow) {
+          setStepHighlight((h) => Math.max(0, h - 1));
+          return true;
+        }
         if (key.downArrow) {
-          return setStepHighlight((h) => Math.min(Math.max(0, matches.length - 1), h + 1));
+          setStepHighlight((h) => Math.min(Math.max(0, matches.length - 1), h + 1));
+          return true;
         }
       } else {
         const cats = categoriesWithWidgets(widgetEntries, usedTypes);
         if (key.return) {
           const cat = selectedAt(cats, stepHighlight);
           if (cat) dispatch({ type: "pick-category", category: cat });
-          return;
+          return true;
         }
-        if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
-        if (key.downArrow) return setStepHighlight((h) => Math.min(cats.length - 1, h + 1));
+        if (key.upArrow) {
+          setStepHighlight((h) => Math.max(0, h - 1));
+          return true;
+        }
+        if (key.downArrow) {
+          setStepHighlight((h) => Math.min(cats.length - 1, h + 1));
+          return true;
+        }
       }
-      // Any printable key extends the search query and flips the view to
-      // flat results on the next render.
+      // Any printable key extends the search query and flips the view
+      // to flat results on the next render.
       if (input.length === 1 && input >= " " && !key.ctrl && !key.meta) {
         setStepQuery((q) => q + input);
-        return setStepHighlight(0);
+        setStepHighlight(0);
+        return true;
       }
-      return;
-    }
-    if (mode === "picker-widget") {
-      const category = pickerDraft.category;
+      return true;
+    },
+    [stepQuery, stepHighlight, widgetEntries, usedTypes],
+  );
+
+  const handlePickerWidget = useCallback(
+    (input: string, key: KeyEvent): boolean => {
+      const category = state.pickerDraft.category;
       if (!category) {
         // Should never happen — defensive fall-through.
         dispatch({ type: "picker-back" });
-        return;
+        return true;
       }
-      if (key.escape) return dispatch({ type: "picker-back" });
+      if (key.escape) {
+        dispatch({ type: "picker-back" });
+        return true;
+      }
       if (key.return) {
         const matches = widgetsInCategory(widgetEntries, category, stepQuery, usedTypes);
         const picked = selectedAt(matches, stepHighlight);
         if (picked) dispatch({ type: "pick-widget", widgetType: picked.type });
-        return;
+        return true;
       }
-      if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
+      if (key.upArrow) {
+        setStepHighlight((h) => Math.max(0, h - 1));
+        return true;
+      }
       if (key.downArrow) {
         const matches = widgetsInCategory(widgetEntries, category, stepQuery, usedTypes);
-        return setStepHighlight((h) => Math.min(Math.max(0, matches.length - 1), h + 1));
+        setStepHighlight((h) => Math.min(Math.max(0, matches.length - 1), h + 1));
+        return true;
       }
       if (key.backspace || key.delete) {
         setStepQuery((q) => q.slice(0, -1));
-        return setStepHighlight(0);
+        setStepHighlight(0);
+        return true;
       }
       if (input.length === 1 && input >= " " && !key.ctrl && !key.meta) {
         setStepQuery((q) => q + input);
-        return setStepHighlight(0);
+        setStepHighlight(0);
+        return true;
       }
-      return;
-    }
-    if (mode === "picker-variant") {
-      const widgetType = pickerDraft.widgetType;
+      return true;
+    },
+    [state.pickerDraft.category, stepQuery, stepHighlight, widgetEntries, usedTypes],
+  );
+
+  const handlePickerVariant = useCallback(
+    (_input: string, key: KeyEvent): boolean => {
+      const widgetType = state.pickerDraft.widgetType;
       if (!widgetType) {
         dispatch({ type: "picker-back" });
-        return;
+        return true;
       }
       const rows = variantRows(widgetType, "fresh");
-      if (key.escape) return dispatch({ type: "picker-back" });
+      if (key.escape) {
+        dispatch({ type: "picker-back" });
+        return true;
+      }
       if (key.return) {
         const row = selectedAt(rows, stepHighlight);
         if (row) dispatch({ type: "pick-variant", variantId: row.id });
-        return;
+        return true;
       }
-      if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
-      if (key.downArrow) return setStepHighlight((h) => Math.min(rows.length - 1, h + 1));
-      return;
-    }
+      if (key.upArrow) {
+        setStepHighlight((h) => Math.max(0, h - 1));
+        return true;
+      }
+      if (key.downArrow) {
+        setStepHighlight((h) => Math.min(rows.length - 1, h + 1));
+        return true;
+      }
+      return true;
+    },
+    [state.pickerDraft.widgetType, stepHighlight],
+  );
 
-    // ── edit scope ───────────────────────────────────────────────────────
-    if (key.escape || input === "q") {
-      onSaved(false);
-      exit();
-      return;
-    }
-    if (input === "s" || input === "S" || (key.ctrl && input === "s")) {
-      if (saveInFlight.current) return;
-      // Defense-in-depth: `onSave` catches its own errors today, but
-      // `void` would silently swallow any rejection that ever leaked
-      // through. Surface it in the status line instead.
-      tryAsync(onSave).then((r) => {
-        if (isErr(r)) setStatusMessage(`save failed: ${r.error.message}`);
-      });
-      return;
-    }
-    if (key.leftArrow)
-      return dispatch(
-        key.shift ? { type: "move-widget", dx: -1 } : { type: "move-cursor", dx: -1 },
-      );
-    if (key.rightArrow)
-      return dispatch(key.shift ? { type: "move-widget", dx: 1 } : { type: "move-cursor", dx: 1 });
-    if (key.upArrow)
-      return dispatch(
-        key.shift ? { type: "move-widget", dy: -1 } : { type: "move-cursor", dy: -1 },
-      );
-    if (key.downArrow)
-      return dispatch(key.shift ? { type: "move-widget", dy: 1 } : { type: "move-cursor", dy: 1 });
-    if (key.return) {
-      if (isAddCell(state)) return dispatch({ type: "open-picker", intent: "add" });
-      // On a populated widget ↵ is a no-op now — `u`/`r` cover the
-      // edit paths the options sheet used to surface.
-      return;
-    }
-    if (input === "a") return dispatch({ type: "open-picker", intent: "add" });
-    if (input === "r") return dispatch({ type: "open-picker", intent: "replace" });
-    if (input === "d" || input === "x" || key.delete || key.backspace) {
-      return dispatch({ type: "delete" });
-    }
-    if (input === "g") {
-      const next = state.glyphs === "nerd-font" ? "off" : "nerd-font";
-      // When `agentline install` couldn't find a Nerd Font, lock the
-      // toggle to "off" — enabling glyphs would only paint tofu boxes
-      // onto the rendered statusline. Toggling *off* is still allowed
-      // so a user who edited the file by hand can recover via the UI.
-      if (!nerdFontAvailable && next === "nerd-font") {
-        setStatusMessage("glyphs: disabled — install a Nerd Font, then re-run `agentline install`");
+  const handleEdit = useCallback(
+    (input: string, key: KeyEvent): void => {
+      if (key.escape || input === "q") {
+        onSaved(false);
+        exit();
         return;
       }
-      dispatch({ type: "toggle-glyphs" });
-      // Surface the new value so the user can see the toggle landed
-      // even if their terminal lacks a Nerd Font.
-      setStatusMessage(`glyphs: ${next}`);
-      return;
+      if (input === "s" || input === "S" || (key.ctrl && input === "s")) {
+        if (saveInFlight.current) return;
+        // Defense-in-depth: `onSave` catches its own errors today, but
+        // `void` would silently swallow any rejection that ever leaked
+        // through. Surface it in the status line instead.
+        tryAsync(onSave).then((r) => {
+          if (isErr(r)) setStatusMessage(`save failed: ${r.error.message}`);
+        });
+        return;
+      }
+      if (key.leftArrow) {
+        dispatch(key.shift ? { type: "move-widget", dx: -1 } : { type: "move-cursor", dx: -1 });
+        return;
+      }
+      if (key.rightArrow) {
+        dispatch(key.shift ? { type: "move-widget", dx: 1 } : { type: "move-cursor", dx: 1 });
+        return;
+      }
+      if (key.upArrow) {
+        dispatch(key.shift ? { type: "move-widget", dy: -1 } : { type: "move-cursor", dy: -1 });
+        return;
+      }
+      if (key.downArrow) {
+        dispatch(key.shift ? { type: "move-widget", dy: 1 } : { type: "move-cursor", dy: 1 });
+        return;
+      }
+      if (key.return) {
+        if (isAddCell(state)) dispatch({ type: "open-picker", intent: "add" });
+        // On a populated widget ↵ is a no-op now — `u`/`r` cover the
+        // edit paths the options sheet used to surface.
+        return;
+      }
+      if (input === "a") return dispatch({ type: "open-picker", intent: "add" });
+      if (input === "r") return dispatch({ type: "open-picker", intent: "replace" });
+      if (input === "d" || input === "x" || key.delete || key.backspace) {
+        dispatch({ type: "delete" });
+        return;
+      }
+      if (input === "g") {
+        const next = state.glyphs === "nerd-font" ? "off" : "nerd-font";
+        // When `agentline install` couldn't find a Nerd Font, lock the
+        // toggle to "off" — enabling glyphs would only paint tofu boxes
+        // onto the rendered statusline. Toggling *off* is still allowed
+        // so a user who edited the file by hand can recover via the UI.
+        if (!nerdFontAvailable && next === "nerd-font") {
+          setStatusMessage(
+            "glyphs: disabled — install a Nerd Font, then re-run `agentline install`",
+          );
+          return;
+        }
+        dispatch({ type: "toggle-glyphs" });
+        // Surface the new value so the user can see the toggle landed
+        // even if their terminal lacks a Nerd Font.
+        setStatusMessage(`glyphs: ${next}`);
+        return;
+      }
+    },
+    [exit, nerdFontAvailable, onSave, onSaved, state],
+  );
+
+  useInput((input, key) => {
+    switch (state.mode) {
+      case "picker-group":
+        handlePickerGroup(input, key);
+        return;
+      case "picker-widget":
+        handlePickerWidget(input, key);
+        return;
+      case "picker-variant":
+        handlePickerVariant(input, key);
+        return;
+      case "edit":
+        handleEdit(input, key);
+        return;
     }
   });
 
@@ -575,12 +646,15 @@ export function enterAltScreen(stream: NodeJS.WriteStream = process.stdout): () 
     restored = true;
     stream.write(LEAVE);
   };
+  // POSIX exit-code convention for a signal-terminated process is
+  // `128 + signal_number`. SIGTERM = 15.
+  const SIGTERM_EXIT_CODE = 128 + 15;
   const onSignal = (signal: NodeJS.Signals): void => {
     restore();
     // Ink owns SIGINT via exitOnCtrlC (default true). For SIGTERM we
     // re-raise the default exit code so the host shell sees the signal
     // rather than a polite zero exit.
-    if (signal === "SIGTERM") process.exit(143);
+    if (signal === "SIGTERM") process.exit(SIGTERM_EXIT_CODE);
   };
   process.once("SIGINT", onSignal);
   process.once("SIGTERM", onSignal);
