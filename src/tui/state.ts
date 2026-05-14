@@ -40,11 +40,11 @@
  *   - `dirty`        whether anything changed since the last save.
  */
 
+import { MAX_LINES } from "../config/mutate.js";
 import type { GlyphMode, LineConfig, WidgetConfig } from "../config/types.js";
 import { widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
 
-/** Hard cap on statusline rows the editor will create (mirrors `src/config/mutate.ts`). */
-export const MAX_LINES = 3;
+export { MAX_LINES };
 
 export type EditorMode = "edit" | "picker-group" | "picker-widget" | "picker-variant";
 
