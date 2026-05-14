@@ -8,6 +8,12 @@
  * subcommand is one file under `src/config/widget/`; arg-parsing throws
  * `HelpRequestedError` for `-h` and a plain `Error` (caught by the caller →
  * exit 2) for bad arguments.
+ *
+ * The `WIDGET_SUBS` table is the single source of truth for "is this a known
+ * subcommand?" — mirroring the convention used by `COMMANDS` in `src/cli.ts`.
+ * Each entry pairs a parser with a runner; their argument shapes match by
+ * construction even though the static type is erased to `unknown` in the
+ * map.
  */
 
 import { isHelpFlag, requestHelp } from "../cli/help.js";
@@ -37,30 +43,35 @@ Subcommands:
 Run \`agentline config widget <sub> --help\` for per-subcommand details.
 `;
 
+interface WidgetSub<TArgs> {
+  readonly parse: (rest: readonly string[]) => TArgs;
+  readonly run: (input: { args: TArgs }) => Promise<number>;
+}
+
+export const WIDGET_SUBS: Readonly<Record<string, WidgetSub<unknown>>> = Object.freeze({
+  list: { parse: parseWidgetListArgs, run: runWidgetListCommand } as WidgetSub<unknown>,
+  catalog: { parse: parseWidgetCatalogArgs, run: runWidgetCatalogCommand } as WidgetSub<unknown>,
+  add: { parse: parseWidgetAddArgs, run: runWidgetAddCommand } as WidgetSub<unknown>,
+  remove: { parse: parseWidgetRemoveArgs, run: runWidgetRemoveCommand } as WidgetSub<unknown>,
+  move: { parse: parseWidgetMoveArgs, run: runWidgetMoveCommand } as WidgetSub<unknown>,
+  replace: { parse: parseWidgetReplaceArgs, run: runWidgetReplaceCommand } as WidgetSub<unknown>,
+  "set-option": {
+    parse: parseWidgetSetOptionArgs,
+    run: runWidgetSetOptionCommand,
+  } as WidgetSub<unknown>,
+});
+
 export async function runWidgetSubgroup(rest: readonly string[]): Promise<number> {
   const sub = rest[0];
   if (sub === undefined || isHelpFlag(sub) || sub === "help") {
     requestHelp(HELP);
   }
-  const subRest = rest.slice(1);
-  switch (sub) {
-    case "list":
-      return runWidgetListCommand({ args: parseWidgetListArgs(subRest) });
-    case "catalog":
-      return runWidgetCatalogCommand({ args: parseWidgetCatalogArgs(subRest) });
-    case "add":
-      return runWidgetAddCommand({ args: parseWidgetAddArgs(subRest) });
-    case "remove":
-      return runWidgetRemoveCommand({ args: parseWidgetRemoveArgs(subRest) });
-    case "move":
-      return runWidgetMoveCommand({ args: parseWidgetMoveArgs(subRest) });
-    case "replace":
-      return runWidgetReplaceCommand({ args: parseWidgetReplaceArgs(subRest) });
-    case "set-option":
-      return runWidgetSetOptionCommand({ args: parseWidgetSetOptionArgs(subRest) });
-    default:
-      process.stderr.write(`agentline config widget: unknown subcommand '${sub}'\n`);
-      process.stdout.write(HELP);
-      return 1;
+  const handler = WIDGET_SUBS[sub];
+  if (!handler) {
+    process.stderr.write(`agentline config widget: unknown subcommand '${sub}'\n`);
+    process.stdout.write(HELP);
+    return 1;
   }
+  const subRest = rest.slice(1);
+  return handler.run({ args: handler.parse(subRest) });
 }

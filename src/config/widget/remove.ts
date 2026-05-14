@@ -12,6 +12,9 @@ import { isHelpFlag, requestHelp } from "../../cli/help.js";
 import { saveRemoveWidget } from "../mutate.js";
 import { resolveConfigPaths } from "../paths.js";
 import { resolveEnv } from "../../lib/env.js";
+import { readIntFlag } from "./_args.js";
+
+const PREFIX = "agentline config widget remove";
 
 const HELP = `agentline config widget remove — drop a widget from the layout
 
@@ -54,30 +57,18 @@ export function parseWidgetRemoveArgs(rest: readonly string[]): WidgetRemoveArgs
     if (arg === undefined) continue;
     if (isHelpFlag(arg)) requestHelp(HELP);
     else if (arg === "--line" || arg.startsWith("--line=")) {
-      line = readIntFlag(arg, rest, i, "--line");
+      line = readIntFlag(arg, rest, i, "--line", PREFIX);
       if (!arg.includes("=")) i += 1;
     } else if (arg === "--at" || arg.startsWith("--at=")) {
-      at = readIntFlag(arg, rest, i, "--at");
+      at = readIntFlag(arg, rest, i, "--at", PREFIX);
       if (!arg.includes("=")) i += 1;
     } else {
-      throw new Error(`agentline config widget remove: unexpected argument '${arg}'`);
+      throw new Error(`${PREFIX}: unexpected argument '${arg}'`);
     }
   }
 
   if (at === undefined) {
-    throw new Error("agentline config widget remove: --at <index> is required");
+    throw new Error(`${PREFIX}: --at <index> is required`);
   }
   return { line, at };
-}
-
-function readIntFlag(arg: string, rest: readonly string[], i: number, name: string): number {
-  const raw = arg.includes("=") ? arg.slice(arg.indexOf("=") + 1) : rest[i + 1];
-  if (raw === undefined || raw.startsWith("-")) {
-    throw new Error(`agentline config widget remove: ${name} requires an integer`);
-  }
-  const n = Number(raw);
-  if (!Number.isInteger(n)) {
-    throw new Error(`agentline config widget remove: ${name} must be an integer, got '${raw}'`);
-  }
-  return n;
 }

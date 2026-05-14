@@ -13,6 +13,9 @@ import { isHelpFlag, requestHelp } from "../../cli/help.js";
 import { saveMoveWidget } from "../mutate.js";
 import { resolveConfigPaths } from "../paths.js";
 import { resolveEnv } from "../../lib/env.js";
+import { readIntFlag } from "./_args.js";
+
+const PREFIX = "agentline config widget move";
 
 const HELP = `agentline config widget move — reorder a widget within or across lines
 
@@ -74,34 +77,26 @@ export function parseWidgetMoveArgs(rest: readonly string[]): WidgetMoveArgs {
     if (arg === undefined) continue;
     if (isHelpFlag(arg)) requestHelp(HELP);
     else if (arg === "--from-line" || arg.startsWith("--from-line=")) {
-      fromLine = readIntFlag(arg, rest, i, "--from-line");
+      fromLine = readIntFlag(arg, rest, i, "--from-line", PREFIX);
       if (!arg.includes("=")) i += 1;
     } else if (arg === "--from-at" || arg.startsWith("--from-at=")) {
-      fromAt = readIntFlag(arg, rest, i, "--from-at");
+      fromAt = readIntFlag(arg, rest, i, "--from-at", PREFIX);
       if (!arg.includes("=")) i += 1;
     } else if (arg === "--to-line" || arg.startsWith("--to-line=")) {
-      toLine = readIntFlag(arg, rest, i, "--to-line");
+      toLine = readIntFlag(arg, rest, i, "--to-line", PREFIX);
       if (!arg.includes("=")) i += 1;
     } else if (arg === "--to-at" || arg.startsWith("--to-at=")) {
-      toAt = readIntFlag(arg, rest, i, "--to-at");
+      toAt = readIntFlag(arg, rest, i, "--to-at", PREFIX);
       if (!arg.includes("=")) i += 1;
     } else {
-      throw new Error(`agentline config widget move: unexpected argument '${arg}'`);
+      throw new Error(`${PREFIX}: unexpected argument '${arg}'`);
     }
   }
 
   if (fromAt === undefined) {
-    throw new Error("agentline config widget move: --from-at <index> is required");
+    throw new Error(`${PREFIX}: --from-at <index> is required`);
   }
   const out: WidgetMoveArgs = { fromLine, fromAt, toLine: toLine ?? fromLine };
   if (toAt !== undefined) (out as { toAt: number }).toAt = toAt;
   return out;
-}
-
-function readIntFlag(arg: string, rest: readonly string[], i: number, name: string): number {
-  const raw = arg.includes("=") ? arg.slice(arg.indexOf("=") + 1) : rest[i + 1];
-  if (raw === undefined || !/^-?\d+$/.test(raw)) {
-    throw new Error(`agentline config widget move: ${name} requires an integer`);
-  }
-  return Number(raw);
 }
