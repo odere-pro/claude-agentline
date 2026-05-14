@@ -157,7 +157,13 @@ export function selectedAt<T>(rows: readonly T[], highlight: number): T | undefi
   return rows[clampIndex(highlight, rows.length)];
 }
 
-function clampIndex(value: number, length: number): number {
+/**
+ * Clamp `value` to the half-open range `[0, max(0, length - 1)]`. Returns
+ * `0` for an empty list. Used both by `selectedAt` to pick the row under
+ * the cursor and by `main.ts`'s picker key handlers to bound the next
+ * highlight after an arrow-key move.
+ */
+export function clampIndex(value: number, length: number): number {
   if (length <= 0) return 0;
   if (value < 0) return 0;
   if (value > length - 1) return length - 1;
