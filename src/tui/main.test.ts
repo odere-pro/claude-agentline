@@ -174,6 +174,58 @@ describe("enterAltScreen", () => {
     expect(writes).toContain("\x1b[?1049l");
     restore(); // tidy any remaining listener
   });
+
+  it("SIGTERM with no in-flight save exits immediately", () => {
+    const { stream, writes } = makeStream(true);
+    let exitCalled = false;
+    const realExit = process.exit;
+    // The override matches `process.exit`'s `(code?: number) => never`
+    // signature but actually returns so the test process survives.
+    process.exit = (() => {
+      exitCalled = true;
+      return undefined as unknown as never;
+    }) as typeof process.exit;
+    try {
+      const restore = enterAltScreen(stream, { awaitBeforeExit: () => null });
+      process.emit("SIGTERM", "SIGTERM");
+      expect(writes).toContain("\x1b[?1049l");
+      expect(exitCalled).toBe(true);
+      restore();
+    } finally {
+      process.exit = realExit;
+    }
+  });
+
+  it("SIGTERM with an in-flight save waits for the save before restoring + exiting", async () => {
+    const { stream, writes } = makeStream(true);
+    let exitCalled = false;
+    let resolveSave: (() => void) | null = null;
+    const savePromise = new Promise<void>((res) => {
+      resolveSave = res;
+    });
+    const realExit = process.exit;
+    process.exit = (() => {
+      exitCalled = true;
+      return undefined as unknown as never;
+    }) as typeof process.exit;
+    try {
+      const restore = enterAltScreen(stream, { awaitBeforeExit: () => savePromise });
+      process.emit("SIGTERM", "SIGTERM");
+      // Before the save promise resolves: alt-screen still entered, no
+      // leave sequence written, exit not yet called.
+      expect(writes).toEqual(["\x1b[?1049h"]);
+      expect(exitCalled).toBe(false);
+      // Resolve the save and let two microtask ticks flush the .finally chain.
+      resolveSave!();
+      await savePromise;
+      await Promise.resolve();
+      expect(writes).toContain("\x1b[?1049l");
+      expect(exitCalled).toBe(true);
+      restore();
+    } finally {
+      process.exit = realExit;
+    }
+  });
 });
 
 describe("fullscreenStream", () => {
