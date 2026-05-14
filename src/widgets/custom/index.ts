@@ -1,8 +1,8 @@
 /**
- * Custom widget family (§7.8): `separator` only. The other custom
- * widgets (`flex-separator`, `command`, `key-hints`) were retired
- * with the catalogue trim. Same registration shape as the other
- * families — a frozen `CUSTOM_WIDGETS` array plus a
+ * Custom widget family (§7.8): `separator` and `osc-link`. The other
+ * custom widgets (`flex-separator`, `command`, `key-hints`) were
+ * retired with the catalogue trim. Same registration shape as the
+ * other families — a frozen `CUSTOM_WIDGETS` array plus a
  * `registerCustomWidgets(registry)` helper for the default-registry
  * bootstrap.
  */
@@ -11,11 +11,14 @@ import type { WidgetDef } from "../widget.js";
 import type { WidgetRegistry } from "../registry.js";
 
 import { separatorWidget, SEPARATOR_CYCLE } from "./separator.js";
+import { oscLinkWidget } from "./osc-link.js";
 
 export { separatorWidget, SEPARATOR_CYCLE } from "./separator.js";
+export { oscLinkWidget } from "./osc-link.js";
 
 export const CUSTOM_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   separatorWidget as WidgetDef<unknown>,
+  oscLinkWidget as WidgetDef<unknown>,
 ]);
 
 export function registerCustomWidgets(registry: WidgetRegistry): void {

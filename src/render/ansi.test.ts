@@ -82,3 +82,53 @@ describe("encodeSegments style flags", () => {
     expect(out).toBe(`${ESC}1m${ESC}3m${ESC}31mx${SGR_RESET}`);
   });
 });
+
+describe("encodeSegments OSC 8 hyperlink", () => {
+  // OSC 8 opens with `ESC]8;;URL\\ESC\\` and closes with `ESC]8;;\\ESC\\`.
+  const OSC_OPEN = "\x1b]8;;";
+  const OSC_ST = "\x1b\\";
+  const OSC_CLOSE = `${OSC_OPEN}${OSC_ST}`;
+
+  it("wraps plain text in OSC 8 when href is set", () => {
+    const segs: Segment[] = [{ text: "docs", href: "https://example.com" }];
+    expect(encodeSegments(segs, "truecolor")).toBe(
+      `${OSC_OPEN}https://example.com${OSC_ST}docs${OSC_CLOSE}`,
+    );
+  });
+
+  it("wraps styled text inside the SGR run", () => {
+    const segs: Segment[] = [{ text: "docs", fg: "red", href: "https://example.com" }];
+    expect(encodeSegments(segs, "16")).toBe(
+      `${ESC}31m${OSC_OPEN}https://example.com${OSC_ST}docs${OSC_CLOSE}${SGR_RESET}`,
+    );
+  });
+
+  it("drops OSC 8 entirely at depth=none", () => {
+    const segs: Segment[] = [{ text: "docs", href: "https://example.com" }];
+    expect(encodeSegments(segs, "none")).toBe("docs");
+  });
+
+  it("strips control characters from the URL before emitting", () => {
+    // The terminator is `ESC\\`; an unsanitised `ESC` inside the URL
+    // would close the sequence early and dump the rest as literal text.
+    const segs: Segment[] = [{ text: "docs", href: "https://example.com\x1b\x07" }];
+    expect(encodeSegments(segs, "truecolor")).toBe(
+      `${OSC_OPEN}https://example.com${OSC_ST}docs${OSC_CLOSE}`,
+    );
+  });
+
+  it("emits no OSC 8 wrap when sanitisation reduces the URL to empty", () => {
+    const segs: Segment[] = [{ text: "docs", href: "\x1b\x00\x07" }];
+    expect(encodeSegments(segs, "truecolor")).toBe("docs");
+  });
+
+  it("wraps each segment independently so different hrefs do not bleed", () => {
+    const segs: Segment[] = [
+      { text: "a", fg: "red", href: "https://a.example" },
+      { text: "b", fg: "red", href: "https://b.example" },
+    ];
+    const out = encodeSegments(segs, "16");
+    expect(out).toContain(`${OSC_OPEN}https://a.example${OSC_ST}a${OSC_CLOSE}`);
+    expect(out).toContain(`${OSC_OPEN}https://b.example${OSC_ST}b${OSC_CLOSE}`);
+  });
+});

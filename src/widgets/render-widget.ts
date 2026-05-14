@@ -86,6 +86,7 @@ function applyOverrides(cell: Cell, config: WidgetConfig, ctx: WidgetContext): C
         : {}),
     ...(cell.hidden !== undefined ? { hidden: cell.hidden } : {}),
     ...(cell.flex === true ? { flex: true } : {}),
+    ...(typeof cell.href === "string" && cell.href.length > 0 ? { href: cell.href } : {}),
   };
   return Object.freeze(next);
 }

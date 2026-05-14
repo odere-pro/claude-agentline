@@ -30,6 +30,29 @@ import type { Segment } from "./segment.js";
 
 export const SGR_RESET = "\x1b[0m";
 
+// OSC 8 hyperlink delimiters. ST (string terminator) is `ESC \\`; we use
+// that form rather than BEL (`\x07`) because BEL collides with the
+// terminal bell on terminals that don't parse OSC 8 at all. Modern
+// terminals (iTerm2, kitty, recent gnome-terminal, WezTerm, VSCode) all
+// accept the ESC\\ form.
+const OSC_8_OPEN = "\x1b]8;;";
+const OSC_8_ST = "\x1b\\";
+const OSC_8_CLOSE = `${OSC_8_OPEN}${OSC_8_ST}`;
+
+/**
+ * Sanitise an OSC 8 URL: strip any control character that would close
+ * the sequence prematurely. The caller is expected to have already
+ * validated that the URL is non-empty; returning `""` here means the
+ * caller MUST skip the wrap entirely.
+ */
+function sanitiseHref(href: string): string {
+  // Strip C0 control characters (0x00–0x1f) and DEL (0x7f). Everything
+  // else — including spaces, brackets, percent-encoded bytes — is left
+  // alone; the terminal does its own parsing on the URL.
+  // eslint-disable-next-line no-control-regex
+  return href.replace(/[\x00-\x1f\x7f]/g, "");
+}
+
 // xterm 256-colour protocol structural constants. Pulled out as named
 // exports so the arithmetic in rgbToAnsi256 / ansi256ToRgb reads as
 // "convert via the colour cube" rather than a wall of magic numbers.
@@ -256,8 +279,24 @@ function isStyled(seg: Segment): boolean {
   return Boolean(seg.fg || seg.bg || seg.bold || seg.italic);
 }
 
+/**
+ * Wrap `text` in an OSC 8 hyperlink sequence when `href` is set and
+ * non-empty after sanitisation. OSC 8 is orthogonal to SGR styling —
+ * the wrap goes inside the SGR run, so an adjacent same-style segment
+ * with a different href doesn't trigger an SGR reset.
+ */
+function wrapHref(text: string, href: string | undefined): string {
+  if (!href) return text;
+  const safe = sanitiseHref(href);
+  if (safe.length === 0) return text;
+  return `${OSC_8_OPEN}${safe}${OSC_8_ST}${text}${OSC_8_CLOSE}`;
+}
+
 export function encodeSegments(segments: readonly Segment[], depth: ColourDepth): string {
   if (depth === "none") {
+    // No SGR escapes and no OSC 8 hyperlinks — terminals that pre-date
+    // OSC 8 would render the wrap as garbage. `--no-color` is the
+    // user's "give me plain text" knob, so we honour it for links too.
     return segments.map((s) => s.text).join("");
   }
   let out = "";
@@ -271,7 +310,7 @@ export function encodeSegments(segments: readonly Segment[], depth: ColourDepth)
         activeStyle = false;
         lastKey = "";
       }
-      out += seg.text;
+      out += wrapHref(seg.text, seg.href);
       continue;
     }
     const key = styleKey(seg);
@@ -286,7 +325,7 @@ export function encodeSegments(segments: readonly Segment[], depth: ColourDepth)
       lastKey = key;
       activeStyle = true;
     }
-    out += seg.text;
+    out += wrapHref(seg.text, seg.href);
   }
   if (activeStyle) out += SGR_RESET;
   return out;
