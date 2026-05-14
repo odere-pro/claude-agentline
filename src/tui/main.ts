@@ -50,6 +50,7 @@ import {
   PickerVariant,
   PickerWidget,
   categoriesWithWidgets,
+  clampIndex,
   filterWidgets,
   selectedAt,
   variantRows,
@@ -242,11 +243,11 @@ function App({
           return true;
         }
         if (key.upArrow) {
-          setStepHighlight((h) => Math.max(0, h - 1));
+          setStepHighlight((h) => clampIndex(h - 1, matches.length));
           return true;
         }
         if (key.downArrow) {
-          setStepHighlight((h) => Math.min(Math.max(0, matches.length - 1), h + 1));
+          setStepHighlight((h) => clampIndex(h + 1, matches.length));
           return true;
         }
       } else {
@@ -257,11 +258,11 @@ function App({
           return true;
         }
         if (key.upArrow) {
-          setStepHighlight((h) => Math.max(0, h - 1));
+          setStepHighlight((h) => clampIndex(h - 1, cats.length));
           return true;
         }
         if (key.downArrow) {
-          setStepHighlight((h) => Math.min(cats.length - 1, h + 1));
+          setStepHighlight((h) => clampIndex(h + 1, cats.length));
           return true;
         }
       }
@@ -296,12 +297,13 @@ function App({
         return true;
       }
       if (key.upArrow) {
-        setStepHighlight((h) => Math.max(0, h - 1));
+        const matches = widgetsInCategory(widgetEntries, category, stepQuery, usedTypes);
+        setStepHighlight((h) => clampIndex(h - 1, matches.length));
         return true;
       }
       if (key.downArrow) {
         const matches = widgetsInCategory(widgetEntries, category, stepQuery, usedTypes);
-        setStepHighlight((h) => Math.min(Math.max(0, matches.length - 1), h + 1));
+        setStepHighlight((h) => clampIndex(h + 1, matches.length));
         return true;
       }
       if (key.backspace || key.delete) {
@@ -337,11 +339,11 @@ function App({
         return true;
       }
       if (key.upArrow) {
-        setStepHighlight((h) => Math.max(0, h - 1));
+        setStepHighlight((h) => clampIndex(h - 1, rows.length));
         return true;
       }
       if (key.downArrow) {
-        setStepHighlight((h) => Math.min(rows.length - 1, h + 1));
+        setStepHighlight((h) => clampIndex(h + 1, rows.length));
         return true;
       }
       return true;
