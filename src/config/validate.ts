@@ -16,6 +16,7 @@
 import Ajv from "ajv";
 import type { ErrorObject, ValidateFunction } from "ajv";
 import { CONFIG_SCHEMA } from "../schema/embedded.js";
+import type { AgentlineConfig } from "./types.js";
 
 export class ConfigValidationError extends Error {
   readonly errors: ErrorObject[];
@@ -35,7 +36,7 @@ function compiled(): ValidateFunction {
   return cached;
 }
 
-export function validateConfig(value: unknown): void {
+export function validateConfig(value: unknown): asserts value is AgentlineConfig {
   const validate = compiled();
   if (!validate(value)) {
     throw new ConfigValidationError(validate.errors ?? []);

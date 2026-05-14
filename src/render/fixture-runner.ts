@@ -86,7 +86,7 @@ async function resolveConfig(options: RenderForFixtureOptions): Promise<Agentlin
     const raw = await fs.readFile(options.configPath, "utf8");
     const parsed = stripPrototypeKeys(JSON.parse(raw));
     validateConfig(parsed);
-    return parsed as AgentlineConfig;
+    return parsed;
   }
   return DEFAULT_CONFIG;
 }

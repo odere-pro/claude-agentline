@@ -50,7 +50,9 @@ describe("TUI editor (runConfigCommand)", () => {
         path: "/tmp/theme-test.json",
       },
     });
-    expect(result.path).toBeDefined();
+    expect(result.path).toBe("/tmp/theme-test.json");
+    expect(result.saved).toBe(false);
+    expect(result.skipped).toBeFalsy();
   });
 
   it("handles custom environment variables", async () => {
@@ -66,6 +68,8 @@ describe("TUI editor (runConfigCommand)", () => {
         path: "/tmp/env-test.json",
       },
     });
-    expect(result.path).toBeDefined();
+    expect(result.path).toBe("/tmp/env-test.json");
+    expect(result.saved).toBe(false);
+    expect(result.skipped).toBeFalsy();
   });
 });

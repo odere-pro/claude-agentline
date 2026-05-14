@@ -26,13 +26,15 @@ import {
 } from "../context/percentage.js";
 import { registerContextWidgets, CONTEXT_WIDGETS } from "../context/index.js";
 
+import {
+  tokensCachedWidget,
+  tokensInputWidget,
+  tokensOutputWidget,
+  tokensTotalWidget,
+} from "./fields.js";
 import { formatCount, formatSpeed, tokenRole } from "./format.js";
 import { resolveResetAxis } from "./options.js";
 import { inputSpeedWidget, outputSpeedWidget, totalSpeedWidget } from "./speed.js";
-import { tokensCachedWidget } from "./tokens-cached.js";
-import { tokensInputWidget } from "./tokens-input.js";
-import { tokensOutputWidget } from "./tokens-output.js";
-import { tokensTotalWidget } from "./tokens-total.js";
 import { registerTokenWidgets, TOKEN_WIDGETS } from "./index.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };

@@ -22,7 +22,7 @@
  */
 
 import type { AgentlineConfig, LineConfig, WidgetConfig } from "../config/types.js";
-import { previewWidget } from "../render/preview-fixture.js";
+import { previewWidget } from "./preview-fixture.js";
 import { CATEGORY_COLOR, widgetMeta } from "../widgets/catalog.js";
 import type { Cell } from "../widgets/cell.js";
 
