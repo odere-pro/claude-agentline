@@ -53,9 +53,40 @@ export function categoriesWithWidgets(
 }
 
 /**
- * All entries in `category`, substring-filtered (case-insensitive), with
- * any widget types in `exclude` removed (used to hide already-added
- * widgets from the picker).
+ * Token-boundary characters used by `matchesInitialism`. Both display
+ * names ("Git branch") and widget types ("git-branch", "tokens_total")
+ * tokenise on whitespace, hyphen, and underscore.
+ */
+const INITIALISM_BOUNDARY = /[-\s_]+/;
+
+/**
+ * Initialism match — `gb` matches `git-branch`, `tt` matches
+ * `tokens-total`, `su` matches `session-usage`. Single-letter queries
+ * fall through to the substring path (matching every entry starting
+ * with that letter would be surprising); we only kick in at length ≥ 2.
+ *
+ * The implementation is intentionally simple: split on token
+ * boundaries, take the first letter of each non-empty token, then
+ * check `startsWith` so prefix-matches still find a widget while you
+ * are still typing (e.g. `g` after `gb` keeps `git-branch` selected
+ * via the substring fallback in the caller). No fuzzy scoring — that
+ * is a separate concern and out of scope here.
+ */
+function matchesInitialism(query: string, text: string): boolean {
+  if (query.length < 2) return false;
+  let initials = "";
+  for (const token of text.split(INITIALISM_BOUNDARY)) {
+    if (token.length === 0) continue;
+    initials += token[0]!.toLowerCase();
+  }
+  return initials.startsWith(query);
+}
+
+/**
+ * All entries in `category`, filtered (case-insensitive) by initialism
+ * or substring match against `type` and `name`, with any widget types
+ * in `exclude` removed (used to hide already-added widgets from the
+ * picker).
  */
 export function widgetsInCategory(
   entries: readonly WidgetMetaEntry[],
@@ -66,13 +97,14 @@ export function widgetsInCategory(
   const q = query.trim().toLowerCase();
   const scoped = entries.filter((e) => e.category === category && !exclude.has(e.type));
   if (q === "") return scoped;
-  return scoped.filter((e) => e.type.toLowerCase().includes(q) || e.name.toLowerCase().includes(q));
+  return scoped.filter((e) => matches(e, q));
 }
 
 /**
- * Substring filter over all entries — matches against the widget's `type`
- * and human `name`, optionally dropping entries whose `type` is in
- * `exclude` (used to hide already-added widgets from the flat search).
+ * Initialism + substring filter over all entries — matches against the
+ * widget's `type` and human `name`, optionally dropping entries whose
+ * `type` is in `exclude` (used to hide already-added widgets from the
+ * flat search).
  */
 export function filterWidgets(
   entries: readonly WidgetMetaEntry[],
@@ -82,8 +114,17 @@ export function filterWidgets(
   const q = query.trim().toLowerCase();
   const scoped = exclude.size === 0 ? entries : entries.filter((e) => !exclude.has(e.type));
   if (q === "") return scoped;
-  return scoped.filter(
-    (e) => e.type.toLowerCase().includes(q) || e.name.toLowerCase().includes(q),
+  return scoped.filter((e) => matches(e, q));
+}
+
+function matches(entry: WidgetMetaEntry, q: string): boolean {
+  const type = entry.type.toLowerCase();
+  const name = entry.name.toLowerCase();
+  return (
+    matchesInitialism(q, type) ||
+    matchesInitialism(q, name) ||
+    type.includes(q) ||
+    name.includes(q)
   );
 }
 
