@@ -109,6 +109,45 @@ describe("filterWidgets", () => {
     ]);
     expect(filterWidgets(ENTRIES, "model", exclude)).toEqual([]);
   });
+
+  it("initialism-matches hyphenated types (`gb` → `git-branch`)", () => {
+    expect(filterWidgets(ENTRIES, "gb").map((e) => e.type)).toEqual(["git-branch"]);
+    expect(filterWidgets(ENTRIES, "gc").map((e) => e.type)).toEqual(["git-changes"]);
+  });
+
+  it("initialism-matches multi-word display names (`gb` → `Git branch`)", () => {
+    // Even if the type didn't tokenise the same way, the human name does.
+    const onlyName: readonly WidgetMetaEntry[] = [
+      { type: "githubpr", name: "Git branch", description: "x", category: "git" },
+    ];
+    expect(filterWidgets(onlyName, "gb").map((e) => e.type)).toEqual(["githubpr"]);
+  });
+
+  it("single-letter queries stay substring-only", () => {
+    // `g` should NOT initialism-match `git-branch` (every widget whose
+    // first token starts with `g` would otherwise leak in). It still
+    // substring-matches `git-branch` because the type contains `g`.
+    const out = filterWidgets(ENTRIES, "g").map((e) => e.type);
+    expect(out).toEqual(["git-branch", "git-changes"]);
+  });
+
+  it("substring still wins for longer queries (no regression)", () => {
+    expect(filterWidgets(ENTRIES, "branch").map((e) => e.type)).toEqual(["git-branch"]);
+    expect(filterWidgets(ENTRIES, "skills").map((e) => e.type)).toEqual(["skills"]);
+  });
+
+  it("initialism is case-insensitive", () => {
+    expect(filterWidgets(ENTRIES, "GB").map((e) => e.type)).toEqual(["git-branch"]);
+  });
+});
+
+describe("widgetsInCategory — initialism", () => {
+  it("scopes initialism to the category", () => {
+    expect(widgetsInCategory(ENTRIES, "git", "gb").map((e) => e.type)).toEqual(["git-branch"]);
+    // The same query in a category that has no matching initialism
+    // returns nothing — initialism does not cross category bounds.
+    expect(widgetsInCategory(ENTRIES, "time", "gb")).toEqual([]);
+  });
 });
 
 describe("PICKER_PAGE", () => {
