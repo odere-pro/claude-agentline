@@ -28,6 +28,26 @@ export const WIDGET_CATEGORIES = [
 export type WidgetCategory = (typeof WIDGET_CATEGORIES)[number];
 
 /**
+ * Per-category accent colour. The editor uses this in two surfaces that
+ * have to agree visually — the picker's group label and the inline preview
+ * widget chips — so a user scanning the layout can tell which group every
+ * widget belongs to without reading the type name. Names are from Ink's
+ * 8-colour palette so they degrade cleanly on hosts without truecolor.
+ *
+ * This is a decorative, editor-only mapping: the real render path through
+ * `pipeline.ts` keeps using the configured theme's roles.
+ */
+export const CATEGORY_COLOR: Readonly<Record<WidgetCategory, string>> = Object.freeze({
+  session: "blue",
+  tokens: "yellow",
+  context: "magenta",
+  "rate-limits": "red",
+  git: "green",
+  time: "cyan",
+  custom: "white",
+});
+
+/**
  * A *variant* is a named alternative way a single widget can render itself —
  * the same data shown differently. Skills can show a count, a list, or just
  * the last entry. Session-usage can show a percent, a long bar, or a short
@@ -53,8 +73,8 @@ export interface WidgetMeta {
   readonly category: WidgetCategory;
   /**
    * Optional fixture key the picker uses to render a representative
-   * preview cell. Wired by the demo-fixture work; unset means "use the
-   * shared demo context".
+   * preview cell. Unset means the picker resolves the cell through
+   * `previewWidget` against the cached stdin (or label-mode fallback).
    */
   readonly previewFixture?: string;
   /**
@@ -87,7 +107,9 @@ function entry(
       name,
       description,
       category,
-      variants: Object.freeze(variants.map((v) => Object.freeze({ ...v, options: Object.freeze({ ...v.options }) }))),
+      variants: Object.freeze(
+        variants.map((v) => Object.freeze({ ...v, options: Object.freeze({ ...v.options }) })),
+      ),
     });
   }
   return Object.freeze({ name, description, category });
@@ -177,8 +199,16 @@ const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
     v("localpart", "Local part only (user)", { mask: "localpart" }),
   ]),
   // Tokens (7)
-  "tokens-total": entry("Tokens (total)", "Running token total for the chosen reset axis", "tokens"),
-  "tokens-input": entry("Tokens (input)", "Input-token subtotal for the chosen reset axis", "tokens"),
+  "tokens-total": entry(
+    "Tokens (total)",
+    "Running token total for the chosen reset axis",
+    "tokens",
+  ),
+  "tokens-input": entry(
+    "Tokens (input)",
+    "Input-token subtotal for the chosen reset axis",
+    "tokens",
+  ),
   "tokens-output": entry(
     "Tokens (output)",
     "Output-token subtotal for the chosen reset axis",
@@ -186,7 +216,11 @@ const BASE_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
   ),
   "tokens-cached": entry("Tokens (cached)", "Cached-token subtotal (prompt-cache hits)", "tokens"),
   "input-speed": entry("Input speed", "Input tokens per second over the active window", "tokens"),
-  "output-speed": entry("Output speed", "Output tokens per second over the active window", "tokens"),
+  "output-speed": entry(
+    "Output speed",
+    "Output tokens per second over the active window",
+    "tokens",
+  ),
   "total-speed": entry("Total speed", "Combined token throughput per second", "tokens"),
 
   // Context (4)

@@ -56,4 +56,67 @@ describe("renderFromInputs", () => {
     const result = renderFromInputs(makeInputs());
     expect(typeof result).toBe("string");
   });
+
+  it("emits a warning line for an unknown widget type", () => {
+    const config = {
+      ...DEFAULT_CONFIG,
+      lines: [{ widgets: [{ type: "no-such-widget" }] }],
+    };
+    const result = renderFromInputs({
+      payload: basePayload,
+      config,
+      theme: null,
+      env: { NO_COLOR: "1" },
+    });
+    const lines = result.split("\n");
+    // First "line" is the rendered statusline (empty since the widget hides);
+    // the next line carries the warning.
+    expect(lines.some((l) => /unknown widget type 'no-such-widget'/.test(l))).toBe(true);
+  });
+
+  it("deduplicates repeated unknown widget types", () => {
+    const config = {
+      ...DEFAULT_CONFIG,
+      lines: [
+        { widgets: [{ type: "no-such-widget" }, { type: "no-such-widget" }] },
+      ],
+    };
+    const result = renderFromInputs({
+      payload: basePayload,
+      config,
+      theme: null,
+      env: { NO_COLOR: "1" },
+    });
+    const matches = result.match(/unknown widget type 'no-such-widget'/g) ?? [];
+    expect(matches.length).toBe(1);
+  });
+
+  it("caps warning lines at MAX_WARNING_LINES (6)", () => {
+    const types = Array.from({ length: 12 }, (_, i) => ({ type: `bogus-${i}` }));
+    const config = { ...DEFAULT_CONFIG, lines: [{ widgets: types }] };
+    const result = renderFromInputs({
+      payload: basePayload,
+      config,
+      theme: null,
+      env: { NO_COLOR: "1" },
+    });
+    const warningLines = result
+      .split("\n")
+      .filter((l) => /unknown widget type/.test(l));
+    expect(warningLines).toHaveLength(6);
+  });
+
+  it("emits no warning lines when every widget type is known", () => {
+    const config = {
+      ...DEFAULT_CONFIG,
+      lines: [{ widgets: [{ type: "clock" }] }],
+    };
+    const result = renderFromInputs({
+      payload: basePayload,
+      config,
+      theme: null,
+      env: { NO_COLOR: "1" },
+    });
+    expect(result).not.toContain("unknown widget type");
+  });
 });

@@ -29,10 +29,11 @@ import {
 } from "./accessibility.js";
 import { encodeSegments, SGR_RESET } from "./ansi.js";
 import { composeLines } from "./compose.js";
+import type { Segment } from "./segment.js";
 
 import { detectGlyphSupport } from "../powerline/index.js";
 import type { AgentlineConfig } from "../config/types.js";
-import type { Theme } from "../theme/index.js";
+import { resolveRole, type Theme } from "../theme/index.js";
 import type { Cell } from "../widgets/cell.js";
 import type { Clock } from "../widgets/clock.js";
 import type { WidgetContext } from "../widgets/context.js";
@@ -41,8 +42,17 @@ import { renderWidget } from "../widgets/render-widget.js";
 import { defaultRegistry, registerAllBuiltins } from "../widgets/index.js";
 import type { TokensSnapshot } from "../tokens/index.js";
 import type { GitState } from "../git/index.js";
+import type { ResolvedSessionFields } from "../session/index.js";
 import type { StdinPayload } from "../stdin/index.js";
 import { resolveEnv } from "../lib/env.js";
+
+/**
+ * Maximum warning lines appended below the rendered statusline (Phase 2
+ * item 9). Sized so a wildly-broken config can't bury the screen — six
+ * is enough to surface the common bulk-mistype scenarios and short
+ * enough to stay scannable.
+ */
+export const MAX_WARNING_LINES = 6;
 
 function ensureRegistry(): void {
   const reg = defaultRegistry();
@@ -62,15 +72,13 @@ export interface RenderInputs {
   readonly flags?: AccessibilityFlags;
   readonly tokens?: TokensSnapshot;
   readonly git?: GitState;
+  readonly session?: ResolvedSessionFields;
 }
 
 export function renderFromInputs(inputs: RenderInputs): string {
   ensureRegistry();
   const env = resolveEnv(inputs);
-  const flags = honourNoColorEnv(
-    inputs.flags ?? { noColor: false, noUnicode: false },
-    env,
-  );
+  const flags = honourNoColorEnv(inputs.flags ?? { noColor: false, noUnicode: false }, env);
   const clock: Clock = inputs.clock ?? realClock;
   const width = inputs.width ?? resolveWidth(inputs.config, env);
   const ctx: WidgetContext = {
@@ -81,12 +89,17 @@ export function renderFromInputs(inputs: RenderInputs): string {
     env,
     ...(inputs.tokens !== undefined ? { tokens: inputs.tokens } : {}),
     ...(inputs.git !== undefined ? { git: inputs.git } : {}),
+    ...(inputs.session !== undefined ? { session: inputs.session } : {}),
   };
 
   const registry = defaultRegistry();
+  const unknownTypes = new Set<string>();
   const lines: Cell[][] = inputs.config.lines.map((line) =>
     line.widgets
-      .map((w) => renderWidget(registry, w, ctx))
+      .map((w) => {
+        if (!registry.get(w.type)) unknownTypes.add(w.type);
+        return renderWidget(registry, w, ctx);
+      })
       .filter((c) => !c.hidden),
   );
 
@@ -98,8 +111,11 @@ export function renderFromInputs(inputs: RenderInputs): string {
     glyphSupport: detectGlyphSupport(env),
   });
 
+  const warnings = buildWarningLines(unknownTypes, inputs.theme);
+  const allLines: Segment[][] = [...composed, ...warnings];
+
   const depth = effectiveDepth(detectColourDepth({ env }), flags);
-  const encoded = composed
+  const encoded = allLines
     .map((segs) => {
       const accessible = applyAccessibility(segs, flags);
       const text = encodeSegments(accessible, depth);
@@ -111,6 +127,27 @@ export function renderFromInputs(inputs: RenderInputs): string {
     })
     .join("\n");
   return `${encoded}\n`;
+}
+
+/**
+ * Compose the trailing warning channel — one line per warning,
+ * deduplicated and capped at `MAX_WARNING_LINES`. Each line is a
+ * single coloured segment so the encoder treats it uniformly with
+ * the regular render path.
+ *
+ * Currently only `unknown widget type: <type>` is surfaced. Other
+ * warning sources (load-time validation failures, deprecated types)
+ * can join the same pipeline by appending to the array before this
+ * function is called.
+ */
+function buildWarningLines(unknownTypes: ReadonlySet<string>, theme: Theme | null): Segment[][] {
+  if (unknownTypes.size === 0) return [];
+  const fg = resolveRole(theme, "danger");
+  const messages = [...unknownTypes]
+    .sort()
+    .slice(0, MAX_WARNING_LINES)
+    .map((type) => `agentline: unknown widget type '${type}'`);
+  return messages.map((text) => [{ text, fg }]);
 }
 
 function hasStyle(

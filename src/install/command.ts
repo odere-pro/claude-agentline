@@ -11,6 +11,7 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isHelpFlag, requestHelp } from "../cli/help.js";
+import { projectGate } from "../lib/claude-project.js";
 
 const HELP = `agentline install — wire @agentline/cli into Claude Code's statusline
 
@@ -54,7 +55,23 @@ export function parseInstallArgs(rest: readonly string[]): InstallArgs {
   return { fromSource, force, dryRun };
 }
 
-export async function runInstallCommand(args: InstallArgs): Promise<number> {
+export interface InstallRunOptions {
+  /** Cwd the project-gate probes. Defaults to `process.cwd()`. */
+  readonly cwd?: string;
+  /** Stdin override for the project-gate prompt; tests inject a PassThrough. */
+  readonly stdin?: NodeJS.ReadableStream & { readonly isTTY?: boolean };
+}
+
+export async function runInstallCommand(
+  args: InstallArgs,
+  opts: InstallRunOptions = {},
+): Promise<number> {
+  const gate = await projectGate({
+    command: "install",
+    ...(opts.cwd !== undefined ? { cwd: opts.cwd } : {}),
+    ...(opts.stdin !== undefined ? { stdin: opts.stdin } : {}),
+  });
+  if (gate === "skip") return 0;
   const script = resolveScript("install.sh");
   const argv: string[] = [];
   if (args.fromSource) argv.push("--from-source");

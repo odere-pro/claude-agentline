@@ -49,6 +49,22 @@ const ANSI_GREY_RAMP_DIVISOR = 247; // 255 - 8: divisor for cube greyscale inter
 const ANSI_GREY_RAMP_STEPS = 24; // 24 levels in the greyscale ramp
 const ANSI_BRIGHTNESS_MIDPOINT = 128; // perceived-brightness threshold for bright/dim flag
 
+// SGR (Select Graphic Rendition) codes for 16-colour mode
+const SGR_BOLD = 1;
+const SGR_ITALIC = 3;
+const SGR_FG_BASE = 30; // foreground colour base (30–37)
+const SGR_FG_BRIGHT = 90; // bright foreground base (90–97)
+const SGR_BG_BASE = 40; // background colour base (40–47)
+const SGR_BG_BRIGHT = 100; // bright background base (100–107)
+
+// Truecolor SGR codes
+const SGR_FG_TRUECOLOR = 38; // foreground: 38;2;R;G;B
+const SGR_BG_TRUECOLOR = 48; // background: 48;2;R;G;B
+
+// 256-colour SGR codes
+const SGR_FG_256 = 38; // foreground: 38;5;N
+const SGR_BG_256 = 48; // background: 48;5;N
+
 const NAMED_BASE_INDEX: Record<string, number> = {
   black: 0,
   red: 1,
@@ -204,11 +220,13 @@ function fgEscape(c: Colour, depth: ColourDepth): string {
   const norm = normalise(parseColour(c));
   switch (depth) {
     case "truecolor":
-      return `\x1b[38;2;${norm.rgb.r};${norm.rgb.g};${norm.rgb.b}m`;
+      return `\x1b[${SGR_FG_TRUECOLOR};2;${norm.rgb.r};${norm.rgb.g};${norm.rgb.b}m`;
     case "256":
-      return `\x1b[38;5;${norm.index256}m`;
+      return `\x1b[${SGR_FG_256};5;${norm.index256}m`;
     case "16":
-      return norm.bright ? `\x1b[${90 + norm.index16}m` : `\x1b[${30 + norm.index16}m`;
+      return norm.bright
+        ? `\x1b[${SGR_FG_BRIGHT + norm.index16}m`
+        : `\x1b[${SGR_FG_BASE + norm.index16}m`;
     case "none":
       return "";
   }
@@ -218,11 +236,13 @@ function bgEscape(c: Colour, depth: ColourDepth): string {
   const norm = normalise(parseColour(c));
   switch (depth) {
     case "truecolor":
-      return `\x1b[48;2;${norm.rgb.r};${norm.rgb.g};${norm.rgb.b}m`;
+      return `\x1b[${SGR_BG_TRUECOLOR};2;${norm.rgb.r};${norm.rgb.g};${norm.rgb.b}m`;
     case "256":
-      return `\x1b[48;5;${norm.index256}m`;
+      return `\x1b[${SGR_BG_256};5;${norm.index256}m`;
     case "16":
-      return norm.bright ? `\x1b[${100 + norm.index16}m` : `\x1b[${40 + norm.index16}m`;
+      return norm.bright
+        ? `\x1b[${SGR_BG_BRIGHT + norm.index16}m`
+        : `\x1b[${SGR_BG_BASE + norm.index16}m`;
     case "none":
       return "";
   }
@@ -258,8 +278,8 @@ export function encodeSegments(segments: readonly Segment[], depth: ColourDepth)
     if (key !== lastKey) {
       if (activeStyle) out += SGR_RESET;
       let prefix = "";
-      if (seg.bold) prefix += "\x1b[1m";
-      if (seg.italic) prefix += "\x1b[3m";
+      if (seg.bold) prefix += `\x1b[${SGR_BOLD}m`;
+      if (seg.italic) prefix += `\x1b[${SGR_ITALIC}m`;
       if (seg.fg) prefix += fgEscape(seg.fg, depth);
       if (seg.bg) prefix += bgEscape(seg.bg, depth);
       out += prefix;

@@ -166,12 +166,8 @@ A useful starting point is `templates/default.config.json`:
 { "type": "clock" }
 ```
 
-Three presets ship; `agentline config init --preset <name>` scaffolds the
-user config from one:
-
-- `minimal` — `model`, `context-length`, `block-reset-timer` (`templates/minimal.config.json`);
-- `default` — the balanced bar above (`templates/default.config.json`);
-- `maximal` — `default` plus `git-ahead-behind` and `weekly-reset-timer`.
+`agentline install` seeds the user config from
+`templates/default.config.json` (the balanced bar above) on first run.
 
 ## Editing a config
 

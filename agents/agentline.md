@@ -8,7 +8,7 @@ Use this skill when the user asks about:
 
 - The statusline not showing in Claude Code
 - Changing what the statusline displays (widgets, layout, theme)
-- agentline config, install, uninstall, or doctor commands
+- agentline install, uninstall, edit, or doctor commands
 - Tokens, cost, or git info not appearing
 - Resetting agentline to defaults
 
@@ -38,36 +38,33 @@ Full check descriptions → [doctor.md](../docs/doctor.md)
 ## Configure
 
 ```bash
-agentline config                              # interactive TUI editor
-agentline config init --preset default        # scaffold the user config
-agentline config theme                        # browse installed themes
-agentline config schema --write .             # write JSON Schema for editor support
+agentline edit            # interactive TUI editor
 ```
 
 agentline is configured globally only. The single source of truth is
 `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`.
 
-Presets: `minimal` · `default` · `maximal`
 Full reference → [config.md](../docs/config.md)
 
 ---
 
 ## Reset
 
+Delete the user config and re-run `agentline install`:
+
 ```bash
-agentline config init --force --preset default   # reset the user config
+rm "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json"
+agentline install
 ```
 
 ---
 
 ## Themes
 
-```bash
-agentline config theme                          # swatch table
-agentline config theme --show claude-code-dark  # inspect palette
-```
-
-Switch by setting `"theme": "<name>"` in the config file.
+agentline ships one default theme (`claude-code-dark`). Switch by setting
+`"theme": "<name>"` in the config file or via `AGENTLINE_THEME=<name>`.
+Author additional themes by dropping JSON into
+`${CLAUDE_CONFIG_DIR:-~/.config}/agentline/themes/`.
 Full reference → [themes.md](../docs/themes.md)
 
 ---
@@ -88,7 +85,7 @@ Full reference → [install.md](../docs/install.md)
 | Symptom                      | Action                                                                                   |
 | ---------------------------- | ---------------------------------------------------------------------------------------- |
 | Statusline not showing       | `agentline doctor --fix` then restart Claude Code                                        |
-| Blank/garbled output         | switch theme to `vscode-dark`; run `agentline doctor`                                    |
+| Blank/garbled output         | Reset config (see above), run `agentline doctor`                                         |
 | Config ignored               | Check path is `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` (no project layer) |
 | Stale pricing (D07)          | `npm install -g @agentline/cli@latest`                                                   |
 | Powerline `>` instead of `❯` | D05: install a Nerd Font                                                                 |

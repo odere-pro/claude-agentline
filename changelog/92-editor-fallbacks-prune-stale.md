@@ -1,0 +1,1 @@
+- Editor picker and preview no longer demo widgets as `(hidden)` or `[type: no data]`: hidden and self-hiding widgets now fall back to the widget's type name (dimmed) so the user still sees what widget the slot represents. Widgets whose type isn't in the catalogue are pruned at load time so the edit view never shows widgets the picker can't recreate.

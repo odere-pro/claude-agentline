@@ -35,8 +35,13 @@ export interface RenderWidgetOptions {
   readonly strict?: boolean;
 }
 
-/** Thin space (U+2009) — keeps the glyph from sticking to the value. */
-const GLYPH_SEPARATOR = " ";
+/**
+ * Plain space (U+0020) between glyph and value. The earlier thin
+ * space (U+2009) rendered fractional-width in monospace terminals and
+ * collided with the width-2 Nerd-Font PUA glyphs, leaving the cell
+ * looking kerned. A regular space lines up cleanly with the value.
+ */
+const GLYPH_SEPARATOR = " ";
 
 function applyGlyph(text: string, type: string, ctx: WidgetContext): string {
   if (ctx.config.glyphs !== "nerd-font") return text;
@@ -69,8 +74,16 @@ function applyOverrides(cell: Cell, config: WidgetConfig, ctx: WidgetContext): C
       : cell.bg !== undefined
         ? { bg: cell.bg }
         : {}),
-    ...(config.bold !== undefined ? { bold: config.bold } : cell.bold !== undefined ? { bold: cell.bold } : {}),
-    ...(config.italic !== undefined ? { italic: config.italic } : cell.italic !== undefined ? { italic: cell.italic } : {}),
+    ...(config.bold !== undefined
+      ? { bold: config.bold }
+      : cell.bold !== undefined
+        ? { bold: cell.bold }
+        : {}),
+    ...(config.italic !== undefined
+      ? { italic: config.italic }
+      : cell.italic !== undefined
+        ? { italic: cell.italic }
+        : {}),
     ...(cell.hidden !== undefined ? { hidden: cell.hidden } : {}),
     ...(cell.flex === true ? { flex: true } : {}),
   };
@@ -95,4 +108,31 @@ export function renderWidget(
   });
   if (cell.hidden) return HIDDEN_CELL;
   return applyOverrides(cell, config, ctx);
+}
+
+/**
+ * Label-only render for the `agentline edit` preview when there's no
+ * cached stdin to drive a real render. Returns a `Cell` whose text is
+ * the widget's `type` — so the preview shows e.g. `tokens-input`,
+ * `git-branch`, … in place of fake demo values. Per-widget colour and
+ * style overrides still apply so a user can see how their cosmetic
+ * choices land. `hidden: true` widgets short-circuit, matching
+ * `renderWidget`.
+ */
+export function renderWidgetLabel(
+  config: WidgetConfig,
+  opts: { readonly glyphs?: "off" | "nerd-font" } = {},
+): Cell {
+  if (config.hidden === true) return HIDDEN_CELL;
+  const glyph = opts.glyphs === "nerd-font" ? widgetGlyph(config.type) : undefined;
+  const text = glyph ? `${glyph}${GLYPH_SEPARATOR}${config.type}` : config.type;
+  const next: Cell = {
+    text,
+    merged: config.merged ?? "off",
+    ...(config.fg !== undefined && config.fg !== null ? { fg: config.fg as Colour } : {}),
+    ...(config.bg !== undefined && config.bg !== null ? { bg: config.bg as Colour } : {}),
+    ...(config.bold !== undefined ? { bold: config.bold } : {}),
+    ...(config.italic !== undefined ? { italic: config.italic } : {}),
+  };
+  return Object.freeze(next);
 }

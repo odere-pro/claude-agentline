@@ -2,30 +2,28 @@
  * agentline CLI entry point.
  *
  * Subcommand bodies live under their owner directories
- * (`src/config`, `src/doctor`, `src/render`, `src/tui`, …);
- * this file is dispatch-only.
+ * (`src/doctor`, `src/render`, `src/tui`, …); this file is
+ * dispatch-only.
  *
- * Top-level surface (v0.1.0): install / uninstall / doctor / config.
- * Configuration-adjacent commands (init, theme, keys, schema, the TUI
- * editor) are second-level under `agentline config <sub>` so the
- * top-level `--help` stays small.
+ * Top-level surface: render (default) / edit / install /
+ * uninstall / doctor / help / version.
  *
  * The default invocation (no subcommand) runs the render path:
  * read stdin, render the merged statusline, write to stdout.
  */
 
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { StdinParseError } from "./stdin/index.js";
 import { AGENTLINE_VERSION } from "./version.js";
-import { HelpRequestedError } from "./cli/help.js";
-import { parseSchemaArgs, runSchemaCommand } from "./schema/command.js";
+import { HelpRequestedError, isHelpFlag, requestHelp } from "./cli/help.js";
 import { parseDoctorArgs, runDoctorCommand } from "./doctor/command.js";
-import { parseInitArgs, runInitCommand } from "./init/command.js";
 import { parseInstallArgs, runInstallCommand } from "./install/command.js";
 import { parseUninstallArgs, runUninstallCommand } from "./uninstall/command.js";
-import { parseKeysArgs, runKeysCommand } from "./keys/command.js";
-import { parseThemesArgs, runThemesCommand } from "./theme/command.js";
-import { runWidgetSubgroup } from "./config/widget-command.js";
 import { parseRenderArgs, runRenderCommand } from "./render/fixture-command.js";
+import { parseStartArgs, runStartCommand } from "./start/command.js";
+import { runWidgetSubgroup } from "./config/widget-command.js";
 
 type ParsedArgs = {
   command: string;
@@ -73,8 +71,7 @@ async function runRender(rest: readonly string[]): Promise<number> {
       [
         `agentline: render error: ${(err as Error).message}`,
         "  try: agentline doctor              # diagnose host wiring",
-        "  try: agentline config              # edit configuration",
-        "  rebuild: agentline config init --force --preset default",
+        "  try: agentline edit                # edit configuration",
         "",
       ].join("\n"),
     );
@@ -99,7 +96,9 @@ function runHelp(): number {
       "  install              wire agentline into Claude Code's statusline",
       "  uninstall            remove agentline + restore prior statusLine",
       "  doctor [--fix]       diagnose + repair host wiring",
-      "  config [<sub>]       configuration subgroup (see `agentline config --help`)",
+      "  edit                 open the TUI editor",
+      "  config widget <sub>  inspect or edit the statusline layout (scriptable)",
+      "  start                preview the statusline using the last cached stdin",
       "  version              print version (alias: -v, --version)",
       "  help                 print this message (alias: -h, --help)",
       "",
@@ -110,29 +109,34 @@ function runHelp(): number {
   return 0;
 }
 
-function runConfigHelp(): number {
-  process.stdout.write(
-    [
-      "Usage: agentline config                  open the TUI editor (default)",
-      "       agentline config <sub> [<options>]",
-      "",
-      "Subcommands:",
-      "  edit                 open the TUI editor",
-      "  init [--preset ...]  scaffold a config file from a preset",
-      "  theme [--list]       inspect installed theme presets",
-      "  widget <sub>         inspect/edit the layout (list, catalog, …)",
-      "  keys [--json]        list the TUI editor keymap",
-      "  schema [--write]     print or write the config JSON Schema",
-      "  help                 print this message (alias: -h, --help)",
-      "",
-      "Pass -h/--help to any subcommand for details.",
-      "",
-    ].join("\n"),
-  );
-  return 0;
+const CONFIG_HELP = `agentline config — inspect or edit the user config without the TUI
+
+Usage:
+  agentline config <group> [<options>]
+
+Groups:
+  widget <sub>   inspect or edit the statusline layout; see \`agentline config widget --help\`
+
+For interactive editing with live preview, use \`agentline edit\` instead.
+`;
+
+async function runConfig(rest: readonly string[]): Promise<number> {
+  const group = rest[0];
+  if (group === undefined || isHelpFlag(group) || group === "help") {
+    requestHelp(CONFIG_HELP);
+  }
+  const groupRest = rest.slice(1);
+  switch (group) {
+    case "widget":
+      return runWidgetSubgroup(groupRest);
+    default:
+      process.stderr.write(`agentline config: unknown group '${group}'\n`);
+      process.stdout.write(CONFIG_HELP);
+      return 1;
+  }
 }
 
-async function runConfigEditor(): Promise<number> {
+async function runEditor(): Promise<number> {
   // Lazy-import the TUI bundle. tsup builds it as a separate
   // `dist/tui.mjs` so Ink + React never hit cli.mjs's parse path
   // (§1.2 N3). Use a runtime URL so the static analyser does not
@@ -161,55 +165,9 @@ async function dispatch(exec: () => Promise<number>, errorPrefix?: string): Prom
 }
 
 /**
- * `agentline config` second-level dispatcher. Bare invocation opens the
- * TUI editor; named sub-subcommands (init, theme, widget, keys, schema)
- * route to their parse+run helpers. Aliases: `themes` (plural) for
- * `theme`, `edit` as an explicit alias for the bare form.
- */
-async function runConfigSubgroup(rest: readonly string[]): Promise<number> {
-  const sub = rest[0];
-  if (sub === undefined || sub === "edit") {
-    return dispatch(runConfigEditor, "agentline: config error");
-  }
-  if (sub === "-h" || sub === "--help" || sub === "help") {
-    return runConfigHelp();
-  }
-  const subRest = rest.slice(1);
-  switch (sub) {
-    case "init":
-      return dispatch(
-        () => runInitCommand({ args: parseInitArgs(subRest) }),
-        "agentline config init",
-      );
-    case "theme":
-    case "themes":
-      return dispatch(
-        () => runThemesCommand({ args: parseThemesArgs(subRest) }),
-        "agentline config theme",
-      );
-    case "widget":
-      return dispatch(() => runWidgetSubgroup(subRest), "agentline config widget");
-    case "keys":
-      return dispatch(
-        () => runKeysCommand({ args: parseKeysArgs(subRest) }),
-        "agentline config keys",
-      );
-    case "schema":
-      return dispatch(
-        () => runSchemaCommand(parseSchemaArgs([...subRest])),
-        "agentline config schema",
-      );
-    default:
-      process.stderr.write(`agentline config: unknown subcommand '${sub}'\n`);
-      runConfigHelp();
-      return 1;
-  }
-}
-
-/**
- * Top-level subcommand dispatch table (Command Map). Each entry owns
- * its arg-parsing + run pair, plus an optional `errorPrefix` used when
- * the run function throws something other than `HelpRequestedError`.
+ * Top-level subcommand dispatch table. Each entry owns its arg-parsing
+ * + run pair, plus an optional `errorPrefix` used when the run function
+ * throws something other than `HelpRequestedError`.
  *
  * Aliases (e.g. `--version` for `version`) share a single entry so the
  * table stays the source of truth for "is this a known command?".
@@ -220,7 +178,7 @@ async function runConfigSubgroup(rest: readonly string[]): Promise<number> {
  */
 type Subcommand = (rest: readonly string[]) => Promise<number>;
 
-const COMMANDS: Readonly<Record<string, Subcommand>> = Object.freeze({
+export const COMMANDS: Readonly<Record<string, Subcommand>> = Object.freeze({
   render: runRender,
   version: async () => runVersion(),
   "--version": async () => runVersion(),
@@ -229,10 +187,12 @@ const COMMANDS: Readonly<Record<string, Subcommand>> = Object.freeze({
   "--help": async () => runHelp(),
   "-h": async () => runHelp(),
   doctor: (rest) => dispatch(() => runDoctorCommand(parseDoctorArgs([...rest]))),
-  config: (rest) => runConfigSubgroup(rest),
+  edit: () => dispatch(runEditor, "agentline edit"),
   install: (rest) => dispatch(() => runInstallCommand(parseInstallArgs(rest)), "agentline install"),
   uninstall: (rest) =>
     dispatch(() => runUninstallCommand(parseUninstallArgs(rest)), "agentline uninstall"),
+  start: (rest) => dispatch(() => runStartCommand(parseStartArgs(rest)), "agentline start"),
+  config: (rest) => dispatch(() => runConfig(rest), "agentline config"),
 });
 
 async function main(): Promise<number> {
@@ -244,12 +204,28 @@ async function main(): Promise<number> {
   return 1;
 }
 
-main().then(
-  (code) => {
-    process.exit(code);
-  },
-  (err) => {
-    process.stderr.write(`agentline: fatal: ${(err as Error).message}\n`);
-    process.exit(1);
-  },
-);
+// Only auto-run when invoked as a script. Tests can import this module
+// (e.g. for the COMMANDS dispatch table) without triggering main().
+// Compares realpaths so a symlink (e.g. an npm-installed global bin
+// pointing at dist/cli.mjs) still counts as a direct invocation.
+function isDirectInvocation(): boolean {
+  try {
+    const entry = process.argv[1];
+    if (!entry) return false;
+    return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(entry);
+  } catch {
+    return false;
+  }
+}
+
+if (isDirectInvocation()) {
+  main().then(
+    (code) => {
+      process.exit(code);
+    },
+    (err) => {
+      process.stderr.write(`agentline: fatal: ${(err as Error).message}\n`);
+      process.exit(1);
+    },
+  );
+}

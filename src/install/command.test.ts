@@ -1,7 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { PassThrough } from "node:stream";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { HelpRequestedError } from "../cli/help.js";
-import { parseInstallArgs } from "./command.js";
+import { parseInstallArgs, runInstallCommand } from "./command.js";
 
 describe("parseInstallArgs", () => {
   it("returns all false with no arguments", () => {
@@ -48,5 +52,29 @@ describe("parseInstallArgs", () => {
 
   it("throws Error with the unknown flag name in the message", () => {
     expect(() => parseInstallArgs(["--unknown-flag"])).toThrow(/unknown-flag/);
+  });
+});
+
+describe("runInstallCommand — project gate", () => {
+  let tmp: string;
+
+  beforeEach(() => {
+    tmp = mkdtempSync(join(tmpdir(), "agentline-install-gate-"));
+  });
+
+  afterEach(() => {
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it("skips silently outside a Claude project on a non-TTY stdin (exit 0, no spawn)", async () => {
+    const stdin = new PassThrough() as NodeJS.ReadableStream & { isTTY?: boolean };
+    stdin.isTTY = false;
+    const code = await runInstallCommand(
+      { fromSource: false, force: false, dryRun: false },
+      { cwd: tmp, stdin },
+    );
+    // Gate short-circuits before spawnSync ever runs the install script,
+    // so the temp dir stays untouched and we get a clean exit.
+    expect(code).toBe(0);
   });
 });

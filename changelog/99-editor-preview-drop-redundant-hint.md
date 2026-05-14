@@ -1,0 +1,1 @@
+- Dropped the `preview — ‹ ↑ ↓ ← → › to navigate` header line from the editor's preview surface — the footer's motion row already surfaces the same arrow-key bindings, so the in-frame tip was duplicated chrome.

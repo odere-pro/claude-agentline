@@ -107,9 +107,25 @@ describe("git-branch widget", () => {
     expect(cell.fg).toBe(DEFAULT_PALETTE["git-clean"]);
   });
 
-  it("uses the dirty role when there are uncommitted changes", () => {
+  it("uses the dirty role when there are staged changes", () => {
     const cell = gitBranchWidget.render(
-      makeCtx(makeSnapshot({ status: { staged: 0, unstaged: 1, untracked: 0, conflicts: 0, modified: 1, added: 0 } })),
+      makeCtx(makeSnapshot({ status: { staged: 1, unstaged: 0, untracked: 0, conflicts: 0, modified: 0, added: 1 } })),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.fg).toBe(DEFAULT_PALETTE["git-dirty"]);
+  });
+
+  it("uses the dirty role when there are unstaged changes", () => {
+    const cell = gitBranchWidget.render(
+      makeCtx(makeSnapshot({ status: { staged: 0, unstaged: 2, untracked: 0, conflicts: 0, modified: 2, added: 0 } })),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.fg).toBe(DEFAULT_PALETTE["git-dirty"]);
+  });
+
+  it("uses the dirty role when there are untracked files", () => {
+    const cell = gitBranchWidget.render(
+      makeCtx(makeSnapshot({ status: { staged: 0, unstaged: 0, untracked: 3, conflicts: 0, modified: 0, added: 0 } })),
       { options: {}, rawValue: false },
     );
     expect(cell.fg).toBe(DEFAULT_PALETTE["git-dirty"]);
@@ -121,6 +137,20 @@ describe("git-branch widget", () => {
       { options: {}, rawValue: false },
     );
     expect(cell.text).toBe("(abcdef0)");
+  });
+
+  it("honours options.label and rawValue strips it", () => {
+    const snap = makeSnapshot({ branch: "main" });
+    const withLabel = gitBranchWidget.render(makeCtx(snap), {
+      options: { label: " " },
+      rawValue: false,
+    });
+    const noLabel = gitBranchWidget.render(makeCtx(snap), {
+      options: { label: "branch:" },
+      rawValue: true,
+    });
+    expect(withLabel.text).toBe(" main");
+    expect(noLabel.text).toBe("main");
   });
 });
 
@@ -145,6 +175,20 @@ describe("git-changes widget", () => {
       rawValue: false,
     });
     expect(cell.text).toBe("+0 -0");
+  });
+
+  it("honours options.label and rawValue strips it", () => {
+    const snap = makeSnapshot({ diff: { insertions: 5, deletions: 2, filesChanged: 1 } });
+    const withLabel = gitChangesWidget.render(makeCtx(snap), {
+      options: { label: "diff:" },
+      rawValue: false,
+    });
+    const noLabel = gitChangesWidget.render(makeCtx(snap), {
+      options: { label: "diff:" },
+      rawValue: true,
+    });
+    expect(withLabel.text).toBe("diff:+5 -2");
+    expect(noLabel.text).toBe("+5 -2");
   });
 });
 

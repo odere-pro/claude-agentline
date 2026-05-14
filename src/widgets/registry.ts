@@ -90,6 +90,10 @@ export function defaultRegistry(): WidgetRegistry {
   return defaultInstance;
 }
 
+/**
+ * Test-only: reset the default registry to force re-initialization on next call.
+ * Breaks encapsulation intentionally for test isolation; not exposed in public API.
+ */
 export function resetDefaultRegistry(): void {
   defaultInstance = null;
 }

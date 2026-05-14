@@ -298,9 +298,7 @@ describe("picker drill-down — pick-category → pick-widget → pick-variant",
 
 describe("picker drill-down — replace target", () => {
   it("replace swaps the widget type and drops prior colour/style overrides", () => {
-    let s = initialState([
-      { widgets: [{ type: "model", fg: "#ff00ff", bold: true }] },
-    ]);
+    let s = initialState([{ widgets: [{ type: "model", fg: "#ff00ff", bold: true }] }]);
     s = reduce(s, { type: "open-picker", intent: "replace" });
     s = reduce(s, { type: "pick-category", category: "git" });
     s = reduce(s, { type: "pick-widget", widgetType: "git-branch" });
@@ -308,39 +306,34 @@ describe("picker drill-down — replace target", () => {
   });
 });
 
-describe("picker drill-down — open-update (variant only)", () => {
-  it("jumps straight to picker-variant for a widget with variants", () => {
-    let s = initialState([{ widgets: [{ type: "skills", options: { variant: "count" } }] }]);
-    s = reduce(s, { type: "open-update" });
-    expect(s.mode).toBe("picker-variant");
-    expect(s.pickerTarget).toEqual({ kind: "update", line: 0, index: 0 });
-    expect(s.pickerDraft.widgetType).toBe("skills");
-    s = reduce(s, { type: "pick-variant", variantId: "last" });
-    expect(s.lines[0]?.widgets[0]).toEqual({
-      type: "skills",
-      options: { variant: "last" },
-    });
+describe("picker drill-down — flat search from picker-group", () => {
+  it("pick-widget commits directly from picker-group when the widget has no variants", () => {
+    let s = multiLine([["a"]]);
+    s = reduce(s, { type: "open-picker", intent: "add" });
+    expect(s.mode).toBe("picker-group");
+    // Flat-search path: skip pick-category, dispatch pick-widget straight away.
+    s = reduce(s, { type: "pick-widget", widgetType: "git-branch" });
     expect(s.mode).toBe("edit");
-    expect(s.dirty).toBe(true);
+    expect(s.lines[0]?.widgets[1]).toEqual({ type: "git-branch" });
   });
 
-  it("is a no-op on a widget without variants", () => {
-    const s = makeState([{ type: "git-branch" }]);
-    expect(reduce(s, { type: "open-update" })).toBe(s);
+  it("pick-widget routes to picker-variant from picker-group without setting a category", () => {
+    let s = multiLine([["a"]]);
+    s = reduce(s, { type: "open-picker", intent: "add" });
+    s = reduce(s, { type: "pick-widget", widgetType: "skills" });
+    expect(s.mode).toBe("picker-variant");
+    expect(s.pickerDraft.widgetType).toBe("skills");
+    expect(s.pickerDraft.category).toBeUndefined();
   });
 
-  it("is a no-op on the add-cell", () => {
-    const s = makeState([]);
-    expect(reduce(s, { type: "open-update" })).toBe(s);
-  });
-
-  it("merges the variant patch over the existing options (other keys kept)", () => {
-    let s = initialState([
-      { widgets: [{ type: "session-usage", options: { display: "percent", limit: 500 } }] },
-    ]);
-    s = reduce(s, { type: "open-update" });
-    s = reduce(s, { type: "pick-variant", variantId: "bar" });
-    expect(s.lines[0]?.widgets[0]?.options).toEqual({ display: "bar", limit: 500 });
+  it("picker-back from picker-variant returns to picker-group when no category was chosen", () => {
+    let s = multiLine([["a"]]);
+    s = reduce(s, { type: "open-picker", intent: "add" });
+    s = reduce(s, { type: "pick-widget", widgetType: "skills" }); // flat-search path
+    expect(s.mode).toBe("picker-variant");
+    s = reduce(s, { type: "picker-back" });
+    expect(s.mode).toBe("picker-group");
+    expect(s.pickerDraft.widgetType).toBeUndefined();
   });
 });
 
@@ -357,14 +350,6 @@ describe("picker drill-down — picker-back and close-picker", () => {
     s = reduce(s, { type: "picker-back" });
     expect(s.mode).toBe("picker-group");
     expect(s.pickerDraft.category).toBeUndefined();
-    s = reduce(s, { type: "picker-back" });
-    expect(s.mode).toBe("edit");
-  });
-
-  it("picker-back from picker-variant returns straight to edit for an update target", () => {
-    let s = initialState([{ widgets: [{ type: "skills" }] }]);
-    s = reduce(s, { type: "open-update" });
-    expect(s.mode).toBe("picker-variant");
     s = reduce(s, { type: "picker-back" });
     expect(s.mode).toBe("edit");
   });
@@ -415,5 +400,52 @@ describe("reduce: mark-dirty", () => {
     const dirty = reduce(clean, { type: "mark-dirty" });
     expect(dirty.dirty).toBe(true);
     expect(reduce(dirty, { type: "mark-dirty" })).toBe(dirty);
+  });
+});
+
+describe("memento — lastSaved snapshot + revert", () => {
+  it("initialState captures the loaded lines as the snapshot", () => {
+    const s = makeState([{ type: "model" }]);
+    expect(s.lastSaved.lines).toEqual(s.lines);
+    expect(s.lastSaved.glyphs).toBe(s.glyphs);
+    expect(s.dirty).toBe(false);
+  });
+
+  it("mark-clean refreshes the snapshot to the current lines", () => {
+    let s = makeState([{ type: "a" }]);
+    s = reduce(s, { type: "set-option", key: "k", value: "v" });
+    expect(s.dirty).toBe(true);
+    s = reduce(s, { type: "mark-clean" });
+    expect(s.dirty).toBe(false);
+    expect(s.lastSaved.lines).toEqual(s.lines);
+  });
+
+  it("revert restores lines + glyphs from the snapshot and clears dirty", () => {
+    let s = makeState([{ type: "a" }]);
+    const original = s.lines;
+    s = reduce(s, { type: "set-option", key: "k", value: "v" });
+    s = reduce(s, { type: "toggle-glyphs" });
+    expect(s.dirty).toBe(true);
+    s = reduce(s, { type: "revert" });
+    expect(s.dirty).toBe(false);
+    expect(s.lines).toBe(original);
+    expect(s.glyphs).toBe("off");
+  });
+
+  it("revert is a no-op when the editor is already clean", () => {
+    const s = makeState([{ type: "a" }]);
+    expect(reduce(s, { type: "revert" })).toBe(s);
+  });
+
+  it("revert clamps the cursor back into the snapshot's bounds", () => {
+    let s = makeState([{ type: "a" }, { type: "b" }, { type: "c" }]);
+    s = reduce(s, { type: "move-cursor", dx: 2 });
+    expect(s.cursor.widget).toBe(2);
+    s = reduce(s, { type: "delete" });
+    s = reduce(s, { type: "delete" });
+    expect(s.dirty).toBe(true);
+    s = reduce(s, { type: "revert" });
+    expect(s.lines[0]?.widgets).toHaveLength(3);
+    expect(s.cursor.widget).toBeLessThanOrEqual(s.lines[0]!.widgets.length);
   });
 });

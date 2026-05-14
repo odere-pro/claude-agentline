@@ -1,17 +1,19 @@
 /**
- * Round-trip tests for the shipped templates (`templates/*.json`).
+ * Round-trip tests for the shipped default template
+ * (`templates/default.config.json`).
  *
- * Each template is the source of truth for what `scripts/install.sh`
- * (default) and `agentline config init --minimal` write to a fresh user
- * config dir. The tests assert that:
+ * The template is the source of truth for what `scripts/install.sh`
+ * (and the `agentline install` CLI) writes to a fresh user config
+ * dir. The tests
+ * assert that:
  *
- *   1. Each template parses as JSON.
- *   2. Each template validates against the embedded JSON Schema.
- *   3. The default template's first line matches the §7.10 widget set,
- *      with `tokens-total` / `session-usage` declaring `reset: block`
+ *   1. It parses as JSON.
+ *   2. It validates against the embedded JSON Schema.
+ *   3. The first line matches the §7.10 widget set, with
+ *      `tokens-total` / `session-usage` declaring `reset: block`
  *      and the theme set to `claude-code-dark`.
  *
- * Failing here means the templates and the schema have drifted apart;
+ * Failing here means the template and the schema have drifted apart;
  * fix the offender before shipping.
  */
 
@@ -28,7 +30,7 @@ async function loadTemplate(name: string): Promise<unknown> {
   return JSON.parse(text);
 }
 
-describe("shipped config templates", () => {
+describe("shipped config template", () => {
   it("default.config.json parses as JSON", async () => {
     const v = await loadTemplate("default.config.json");
     expect(typeof v).toBe("object");
@@ -66,27 +68,12 @@ describe("shipped config templates", () => {
     expect(cfg.powerline.enabled).toBe(false);
   });
 
-  it("minimal.config.json validates against the schema", async () => {
-    const v = await loadTemplate("minimal.config.json");
-    expect(() => validateConfig(v)).not.toThrow();
-  });
-
-  it("minimal.config.json keeps a single line with at least one widget", async () => {
-    const cfg = (await loadTemplate("minimal.config.json")) as {
-      lines: { widgets: unknown[] }[];
-    };
-    expect(cfg.lines).toHaveLength(1);
-    expect(cfg.lines[0]!.widgets.length).toBeGreaterThan(0);
-  });
-
-  it("both templates reference an installed theme", async () => {
+  it("default.config.json references an installed theme", async () => {
     const themesDir = resolve(repoRoot, "themes");
     const installed = (await fs.readdir(themesDir))
       .filter((n) => n.endsWith(".json"))
       .map((n) => n.replace(/\.json$/, ""));
-    for (const name of ["default.config.json", "minimal.config.json"]) {
-      const cfg = (await loadTemplate(name)) as { theme: string | null };
-      if (cfg.theme) expect(installed).toContain(cfg.theme);
-    }
+    const cfg = (await loadTemplate("default.config.json")) as { theme: string | null };
+    if (cfg.theme) expect(installed).toContain(cfg.theme);
   });
 });

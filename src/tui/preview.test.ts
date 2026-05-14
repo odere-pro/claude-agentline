@@ -6,7 +6,7 @@
  * (`inverse: true`), add-cell presence, gutter, and that the cursor flags
  * one and only one slot per render.
  */
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("ink", () => {
   const el = (type: unknown, props: unknown, ...children: unknown[]) => ({
@@ -20,8 +20,58 @@ vi.mock("ink", () => {
 import React from "react";
 
 import { DEFAULT_CONFIG } from "../config/defaults.js";
+import type { GitState } from "../git/index.js";
+import { resetPreviewModeCache, setPreviewModeForTesting } from "../render/preview-fixture.js";
+import { PRICING_TABLE_VERSION, contextWindowFor, type TokensSnapshot } from "../tokens/index.js";
 import { pickGlyphs } from "./glyphs.js";
 import { Preview } from "./preview.js";
+
+const realGit: GitState = Object.freeze({
+  available: true,
+  cwd: "/agentline",
+  branch: "main",
+  detached: false,
+  sha: "0".repeat(40),
+  shortSha: "0000000",
+  status: Object.freeze({
+    staged: 0,
+    unstaged: 0,
+    untracked: 0,
+    conflicts: 0,
+    modified: 0,
+    added: 0,
+  }),
+  diff: Object.freeze({ insertions: 0, deletions: 0, filesChanged: 0 }),
+  diffStaged: Object.freeze({ insertions: 0, deletions: 0, filesChanged: 0 }),
+  aheadBehind: Object.freeze({ ahead: 0, behind: 0 }),
+  upstream: null,
+  origin: null,
+  upstreamRemote: null,
+  worktreeName: null,
+  inWorktree: false,
+  pr: null,
+});
+
+const realTokens: TokensSnapshot = Object.freeze({
+  events: Object.freeze([]) as TokensSnapshot["events"],
+  now: Date.parse("2026-05-13T11:00:00.000Z"),
+  contextWindow: contextWindowFor("claude-opus-4-7"),
+  pricingVersion: PRICING_TABLE_VERSION,
+});
+
+beforeEach(() => {
+  setPreviewModeForTesting({
+    kind: "real",
+    payload: { raw: {}, truncated: false, model: "claude-opus-4-7", cwd: "/agentline" },
+    session: { model: "claude-opus-4-7" },
+    tokens: realTokens,
+    git: realGit,
+  });
+});
+
+afterEach(() => {
+  resetPreviewModeCache();
+});
 
 // Walk the rendered tree and collect every <Text> node with its props +
 // the concatenated text of its children (each child is either a string or
@@ -63,6 +113,15 @@ function collectTextNodes(node: unknown): TextNode[] {
 
 const GLYPHS = pickGlyphs({ unicode: true });
 
+// React.createElement nests children inside `props.children`. Normalise to
+// a flat array so wrap-line counts read cleanly.
+function previewChildren(node: unknown): unknown[] {
+  const props = (node as { props?: { children?: unknown } } | undefined)?.props;
+  const raw = props?.children;
+  if (raw === undefined || raw === null) return [];
+  return Array.isArray(raw) ? raw.flat(Infinity).filter((c) => c !== null) : [raw];
+}
+
 describe("Preview — projection", () => {
   it("renders a Text node per supplied line plus the add-cell on each row", () => {
     const node = Preview({
@@ -83,7 +142,11 @@ describe("Preview — projection", () => {
   it("inverses exactly one slot per render — the cursor target", () => {
     const node = Preview({
       base: DEFAULT_CONFIG,
-      lines: [{ widgets: [{ type: "model" }, { type: "git-branch" }] }, { widgets: [] }, { widgets: [] }],
+      lines: [
+        { widgets: [{ type: "model" }, { type: "git-branch" }] },
+        { widgets: [] },
+        { widgets: [] },
+      ],
       cursor: { line: 0, widget: 1 },
       glyphs: GLYPHS,
     });
@@ -143,5 +206,57 @@ describe("Preview — projection", () => {
   // Reference React so the import isn't flagged as unused on stricter TS configs.
   it("imports React (smoke)", () => {
     expect(React).toBeDefined();
+  });
+
+  it("packs a wide row across multiple visual sub-lines when `columns` is tight", () => {
+    // Eleven widget slots + ten separators + an add cell are well over what
+    // a 40-column terminal can fit on one visual line. The packer should
+    // emit more than one Box-line for row 0.
+    const node = Preview({
+      base: DEFAULT_CONFIG,
+      lines: [
+        {
+          widgets: [
+            { type: "model" },
+            { type: "thinking-effort" },
+            { type: "git-branch" },
+            { type: "git-changes" },
+            { type: "context-percent" },
+            { type: "tokens-input" },
+            { type: "tokens-output" },
+            { type: "session-time" },
+            { type: "clock" },
+            { type: "account-email" },
+            { type: "context-tokens-used" },
+          ],
+        },
+        { widgets: [] },
+        { widgets: [] },
+      ],
+      cursor: { line: 0, widget: 0 },
+      glyphs: GLYPHS,
+      columns: 40,
+    });
+    // 1 header Text + 3 rows when no wrap; wrap on row 0 only should add
+    // at least one extra Box for the continuation line(s).
+    expect(previewChildren(node).length).toBeGreaterThan(4);
+  });
+
+  it("never wraps when `columns` is generous", () => {
+    const node = Preview({
+      base: DEFAULT_CONFIG,
+      lines: [
+        {
+          widgets: [{ type: "model" }, { type: "git-branch" }, { type: "clock" }],
+        },
+        { widgets: [] },
+        { widgets: [] },
+      ],
+      cursor: { line: 0, widget: 0 },
+      glyphs: GLYPHS,
+      columns: 200,
+    });
+    // Header + exactly one Box per row = 4 children.
+    expect(previewChildren(node)).toHaveLength(4);
   });
 });

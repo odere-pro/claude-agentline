@@ -7,6 +7,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("ink", () => {
@@ -25,7 +26,13 @@ vi.mock("ink", () => {
 
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import { DEFAULT_KEY_BINDINGS } from "../keys/bindings.js";
-import { enterAltScreen, footerLines, runConfigCommand } from "./main.js";
+import {
+  enterAltScreen,
+  footerLines,
+  fullscreenStream,
+  pruneStaleWidgets,
+  runConfigCommand,
+} from "./main.js";
 
 describe("runConfigCommand (entry-point wiring)", () => {
   let tmp: string;
@@ -54,6 +61,38 @@ describe("runConfigCommand (entry-point wiring)", () => {
     expect(result.saved).toBe(false);
     expect(result.path).toContain("agentline");
   });
+
+  it("project gate skips silently outside a Claude project on a non-TTY stdin", async () => {
+    const stdin = new PassThrough() as NodeJS.ReadableStream & { isTTY?: boolean };
+    stdin.isTTY = false;
+    const result = await runConfigCommand({ cwd: tmp, stdin });
+    expect(result.skipped).toBe(true);
+    expect(result.saved).toBe(false);
+    expect(result.path).toBe("");
+  });
+});
+
+describe("pruneStaleWidgets", () => {
+  it("drops widgets whose type isn't in the catalogue", () => {
+    const config = {
+      ...DEFAULT_CONFIG,
+      lines: [
+        { widgets: [{ type: "model" }, { type: "legacy-deleted-widget" }, { type: "git-branch" }] },
+        { widgets: [{ type: "unknown-thing" }] },
+      ],
+    };
+    const pruned = pruneStaleWidgets(config);
+    expect(pruned.lines[0]?.widgets.map((w) => w.type)).toEqual(["model", "git-branch"]);
+    expect(pruned.lines[1]?.widgets).toEqual([]);
+  });
+
+  it("returns the same object reference when no widgets are stale", () => {
+    const config = {
+      ...DEFAULT_CONFIG,
+      lines: [{ widgets: [{ type: "model" }, { type: "git-branch" }] }],
+    };
+    expect(pruneStaleWidgets(config)).toBe(config);
+  });
 });
 
 describe("footerLines", () => {
@@ -68,14 +107,13 @@ describe("footerLines", () => {
     expect(motion).not.toContain("add");
     expect(motion).not.toContain("save");
     expect(motion).not.toContain("quit");
-    // Line 2 — actions + the any-scope quit / help.
+    // Line 2 — actions + the any-scope quit binding.
     expect(actions).toContain("add");
     expect(actions).toContain("save");
     expect(actions).toContain("quit");
-    expect(actions).toContain("help");
   });
 
-  it("picker-scope motion line carries picker-navigate; actions line carries the rest plus quit/help", () => {
+  it("picker-scope motion line carries picker-navigate; actions line carries the rest plus quit", () => {
     const { motion, actions } = footerLines(DEFAULT_KEY_BINDINGS, "picker-widget");
     expect(motion).toContain("navigate");
     expect(actions).toContain("confirm");
@@ -135,5 +173,52 @@ describe("enterAltScreen", () => {
     process.emit("SIGINT");
     expect(writes).toContain("\x1b[?1049l");
     restore(); // tidy any remaining listener
+  });
+});
+
+describe("fullscreenStream", () => {
+  function makeStream(isTTY: boolean) {
+    const writes: string[] = [];
+    const stream = {
+      isTTY,
+      columns: 80,
+      rows: 24,
+      write(chunk: string | Uint8Array): boolean {
+        writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString());
+        return true;
+      },
+    } as unknown as NodeJS.WriteStream;
+    return { stream, writes };
+  }
+
+  it("returns the stream unchanged when stdout is not a TTY", () => {
+    const { stream } = makeStream(false);
+    expect(fullscreenStream(stream)).toBe(stream);
+  });
+
+  it("prepends erase-screen + erase-scrollback + cursor-home on every write batch", () => {
+    const { stream, writes } = makeStream(true);
+    const wrapped = fullscreenStream(stream);
+    wrapped.write("frame-one");
+    wrapped.write("frame-two");
+    expect(writes).toEqual([
+      "\x1b[2J\x1b[3J\x1b[Hframe-one",
+      "\x1b[2J\x1b[3J\x1b[Hframe-two",
+    ]);
+  });
+
+  it("forwards passthrough properties like columns/rows", () => {
+    const { stream } = makeStream(true);
+    const wrapped = fullscreenStream(stream);
+    expect(wrapped.columns).toBe(80);
+    expect(wrapped.rows).toBe(24);
+    expect(wrapped.isTTY).toBe(true);
+  });
+
+  it("handles Uint8Array chunks by converting to string before prepending the reset", () => {
+    const { stream, writes } = makeStream(true);
+    const wrapped = fullscreenStream(stream);
+    wrapped.write(Buffer.from("buffered"));
+    expect(writes).toEqual(["\x1b[2J\x1b[3J\x1b[Hbuffered"]);
   });
 });

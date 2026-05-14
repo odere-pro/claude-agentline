@@ -55,8 +55,8 @@ See [install.md](./install.md) for the full install procedure.
 D03 in `agentline doctor --strict` validates the config. agentline reads a single global config at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` (see [config.md](./config.md#file-locations)):
 
 ```bash
-agentline config init --preset default     # scaffold a valid user config
-agentline config schema --write /tmp/      # dump the schema for manual inspection
+rm "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json"   # scrap the broken file
+agentline install                                                # reseed the default template
 ```
 
 ---
@@ -90,6 +90,7 @@ Nerd Font missing. D05 prints the platform-specific install command when it fire
 ## Reset or uninstall
 
 ```bash
-agentline config init --force --preset default    # reset config → see config.md#cli-commands
-agentline uninstall [--purge]              # full uninstall → see install.md#uninstall
+rm "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json"   # reset just the config
+agentline install                                                # reseed the default template
+agentline uninstall [--purge]                                    # full uninstall → see install.md#uninstall
 ```

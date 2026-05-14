@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { HelpRequestedError } from "../cli/help.js";
-import { parseUninstallArgs } from "./command.js";
+import { RENDER_CACHE_VERSION } from "../state/render-cache.js";
+import { formatLastRenderBanner, parseUninstallArgs } from "./command.js";
 
 describe("parseUninstallArgs", () => {
   it("returns all false with no arguments", () => {
@@ -39,5 +40,45 @@ describe("parseUninstallArgs", () => {
 
   it("throws Error with the unknown flag name in the message", () => {
     expect(() => parseUninstallArgs(["--unknown-flag"])).toThrow(/unknown-flag/);
+  });
+});
+
+describe("formatLastRenderBanner", () => {
+  it("returns empty when there is no cached render", () => {
+    expect(formatLastRenderBanner(null)).toBe("");
+  });
+
+  it("returns empty when the cached render is the empty string", () => {
+    expect(
+      formatLastRenderBanner({
+        version: RENDER_CACHE_VERSION,
+        savedAt: "2026-05-13T22:00:00Z",
+        rendered: "",
+        meta: {},
+      }),
+    ).toBe("");
+  });
+
+  it("frames the cached render with a restore hint", () => {
+    const banner = formatLastRenderBanner({
+      version: RENDER_CACHE_VERSION,
+      savedAt: "2026-05-13T22:00:00Z",
+      rendered: "hello\n",
+      meta: {},
+    });
+    expect(banner).toContain("Last statusline:");
+    expect(banner).toContain("hello\n");
+    expect(banner).toContain("2026-05-13T22:00:00Z");
+    expect(banner).toContain("agentline install");
+  });
+
+  it("appends a trailing newline when the cached render lacks one", () => {
+    const banner = formatLastRenderBanner({
+      version: RENDER_CACHE_VERSION,
+      savedAt: "2026-05-13T22:00:00Z",
+      rendered: "no-trailing-newline",
+      meta: {},
+    });
+    expect(banner).toContain("no-trailing-newline\n");
   });
 });

@@ -3,7 +3,8 @@ import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { runChecks } from "./checks.js";
+import { evaluatePricingFreshness, runChecks } from "./checks.js";
+import { PRICING_TABLE_VERSION } from "../tokens/pricing.js";
 
 describe("runChecks", () => {
   let home: string;
@@ -19,7 +20,7 @@ describe("runChecks", () => {
     await fs.rm(cfgDir, { recursive: true, force: true });
   });
 
-  it("D07 always returns status: skip", async () => {
+  it("D07 reports a pass-or-warn verdict referencing the embedded pricing version", async () => {
     const results = await runChecks({
       fix: false,
       json: false,
@@ -29,7 +30,9 @@ describe("runChecks", () => {
       cwd: cfgDir,
     });
     const d07 = results.find((r) => r.id === "D07");
-    expect(d07?.status).toBe("skip");
+    expect(d07).toBeDefined();
+    expect(["pass", "warn"]).toContain(d07?.status);
+    expect(d07?.message).toContain(PRICING_TABLE_VERSION);
   });
 
   it("D08 returns pass with message containing 'not set' when CLAUDE_CONFIG_DIR is absent", async () => {
@@ -62,5 +65,56 @@ describe("runChecks", () => {
     });
     const d02 = results.find((r) => r.id === "D02");
     expect(d02?.status).toBe("pass");
+  });
+});
+
+describe("evaluatePricingFreshness", () => {
+  it("returns pass when the version is within 90 days of now", () => {
+    const now = new Date("2026-05-14T12:00:00Z");
+    const verdict = evaluatePricingFreshness("2026-04-20", now);
+    expect(verdict.status).toBe("pass");
+    expect(verdict.message).toContain("2026-04-20");
+    expect(verdict.message).toContain("24d old");
+    expect(verdict.hint).toBeUndefined();
+  });
+
+  it("returns pass exactly on the 90-day boundary", () => {
+    const now = new Date("2026-05-14T00:00:00Z");
+    const versionDate = new Date(now.getTime() - 90 * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    const verdict = evaluatePricingFreshness(versionDate, now);
+    expect(verdict.status).toBe("pass");
+    expect(verdict.message).toContain("90d old");
+  });
+
+  it("returns warn when the version is older than 90 days", () => {
+    const now = new Date("2026-05-14T12:00:00Z");
+    const verdict = evaluatePricingFreshness("2026-01-01", now);
+    expect(verdict.status).toBe("warn");
+    expect(verdict.message).toContain("2026-01-01");
+    expect(verdict.message).toMatch(/133d old/);
+    expect(verdict.message).toContain("threshold 90");
+    expect(verdict.hint).toMatch(/PRICING_TABLE_VERSION/);
+  });
+
+  it("treats future-dated versions as fresh and reports zero age", () => {
+    const now = new Date("2026-05-14T12:00:00Z");
+    const verdict = evaluatePricingFreshness("2027-01-01", now);
+    expect(verdict.status).toBe("pass");
+    expect(verdict.message).toContain("0d old");
+  });
+
+  it("returns warn with a parse-error message for a malformed version string", () => {
+    const verdict = evaluatePricingFreshness("not-a-date", new Date("2026-05-14T12:00:00Z"));
+    expect(verdict.status).toBe("warn");
+    expect(verdict.message).toContain('PRICING_TABLE_VERSION="not-a-date"');
+    expect(verdict.hint).toMatch(/src\/tokens\/pricing\.ts/);
+  });
+
+  it("rejects calendar-invalid dates that match the YYYY-MM-DD shape", () => {
+    const verdict = evaluatePricingFreshness("2026-13-40", new Date("2026-05-14T12:00:00Z"));
+    expect(verdict.status).toBe("warn");
+    expect(verdict.message).toContain("2026-13-40");
   });
 });

@@ -1,5 +1,5 @@
 /**
- * Ink-based TUI editor entry (`agentline config` — §1.1 F10, §5.5).
+ * Ink-based TUI editor entry (`agentline edit` — §1.1 F10, §5.5).
  *
  * This module is loaded ONLY by a dynamic `import("./tui.mjs")` from
  * cli.mjs. tsup builds it as a separate output file so Ink + React never
@@ -12,14 +12,16 @@
  * "layout list" view; the cursor moves through the rendered statusline
  * itself, with each row ending in a navigable "+ add widget" cell.
  *
- * Add / replace / update share a three-step picker drill-down:
+ * Add / replace share a three-step picker drill-down:
  *
- *   step 1 (`picker-group`)   — pick a category.
- *   step 2 (`picker-widget`)  — pick a widget within that category.
+ *   step 1 (`picker-group`)   — empty search ⇒ pick a category;
+ *                                typing flips the view to a flat global
+ *                                widget list filtered by substring (across
+ *                                every category at once). Picking a result
+ *                                from the flat view skips step 2.
+ *   step 2 (`picker-widget`)  — pick a widget within the chosen category.
  *   step 3 (`picker-variant`) — pick a variant (skipped for widgets that
  *                                have none in the catalogue).
- *
- * `u` (update) jumps straight to step 3 for the selected widget.
  */
 
 import { Box, Text, render, useApp, useInput } from "ink";
@@ -30,24 +32,25 @@ import { loadConfig } from "../config/load.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import type { AgentlineConfig } from "../config/types.js";
 import { listBindings, type KeyBinding, type KeyScope } from "../keys/index.js";
+import { projectGate } from "../lib/claude-project.js";
 import { resolveEnv } from "../lib/env.js";
+import { readNerdFontStatus, stateDir as nerdFontStateDir } from "../lib/nerd-font.js";
+import { isErr, tryAsync } from "../lib/result.js";
 import type { Theme } from "../theme/index.js";
 import { resolveConfiguredTheme } from "../theme/resolve.js";
 
-import {
-  defaultRegistry,
-  registerAllBuiltins,
-  type WidgetMetaEntry,
-} from "../widgets/index.js";
-import { widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
+import { defaultRegistry, registerAllBuiltins, type WidgetMetaEntry } from "../widgets/index.js";
+import { widgetMeta, widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
 
 import { pickGlyphs, type EditorGlyphs } from "./glyphs.js";
 import { saveEditedConfig } from "./persist.js";
 import {
   PickerGroup,
+  PickerSearch,
   PickerVariant,
   PickerWidget,
   categoriesWithWidgets,
+  filterWidgets,
   selectedAt,
   variantRows,
   widgetsInCategory,
@@ -69,26 +72,64 @@ function builtinWidgetEntries(): readonly WidgetMetaEntry[] {
   return registry.listMeta();
 }
 
+/** Human-readable label for the currently selected widget (catalogue name + type). */
+function selectedWidgetLabel(type: string): string {
+  const meta = widgetMeta(type);
+  return meta ? `${meta.name} (${type})` : type;
+}
+
 export interface RunConfigInput {
   readonly env?: NodeJS.ProcessEnv;
   /** Directly pre-supplied config; primarily used by smoke tests. */
   readonly preloaded?: { config: AgentlineConfig; path: string };
+  /** Cwd the project-gate probes. Defaults to `process.cwd()`. */
+  readonly cwd?: string;
+  /** Stdin override for the project-gate prompt; tests inject a PassThrough. */
+  readonly stdin?: NodeJS.ReadableStream & { readonly isTTY?: boolean };
 }
 
 export interface RunConfigResult {
   readonly saved: boolean;
   readonly path: string;
+  /** `true` when the project gate caused an early skip; preloaded path is empty. */
+  readonly skipped?: boolean;
 }
 
 export async function runConfigCommand(input: RunConfigInput = {}): Promise<RunConfigResult> {
+  const gate = await projectGate({
+    command: "edit",
+    ...(input.cwd !== undefined ? { cwd: input.cwd } : {}),
+    ...(input.stdin !== undefined ? { stdin: input.stdin } : {}),
+  });
+  if (gate === "skip") return { saved: false, path: "", skipped: true };
   const { config, path } = await resolveStartingConfig(input);
   const env = resolveEnv(input);
   const previewTheme = await resolveConfiguredTheme(config.theme, { env });
   const glyphs = pickGlyphs({ env });
-  const { waitUntilExit, unmount, savedRef } = mountEditor(config, path, previewTheme, glyphs);
+  const nerdFontAvailable = resolveNerdFontAvailable(env);
+  const { waitUntilExit, unmount, savedRef } = mountEditor(
+    config,
+    path,
+    previewTheme,
+    glyphs,
+    nerdFontAvailable,
+  );
   await waitUntilExit;
   unmount();
   return { saved: savedRef.value, path };
+}
+
+/**
+ * Read the install-time Nerd Font sentinel. When the sentinel is missing
+ * (user skipped `agentline install`, or installed an older version) we
+ * assume a font is available rather than locking the toggle — a missed
+ * disable is recoverable, a false lock is annoying.
+ */
+function resolveNerdFontAvailable(env: NodeJS.ProcessEnv): boolean {
+  const home = env.HOME ?? "";
+  if (!home) return true;
+  const status = readNerdFontStatus(nerdFontStateDir(env, home));
+  return status === null ? true : status.available;
 }
 
 interface AppProps {
@@ -96,18 +137,24 @@ interface AppProps {
   readonly path: string;
   readonly previewTheme: Theme | null;
   readonly glyphs: EditorGlyphs;
+  /** `false` when the install probe didn't find a Nerd Font; locks the `g` toggle to "off". */
+  readonly nerdFontAvailable: boolean;
   readonly onSaved: (saved: boolean) => void;
 }
 
-function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): React.ReactElement {
+function App({
+  initialConfig,
+  path,
+  previewTheme,
+  glyphs,
+  nerdFontAvailable,
+  onSaved,
+}: AppProps): React.ReactElement {
   const { exit } = useApp();
-  const [state, dispatch] = useReducer(
-    reduce,
-    initialConfig,
-    (cfg) => initialState(cfg.lines, cfg.glyphs),
+  const [state, dispatch] = useReducer(reduce, initialConfig, (cfg) =>
+    initialState(cfg.lines, nerdFontAvailable ? cfg.glyphs : "off"),
   );
   const [statusMessage, setStatusMessage] = useState<string>("");
-  const [showHelp, setShowHelp] = useState(false);
   // Per-step transient UI state — reset on every mode change so each step
   // starts with a clean filter and the highlight at row 0.
   const [stepQuery, setStepQuery] = useState("");
@@ -118,6 +165,23 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
     [initialConfig.keymap],
   );
   const widgetEntries = useMemo(() => builtinWidgetEntries(), []);
+
+  // Types already placed in the layout. The picker hides these so the user
+  // can't add the same widget twice. In replace mode the widget under the
+  // cursor is on its way out — but we only let its type back into the
+  // picker when the widget has variants, so users on a variant-bearing
+  // widget can still swap variants via replace. For variant-less widgets,
+  // re-picking the same type would be a no-op and is excluded.
+  const usedTypes = useMemo(() => {
+    const set = new Set<string>();
+    for (const line of state.lines) for (const w of line.widgets) set.add(w.type);
+    if (state.mode !== "edit" && state.pickerTarget.kind === "replace") {
+      const line = state.lines[state.pickerTarget.line];
+      const target = line?.widgets[state.pickerTarget.index];
+      if (target && widgetVariants(target.type).length > 0) set.delete(target.type);
+    }
+    return set;
+  }, [state.lines, state.mode, state.pickerTarget]);
 
   // Reset per-step state on every transition.
   useEffect(() => {
@@ -136,7 +200,9 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
         glyphs: state.glyphs,
       });
       dispatch({ type: "mark-clean" });
-      setStatusMessage(`saved → ${path}`);
+      setStatusMessage(
+        `saved → ${path} — run "agentline start" to preview, or Restart Claude Code`,
+      );
       onSaved(true);
     } catch (err) {
       setStatusMessage(`save failed: ${(err as Error).message}`);
@@ -146,27 +212,54 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
   }, [initialConfig, onSaved, path, state.lines, state.glyphs]);
 
   useInput((input, key) => {
-    if (showHelp) {
-      setShowHelp(false);
-      return;
-    }
+    const { mode, pickerDraft } = state;
 
     // ── picker steps ─────────────────────────────────────────────────────
-    if (state.mode === "picker-group") {
-      const cats = categoriesWithWidgets(widgetEntries);
+    if (mode === "picker-group") {
+      // Step 1 hosts a search field on top of the group list:
+      //   - empty query  → ↑↓/↵ navigate and select a category;
+      //   - typed query  → the group view collapses into a flat global
+      //                    widget list filtered by substring; ↑↓/↵ act on
+      //                    that list and Enter commits the widget directly.
+      // Backspace through the query returns the user to the group view.
+      const searching = stepQuery.length > 0;
       if (key.escape) return dispatch({ type: "picker-back" });
-      if (key.return) {
-        const cat = selectedAt(cats, stepHighlight);
-        if (cat) dispatch({ type: "pick-category", category: cat });
-        return;
+      if (key.backspace || key.delete) {
+        if (stepQuery.length === 0) return;
+        setStepQuery((q) => q.slice(0, -1));
+        return setStepHighlight(0);
       }
-      if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
-      if (key.downArrow)
-        return setStepHighlight((h) => Math.min(cats.length - 1, h + 1));
+      if (searching) {
+        const matches = filterWidgets(widgetEntries, stepQuery, usedTypes);
+        if (key.return) {
+          const picked = selectedAt(matches, stepHighlight);
+          if (picked) dispatch({ type: "pick-widget", widgetType: picked.type });
+          return;
+        }
+        if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
+        if (key.downArrow) {
+          return setStepHighlight((h) => Math.min(Math.max(0, matches.length - 1), h + 1));
+        }
+      } else {
+        const cats = categoriesWithWidgets(widgetEntries, usedTypes);
+        if (key.return) {
+          const cat = selectedAt(cats, stepHighlight);
+          if (cat) dispatch({ type: "pick-category", category: cat });
+          return;
+        }
+        if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
+        if (key.downArrow) return setStepHighlight((h) => Math.min(cats.length - 1, h + 1));
+      }
+      // Any printable key extends the search query and flips the view to
+      // flat results on the next render.
+      if (input.length === 1 && input >= " " && !key.ctrl && !key.meta) {
+        setStepQuery((q) => q + input);
+        return setStepHighlight(0);
+      }
       return;
     }
-    if (state.mode === "picker-widget") {
-      const category = state.pickerDraft.category;
+    if (mode === "picker-widget") {
+      const category = pickerDraft.category;
       if (!category) {
         // Should never happen — defensive fall-through.
         dispatch({ type: "picker-back" });
@@ -174,14 +267,14 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       }
       if (key.escape) return dispatch({ type: "picker-back" });
       if (key.return) {
-        const matches = widgetsInCategory(widgetEntries, category, stepQuery);
+        const matches = widgetsInCategory(widgetEntries, category, stepQuery, usedTypes);
         const picked = selectedAt(matches, stepHighlight);
         if (picked) dispatch({ type: "pick-widget", widgetType: picked.type });
         return;
       }
       if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
       if (key.downArrow) {
-        const matches = widgetsInCategory(widgetEntries, category, stepQuery);
+        const matches = widgetsInCategory(widgetEntries, category, stepQuery, usedTypes);
         return setStepHighlight((h) => Math.min(Math.max(0, matches.length - 1), h + 1));
       }
       if (key.backspace || key.delete) {
@@ -194,15 +287,13 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       }
       return;
     }
-    if (state.mode === "picker-variant") {
-      const widgetType = state.pickerDraft.widgetType;
+    if (mode === "picker-variant") {
+      const widgetType = pickerDraft.widgetType;
       if (!widgetType) {
         dispatch({ type: "picker-back" });
         return;
       }
-      const mode: "update" | "fresh" =
-        state.pickerTarget.kind === "update" ? "update" : "fresh";
-      const rows = variantRows(widgetType, mode);
+      const rows = variantRows(widgetType, "fresh");
       if (key.escape) return dispatch({ type: "picker-back" });
       if (key.return) {
         const row = selectedAt(rows, stepHighlight);
@@ -210,21 +301,24 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
         return;
       }
       if (key.upArrow) return setStepHighlight((h) => Math.max(0, h - 1));
-      if (key.downArrow)
-        return setStepHighlight((h) => Math.min(rows.length - 1, h + 1));
+      if (key.downArrow) return setStepHighlight((h) => Math.min(rows.length - 1, h + 1));
       return;
     }
 
     // ── edit scope ───────────────────────────────────────────────────────
-    if (input === "?") return setShowHelp(true);
     if (key.escape || input === "q") {
       onSaved(false);
       exit();
       return;
     }
-    if (input === "S" || (key.ctrl && input === "s")) {
+    if (input === "s" || input === "S" || (key.ctrl && input === "s")) {
       if (saveInFlight.current) return;
-      void onSave();
+      // Defense-in-depth: `onSave` catches its own errors today, but
+      // `void` would silently swallow any rejection that ever leaked
+      // through. Surface it in the status line instead.
+      tryAsync(onSave).then((r) => {
+        if (isErr(r)) setStatusMessage(`save failed: ${r.error.message}`);
+      });
       return;
     }
     if (key.leftArrow)
@@ -232,17 +326,13 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
         key.shift ? { type: "move-widget", dx: -1 } : { type: "move-cursor", dx: -1 },
       );
     if (key.rightArrow)
-      return dispatch(
-        key.shift ? { type: "move-widget", dx: 1 } : { type: "move-cursor", dx: 1 },
-      );
+      return dispatch(key.shift ? { type: "move-widget", dx: 1 } : { type: "move-cursor", dx: 1 });
     if (key.upArrow)
       return dispatch(
         key.shift ? { type: "move-widget", dy: -1 } : { type: "move-cursor", dy: -1 },
       );
     if (key.downArrow)
-      return dispatch(
-        key.shift ? { type: "move-widget", dy: 1 } : { type: "move-cursor", dy: 1 },
-      );
+      return dispatch(key.shift ? { type: "move-widget", dy: 1 } : { type: "move-cursor", dy: 1 });
     if (key.return) {
       if (isAddCell(state)) return dispatch({ type: "open-picker", intent: "add" });
       // On a populated widget ↵ is a no-op now — `u`/`r` cover the
@@ -251,27 +341,22 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
     }
     if (input === "a") return dispatch({ type: "open-picker", intent: "add" });
     if (input === "r") return dispatch({ type: "open-picker", intent: "replace" });
-    if (input === "u") {
-      const widget = currentWidget(state);
-      if (!widget) {
-        setStatusMessage("update: select a widget first");
-        return;
-      }
-      if (widgetVariants(widget.type).length === 0) {
-        setStatusMessage(`no variants for "${widget.type}"`);
-        return;
-      }
-      return dispatch({ type: "open-update" });
-    }
     if (input === "d" || input === "x" || key.delete || key.backspace) {
       return dispatch({ type: "delete" });
     }
     if (input === "g") {
-      dispatch({ type: "toggle-glyphs" });
-      // Surface the new value so the user can see the toggle landed even if
-      // their terminal lacks a Nerd Font (the prepended glyphs would render
-      // as tofu boxes — without a status line they'd look like noise).
       const next = state.glyphs === "nerd-font" ? "off" : "nerd-font";
+      // When `agentline install` couldn't find a Nerd Font, lock the
+      // toggle to "off" — enabling glyphs would only paint tofu boxes
+      // onto the rendered statusline. Toggling *off* is still allowed
+      // so a user who edited the file by hand can recover via the UI.
+      if (!nerdFontAvailable && next === "nerd-font") {
+        setStatusMessage("glyphs: disabled — install a Nerd Font, then re-run `agentline install`");
+        return;
+      }
+      dispatch({ type: "toggle-glyphs" });
+      // Surface the new value so the user can see the toggle landed
+      // even if their terminal lacks a Nerd Font.
       setStatusMessage(`glyphs: ${next}`);
       return;
     }
@@ -280,8 +365,13 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
   return React.createElement(
     Box,
     { flexDirection: "column" },
-    React.createElement(Text, { bold: true }, "agentline config"),
+    React.createElement(Text, { bold: true }, "agentline edit"),
     React.createElement(Text, { dimColor: true }, `editing ${path}`),
+    (() => {
+      const widget = currentWidget(state);
+      const label = widget ? selectedWidgetLabel(widget.type) : "(+ add widget)";
+      return React.createElement(Text, { color: "cyan" }, `selected: ${label}`);
+    })(),
     React.createElement(
       Box,
       { marginTop: 1 },
@@ -313,18 +403,24 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
       ? React.createElement(
           Text,
           { color: "yellow" },
-          " ● unsaved changes — press S to save, q/Esc to discard ",
+          " ● unsaved changes — press s to save, q/Esc to discard ",
         )
       : null,
-    statusMessage
-      ? React.createElement(Text, { color: "green" }, ` ${statusMessage} `)
-      : null,
+    statusMessage ? React.createElement(Text, { color: "green" }, ` ${statusMessage} `) : null,
     state.mode === "picker-group"
-      ? React.createElement(PickerGroup, {
-          entries: widgetEntries,
-          highlight: stepHighlight,
-          glyphs,
-        })
+      ? stepQuery.length > 0
+        ? React.createElement(PickerSearch, {
+            entries: widgetEntries,
+            query: stepQuery,
+            highlight: stepHighlight,
+            exclude: usedTypes,
+          })
+        : React.createElement(PickerGroup, {
+            entries: widgetEntries,
+            highlight: stepHighlight,
+            glyphs,
+            exclude: usedTypes,
+          })
       : null,
     state.mode === "picker-widget" && state.pickerDraft.category
       ? React.createElement(PickerWidget, {
@@ -332,56 +428,24 @@ function App({ initialConfig, path, previewTheme, glyphs, onSaved }: AppProps): 
           entries: widgetEntries,
           query: stepQuery,
           highlight: stepHighlight,
+          exclude: usedTypes,
         })
       : null,
     state.mode === "picker-variant" && state.pickerDraft.widgetType
       ? React.createElement(PickerVariant, {
           widgetType: state.pickerDraft.widgetType,
-          mode: state.pickerTarget.kind === "update" ? "update" : "fresh",
+          mode: "fresh",
           highlight: stepHighlight,
         })
       : null,
-    showHelp ? helpOverlay(bindings) : null,
   );
 }
 
-const SCOPE_ORDER = ["edit", "picker", "any"] as const;
-const SCOPE_HEADING: Record<KeyScope, string> = {
-  edit: "in the preview",
-  picker: "in the widget picker",
-  any: "any time",
-};
-
 /** Map the reducer's mode (which includes the three picker steps) onto the
- *  display scope used by the footer + help overlay. */
+ *  display scope used by the footer. */
 function modeToScope(mode: EditorMode): KeyScope {
   if (isPickerMode(mode)) return "picker";
   return "edit";
-}
-
-function helpOverlay(bindings: readonly KeyBinding[]): React.ReactElement {
-  const widest = bindings.reduce((n, b) => Math.max(n, b.key.length), 0);
-  const groups: React.ReactElement[] = [];
-  for (const scope of SCOPE_ORDER) {
-    const inScope = bindings.filter((b) => b.scope === scope);
-    if (inScope.length === 0) continue;
-    groups.push(
-      React.createElement(Text, { key: `h-${scope}`, bold: true }, `\n${SCOPE_HEADING[scope]}`),
-      ...inScope.map((b) =>
-        React.createElement(
-          Text,
-          { key: `${scope}-${b.action}` },
-          `  ${b.key.padEnd(widest, " ")}  ${b.description}`,
-        ),
-      ),
-    );
-  }
-  return React.createElement(
-    Box,
-    { flexDirection: "column", borderStyle: "round", borderColor: "cyan", paddingX: 1, marginTop: 1 },
-    React.createElement(Text, { bold: true }, "keys — press any key to close"),
-    ...groups,
-  );
 }
 
 /** Short labels for the two-line footer. Falls back to the binding's description. */
@@ -393,7 +457,6 @@ const FOOTER_LABEL: Record<string, string> = {
   "edit-widget": "+add",
   add: "add",
   replace: "replace",
-  update: "update (variant)",
   delete: "delete",
   save: "save",
   "toggle-glyphs": "glyphs on/off",
@@ -402,7 +465,6 @@ const FOOTER_LABEL: Record<string, string> = {
   "picker-confirm": "confirm",
   "picker-back": "back",
   quit: "quit",
-  help: "help",
 };
 
 /** Actions that describe navigation / motion — surfaced on the footer's first line. */
@@ -430,6 +492,61 @@ export function footerLines(
     motion: motion.map(fmt).join(" · "),
     actions: actions.map(fmt).join(" · "),
   };
+}
+
+/**
+ * ANSI: erase display + erase scrollback (xterm `3J`) + cursor home.
+ * Mirrors `ansi-escapes.clearTerminal` — the same sequence Ink itself
+ * emits when content overflows the viewport (ink.js:122). Prepended to
+ * every Ink frame so each redraw paints into a blank screen *and* a
+ * blank scrollback buffer.
+ *
+ * Why `3J` and not just `2J`: `2J` only erases the visible region;
+ * xterm-compatible terminals push the just-cleared rows into scrollback
+ * rather than discarding them. In terminals where alt-screen entry is
+ * ignored (Warp, tmux without `alternate-screen on`, some Apple Terminal
+ * configurations), `2J` alone lets every prior editor frame accumulate
+ * in the host's scrollback — exactly the stacking symptom users see when
+ * arrow-navigating. The `3J` wipes that scrollback so stacking can't
+ * survive even when alt-screen isn't fully effective.
+ */
+const FULLSCREEN_RESET = "\x1b[2J\x1b[3J\x1b[H";
+
+/**
+ * Wrap a TTY stream so every `.write()` call is preceded by a
+ * cursor-home + clear-screen sequence. Ink's default log-update pipeline
+ * tracks the cursor between frames and issues cursor-up / erase-line
+ * sequences to redraw in place. That breaks down whenever the previous
+ * frame overflowed the viewport (the cursor caps at the top of the
+ * terminal, leaving any scrolled-out content visible above the new
+ * frame). Forcing each frame to start at (1,1) on a cleared buffer
+ * eliminates the stacked-frame artefact users see when the editor
+ * preview wraps onto extra rows.
+ *
+ * Non-TTY streams (CI, redirected output, vitest) are returned
+ * unchanged so test transcripts and recorded output stay clean.
+ */
+export function fullscreenStream(target: NodeJS.WriteStream): NodeJS.WriteStream {
+  if (!target.isTTY) return target;
+  return new Proxy(target, {
+    get(t, prop, receiver) {
+      if (prop === "write") {
+        return (chunk: string | Uint8Array, ...rest: unknown[]): boolean => {
+          const data = typeof chunk === "string" ? chunk : Buffer.from(chunk).toString();
+          // Use Reflect.apply so the underlying stream's `this` is the
+          // real WriteStream — the EventEmitter machinery relies on it.
+          return Reflect.apply(t.write as (...args: unknown[]) => boolean, t, [
+            `${FULLSCREEN_RESET}${data}`,
+            ...rest,
+          ]);
+        };
+      }
+      const value = Reflect.get(t, prop, receiver);
+      // Functions on a Node stream must be invoked with the real stream
+      // as `this` — the Proxy is not a substitute for the EventEmitter.
+      return typeof value === "function" ? value.bind(t) : value;
+    },
+  }) as NodeJS.WriteStream;
 }
 
 /**
@@ -479,6 +596,7 @@ function mountEditor(
   path: string,
   previewTheme: Theme | null,
   glyphs: EditorGlyphs,
+  nerdFontAvailable: boolean,
 ): {
   readonly waitUntilExit: Promise<void>;
   readonly unmount: () => void;
@@ -492,11 +610,16 @@ function mountEditor(
       path,
       previewTheme,
       glyphs,
+      nerdFontAvailable,
       onSaved: (saved) => {
         savedRef.value = saved;
       },
     }),
-    { patchConsole: false, exitOnCtrlC: true },
+    {
+      stdout: fullscreenStream(process.stdout),
+      patchConsole: false,
+      exitOnCtrlC: true,
+    },
   );
   // Restore the alt-screen on every exit path — save, q, Esc, exception.
   const waitUntilExit = inst.waitUntilExit().finally(leaveAltScreen);
@@ -506,15 +629,36 @@ function mountEditor(
 async function resolveStartingConfig(
   input: RunConfigInput,
 ): Promise<{ config: AgentlineConfig; path: string }> {
-  if (input.preloaded) return input.preloaded;
+  if (input.preloaded) {
+    return { config: pruneStaleWidgets(input.preloaded.config), path: input.preloaded.path };
+  }
   const env = resolveEnv(input);
   const paths = resolveConfigPaths(env);
   try {
     const loaded = await loadConfig({ env });
-    return { config: loaded.config, path: paths.userConfig };
+    return { config: pruneStaleWidgets(loaded.config), path: paths.userConfig };
   } catch {
     return { config: DEFAULT_CONFIG, path: paths.userConfig };
   }
+}
+
+/**
+ * Drop widgets whose `type` isn't in the catalogue. Such widgets can't be
+ * recreated through the picker (`add` / `update` only know catalogued
+ * types), so leaving them in the edit view would show navigable chips
+ * the user has no way to repair. Removing them at load time keeps the
+ * editor's `lines` and the preview slots in lock-step, and a subsequent
+ * save cleans the on-disk config.
+ */
+export function pruneStaleWidgets(config: AgentlineConfig): AgentlineConfig {
+  let changed = false;
+  const lines = config.lines.map((line) => {
+    const kept = line.widgets.filter((w) => widgetMeta(w.type) !== undefined);
+    if (kept.length === line.widgets.length) return line;
+    changed = true;
+    return { ...line, widgets: kept };
+  });
+  return changed ? { ...config, lines } : config;
 }
 
 export default runConfigCommand;

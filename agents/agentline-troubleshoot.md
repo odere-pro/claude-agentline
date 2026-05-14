@@ -29,18 +29,18 @@ Read the output. Each line has a check ID (D01–D10) and a glyph:
 
 ## Step 2 — match the failing check
 
-| Check | Problem                               | Fix                                                 |
-| ----- | ------------------------------------- | --------------------------------------------------- |
-| D01   | `~/.claude/settings.json` missing     | `agentline doctor --fix`                            |
-| D02   | `statusLine` not wired to agentline   | `agentline doctor --fix` or `agentline install`     |
-| D03   | user config missing or invalid schema | `agentline doctor --fix` or `agentline config init` |
-| D04   | theme file missing                    | `agentline doctor --fix`                            |
-| D05   | Nerd Font absent (Powerline only)     | install font; doctor prints the command             |
-| D06   | `git` not on PATH                     | install git                                         |
-| D07   | pricing table older than 90 days      | `npm install -g @agentline/cli@latest`              |
-| D08   | `CLAUDE_CONFIG_DIR` not writable      | fix directory permissions                           |
-| D09   | `command` widget `cmd` not found      | check the command is on PATH                        |
-| D10   | render snapshot mismatch              | file a bug; capture `agentline doctor` output       |
+| Check | Problem                               | Fix                                             |
+| ----- | ------------------------------------- | ----------------------------------------------- |
+| D01   | `~/.claude/settings.json` missing     | `agentline doctor --fix`                        |
+| D02   | `statusLine` not wired to agentline   | `agentline doctor --fix` or `agentline install` |
+| D03   | user config missing or invalid schema | `agentline doctor --fix` or `agentline install` |
+| D04   | theme file missing                    | `agentline doctor --fix`                        |
+| D05   | Nerd Font absent (Powerline only)     | install font; doctor prints the command         |
+| D06   | `git` not on PATH                     | install git                                     |
+| D07   | pricing table older than 90 days      | `npm install -g @agentline/cli@latest`          |
+| D08   | `CLAUDE_CONFIG_DIR` not writable      | fix directory permissions                       |
+| D09   | `command` widget `cmd` not found      | check the command is on PATH                    |
+| D10   | render snapshot mismatch              | file a bug; capture `agentline doctor` output   |
 
 ---
 
@@ -77,8 +77,9 @@ Or disable colour entirely with `NO_COLOR=1` in your shell env, then restart Cla
 agentline reads a single user config at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`. There is no project layer; a `.agentline.json` in the cwd is silently ignored.
 
 ```bash
-agentline doctor --strict                  # D03 shows the exact problem
-agentline config init --preset default     # scaffold a valid file
+agentline doctor --strict                                # D03 shows the exact problem
+rm "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json"   # scrap the broken file
+agentline install                                        # reseed the default template
 ```
 
 ---
@@ -86,8 +87,8 @@ agentline config init --preset default     # scaffold a valid file
 ## Reset everything
 
 ```bash
-agentline config init --force --preset default   # reset the user config
-agentline uninstall --purge && agentline install # full wipe + reinstall
+rm "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json"   # reset just the config
+agentline uninstall --purge && agentline install         # full wipe + reinstall
 ```
 
 Full reference → [troubleshooting.md](../docs/troubleshooting.md) · [doctor.md](../docs/doctor.md)

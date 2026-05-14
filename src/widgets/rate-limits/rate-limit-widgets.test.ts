@@ -1,3 +1,12 @@
+/**
+ * Consolidated test surface for every widget in `src/widgets/rate-limits/`.
+ *
+ * Rate-limit widgets (timers, reset-at, usage) share common patterns and
+ * test fixtures. They were consolidated into a single file to speed up the
+ * test run and reduce boilerplate. Trade-off: a single failure masks which
+ * widget broke. If frequent churn occurs, re-split into per-widget files.
+ */
+
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_CONFIG } from "../../config/index.js";
@@ -10,6 +19,7 @@ import type { WidgetContext } from "../context.js";
 import { WidgetRegistry } from "../registry.js";
 
 import { formatDuration, resolveDurationFormat } from "./duration.js";
+import { blockResetAtWidget, weeklyResetAtWidget } from "./reset-at.js";
 import { blockResetTimerWidget, weeklyResetTimerWidget } from "./timers.js";
 import { sessionUsageWidget } from "./usage.js";
 import { RATE_LIMIT_WIDGETS, registerRateLimitWidgets } from "./index.js";
@@ -149,13 +159,22 @@ describe("session-usage widget", () => {
     expect(cell.text).toBe("60%");
   });
 
-  it("colour grades via tokens-low / mid / high roles", () => {
+  it("colour grades via tokens-high at 90%", () => {
     const snap = makeSnapshot([recent({ inputTokens: 90_000 })], { now: NOW });
     const cell = sessionUsageWidget.render(makeCtx(snap), {
       options: { limit: 100_000 },
       rawValue: false,
     });
     expect(cell.fg).toBe(DEFAULT_PALETTE["tokens-high"]);
+  });
+
+  it("colour grades via tokens-low below 60%", () => {
+    const snap = makeSnapshot([recent({ inputTokens: 30_000 })], { now: NOW });
+    const cell = sessionUsageWidget.render(makeCtx(snap), {
+      options: { limit: 100_000 },
+      rawValue: false,
+    });
+    expect(cell.fg).toBe(DEFAULT_PALETTE["tokens-low"]);
   });
 
   it("renders a 12-cell bar by default for display=bar", () => {
@@ -255,6 +274,20 @@ describe("block-reset-timer widget", () => {
     });
     expect(cell.text).toBe("5h0m");
   });
+
+  it("respects a custom label override", () => {
+    const anchor = Date.parse("2026-05-01T00:00:00Z");
+    const now = anchor + 4 * HOUR_MS;
+    const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
+      now,
+      blockAnchor: anchor,
+    });
+    const cell = blockResetTimerWidget.render(makeCtx(snap), {
+      options: { label: "reset in: " },
+      rawValue: false,
+    });
+    expect(cell.text).toMatch(/^reset in: /);
+  });
 });
 
 describe("weekly-reset-timer widget", () => {
@@ -279,5 +312,131 @@ describe("weekly-reset-timer widget", () => {
       rawValue: false,
     });
     expect(cell.text.startsWith("week resets ")).toBe(true);
+  });
+
+  it("rawValue strips the default label", () => {
+    const snap = makeSnapshot([], { now: Date.parse("2026-04-28T12:00:00Z") });
+    const cell = weeklyResetTimerWidget.render(makeCtx(snap), {
+      options: {},
+      rawValue: true,
+    });
+    expect(cell.text.startsWith("week resets ")).toBe(false);
+    expect(/\d/.test(cell.text)).toBe(true);
+  });
+});
+
+describe("block-reset-at widget", () => {
+  it("renders the wall-clock of the next block reset with default label", () => {
+    const anchor = Date.parse("2026-05-01T13:00:00Z");
+    const now = anchor + HOUR_MS;
+    const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
+      now,
+      blockAnchor: anchor,
+    });
+    const cell = blockResetAtWidget.render(makeCtx(snap), {
+      options: { tz: "UTC" },
+      rawValue: false,
+    });
+    // 5h block anchored at 13:00 UTC → next reset at 18:00 UTC.
+    expect(cell.text).toBe("resets 18:00");
+  });
+
+  it("rawValue strips the default label", () => {
+    const anchor = Date.parse("2026-05-01T13:00:00Z");
+    const now = anchor + HOUR_MS;
+    const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
+      now,
+      blockAnchor: anchor,
+    });
+    const cell = blockResetAtWidget.render(makeCtx(snap), {
+      options: { tz: "UTC" },
+      rawValue: true,
+    });
+    expect(cell.text).toBe("18:00");
+  });
+
+  it("honours options.format (12-hour with am/pm)", () => {
+    const anchor = Date.parse("2026-05-01T13:00:00Z");
+    const now = anchor + HOUR_MS;
+    const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
+      now,
+      blockAnchor: anchor,
+    });
+    const cell = blockResetAtWidget.render(makeCtx(snap), {
+      options: { format: "h:mma", tz: "UTC" },
+      rawValue: true,
+    });
+    expect(cell.text).toBe("6:00pm");
+  });
+
+  it("falls back to now + 5h when no snapshot is present", () => {
+    const ctx = {
+      stdin: baseStdin,
+      config: DEFAULT_CONFIG,
+      theme: null,
+      clock: frozenClock("2026-05-01T13:00:00Z"),
+      env: {},
+    } as WidgetContext;
+    const cell = blockResetAtWidget.render(ctx, {
+      options: { tz: "UTC" },
+      rawValue: true,
+    });
+    expect(cell.text).toBe("18:00");
+  });
+
+  it("respects a custom label", () => {
+    const anchor = Date.parse("2026-05-01T13:00:00Z");
+    const now = anchor + HOUR_MS;
+    const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
+      now,
+      blockAnchor: anchor,
+    });
+    const cell = blockResetAtWidget.render(makeCtx(snap), {
+      options: { label: "next ", tz: "UTC" },
+      rawValue: false,
+    });
+    expect(cell.text).toBe("next 18:00");
+  });
+});
+
+describe("weekly-reset-at widget", () => {
+  it("renders with 'week resets ' default label", () => {
+    const snap = makeSnapshot([], { now: Date.parse("2026-04-28T12:00:00Z") });
+    const cell = weeklyResetAtWidget.render(makeCtx(snap), {
+      options: {},
+      rawValue: false,
+    });
+    expect(cell.text.startsWith("week resets ")).toBe(true);
+  });
+
+  it("emits a HH:mm clock body after the label", () => {
+    const snap = makeSnapshot([], { now: Date.parse("2026-04-28T12:00:00Z") });
+    const cell = weeklyResetAtWidget.render(makeCtx(snap), {
+      options: {},
+      rawValue: false,
+    });
+    expect(cell.text).toMatch(/^week resets \d{2}:\d{2}$/);
+  });
+
+  it("works without a snapshot (clock-only)", () => {
+    const ctx = {
+      stdin: baseStdin,
+      config: DEFAULT_CONFIG,
+      theme: null,
+      clock: frozenClock("2026-04-28T12:00:00Z"),
+      env: {},
+    } as WidgetContext;
+    const cell = weeklyResetAtWidget.render(ctx, { options: {}, rawValue: false });
+    expect(cell.text.startsWith("week resets ")).toBe(true);
+  });
+
+  it("rawValue strips the default label", () => {
+    const snap = makeSnapshot([], { now: Date.parse("2026-04-28T12:00:00Z") });
+    const cell = weeklyResetAtWidget.render(makeCtx(snap), {
+      options: {},
+      rawValue: true,
+    });
+    expect(cell.text.startsWith("week resets ")).toBe(false);
+    expect(cell.text).toMatch(/^\d{2}:\d{2}$/);
   });
 });

@@ -16,12 +16,20 @@
  */
 
 import { promises as fs } from "node:fs";
+import { Readable } from "node:stream";
 
 import { isHelpFlag, requestHelp } from "../cli/help.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import { pathExists } from "../lib/fs.js";
+import { saveLastRender } from "../state/render-cache.js";
+import { saveLastStdin } from "../state/stdin-cache.js";
+import { readStdinPayload } from "../stdin/index.js";
+import { loadConfig } from "../config/load.js";
+import { loadGitSnapshot } from "../git/snapshot.js";
+import { loadSessionFields } from "../session/index.js";
+import { loadTokensSnapshot } from "../tokens/index.js";
 import { parseAccessibilityArgs, type AccessibilityFlags } from "./accessibility.js";
-import { renderForFixture } from "./fixture-runner.js";
+import { renderForFixture, type RenderForFixtureOptions } from "./fixture-runner.js";
 
 const HELP = `agentline render — re-render a recorded stdin payload
 
@@ -87,22 +95,94 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     return 1;
   }
   // First-run hint: when this is a live render (no fixture, no --config)
-  // and the user has not saved a config yet, point them at `agentline config init`.
-  // Suppressed for non-TTY stderr (so the host UI is unaffected) and when
-  // AGENTLINE_QUIET=1 is set.
+  // and the user has not saved a config yet, point them at `agentline
+  // install` (which seeds the default template). Suppressed for non-TTY
+  // stderr (so the host UI is unaffected) and when AGENTLINE_QUIET=1 is set.
   if (!fixture && input.args.configPath === undefined) {
     await maybeEmitFirstRunHint();
   }
+  const isLive = !fixture && input.args.configPath === undefined;
+  const liveSnapshots = isLive ? await loadLiveSnapshots(payload) : {};
+  const liveConfig = isLive ? await loadLiveConfig() : undefined;
   const out = await renderForFixture(payload, {
+    ...(liveConfig !== undefined ? { config: liveConfig } : {}),
     ...(input.args.configPath !== undefined ? { configPath: input.args.configPath } : {}),
     ...(input.args.frozenClockISO !== undefined
       ? { frozenClockISO: input.args.frozenClockISO }
       : {}),
     ...(input.args.width !== undefined ? { width: input.args.width } : {}),
     flags: input.args.accessibility,
+    ...liveSnapshots,
   });
   process.stdout.write(out);
+  // Cache the live stdin and the rendered output. Best-effort and
+  // intentionally only on the live path — fixture replays and golden
+  // tests must stay deterministic. The render-cache file backs the
+  // "last statusline" view in `agentline uninstall`.
+  if (!fixture && input.args.configPath === undefined) {
+    await persistLastStdin(payload);
+    await saveLastRender(out, {
+      meta: {
+        ...(input.args.width !== undefined ? { width: input.args.width } : {}),
+        lineCount: out === "" ? 0 : out.split("\n").length,
+      },
+    });
+  }
   return 0;
+}
+
+/**
+ * Load the merged user config for the live `agentline` invocation.
+ * Falls back to `undefined` (which lets `renderForFixture` use
+ * `DEFAULT_CONFIG`) when loading fails — the render still produces a
+ * usable line instead of bailing the whole status bar.
+ */
+async function loadLiveConfig() {
+  try {
+    const loaded = await loadConfig();
+    return loaded.config;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Resolve the per-render-tick snapshots (session, tokens, git) for the
+ * live `agentline` invocation. The fixture / `--config` paths keep
+ * snapshots undefined so goldens and replays stay deterministic; only
+ * the path Claude Code reads on each tick loads them. Without this the
+ * widget context arrives empty and every widget that reads `ctx.git` /
+ * `ctx.tokens` / `ctx.session` hides — leaving only the stdin-only
+ * widgets (model, version, clock, session-id) on the statusline.
+ */
+async function loadLiveSnapshots(
+  rawJson: string,
+): Promise<Pick<RenderForFixtureOptions, "session" | "tokens" | "git">> {
+  let parsed;
+  try {
+    parsed = await readStdinPayload(Readable.from([Buffer.from(rawJson, "utf8")]));
+  } catch {
+    return {};
+  }
+  const env = process.env;
+  const session = loadSessionFields(parsed, { env });
+  const tokens = loadTokensSnapshot({
+    transcriptPath: parsed.transcriptPath,
+    modelId: parsed.model,
+    now: Date.now(),
+  });
+  const git = loadGitSnapshot({ cwd: parsed.cwd, env });
+  return { session, tokens, git };
+}
+
+async function persistLastStdin(rawJson: string): Promise<void> {
+  try {
+    const parsed = await readStdinPayload(Readable.from([Buffer.from(rawJson, "utf8")]));
+    await saveLastStdin(parsed);
+  } catch {
+    // Cache write is best-effort; a malformed payload here would already
+    // have failed the render, and the user can't see this error.
+  }
 }
 
 export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {
@@ -180,7 +260,7 @@ async function maybeEmitFirstRunHint(): Promise<void> {
   const hasUser = await pathExists(paths.userConfig);
   if (hasUser) return;
   process.stderr.write(
-    "# agentline: using built-in defaults — `agentline config init` to customise (silence with AGENTLINE_QUIET=1)\n",
+    "# agentline: using built-in defaults — run `agentline install` to seed a user config (silence with AGENTLINE_QUIET=1)\n",
   );
 }
 

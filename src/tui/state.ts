@@ -17,16 +17,13 @@
  *
  * The picker drill-down
  * ---------------------
- * Add / replace / update share one drill-down:
+ * Add / replace share one drill-down:
  *
  *   step 1 — `picker-group`   — pick a category (`session`, `git`, …).
  *   step 2 — `picker-widget`  — pick a widget within the chosen category.
  *   step 3 — `picker-variant` — pick a variant (same widget, different
  *                                rendering) — *skipped* when the widget
  *                                has no `variants` in the catalogue.
- *
- * `update` is "step 3 only" — the variant of the already-selected
- * widget; the first two steps are skipped (`pickerDraft` is pre-seeded).
  *
  * State shape
  * -----------
@@ -38,8 +35,7 @@
  *   - `mode`         `"edit"` or one of the three `picker-*` steps.
  *   - `pickerTarget` while a `picker-*` mode is active, what to do when
  *                    the variant step confirms — `insert` at `(line,index)`,
- *                    `replace` the widget at `(line,index)`, or `update`
- *                    the variant of the widget at `(line,index)`.
+ *                    or `replace` the widget at `(line,index)`.
  *   - `pickerDraft`  the choices accumulated so far during the drill-down.
  *   - `dirty`        whether anything changed since the last save.
  */
@@ -50,13 +46,9 @@ import { widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
 /** Hard cap on statusline rows the editor will create (mirrors `src/config/mutate.ts`). */
 export const MAX_LINES = 3;
 
-export type EditorMode =
-  | "edit"
-  | "picker-group"
-  | "picker-widget"
-  | "picker-variant";
+export type EditorMode = "edit" | "picker-group" | "picker-widget" | "picker-variant";
 
-export type PickerTargetKind = "insert" | "replace" | "update";
+export type PickerTargetKind = "insert" | "replace";
 
 export interface PickerTarget {
   readonly kind: PickerTargetKind;
@@ -90,6 +82,17 @@ export interface EditorState {
    * tracks the editor.
    */
   readonly glyphs: GlyphMode;
+  /**
+   * Memento — snapshot of `lines` + `glyphs` at the last save (or at
+   * initial load). `revert` restores from this snapshot, discarding any
+   * unsaved edits. `mark-clean` refreshes it on successful save.
+   */
+  readonly lastSaved: EditorSnapshot;
+}
+
+export interface EditorSnapshot {
+  readonly lines: readonly LineConfig[];
+  readonly glyphs: GlyphMode;
 }
 
 export type EditorAction =
@@ -102,9 +105,8 @@ export type EditorAction =
   | { readonly type: "set-option"; readonly key: string; readonly value: unknown }
   // ── top-level config toggles ─────────────────────────────────────────────
   | { readonly type: "toggle-glyphs" }
-  // ── picker drill-down (add / replace / update) ───────────────────────────
+  // ── picker drill-down (add / replace) ────────────────────────────────────
   | { readonly type: "open-picker"; readonly intent: "add" | "replace" }
-  | { readonly type: "open-update" }
   | { readonly type: "pick-category"; readonly category: WidgetCategory }
   | { readonly type: "pick-widget"; readonly widgetType: string }
   | { readonly type: "pick-variant"; readonly variantId: string | null }
@@ -112,7 +114,9 @@ export type EditorAction =
   | { readonly type: "close-picker" }
   // ── dirty bookkeeping ────────────────────────────────────────────────────
   | { readonly type: "mark-clean" }
-  | { readonly type: "mark-dirty" };
+  | { readonly type: "mark-dirty" }
+  // ── memento (discard unsaved edits, restore last-saved snapshot) ─────────
+  | { readonly type: "revert" };
 
 const FORBIDDEN_OPTION_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
@@ -123,10 +127,7 @@ function padToMaxLines(lines: readonly LineConfig[]): readonly LineConfig[] {
   return trimmed;
 }
 
-export function initialState(
-  lines: readonly LineConfig[],
-  glyphs: GlyphMode = "off",
-): EditorState {
+export function initialState(lines: readonly LineConfig[], glyphs: GlyphMode = "off"): EditorState {
   const padded = padToMaxLines(lines);
   const first = padded[0]!;
   return Object.freeze<EditorState>({
@@ -137,6 +138,7 @@ export function initialState(
     pickerDraft: {},
     dirty: false,
     glyphs,
+    lastSaved: { lines: padded, glyphs },
   });
 }
 
@@ -158,8 +160,6 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
       };
     case "open-picker":
       return openPicker(state, action.intent);
-    case "open-update":
-      return openUpdate(state);
     case "pick-category":
       return pickCategory(state, action.category);
     case "pick-widget":
@@ -171,10 +171,33 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
     case "close-picker":
       return isPickerMode(state.mode) ? backToEdit(state) : state;
     case "mark-clean":
-      return state.dirty ? { ...state, dirty: false } : state;
+      // Refresh the memento on save so a subsequent `revert` returns
+      // here, not to the original loaded config.
+      return {
+        ...state,
+        dirty: false,
+        lastSaved: { lines: state.lines, glyphs: state.glyphs },
+      };
     case "mark-dirty":
       return state.dirty ? state : { ...state, dirty: true };
+    case "revert":
+      if (!state.dirty) return state;
+      return {
+        ...state,
+        lines: state.lastSaved.lines,
+        glyphs: state.lastSaved.glyphs,
+        dirty: false,
+        // Pull cursor back into bounds in case the discarded edits had
+        // extended a row beyond what the snapshot contains.
+        cursor: clampCursor(state.cursor, state.lastSaved.lines),
+      };
   }
+}
+
+function clampCursor(cursor: EditorCursor, lines: readonly LineConfig[]): EditorCursor {
+  const line = clamp(cursor.line, 0, Math.max(0, lines.length - 1));
+  const count = lines[line]?.widgets.length ?? 0;
+  return { line, widget: clamp(cursor.widget, 0, count) };
 }
 
 // ─── selectors ──────────────────────────────────────────────────────────────
@@ -295,8 +318,7 @@ function openPicker(state: EditorState, intent: "add" | "replace"): EditorState 
   const onAdd = state.cursor.widget >= widgetCount;
   // "replace" requires a real widget under the cursor — on the add-cell,
   // degrade gracefully to "insert".
-  const effective: PickerTargetKind =
-    intent === "replace" && !onAdd ? "replace" : "insert";
+  const effective: PickerTargetKind = intent === "replace" && !onAdd ? "replace" : "insert";
   // Insert *after* the cursor for `add` on a widget; *at* the cursor for the
   // add-cell (which already points at the row's end). Replace targets the
   // selected widget directly.
@@ -310,20 +332,6 @@ function openPicker(state: EditorState, intent: "add" | "replace"): EditorState 
   };
 }
 
-function openUpdate(state: EditorState): EditorState {
-  const widget = currentWidget(state);
-  if (!widget) return state;
-  // No-op when the widget has no variants — the editor surfaces a status
-  // message in that case rather than opening an empty picker step.
-  if (widgetVariants(widget.type).length === 0) return state;
-  return {
-    ...state,
-    mode: "picker-variant",
-    pickerTarget: { kind: "update", line: state.cursor.line, index: state.cursor.widget },
-    pickerDraft: { widgetType: widget.type },
-  };
-}
-
 function pickCategory(state: EditorState, category: WidgetCategory): EditorState {
   if (state.mode !== "picker-group") return state;
   return {
@@ -334,7 +342,11 @@ function pickCategory(state: EditorState, category: WidgetCategory): EditorState
 }
 
 function pickWidget(state: EditorState, widgetType: string): EditorState {
-  if (state.mode !== "picker-widget") return state;
+  // Allow `pickWidget` from either step — `picker-widget` is the in-category
+  // path; `picker-group` is the flat-search path (App-side: typing in step 1
+  // turns the group list into a global filtered list, and Enter commits the
+  // highlighted result without an intermediate category step).
+  if (state.mode !== "picker-widget" && state.mode !== "picker-group") return state;
   if (!widgetType) return backToEdit(state);
   const variants = widgetVariants(widgetType);
   if (variants.length === 0) {
@@ -366,11 +378,13 @@ function pickVariant(state: EditorState, variantId: string | null): EditorState 
 
 function pickerBack(state: EditorState): EditorState {
   if (state.mode === "picker-variant") {
-    // Update-target skips the earlier steps; back-out lands on edit.
-    if (state.pickerTarget.kind === "update") return backToEdit(state);
+    // Route back to the step the user came from: `picker-widget` if they
+    // drilled in via a category, `picker-group` if they picked from the
+    // flat-search list (no category in the draft).
+    const back: EditorMode = state.pickerDraft.category ? "picker-widget" : "picker-group";
     return {
       ...state,
-      mode: "picker-widget",
+      mode: back,
       pickerDraft: { ...state.pickerDraft, widgetType: undefined },
     };
   }
@@ -391,6 +405,42 @@ function backToEdit(state: EditorState): EditorState {
   return { ...state, mode: "edit", pickerDraft: {} };
 }
 
+function commitReplace(
+  state: EditorState,
+  targetLine: number,
+  index: number,
+  fresh: WidgetConfig,
+): EditorState {
+  return {
+    ...state,
+    lines: replaceLine(state.lines, targetLine, {
+      widgets: replaceAt(lineAt(state, targetLine)!.widgets, index, fresh),
+    }),
+    cursor: { line: targetLine, widget: index },
+    mode: "edit",
+    pickerDraft: {},
+    dirty: true,
+  };
+}
+
+function commitInsert(
+  state: EditorState,
+  targetLine: number,
+  index: number,
+  fresh: WidgetConfig,
+): EditorState {
+  const line = lineAt(state, targetLine)!;
+  const widgets = [...line.widgets.slice(0, index), fresh, ...line.widgets.slice(index)];
+  return {
+    ...state,
+    lines: replaceLine(state.lines, targetLine, { widgets }),
+    cursor: { line: targetLine, widget: index },
+    mode: "edit",
+    pickerDraft: {},
+    dirty: true,
+  };
+}
+
 /**
  * Land a chosen `widgetType` + optional variant-options patch into the
  * editor state. Branches on `pickerTarget.kind`:
@@ -398,8 +448,6 @@ function backToEdit(state: EditorState): EditorState {
  *   - `replace` — swap the widget at `target.index`. Prior colour/style
  *                 overrides are dropped so a new widget doesn't inherit
  *                 the previous one's accidents.
- *   - `update`  — keep the widget's `type`, merge the variant patch over
- *                 its existing options.
  */
 function commit(
   state: EditorState,
@@ -410,58 +458,15 @@ function commit(
   const line = lineAt(state, targetLine);
   if (!line) return backToEdit(state);
 
-  if (kind === "update") {
-    const existing = line.widgets[index];
-    if (!existing) return backToEdit(state);
-    const merged = sanitiseOptions({ ...(existing.options ?? {}), ...(variantOptions ?? {}) });
-    const next: WidgetConfig = { ...existing, options: merged };
-    return {
-      ...state,
-      lines: replaceLine(
-        state.lines,
-        targetLine,
-        { widgets: replaceAt(line.widgets, index, next) },
-      ),
-      cursor: { line: targetLine, widget: index },
-      mode: "edit",
-      pickerDraft: {},
-      dirty: true,
-    };
-  }
-
   const fresh: WidgetConfig = variantOptions
     ? { type: widgetType, options: sanitiseOptions({ ...variantOptions }) }
     : { type: widgetType };
 
   if (kind === "replace") {
-    return {
-      ...state,
-      lines: replaceLine(
-        state.lines,
-        targetLine,
-        { widgets: replaceAt(line.widgets, index, fresh) },
-      ),
-      cursor: { line: targetLine, widget: index },
-      mode: "edit",
-      pickerDraft: {},
-      dirty: true,
-    };
+    return commitReplace(state, targetLine, index, fresh);
   }
 
-  // insert
-  const widgets = [
-    ...line.widgets.slice(0, index),
-    fresh,
-    ...line.widgets.slice(index),
-  ];
-  return {
-    ...state,
-    lines: replaceLine(state.lines, targetLine, { widgets }),
-    cursor: { line: targetLine, widget: index },
-    mode: "edit",
-    pickerDraft: {},
-    dirty: true,
-  };
+  return commitInsert(state, targetLine, index, fresh);
 }
 
 function setOption(state: EditorState, key: string, value: unknown): EditorState {

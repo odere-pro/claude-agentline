@@ -39,10 +39,10 @@ Homebrew tap, GitHub Releases native binaries, and curl-installer are explicitly
 - **F7.** Token and rate-limit accumulators are bucketed by a declared `reset` axis (§8.4). Mixed axes never silently combine.
 - **F8.** Git widgets read the working tree implied by the stdin `cwd` field; they MUST NOT shell out to anything other than `git`, and MUST tolerate non-git directories with a hidden render.
 - **F9.** Session info widgets read every field the Claude Code stdin contract exposes (§7.2) and fall back to local auth files where the field is unavailable (§7.2.1).
-- **F10.** A TUI editor (`agentline config`) lets users add, reorder, recolour, and toggle widgets with live preview; configuration changes persist atomically (write-temp-then-rename).
+- **F10.** A TUI editor (`agentline edit`) lets users add, reorder, recolour, and toggle widgets with live preview; configuration changes persist atomically (write-temp-then-rename).
 - **F11.** A doctor command (`agentline doctor [--fix]`) inspects host prerequisites, the wired settings entry, the merged config, and the Nerd Font availability; `--fix` repairs documented misconfigurations.
 - **F12.** A render dry-run (`agentline render --fixture <path>`) reproduces a line from a recorded stdin fixture; output is byte-identical to a real render under the same config.
-- **F13.** A keys command (`agentline config keys [--json]`) prints the active keymap.
+- **F13.** _(retired)_ The editor's keymap is surfaced in the TUI footer; there is no CLI surface for enumerating bindings.
 - **F14.** A schema command (`agentline config schema [--write]`) prints (or writes to disk) the JSON Schema for the configuration.
 - **F15.** A live config-reload loop watches all files in the merged config set; changes apply within one render tick without dropping in-flight stdin reads.
 
@@ -50,7 +50,7 @@ Homebrew tap, GitHub Releases native binaries, and curl-installer are explicitly
 
 - **N1.** **Implementation language.** TypeScript ≥5.4 compiled to ESM JavaScript targeting Node ≥20 LTS. No native modules; pure JS dependencies only. Distributed exclusively as the npm package `@agentline/cli` whose `bin` field exposes `agentline`.
 - **N2.** **Cold-start budget.** ≤120 ms wall-clock p95 from `node` process start to first byte on stdout for a 5-widget single-line config when the package is globally installed (or when npx's tarball cache is warm). Cold-cache `npx -y` is explicitly out of scope of this budget; the install docs steer users to `npm i -g` when the warm path matters.
-- **N3.** **Steady-state render budget.** ≤25 ms p95 per render tick on a 2023 reference machine. The TUI editor and Ink are NEVER imported on the render path; they load only when `agentline config` runs (§9.1).
+- **N3.** **Steady-state render budget.** ≤25 ms p95 per render tick on a 2023 reference machine. The TUI editor and Ink are NEVER imported on the render path; they load only when `agentline edit` runs (§9.1).
 - **N4.** **Memory budget.** Resident set ≤80 MB during a 24-hour interactive session.
 - **N5.** **No remote calls.** No network I/O at render time. Update checks (if any) are gated to a separate command.
 - **N6.** **No mutation of host state.** The render path never writes to disk, environment, or settings. No artefact in the published tarball contains `/Users/`, `/home/`, or `~/.claude/` literals.
@@ -300,9 +300,7 @@ Any other value is a schema error.
 
 ### 4.8 Defaults shipped
 
-`templates/default.config.json` is the config installed by `scripts/install.sh` when no user config exists. Its widget list is documented in §7.10.
-
-`templates/minimal.config.json` is the slimmer alternative selected by `agentline config init --preset minimal`; `templates/presets/maximal.config.json` is the curated "everything on one line" preset selected by `--preset maximal`.
+`templates/default.config.json` is the config installed by `scripts/install.sh` (and the `agentline install` CLI) when no user config exists. Its widget list is documented in §7.10.
 
 ### 4.9 Atomic writes
 
@@ -361,7 +359,7 @@ Roles consumed by built-in widgets are listed in §7.9. A widget without an expl
 
 ### 5.5 Hot-keys
 
-The TUI editor (`agentline config`) renders a key footer (the active scope) and a help overlay (`?`, every binding). Default keymap (override-able via `config.keymap`):
+The TUI editor (`agentline edit`) renders a two-line footer showing every binding in the active scope. Default keymap (override-able via `config.keymap`):
 
 | Key      | Scope  | Action                                                           |
 | -------- | ------ | ---------------------------------------------------------------- |
@@ -381,17 +379,16 @@ The TUI editor (`agentline config`) renders a key footer (the active scope) and 
 | `↵`      | picker | confirm the highlighted row and advance / commit                 |
 | `Esc`    | picker | step back one level (cancels at step 1)                          |
 | `q`      | any    | quit (prompts if there are unsaved changes)                      |
-| `?`      | any    | toggle the help overlay                                          |
 
 Scopes mirror the editor's modes — `edit` (the live preview is the editing
 surface — every row ends in a navigable "+ add widget" cell) and `picker`
 (the three-step widget chooser: pick a group → pick a widget → pick a
 variant; widgets without catalogued variants skip step 3 and commit
 straight from step 2). Per-widget flags (`visible`, `mergeWithPrev`,
-`useRawValue`) are set via `agentline config widget set-option <key>
-<value>` or by editing the config file directly — there is no TUI
-options-sheet overlay. `agentline config keys [--json]` enumerates every
-binding with its scope.
+`useRawValue`) are set by editing the config file directly — there is
+no TUI options-sheet overlay. The editor's two-line footer shows every
+binding for the current scope; the authoritative table lives in
+`src/keys/bindings.ts`.
 
 ### 5.6 Theme presets shipped at v0.1.0
 
@@ -573,21 +570,17 @@ A widget MUST declare its axis; mixed-axis sums are not supported.
 
 ### 9.1 Subcommands
 
-Top-level surface (intentionally small: four verbs plus the default render path). Everything configuration-adjacent lives under `agentline config <sub>`.
+Top-level surface — intentionally flat. The default no-arg path is the render-on-stdin contract; every other verb is a top-level command (no nested `config <sub>` dispatcher).
 
-| Command                                                        | Purpose                                                                      |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `agentline` (no args)                                          | Read stdin, render, exit. Default behaviour wired into `statusLine`          |
-| `agentline render`                                             | Same as no-args; `--fixture <path>` and `--config <path>` flags supported    |
-| `agentline install`                                            | Wire `statusLine` + install agentline skill files                            |
-| `agentline uninstall [--purge]`                                | Reverse install; restore prior `statusLine` from backup                      |
-| `agentline doctor [--fix] [--json]`                            | Diagnose and (optionally) repair                                             |
-| `agentline config`                                             | TUI editor (Ink); writes config atomically. Lazy-imports Ink only here.      |
-| `agentline config init [--preset <name>]`                      | Scaffold the user config from a shipped preset (`minimal\|default\|maximal`) |
-| `agentline config theme [--list\|--show <name>\|--set <name>]` | Inspect themes; `--set` writes `theme: "<name>"` into the config atomically  |
-| `agentline config keys [--json]`                               | Print active keymap                                                          |
-| `agentline config schema [--write <dir>]`                      | Print or write JSON Schema                                                   |
-| `agentline version`                                            | Print version + build metadata                                               |
+| Command                             | Purpose                                                                   |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| `agentline` (no args)               | Read stdin, render, exit. Default behaviour wired into `statusLine`       |
+| `agentline render`                  | Same as no-args; `--fixture <path>` and `--config <path>` flags supported |
+| `agentline install`                 | Wire `statusLine` + install agentline skill files                         |
+| `agentline uninstall [--purge]`     | Reverse install; restore prior `statusLine` from backup                   |
+| `agentline doctor [--fix] [--json]` | Diagnose and (optionally) repair                                          |
+| `agentline edit`                    | TUI editor (Ink); writes config atomically. Lazy-imports Ink only here.   |
+| `agentline version`                 | Print version + build metadata                                            |
 
 ### 9.2 Doctor checks
 
@@ -665,7 +658,7 @@ Every gate ID below is a file `tests/gates/gate-NN-<topic>.sh`; orchestrated by 
 | 14   | No network at render time (verified via sandbox)                                                                        | this spec §1.2 N5 |
 | 15   | Published package smoke-runs on `{macos-13, macos-14, ubuntu-22.04, ubuntu-24.04, windows-2022}` × `{Node 20, Node 22}` | this spec §1.2 N1 |
 | 16   | Accessibility flags produce semantically equivalent output                                                              | this spec §1.2 N8 |
-| 17   | Keymap coverage: every documented binding renders in `agentline config keys --json`                                     | this spec §5.5    |
+| 17   | Keymap coverage: every documented binding is present in the compiled `dist/keys.mjs` (`DEFAULT_KEY_BINDINGS`)           | this spec §5.5    |
 
 Gates dropped vs earlier drafts: plugin-manifest validity, YAML frontmatter, and `hooks/hooks.json` validity — none apply to a CLI-only distribution (§0.1).
 

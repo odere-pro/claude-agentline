@@ -99,17 +99,25 @@ jobs:
           exit 1
 
       - name: Render smoke (gate 15)
+        env:
+          # Isolate config so the live render falls back to
+          # `DEFAULT_CONFIG` (model-only) instead of reading any
+          # `~/.config/agentline/config.json` left on the runner.
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/agentline-smoke-cfg
         run: |
+          mkdir -p "$CLAUDE_CONFIG_DIR"
           # `gate-15` is not a known model id, so the `model` widget
           # falls back to the raw id. The rest of the default config
-          # widgets hide (no transcript, no git repo, etc.) — so the
-          # expected line is simply the raw model id.
-          expected='gate-15'
+          # widgets hide (no transcript, no git repo, etc.). With
+          # DEFAULT_CONFIG.glyphs="nerd-font" the model widget
+          # prepends its Nerd Font glyph (U+F544, nf-md-robot) and a
+          # single space, so the expected line is glyph + " " + id.
+          expected=$'\xef\x95\x84 gate-15'
           actual="$(printf '%s' '{"model":"gate-15","cwd":"/agentline/gate-15"}' | NO_COLOR=1 "${{ steps.prefix.outputs.bin }}")"
           # Trim a single trailing newline so the byte-comparison is shell-agnostic.
           actual="${actual%$'\n'}"
           if [ "${actual}" != "${expected}" ]; then
-            printf 'expected: %s\nactual:   %s\n' "${expected}" "${actual}"
+            printf 'expected: %q\nactual:   %q\n' "${expected}" "${actual}"
             exit 1
           fi
           echo "render smoke matched expected bytes"
