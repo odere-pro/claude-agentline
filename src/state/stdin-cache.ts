@@ -24,7 +24,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { atomicWriteJson } from "../config/atomic.js";
-import type { StdinPayload } from "../stdin/index.js";
+import { adaptStatuslinePayload, type StdinPayload } from "../stdin/index.js";
 
 export const STDIN_CACHE_VERSION = 1 as const;
 
@@ -99,11 +99,28 @@ export function readLastStdinSync(env: NodeJS.ProcessEnv = process.env): CachedS
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
   const o = parsed as Record<string, unknown>;
   if (o.version !== STDIN_CACHE_VERSION) return null;
-  const payload = o.payload;
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+  const cachedPayload = o.payload;
+  if (
+    !cachedPayload ||
+    typeof cachedPayload !== "object" ||
+    Array.isArray(cachedPayload)
+  ) {
+    return null;
+  }
+  // Reconstruct the StdinPayload via the same adapter the live stdin
+  // path uses (`adaptStatuslinePayload`). This re-validates every typed
+  // field instead of trusting the on-disk shape — a stale cache from an
+  // older agentline version whose `StdinPayload` had different field
+  // names won't silently surface as a half-populated object.
+  const cached = cachedPayload as { raw?: unknown; truncated?: unknown };
+  const rawObj = cached.raw;
+  if (!rawObj || typeof rawObj !== "object" || Array.isArray(rawObj)) return null;
+  const payload: StdinPayload = adaptStatuslinePayload(rawObj as Record<string, unknown>, {
+    truncated: typeof cached.truncated === "boolean" ? cached.truncated : false,
+  });
   return {
     version: STDIN_CACHE_VERSION,
     savedAt: typeof o.savedAt === "string" ? o.savedAt : "",
-    payload: payload as StdinPayload,
+    payload,
   };
 }
