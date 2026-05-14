@@ -27,18 +27,16 @@
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import type { AgentlineConfig, WidgetConfig } from "../config/types.js";
 import type { GitState } from "../git/index.js";
-import { loadGitSnapshot } from "../git/snapshot.js";
-import { loadSessionFields, type ResolvedSessionFields } from "../session/index.js";
+import { buildWidgetContext, loadLiveSnapshots } from "../render/context.js";
+import type { ResolvedSessionFields } from "../session/index.js";
+import { readLastStdinSync } from "../state/stdin-cache.js";
 import type { StdinPayload } from "../stdin/index.js";
 import type { Theme } from "../theme/index.js";
-import { loadTokensSnapshot, type TokensSnapshot } from "../tokens/index.js";
+import type { TokensSnapshot } from "../tokens/index.js";
 import type { Cell } from "../widgets/cell.js";
-import type { WidgetContext } from "../widgets/context.js";
 import { realClock } from "../widgets/clock.js";
 import { defaultRegistry, registerAllBuiltins } from "../widgets/index.js";
 import { renderWidget, renderWidgetLabel } from "../widgets/render-widget.js";
-
-import { readLastStdinSync } from "../state/stdin-cache.js";
 
 /** Mode the preview was resolved in. Exposed for tests; consumers don't introspect it. */
 export type PreviewMode =
@@ -75,22 +73,17 @@ let cachedMode: PreviewMode | undefined;
  * Ink can call `previewWidget` from a React render without async
  * plumbing. The TUI bundle is loaded only on `agentline edit`, so this
  * never touches the render hot path.
+ *
+ * `loadLiveSnapshots` (shared with `render/fixture-command.ts`) shells
+ * out to `git` once; we accept that here (not the render hot path) so
+ * widgets such as `git-branch` show the user's actual checkout instead
+ * of a label.
  */
 function computePreviewMode(env: NodeJS.ProcessEnv): PreviewMode {
   const cached = readLastStdinSync(env);
   if (!cached) return { kind: "label" };
-  const payload = cached.payload;
-  const session = loadSessionFields(payload, { env });
-  const tokens = loadTokensSnapshot({
-    transcriptPath: payload.transcriptPath,
-    modelId: payload.model,
-    now: Date.now(),
-  });
-  // `loadGitSnapshot` shells out to `git`; we accept that once per
-  // editor session (not the render hot path) so widgets such as
-  // `git-branch` show the user's actual checkout instead of a label.
-  const git = loadGitSnapshot({ cwd: payload.cwd, env });
-  return { kind: "real", payload, session, tokens, git };
+  const { session, tokens, git } = loadLiveSnapshots(cached.payload, { env });
+  return { kind: "real", payload: cached.payload, session, tokens, git };
 }
 
 /**
@@ -141,15 +134,15 @@ export function previewWidget(
   }
   const effectiveConfig: AgentlineConfig =
     opts.glyphs !== undefined ? { ...DEFAULT_CONFIG, glyphs: opts.glyphs } : DEFAULT_CONFIG;
-  const ctx: WidgetContext = {
-    stdin: mode.payload,
+  const ctx = buildWidgetContext({
+    payload: mode.payload,
     config: effectiveConfig,
     theme: opts.theme ?? null,
     clock: realClock,
     env: opts.env ?? {},
-    session: mode.session,
     tokens: mode.tokens,
     git: mode.git,
-  };
+    session: mode.session,
+  });
   return renderWidget(builtinRegistry(), config, ctx);
 }
