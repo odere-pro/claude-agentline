@@ -140,6 +140,25 @@ function resolveNerdFontAvailable(env: NodeJS.ProcessEnv): boolean {
   return status === null ? true : status.available;
 }
 
+/**
+ * Mutable container exposing the in-flight save promise. The editor and
+ * the signal handler (in `enterAltScreen`) share one instance so a
+ * SIGTERM mid-save can await the atomic write before terminating —
+ * otherwise the rename-temp step gets killed and leaves an orphan
+ * `.tmp.<hex>` file in the agentline config directory.
+ *
+ * `inFlight` is `null` between saves; while a save is running it holds
+ * the awaitable returned by `onSave`. Settled promises clear the field
+ * back to `null` so subsequent saves can claim the slot.
+ */
+export interface SaveTracker {
+  inFlight: Promise<void> | null;
+}
+
+export function createSaveTracker(): SaveTracker {
+  return { inFlight: null };
+}
+
 interface AppProps {
   readonly initialConfig: AgentlineConfig;
   readonly path: string;
@@ -148,6 +167,12 @@ interface AppProps {
   /** `false` when the install probe didn't find a Nerd Font; locks the `g` toggle to "off". */
   readonly nerdFontAvailable: boolean;
   readonly onSaved: (saved: boolean) => void;
+  /**
+   * Shared in-flight save tracker. The signal handler in `enterAltScreen`
+   * reads from the same object so SIGTERM mid-save waits for the atomic
+   * write to finish before exiting.
+   */
+  readonly saveTracker: SaveTracker;
 }
 
 function App({
@@ -157,6 +182,7 @@ function App({
   glyphs,
   nerdFontAvailable,
   onSaved,
+  saveTracker,
 }: AppProps): React.ReactElement {
   const { exit } = useApp();
   const [state, dispatch] = useReducer(reduce, initialConfig, (cfg) =>
@@ -167,7 +193,6 @@ function App({
   // starts with a clean filter and the highlight at row 0.
   const [stepQuery, setStepQuery] = useState("");
   const [stepHighlight, setStepHighlight] = useState(0);
-  const saveInFlight = React.useRef(false);
   const bindings = useMemo(
     () => listBindings(initialConfig.keymap as Record<string, string> | undefined),
     [initialConfig.keymap],
@@ -197,27 +222,37 @@ function App({
     setStepHighlight(0);
   }, [state.mode, state.pickerDraft.category, state.pickerDraft.widgetType]);
 
-  const onSave = useCallback(async () => {
-    if (saveInFlight.current) return;
-    saveInFlight.current = true;
-    try {
-      await saveEditedConfig({
-        path,
-        base: initialConfig,
-        lines: state.lines,
-        glyphs: state.glyphs,
-      });
-      dispatch({ type: "mark-clean" });
-      setStatusMessage(
-        `saved → ${path} — run "agentline start" to preview, or Restart Claude Code`,
-      );
-      onSaved(true);
-    } catch (err) {
-      setStatusMessage(`save failed: ${(err as Error).message}`);
-    } finally {
-      saveInFlight.current = false;
-    }
-  }, [initialConfig, onSaved, path, state.lines, state.glyphs]);
+  const onSave = useCallback(async (): Promise<void> => {
+    // Re-entry guard: a second `s` keypress during an in-flight save
+    // returns the existing promise so callers can still await
+    // completion. The previous boolean ref worked because `useInput`
+    // fires synchronously, but a Promise reference makes the contract
+    // explicit and lets the SIGTERM handler in `enterAltScreen` await
+    // the same value.
+    if (saveTracker.inFlight) return saveTracker.inFlight;
+    const promise = (async () => {
+      try {
+        await saveEditedConfig({
+          path,
+          base: initialConfig,
+          lines: state.lines,
+          glyphs: state.glyphs,
+        });
+        dispatch({ type: "mark-clean" });
+        setStatusMessage(
+          `saved → ${path} — run "agentline start" to preview, or Restart Claude Code`,
+        );
+        onSaved(true);
+      } catch (err) {
+        setStatusMessage(`save failed: ${(err as Error).message}`);
+      }
+    })();
+    saveTracker.inFlight = promise;
+    void promise.finally(() => {
+      if (saveTracker.inFlight === promise) saveTracker.inFlight = null;
+    });
+    return promise;
+  }, [initialConfig, onSaved, path, state.lines, state.glyphs, saveTracker]);
 
   // Each picker step has its own handler; each returns true if it
   // consumed the keypress so `useInput` can short-circuit. The edit
@@ -366,7 +401,7 @@ function App({
         return;
       }
       if (input === "s" || input === "S" || (key.ctrl && input === "s")) {
-        if (saveInFlight.current) return;
+        if (saveTracker.inFlight) return;
         // Defense-in-depth: `onSave` catches its own errors today, but
         // `void` would silently swallow any rejection that ever leaked
         // through. Surface it in the status line instead.
@@ -422,7 +457,7 @@ function App({
         return;
       }
     },
-    [exit, nerdFontAvailable, onSave, onSaved, state],
+    [exit, nerdFontAvailable, onSave, onSaved, state, saveTracker],
   );
 
   useInput((input, key) => {
@@ -629,6 +664,24 @@ export function fullscreenStream(target: NodeJS.WriteStream): NodeJS.WriteStream
   }) as NodeJS.WriteStream;
 }
 
+export interface EnterAltScreenOptions {
+  /**
+   * Optional callback the SIGTERM handler awaits before restoring the
+   * scrollback and calling `process.exit`. Pass a getter (not a
+   * promise) so the handler reads the *current* in-flight save at the
+   * moment the signal arrives; an arrow function that returns
+   * `saveTracker.inFlight` is the intended shape. Returning `null` (or
+   * a promise that rejects) lets the handler exit immediately.
+   *
+   * The exit waits at most one promise — if the callback returns a
+   * promise that never settles, the process stays alive until the
+   * caller's host kills it. That trade-off is preferable to killing a
+   * mid-flight atomic write and leaving an orphan `.tmp.<hex>` file
+   * in the agentline config directory.
+   */
+  readonly awaitBeforeExit?: () => Promise<void> | null;
+}
+
 /**
  * Enter the terminal's alternate-screen buffer for the duration of an
  * editor session and return a finalizer that restores the prior shell
@@ -644,7 +697,10 @@ export function fullscreenStream(target: NodeJS.WriteStream): NodeJS.WriteStream
  * The finalizer also fires from a SIGINT / SIGTERM handler so a Ctrl-C
  * mid-edit doesn't leave the terminal stuck in the alt buffer.
  */
-export function enterAltScreen(stream: NodeJS.WriteStream = process.stdout): () => void {
+export function enterAltScreen(
+  stream: NodeJS.WriteStream = process.stdout,
+  options: EnterAltScreenOptions = {},
+): () => void {
   if (!stream.isTTY) return () => undefined;
   const ENTER = "\x1b[?1049h";
   const LEAVE = "\x1b[?1049l";
@@ -657,13 +713,34 @@ export function enterAltScreen(stream: NodeJS.WriteStream = process.stdout): () 
   };
   // POSIX exit-code convention for a signal-terminated process is
   // `128 + signal_number`. SIGTERM = 15.
-  const SIGTERM_EXIT_CODE = 128 + 15;
+  const SIGTERM_SIGNAL = 15;
+  const SIGTERM_EXIT_CODE = 128 + SIGTERM_SIGNAL;
   const onSignal = (signal: NodeJS.Signals): void => {
-    restore();
-    // Ink owns SIGINT via exitOnCtrlC (default true). For SIGTERM we
-    // re-raise the default exit code so the host shell sees the signal
-    // rather than a polite zero exit.
-    if (signal === "SIGTERM") process.exit(SIGTERM_EXIT_CODE);
+    // Ink owns SIGINT via exitOnCtrlC (default true). For SIGINT we
+    // restore the scrollback and let Ink drive exit. For SIGTERM we
+    // wait for any in-flight save (so an atomic write isn't killed
+    // between fsync and rename) and then re-raise the default exit
+    // code so the host shell sees the signal rather than a polite
+    // zero exit.
+    if (signal !== "SIGTERM") {
+      restore();
+      return;
+    }
+    const inFlight = options.awaitBeforeExit?.();
+    if (inFlight) {
+      // Keep the alt-screen up until the save settles so the user
+      // doesn't see a half-redrawn shell while the rename completes.
+      // `.finally` runs regardless of resolution; we deliberately
+      // suppress any rejection — the save callback already surfaces
+      // errors to the editor's status line.
+      void inFlight.finally(() => {
+        restore();
+        process.exit(SIGTERM_EXIT_CODE);
+      });
+    } else {
+      restore();
+      process.exit(SIGTERM_EXIT_CODE);
+    }
   };
   process.once("SIGINT", onSignal);
   process.once("SIGTERM", onSignal);
@@ -686,7 +763,10 @@ function mountEditor(
   readonly savedRef: { value: boolean };
 } {
   const savedRef = { value: false };
-  const leaveAltScreen = enterAltScreen();
+  const saveTracker = createSaveTracker();
+  const leaveAltScreen = enterAltScreen(process.stdout, {
+    awaitBeforeExit: () => saveTracker.inFlight,
+  });
   const inst = render(
     React.createElement(App, {
       initialConfig: config,
@@ -697,6 +777,7 @@ function mountEditor(
       onSaved: (saved) => {
         savedRef.value = saved;
       },
+      saveTracker,
     }),
     {
       stdout: fullscreenStream(process.stdout),
