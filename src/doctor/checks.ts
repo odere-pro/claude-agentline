@@ -18,7 +18,10 @@ import { promisify } from "node:util";
 import { loadConfig, type AgentlineConfig } from "../config/index.js";
 import { resolveEnv } from "../lib/env.js";
 import { pathExists } from "../lib/fs.js";
+import { readVersionCheckSync } from "../state/version-check-cache.js";
 import { PRICING_TABLE_VERSION } from "../tokens/pricing.js";
+import { isNewer } from "../update-check/refresh.js";
+import { AGENTLINE_VERSION } from "../version.js";
 import { runEmbeddedRenderFixture } from "./fixture.js";
 import type { CheckResult, RunOptions } from "./types.js";
 
@@ -67,6 +70,7 @@ export async function runChecks(opts: RunOptions): Promise<CheckResult[]> {
     await checkD06(ctx),
     await checkD07(ctx),
     await checkD08(ctx),
+    await checkD09(ctx),
     await checkD10(ctx),
   ];
 }
@@ -279,6 +283,50 @@ async function checkD08(ctx: CheckCtx): Promise<CheckResult> {
       hint: "chown / chmod the directory, or unset CLAUDE_CONFIG_DIR to fall back to ~/.config",
     };
   }
+}
+
+/**
+ * D09 — Update-check cache (read-only). Surfaces a hint when the cache
+ * says a newer `@agentline/cli` exists. Never initiates a fetch from
+ * inside `runChecks`; the cache is refreshed by `install`, `edit`,
+ * and any future explicit refresh entry point. A missing cache or
+ * registry-unreachable state is reported as `pass` with an
+ * explanation — none of that is "broken host wiring".
+ */
+async function checkD09(ctx: CheckCtx): Promise<CheckResult> {
+  const cache = readVersionCheckSync(ctx.env);
+  if (cache === null) {
+    return {
+      id: "D09",
+      title: "Update check",
+      status: "pass",
+      message: `no cached check yet (current: ${AGENTLINE_VERSION})`,
+      hint: "run `agentline install` or `agentline edit` to populate the cache",
+    };
+  }
+  if (cache.latest === null) {
+    return {
+      id: "D09",
+      title: "Update check",
+      status: "pass",
+      message: `last probe failed; running ${AGENTLINE_VERSION}`,
+    };
+  }
+  if (isNewer(cache.latest, AGENTLINE_VERSION)) {
+    return {
+      id: "D09",
+      title: "Update check",
+      status: "pass",
+      message: `update available: ${AGENTLINE_VERSION} → ${cache.latest}`,
+      hint: "npm i -g @agentline/cli",
+    };
+  }
+  return {
+    id: "D09",
+    title: "Update check",
+    status: "pass",
+    message: `up to date (${AGENTLINE_VERSION})`,
+  };
 }
 
 /** D10 — Render dry-run on embedded fixture matches snapshot. */
