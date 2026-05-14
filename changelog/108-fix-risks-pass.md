@@ -1,0 +1,5 @@
+- Dedupe `MAX_LINES`: `src/tui/state.ts` now imports the constant from `src/config/mutate.ts` (and re-exports it) instead of redeclaring its own `= 3`, so the editor and persistence layer can't drift apart.
+- Add `tests/gates/gate-19-render-no-tui-import.sh`: fails CI if any `.ts` file outside `src/tui/` statically imports `ink`, `react`, or a `src/tui/` path. The lazy URL import in `src/cli.ts` stays the only allowed seam between the render path and the editor.
+- `SECURITY.md` now spells out the subprocess carve-outs (git, optional gh, fc-list / system_profiler — all via `execFile` with bounded timeout, buffer, `windowsHide`, no shell) and points at gate-19 for the render-path / TUI separation.
+- `CONTRIBUTING.md` flags `npm ci` as the canonical install for CI and reproducible builds (lockfile-strict); `npm i` stays the first-time bootstrap.
+- Add `tests/README.md` clarifying that the canonical unit-test surface is colocated `src/**/*.test.ts` and that this directory holds integration, tui, cross-widget invariant, golden ANSI, and gate suites.
