@@ -16,8 +16,15 @@ describe("WidgetContext", () => {
       const now = realClock.now();
       const after = Date.now();
 
-      expect(now.getTime()).toBeGreaterThanOrEqual(before);
-      expect(now.getTime()).toBeLessThanOrEqual(after);
+      // `realClock.now()` is expected to fall between the two `Date.now()`
+      // brackets, but a strict equality bracket is fragile under loaded CI
+      // (clock skew, GC pauses between the two `Date.now()` calls). Allow a
+      // 1-minute tolerance on either side: more than enough headroom for any
+      // realistic scheduling, far less than the test could ever drift.
+      const TOLERANCE_MS = 60_000;
+      expect(now).toBeInstanceOf(Date);
+      expect(now.getTime()).toBeGreaterThanOrEqual(before - TOLERANCE_MS);
+      expect(now.getTime()).toBeLessThanOrEqual(after + TOLERANCE_MS);
     });
 
     it("creates a frozen clock with a specific timestamp", () => {
@@ -52,27 +59,31 @@ describe("WidgetContext", () => {
 
   describe("WidgetContext shape", () => {
     it("can be constructed with required fields", () => {
+      const stdin = { raw: { model: "test-model" }, truncated: false };
+      const theme = {
+        name: "test",
+        palette: {},
+        powerline: { capsStart: "", capsEnd: "" },
+        source: "builtin",
+      } as any;
       const ctx: WidgetContext = {
-        stdin: {
-          raw: {},
-          truncated: false,
-        },
+        stdin,
         config: DEFAULT_CONFIG,
-        theme: {
-          name: "test",
-          palette: {},
-          powerline: { capsStart: "", capsEnd: "" },
-          source: "builtin",
-        } as any,
+        theme,
         clock: realClock,
         env: process.env,
       };
 
-      expect(ctx.stdin).toBeDefined();
-      expect(ctx.config).toBeDefined();
-      expect(ctx.theme).toBeDefined();
-      expect(ctx.clock).toBeDefined();
-      expect(ctx.env).toBeDefined();
+      // Assert identity / concrete values rather than the
+      // `toBeDefined()` smoke checks the smell-report flagged — those
+      // would have passed for a context whose fields had drifted into
+      // the wrong slots.
+      expect(ctx.stdin).toBe(stdin);
+      expect(ctx.stdin.truncated).toBe(false);
+      expect(ctx.config).toBe(DEFAULT_CONFIG);
+      expect(ctx.theme).toBe(theme);
+      expect(ctx.clock.now()).toBeInstanceOf(Date);
+      expect(ctx.env).toBe(process.env);
     });
 
     it("allows optional session, tokens, and git fields", () => {

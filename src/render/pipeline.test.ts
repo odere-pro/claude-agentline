@@ -91,7 +91,7 @@ describe("renderFromInputs", () => {
     expect(matches.length).toBe(1);
   });
 
-  it("caps warning lines at MAX_WARNING_LINES (6)", () => {
+  it("caps warning lines at MAX_WARNING_LINES (6) and emits them in sorted order", () => {
     const types = Array.from({ length: 12 }, (_, i) => ({ type: `bogus-${i}` }));
     const config = { ...DEFAULT_CONFIG, lines: [{ widgets: types }] };
     const result = renderFromInputs({
@@ -104,6 +104,10 @@ describe("renderFromInputs", () => {
       .split("\n")
       .filter((l) => /unknown widget type/.test(l));
     expect(warningLines).toHaveLength(6);
+    // `buildWarningLines` deduplicates + sorts the unknown types so the
+    // surfaced lines stay stable across renders. Assert the sort.
+    const sorted = [...warningLines].sort();
+    expect(warningLines).toEqual(sorted);
   });
 
   it("emits no warning lines when every widget type is known", () => {

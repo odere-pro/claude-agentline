@@ -31,6 +31,8 @@ import { RATE_LIMIT_WIDGETS, registerRateLimitWidgets } from "./index.js";
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
 
 const HOUR_MS = 60 * 60 * 1000;
+/** Pinned wall-clock for snapshot defaults so the tests stay deterministic. */
+const FIXED_NOW_MS = Date.parse("2026-05-01T03:00:00Z");
 
 const ev = (overrides: Partial<TranscriptEvent>): TranscriptEvent => ({
   timestamp: 0,
@@ -45,7 +47,7 @@ function makeSnapshot(
   events: TranscriptEvent[],
   overrides: Partial<TokensSnapshot> = {},
 ): TokensSnapshot {
-  const now = overrides.now ?? Date.parse("2026-05-01T03:00:00Z");
+  const now = overrides.now ?? FIXED_NOW_MS;
   const blockAnchor =
     overrides.blockAnchor !== undefined
       ? overrides.blockAnchor
@@ -69,7 +71,7 @@ function makeCtx(
   snapshot: TokensSnapshot | undefined,
   overrides: Partial<WidgetContext> = {},
 ): WidgetContext {
-  const now = snapshot?.now ?? Date.parse("2026-05-01T03:00:00Z");
+  const now = snapshot?.now ?? FIXED_NOW_MS;
   return {
     stdin: baseStdin,
     config: DEFAULT_CONFIG,

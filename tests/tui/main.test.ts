@@ -34,8 +34,9 @@ describe("TUI editor (runConfigCommand)", () => {
         path: "/tmp/test-config.json",
       },
     });
-    // Test expects preloaded config to be used
     expect(result.path).toBe("/tmp/test-config.json");
+    expect(result.saved).toBe(false);
+    expect(result.skipped).toBeFalsy();
   });
 
   it("resolves theme from config", async () => {
