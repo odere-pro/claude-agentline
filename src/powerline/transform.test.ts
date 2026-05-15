@@ -80,6 +80,51 @@ describe("applyPowerline", () => {
     expect(chev?.bg).toBe("red");
   });
 
+  it("indexes hardRight glyph arrays by chevron position", () => {
+    const glyphs = { ...ASCII_GLYPHS, hardRight: ["A", "B", "C"] };
+    const segs = applyPowerline(
+      [
+        cell({ text: "1", bg: "red" }),
+        cell({ text: "2", bg: "blue" }),
+        cell({ text: "3", bg: "green" }),
+        cell({ text: "4", bg: "yellow" }),
+      ],
+      { ...baseOpts, glyphs },
+    );
+    // 4 cells + 3 chevrons = 7 segments
+    expect(segs).toHaveLength(7);
+    expect(segs[1]?.text).toBe("A");
+    expect(segs[3]?.text).toBe("B");
+    expect(segs[5]?.text).toBe("C");
+  });
+
+  it("clamps hardRight glyph arrays — last entry repeats once exhausted", () => {
+    const glyphs = { ...ASCII_GLYPHS, hardRight: ["A", "B"] };
+    const segs = applyPowerline(
+      [
+        cell({ text: "1", bg: "red" }),
+        cell({ text: "2", bg: "blue" }),
+        cell({ text: "3", bg: "green" }),
+        cell({ text: "4", bg: "yellow" }),
+        cell({ text: "5", bg: "magenta" }),
+      ],
+      { ...baseOpts, glyphs },
+    );
+    // 5 cells + 4 chevrons; idx 0 → A, idx 1 → B, idx 2..3 → B (clamp)
+    expect(segs[1]?.text).toBe("A");
+    expect(segs[3]?.text).toBe("B");
+    expect(segs[5]?.text).toBe("B");
+    expect(segs[7]?.text).toBe("B");
+  });
+
+  it("string glyphs keep working unchanged when no array is configured", () => {
+    const segs = applyPowerline([cell({ text: "a", bg: "red" }), cell({ text: "b", bg: "blue" })], {
+      ...baseOpts,
+      glyphs: { ...ASCII_GLYPHS, hardRight: "#" },
+    });
+    expect(segs[1]?.text).toBe("#");
+  });
+
   it("emits caps when configured", () => {
     const segs = applyPowerline([cell({ text: "a", bg: "red" })], {
       ...baseOpts,

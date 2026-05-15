@@ -17,11 +17,16 @@
 
 import type { PowerlineGlyphs } from "../config/types.js";
 
+/**
+ * Each field is either a single glyph or an array of glyphs indexed by
+ * chevron position (see `pickIndexed` in `./transform.ts` — clamp, not
+ * cycle, so the last entry repeats once the array is exhausted).
+ */
 export interface PowerlineGlyphSet {
-  readonly hardRight: string;
-  readonly softRight: string;
-  readonly hardLeft: string;
-  readonly softLeft: string;
+  readonly hardRight: string | readonly string[];
+  readonly softRight: string | readonly string[];
+  readonly hardLeft: string | readonly string[];
+  readonly softLeft: string | readonly string[];
 }
 
 export const NERD_FONT_GLYPHS: PowerlineGlyphSet = Object.freeze({
