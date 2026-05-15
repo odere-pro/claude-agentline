@@ -5,9 +5,11 @@
 #   1. install or link `@agentline/cli` (npm i -g, or `npm link` with --from-source)
 #   2. seed the user config from templates/default.config.json (no overwrite)
 #   3. seed themes/ to the same config dir
-#   4. copy .claude/agents/agentline*.md skill files to $HOME/.claude/agents/
+#   4. copy agents/agentline*.md skill files to $HOME/.claude/agents/
 #   5. wire `statusLine` into $HOME/.claude/settings.json (always global)
 #   6. write install manifest to state dir
+#   7. probe the host for a Nerd Font and write the sentinel read by the
+#      TUI editor's glyph toggle
 # All filesystem writes go through atomic write-temp + rename.
 #
 # Spec: §10. Bash 3.2 friendly; no associative arrays / mapfile / Bash-4 features.

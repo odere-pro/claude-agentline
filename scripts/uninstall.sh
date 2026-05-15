@@ -4,9 +4,12 @@
 # Idempotent. In order:
 #   1. `npm uninstall -g @agentline/cli` (skipped if absent).
 #   2. remove themes whose bytes match the bundled set; preserve user-edited.
-#   3. on --purge, also remove user-edited config / themes.
-#   4. remove the `statusLine` entry from Claude Code settings only when
-#      it still points at agentline.
+#   3. on --purge, also remove user-edited config.
+#   4. remove the installed agentline*.md skill files from $HOME/.claude/agents
+#      whose bytes match the shipped set; preserve user-edited.
+#   5. restore the prior `statusLine` from the install-time backup, or strip
+#      it if it still points at agentline and no backup exists.
+# Also cleans up the Nerd Font probe sentinel and the install manifest.
 # Refuses to delete unrelated files. No `rm -rf "$VAR"` without guards
 # (al_safe_rm enforces).
 #
