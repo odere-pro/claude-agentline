@@ -1,10 +1,10 @@
 /**
  * Widget registry (§7.1).
  *
- * Owns the mapping from `type` string to widget implementation. The
- * built-in widgets (PRs 10–14) register themselves at module-load
- * time; tests may pass an isolated registry instance to avoid global
- * coupling.
+ * Owns the mapping from `type` string to widget implementation. Built-in
+ * widgets are wired by an explicit call to `registerAllBuiltins(registry)`
+ * during boot (see `./index.ts`); tests may pass an isolated registry
+ * instance to avoid global coupling.
  *
  * The registry is intentionally narrow: lookup, register, list, has.
  * Custom widget plugins via dynamic libraries are out of scope for

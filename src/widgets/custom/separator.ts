@@ -13,20 +13,16 @@ interface SeparatorOptions {
   readonly char?: string;
 }
 
-export const SEPARATOR_CYCLE: readonly string[] = Object.freeze([
-  "|",
-  "-",
-  ",",
-  "·",
-  "␣",
-]);
+export const SEPARATOR_CYCLE: readonly string[] = Object.freeze(["|", "-", ",", "·", "␣"]);
 
 const DEFAULT_SEPARATOR = "|";
 
 function clampToOneChar(value: string | undefined, fallback: string): string {
   if (typeof value !== "string" || value.length === 0) return fallback;
-  // Take the first user-perceived character. Iterator splits surrogate
-  // pairs / combining marks at code-point boundaries.
+  /*
+   * Take the first user-perceived character. Iterator splits surrogate
+   * pairs / combining marks at code-point boundaries.
+   */
   const first = value[Symbol.iterator]().next().value;
   return typeof first === "string" ? first : fallback;
 }

@@ -52,9 +52,12 @@ function applyGlyph(text: string, type: string, ctx: WidgetContext): string {
 
 function applyOverrides(cell: Cell, config: WidgetConfig, ctx: WidgetContext): Cell {
   const merged: MergeMode = config.merged ?? cell.merged ?? "off";
-  // Glyph mode prepends the catalogue glyph + a thin space when
-  // `config.glyphs === "nerd-font"`. Skipped on flex separators (their
-  // text is the fill character, not a label) and empty cells.
+  /*
+   * Glyph mode prepends the catalogue glyph + GLYPH_SEPARATOR (a plain
+   * space, see the constant above) when `config.glyphs === "nerd-font"`.
+   * Skipped on flex separators (their text is the fill character, not a
+   * label) and empty cells.
+   */
   const text = cell.flex === true ? cell.text : applyGlyph(cell.text, config.type, ctx);
   const next: Cell = {
     text,
