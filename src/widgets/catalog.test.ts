@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   WIDGET_CATALOG,
-  WIDGET_CATEGORIES,
+  WIDGET_FAMILIES,
   activeVariantId,
   widgetMeta,
   widgetVariants,
@@ -16,7 +16,7 @@ function builtinRegistry(): WidgetRegistry {
   return r;
 }
 
-const CATEGORY_SET = new Set<string>(WIDGET_CATEGORIES);
+const FAMILY_SET = new Set<string>(WIDGET_FAMILIES);
 const DESCRIPTION_MAX = 80;
 
 describe("WIDGET_CATALOG", () => {
@@ -43,9 +43,9 @@ describe("WIDGET_CATALOG", () => {
     }
   });
 
-  it("every entry has a known category", () => {
+  it("every entry has a known family", () => {
     for (const [type, meta] of Object.entries(WIDGET_CATALOG)) {
-      expect(CATEGORY_SET.has(meta.category), `${type}: category ${meta.category}`).toBe(true);
+      expect(FAMILY_SET.has(meta.family), `${type}: family ${meta.family}`).toBe(true);
     }
   });
 
@@ -62,7 +62,7 @@ describe("widgetMeta", () => {
     expect(widgetMeta("git-branch")).toMatchObject({
       name: "Git branch",
       description: "Current branch, or short SHA when detached",
-      category: "git",
+      family: "git",
     });
   });
 

@@ -20,12 +20,12 @@ import { isErr, tryAsync } from "../lib/result.js";
 import type { WidgetMetaEntry } from "../widgets/index.js";
 
 import {
-  categoriesWithWidgets,
+  familiesWithWidgets,
   clampIndex,
   filterWidgets,
   selectedAt,
   variantRows,
-  widgetsInCategory,
+  widgetsInFamily,
 } from "./picker.js";
 import type { SaveTracker } from "./mount.js";
 import { isAddCell, type EditorAction, type EditorState } from "./state.js";
@@ -55,9 +55,9 @@ export interface EditHandlerDeps extends PickerHandlerDeps {
 }
 
 /**
- * Picker step 1: pick a category or type to filter into a flat list.
+ * Picker step 1: pick a family or type to filter into a flat list.
  *
- *   - empty query  → ↑↓/↵ navigate and select a category;
+ *   - empty query  → ↑↓/↵ navigate and select a family;
  *   - typed query  → the group view collapses into a flat global
  *                    widget list filtered by substring; ↑↓/↵ act on
  *                    that list and Enter commits the widget directly.
@@ -98,10 +98,10 @@ export function handlePickerGroupKey(
       return;
     }
   } else {
-    const cats = categoriesWithWidgets(widgetEntries, usedTypes);
+    const cats = familiesWithWidgets(widgetEntries, usedTypes);
     if (key.return) {
       const cat = selectedAt(cats, stepHighlight);
-      if (cat) dispatch({ type: "pick-category", category: cat });
+      if (cat) dispatch({ type: "pick-family", family: cat });
       return;
     }
     if (key.upArrow) {
@@ -121,7 +121,7 @@ export function handlePickerGroupKey(
   }
 }
 
-/** Picker step 2: narrow to a widget within the chosen category. */
+/** Picker step 2: narrow to a widget within the chosen family. */
 export function handlePickerWidgetKey(
   input: string,
   key: KeyEvent,
@@ -129,8 +129,8 @@ export function handlePickerWidgetKey(
 ): void {
   const { state, dispatch, widgetEntries, usedTypes, stepQuery, stepHighlight } = deps;
   if (state.mode === "edit") return; // TS narrowing; the dispatcher only routes here in picker-widget mode.
-  const category = state.pickerDraft.category;
-  if (!category) {
+  const family = state.pickerDraft.family;
+  if (!family) {
     dispatch({ type: "picker-back" });
     return;
   }
@@ -139,18 +139,18 @@ export function handlePickerWidgetKey(
     return;
   }
   if (key.return) {
-    const matches = widgetsInCategory(widgetEntries, category, stepQuery, usedTypes);
+    const matches = widgetsInFamily(widgetEntries, family, stepQuery, usedTypes);
     const picked = selectedAt(matches, stepHighlight);
     if (picked) dispatch({ type: "pick-widget", widgetType: picked.type });
     return;
   }
   if (key.upArrow) {
-    const matches = widgetsInCategory(widgetEntries, category, stepQuery, usedTypes);
+    const matches = widgetsInFamily(widgetEntries, family, stepQuery, usedTypes);
     deps.setStepHighlight((h) => clampIndex(h - 1, matches.length));
     return;
   }
   if (key.downArrow) {
-    const matches = widgetsInCategory(widgetEntries, category, stepQuery, usedTypes);
+    const matches = widgetsInFamily(widgetEntries, family, stepQuery, usedTypes);
     deps.setStepHighlight((h) => clampIndex(h + 1, matches.length));
     return;
   }

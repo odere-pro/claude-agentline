@@ -19,45 +19,45 @@ import {
   PickerSearch,
   PickerVariant,
   PickerWidget,
-  categoriesWithWidgets,
+  familiesWithWidgets,
   filterWidgets,
   selectedAt,
   variantRows,
-  widgetsInCategory,
+  widgetsInFamily,
 } from "./picker.js";
 
 const ENTRIES: readonly WidgetMetaEntry[] = [
-  { type: "git-branch", name: "Git branch", description: "branch", category: "git" },
-  { type: "git-changes", name: "Git changes", description: "changes", category: "git" },
-  { type: "model", name: "Model", description: "model id", category: "session" },
-  { type: "skills", name: "Skills", description: "skills attached", category: "session" },
-  { type: "clock", name: "Clock", description: "wall-clock", category: "time" },
+  { type: "git-branch", name: "Git branch", description: "branch", family: "git" },
+  { type: "git-changes", name: "Git changes", description: "changes", family: "git" },
+  { type: "model", name: "Model", description: "model id", family: "session" },
+  { type: "skills", name: "Skills", description: "skills attached", family: "session" },
+  { type: "clock", name: "Clock", description: "wall-clock", family: "time" },
 ];
 
 const GLYPHS = pickGlyphs({ unicode: true });
 
-describe("categoriesWithWidgets", () => {
-  it("lists every category that has ≥1 widget, in catalogue order", () => {
-    expect(categoriesWithWidgets(ENTRIES)).toEqual(["session", "git", "time"]);
+describe("familiesWithWidgets", () => {
+  it("lists every family that has ≥1 widget, in catalogue order", () => {
+    expect(familiesWithWidgets(ENTRIES)).toEqual(["session", "git", "time"]);
   });
 
   it("returns empty when no entries are present", () => {
-    expect(categoriesWithWidgets([])).toEqual([]);
+    expect(familiesWithWidgets([])).toEqual([]);
   });
 });
 
-describe("widgetsInCategory", () => {
-  it("scopes to the given category and substring-filters", () => {
-    expect(widgetsInCategory(ENTRIES, "git", "").map((e) => e.type)).toEqual([
+describe("widgetsInFamily", () => {
+  it("scopes to the given family and substring-filters", () => {
+    expect(widgetsInFamily(ENTRIES, "git", "").map((e) => e.type)).toEqual([
       "git-branch",
       "git-changes",
     ]);
-    expect(widgetsInCategory(ENTRIES, "git", "BRANCH").map((e) => e.type)).toEqual(["git-branch"]);
-    expect(widgetsInCategory(ENTRIES, "session", "skills").map((e) => e.type)).toEqual(["skills"]);
+    expect(widgetsInFamily(ENTRIES, "git", "BRANCH").map((e) => e.type)).toEqual(["git-branch"]);
+    expect(widgetsInFamily(ENTRIES, "session", "skills").map((e) => e.type)).toEqual(["skills"]);
   });
 
   it("returns empty when nothing matches", () => {
-    expect(widgetsInCategory(ENTRIES, "git", "zzz")).toEqual([]);
+    expect(widgetsInFamily(ENTRIES, "git", "zzz")).toEqual([]);
   });
 });
 
@@ -91,7 +91,7 @@ describe("selectedAt", () => {
 });
 
 describe("filterWidgets", () => {
-  it("substring-matches over type and name across every category", () => {
+  it("substring-matches over type and name across every family", () => {
     expect(filterWidgets(ENTRIES, "git").map((e) => e.type)).toEqual([
       "git-branch",
       "git-changes",
@@ -118,7 +118,7 @@ describe("filterWidgets", () => {
   it("initialism-matches multi-word display names (`gb` → `Git branch`)", () => {
     // Even if the type didn't tokenise the same way, the human name does.
     const onlyName: readonly WidgetMetaEntry[] = [
-      { type: "githubpr", name: "Git branch", description: "x", category: "git" },
+      { type: "githubpr", name: "Git branch", description: "x", family: "git" },
     ];
     expect(filterWidgets(onlyName, "gb").map((e) => e.type)).toEqual(["githubpr"]);
   });
@@ -141,12 +141,12 @@ describe("filterWidgets", () => {
   });
 });
 
-describe("widgetsInCategory — initialism", () => {
-  it("scopes initialism to the category", () => {
-    expect(widgetsInCategory(ENTRIES, "git", "gb").map((e) => e.type)).toEqual(["git-branch"]);
-    // The same query in a category that has no matching initialism
-    // returns nothing — initialism does not cross category bounds.
-    expect(widgetsInCategory(ENTRIES, "time", "gb")).toEqual([]);
+describe("widgetsInFamily — initialism", () => {
+  it("scopes initialism to the family", () => {
+    expect(widgetsInFamily(ENTRIES, "git", "gb").map((e) => e.type)).toEqual(["git-branch"]);
+    // The same query in a family that has no matching initialism
+    // returns nothing — initialism does not cross family bounds.
+    expect(widgetsInFamily(ENTRIES, "time", "gb")).toEqual([]);
   });
 });
 
@@ -166,18 +166,18 @@ describe("Picker components — smoke", () => {
 
   it("PickerWidget renders without throwing, even with an out-of-range highlight", () => {
     expect(() =>
-      PickerWidget({ category: "git", entries: ENTRIES, query: "", highlight: 99 }),
+      PickerWidget({ family: "git", entries: ENTRIES, query: "", highlight: 99 }),
     ).not.toThrow();
   });
 
   it("PickerWidget renders gracefully when nothing matches", () => {
     expect(() =>
-      PickerWidget({ category: "git", entries: ENTRIES, query: "zzz", highlight: 0 }),
+      PickerWidget({ family: "git", entries: ENTRIES, query: "zzz", highlight: 0 }),
     ).not.toThrow();
   });
 
   it("PickerWidget includes each widget's description text in its row", () => {
-    const node = PickerWidget({ category: "git", entries: ENTRIES, query: "", highlight: 0 });
+    const node = PickerWidget({ family: "git", entries: ENTRIES, query: "", highlight: 0 });
     const serialised = JSON.stringify(node);
     // Both git widgets' descriptions from ENTRIES must appear in the
     // rendered tree (separate dim-coloured Text children).
@@ -185,14 +185,14 @@ describe("Picker components — smoke", () => {
     expect(serialised).toContain("changes");
   });
 
-  it("PickerSearch renders flat results across categories filtered by query", () => {
+  it("PickerSearch renders flat results across families filtered by query", () => {
     const node = PickerSearch({ entries: ENTRIES, query: "git", highlight: 0 });
     const serialised = JSON.stringify(node);
     expect(serialised).toContain("git-branch");
     expect(serialised).toContain("git-changes");
     // Out-of-query entries do not appear.
     expect(serialised).not.toContain("clock");
-    // Each row carries its category badge.
+    // Each row carries its family badge.
     expect(serialised).toContain("[git");
   });
 

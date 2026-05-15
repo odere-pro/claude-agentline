@@ -28,9 +28,9 @@ export {
 } from "./render-widget.js";
 export {
   WIDGET_CATALOG,
-  WIDGET_CATEGORIES,
+  WIDGET_FAMILIES,
   widgetMeta,
-  type WidgetCategory,
+  type WidgetFamily,
   type WidgetMeta,
   type WidgetMetaEntry,
 } from "./catalog.js";

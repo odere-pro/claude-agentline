@@ -175,7 +175,7 @@ describe("buildPreview", () => {
     expect(JSON.stringify(lines)).toBe(snapshot);
   });
 
-  it("widget slots default to the category accent so chips match the picker", () => {
+  it("widget slots default to the family accent so chips match the picker", () => {
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
       lines: [{ widgets: [{ type: "model" }, { type: "git-branch" }, { type: "clock" }] }],
@@ -187,7 +187,7 @@ describe("buildPreview", () => {
     if (widgets[2]?.kind === "widget") expect(widgets[2].fg).toBe("cyan");
   });
 
-  it("widget overrides win over the category accent", () => {
+  it("widget overrides win over the family accent", () => {
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
       lines: [{ widgets: [{ type: "model", fg: "#ff0080" }] }],

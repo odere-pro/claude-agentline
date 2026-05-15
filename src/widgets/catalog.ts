@@ -4,10 +4,10 @@
  * The render-path contract (`WidgetDef = { type, render }`) stays minimal:
  * the renderer never needs a widget's display name. Metadata lives here, in
  * one auditable place, keyed by the same `type` string the registry uses.
- * `category` mirrors the source-tree family (`src/widgets/<category>/`).
+ * `family` mirrors the source-tree family (`src/widgets/<family>/`).
  *
  * The catalogue is split across `src/widgets/catalog/<family>.ts` files
- * (one per `WIDGET_CATEGORIES` entry); this module composes them into
+ * (one per `WIDGET_FAMILIES` entry); this module composes them into
  * `WIDGET_CATALOG`, layers in the optional `WIDGET_GLYPHS` table, and
  * exports the lookup helpers. Types and the small `entry` / `v` builders
  * live in `./catalog/types.ts` so each family file can pull from one
@@ -17,7 +17,7 @@
  *   - every built-in registered type has exactly one entry here;
  *   - no entry names a type that is not a built-in;
  *   - every `description` is non-empty and ≤ 80 characters;
- *   - every `category` is one of `WIDGET_CATEGORIES`.
+ *   - every `family` is one of `WIDGET_FAMILIES`.
  */
 
 import { CONTEXT_CATALOG } from "./catalog/context.js";
@@ -30,9 +30,9 @@ import { TOKENS_CATALOG } from "./catalog/tokens.js";
 import type { WidgetMeta, WidgetVariant } from "./catalog/types.js";
 
 export {
-  CATEGORY_COLOR,
-  WIDGET_CATEGORIES,
-  type WidgetCategory,
+  FAMILY_COLOR,
+  WIDGET_FAMILIES,
+  type WidgetFamily,
   type WidgetMeta,
   type WidgetMetaEntry,
   type WidgetVariant,

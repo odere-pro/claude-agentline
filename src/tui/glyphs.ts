@@ -1,7 +1,7 @@
 /**
  * Editor-chrome glyphs: small visual flourishes used only inside the
  * `agentline config` TUI (the selection brackets, the active-row marker,
- * the "+ add widget" cell, the gutter, category icons in the picker).
+ * the "+ add widget" cell, the gutter, family icons in the picker).
  *
  * Statusline-widget glyphs (Nerd Font icons on the rendered statusline)
  * are a separate concern — see the opt-in `config.glyphs` layer.
@@ -10,7 +10,7 @@
  * `dist/cli.mjs` (§1.2 N3).
  */
 
-import type { WidgetCategory } from "../widgets/catalog.js";
+import type { WidgetFamily } from "../widgets/catalog.js";
 
 export interface EditorGlyphs {
   /** Wraps the selected widget in the preview. */
@@ -22,8 +22,8 @@ export interface EditorGlyphs {
   readonly gutter: string;
   /** Body of the "+ add widget" cell. */
   readonly addCell: string;
-  /** Category icons shown in the group picker (Phase 3 wires this in). */
-  readonly category: Readonly<Record<WidgetCategory, string>>;
+  /** Family icons shown in the group picker (Phase 3 wires this in). */
+  readonly family: Readonly<Record<WidgetFamily, string>>;
 }
 
 const UNICODE: EditorGlyphs = Object.freeze({
@@ -32,7 +32,7 @@ const UNICODE: EditorGlyphs = Object.freeze({
   activeRow: "▸",
   gutter: "│",
   addCell: "＋ add widget",
-  category: Object.freeze({
+  family: Object.freeze({
     session: "⌂",
     tokens: "◇",
     context: "▤",
@@ -40,7 +40,7 @@ const UNICODE: EditorGlyphs = Object.freeze({
     git: "⎇",
     time: "◷",
     custom: "⚙",
-  }) as Readonly<Record<WidgetCategory, string>>,
+  }) as Readonly<Record<WidgetFamily, string>>,
 });
 
 const ASCII: EditorGlyphs = Object.freeze({
@@ -49,7 +49,7 @@ const ASCII: EditorGlyphs = Object.freeze({
   activeRow: ">",
   gutter: "|",
   addCell: "+ add widget",
-  category: Object.freeze({
+  family: Object.freeze({
     session: "[s]",
     tokens: "[t]",
     context: "[c]",
@@ -57,7 +57,7 @@ const ASCII: EditorGlyphs = Object.freeze({
     git: "[g]",
     time: "[T]",
     custom: "[x]",
-  }) as Readonly<Record<WidgetCategory, string>>,
+  }) as Readonly<Record<WidgetFamily, string>>,
 });
 
 export interface GlyphPickOptions {

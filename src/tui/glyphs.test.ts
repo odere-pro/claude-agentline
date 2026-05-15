@@ -32,10 +32,10 @@ describe("pickGlyphs", () => {
     expect(pickGlyphs({ unicode: false, env: { LANG: "en_US.UTF-8" } }).activeRow).toBe(">");
   });
 
-  it("ships an icon for every widget category", () => {
+  it("ships an icon for every widget family", () => {
     const g = pickGlyphs({ unicode: true });
     for (const cat of ["session", "tokens", "context", "rate-limits", "git", "time", "custom"] as const) {
-      expect(g.category[cat]).toBeTruthy();
+      expect(g.family[cat]).toBeTruthy();
     }
   });
 });

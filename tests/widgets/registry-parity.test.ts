@@ -7,14 +7,14 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { WIDGET_CATALOG, WIDGET_CATEGORIES } from "../../src/widgets/catalog.js";
+import { WIDGET_CATALOG, WIDGET_FAMILIES } from "../../src/widgets/catalog.js";
 import {
   defaultRegistry,
   resetDefaultRegistry,
   registerAllBuiltins,
 } from "../../src/widgets/index.js";
 
-const CATEGORIES: ReadonlySet<string> = new Set(WIDGET_CATEGORIES);
+const FAMILIES: ReadonlySet<string> = new Set(WIDGET_FAMILIES);
 
 describe("Widget registry-catalog parity", () => {
   beforeEach(() => {
@@ -76,10 +76,10 @@ describe("Widget registry-catalog parity", () => {
     for (const entry of meta) {
       expect(registryTypes.has(entry.type)).toBe(true);
       // Empty strings would have satisfied the prior `toBeDefined()`
-      // checks — assert non-empty content + a known category instead.
+      // checks — assert non-empty content + a known family instead.
       expect(entry.name.length).toBeGreaterThan(0);
       expect(entry.description.length).toBeGreaterThan(0);
-      expect(CATEGORIES.has(entry.category)).toBe(true);
+      expect(FAMILIES.has(entry.family)).toBe(true);
     }
   });
 
