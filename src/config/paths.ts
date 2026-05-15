@@ -5,7 +5,7 @@
  * co-locate agentline config with the rest of their Claude Code state.
  *
  * agentline is configured globally only — there is no per-project
- * config layer. Both the editor and any programmatic mutator write to
+ * config. Both the editor and any programmatic mutator write to
  * `userConfig`.
  */
 

@@ -1,5 +1,5 @@
 /**
- * Public surface of the config layer (§4).
+ * Public surface of the config subsystem (§4).
  *
  * The render path imports from here; subcommand entry-points reach into
  * `validate`, `atomic`, or `paths` directly when they need the lower-level

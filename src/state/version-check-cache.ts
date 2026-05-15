@@ -18,7 +18,7 @@
  *     — same pattern as `render-cache.ts`, `stdin-cache.ts`,
  *     `backup.ts`. Failures are swallowed (best-effort).
  *
- * Contract — readers (off the hot path):
+ * Contract — readers (off the render path):
  *   - Sync read; returns `null` on any failure (missing file,
  *     malformed JSON, unknown version, missing required fields).
  *   - The caller decides whether the cache is fresh enough; this
@@ -78,8 +78,10 @@ export async function saveVersionCheck(
   try {
     await writeJsonIdempotent(cacheFile, body, { mode: 0o600, dirMode: 0o700 });
   } catch {
-    // Silently swallow — the user can't see this error and the cache
-    // is best-effort. The caller proceeds as if the write succeeded.
+    /*
+     * Silently swallow — the user can't see this error and the cache
+     * is best-effort. The caller proceeds as if the write succeeded.
+     */
   }
 }
 

@@ -89,8 +89,10 @@ export async function saveLastRender(
   try {
     await writeJsonIdempotent(cacheFile, body, { mode: 0o600, dirMode: 0o700 });
   } catch {
-    // Silently swallow — the user can't see this error and the cache
-    // is best-effort. The render path is unaffected.
+    /*
+     * Silently swallow — the user can't see this error and the cache
+     * is best-effort. The render path is unaffected.
+     */
   }
 }
 
