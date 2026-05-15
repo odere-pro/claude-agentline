@@ -5,7 +5,7 @@
  * registry bootstrap.
  */
 
-import type { WidgetDef } from "../widget.js";
+import { eraseWidget, type WidgetDef } from "../widget.js";
 import type { WidgetRegistry } from "../registry.js";
 
 import {
@@ -27,13 +27,13 @@ export { resolveResetAxis } from "./options.js";
 export { formatCount, formatSpeed, tokenRole } from "./format.js";
 
 export const TOKEN_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
-  tokensTotalWidget as WidgetDef<unknown>,
-  tokensInputWidget as WidgetDef<unknown>,
-  tokensOutputWidget as WidgetDef<unknown>,
-  tokensCachedWidget as WidgetDef<unknown>,
-  inputSpeedWidget as WidgetDef<unknown>,
-  outputSpeedWidget as WidgetDef<unknown>,
-  totalSpeedWidget as WidgetDef<unknown>,
+  eraseWidget(tokensTotalWidget),
+  eraseWidget(tokensInputWidget),
+  eraseWidget(tokensOutputWidget),
+  eraseWidget(tokensCachedWidget),
+  eraseWidget(inputSpeedWidget),
+  eraseWidget(outputSpeedWidget),
+  eraseWidget(totalSpeedWidget),
 ]);
 
 export function registerTokenWidgets(registry: WidgetRegistry): void {

@@ -4,4 +4,4 @@
  */
 
 export type { WidgetSettings, WidgetRender, WidgetDef } from "./types.js";
-export { defineWidget } from "./types.js";
+export { defineWidget, eraseWidget } from "./types.js";

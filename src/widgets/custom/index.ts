@@ -7,7 +7,7 @@
  * bootstrap.
  */
 
-import type { WidgetDef } from "../widget.js";
+import { eraseWidget, type WidgetDef } from "../widget.js";
 import type { WidgetRegistry } from "../registry.js";
 
 import { separatorWidget, SEPARATOR_CYCLE } from "./separator.js";
@@ -17,8 +17,8 @@ export { separatorWidget, SEPARATOR_CYCLE } from "./separator.js";
 export { oscLinkWidget } from "./osc-link.js";
 
 export const CUSTOM_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
-  separatorWidget as WidgetDef<unknown>,
-  oscLinkWidget as WidgetDef<unknown>,
+  eraseWidget(separatorWidget),
+  eraseWidget(oscLinkWidget),
 ]);
 
 export function registerCustomWidgets(registry: WidgetRegistry): void {

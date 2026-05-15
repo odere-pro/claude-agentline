@@ -5,7 +5,7 @@
  * bootstrap.
  */
 
-import type { WidgetDef } from "../widget.js";
+import { eraseWidget, type WidgetDef } from "../widget.js";
 import type { WidgetRegistry } from "../registry.js";
 
 import { clockWidget } from "./clock.js";
@@ -15,9 +15,9 @@ export { clockWidget, formatClock } from "./clock.js";
 export { uptimeBlockWidget, uptimeSessionWidget } from "./uptime.js";
 
 export const TIME_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
-  clockWidget as WidgetDef<unknown>,
-  uptimeBlockWidget as WidgetDef<unknown>,
-  uptimeSessionWidget as WidgetDef<unknown>,
+  eraseWidget(clockWidget),
+  eraseWidget(uptimeBlockWidget),
+  eraseWidget(uptimeSessionWidget),
 ]);
 
 export function registerTimeWidgets(registry: WidgetRegistry): void {

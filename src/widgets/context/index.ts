@@ -2,7 +2,7 @@
  * Context-related widgets registration entry-point.
  */
 
-import type { WidgetDef } from "../widget.js";
+import { eraseWidget, type WidgetDef } from "../widget.js";
 import type { WidgetRegistry } from "../registry.js";
 
 import { contextBarWidget } from "./context-bar.js";
@@ -20,10 +20,10 @@ export {
 } from "./percentage.js";
 
 export const CONTEXT_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
-  contextBarWidget as WidgetDef<unknown>,
-  contextLengthWidget as WidgetDef<unknown>,
-  contextPercentageUsableWidget as WidgetDef<unknown>,
-  contextPercentageWidget as WidgetDef<unknown>,
+  eraseWidget(contextBarWidget),
+  eraseWidget(contextLengthWidget),
+  eraseWidget(contextPercentageUsableWidget),
+  eraseWidget(contextPercentageWidget),
 ]);
 
 export function registerContextWidgets(registry: WidgetRegistry): void {
