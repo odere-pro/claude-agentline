@@ -8,8 +8,8 @@
  *   3. fallback 80
  *
  * Pure and synchronous — no I/O beyond reading the env snapshot
- * the caller hands in. The render hot path must not spawn
- * subprocesses to detect width (§1.2 N3).
+ * the caller hands in. The render path must not spawn subprocesses
+ * to detect width (§1.2 N3).
  */
 
 import { DEFAULT_COMPACT_THRESHOLD } from "../config/defaults.js";
@@ -40,9 +40,7 @@ export function detectTerminalWidth(source: WidthSource): number {
   const fromEnv = parsePositiveInt(source.env["COLUMNS"]);
   if (fromEnv !== null) return fromEnv;
   const fromStream =
-    source.stream && typeof source.stream.columns === "number"
-      ? source.stream.columns
-      : null;
+    source.stream && typeof source.stream.columns === "number" ? source.stream.columns : null;
   if (fromStream !== null && Number.isInteger(fromStream) && fromStream > 0) {
     return fromStream;
   }
@@ -56,10 +54,7 @@ export interface WidthModeOptions {
 
 const COMPACT_OVERHEAD_COLUMNS = 40;
 
-export function applyWidthMode(
-  detectedWidth: number,
-  options: WidthModeOptions,
-): AppliedWidth {
+export function applyWidthMode(detectedWidth: number, options: WidthModeOptions): AppliedWidth {
   const compactThreshold =
     Number.isInteger(options.compactThreshold) && options.compactThreshold > 0
       ? options.compactThreshold

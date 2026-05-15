@@ -12,20 +12,17 @@
  * frozen clock, an injected env, or an arbitrary stdin payload —
  * goldens depend on full input determinism (§11.3).
  *
- * Snapshots (`session`, `tokens`, `git`) stay undefined here. The
- * widgets that need them hide cleanly when absent so the render
- * remains usable; producers wire their loaders in via separate
- * follow-ups (Doctor + cli already load session / tokens; git
- * snapshot loading is left to the no-args render path).
+ * Snapshots (`session`, `tokens`, `git`) are taken as inputs from
+ * `RenderInputs` rather than loaded inside this pipeline. Widgets
+ * that need a missing snapshot hide cleanly so the render remains
+ * usable. Producers wire their loaders separately: the live render
+ * path in `runRenderCommand` calls `loadLiveSnapshots`; doctor and
+ * golden fixtures pin them deterministically.
  */
 
 import { detectColourDepth } from "./colour-depth.js";
 import { detectTerminalWidth, applyWidthMode } from "./width.js";
-import {
-  applyAccessibility,
-  effectiveDepth,
-  honourNoColorEnv,
-} from "./accessibility.js";
+import { applyAccessibility, effectiveDepth, honourNoColorEnv } from "./accessibility.js";
 import { encodeSegments, SGR_RESET } from "./ansi.js";
 import { composeLines } from "./compose.js";
 import { buildWidgetContext } from "./context.js";
@@ -53,8 +50,10 @@ export const MAX_WARNING_LINES = 6;
 
 function ensureRegistry(): void {
   const reg = defaultRegistry();
-  // size() > 0 means the registry was already populated; this stays
-  // coherent with resetDefaultRegistry() which clears the singleton.
+  /*
+   * size() > 0 means the registry was already populated; this stays
+   * coherent with resetDefaultRegistry() which clears the singleton.
+   */
   if (reg.size() > 0) return;
   registerAllBuiltins(reg);
 }
@@ -103,9 +102,11 @@ export function renderFromInputs(inputs: RenderInputs): string {
     .map((segs) => {
       const accessible = applyAccessibility(segs, flags);
       const text = encodeSegments(accessible, depth);
-      // Append SGR reset only when the line actually carried styled
-      // bytes; otherwise a bare reset pollutes plain output and
-      // breaks downstream byte-for-byte diffing.
+      /*
+       * Append SGR reset only when the line actually carried styled
+       * bytes; otherwise a bare reset pollutes plain output and
+       * breaks downstream byte-for-byte diffing.
+       */
       const styled = depth !== "none" && hasStyle(accessible);
       return styled ? `${text}${SGR_RESET}` : text;
     })

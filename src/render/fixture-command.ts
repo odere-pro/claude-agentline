@@ -92,10 +92,12 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     }
     return 1;
   }
-  // First-run hint: when this is a live render (no fixture, no --config)
-  // and the user has not saved a config yet, point them at `agentline
-  // install` (which seeds the default template). Suppressed for non-TTY
-  // stderr (so the host UI is unaffected) and when AGENTLINE_QUIET=1 is set.
+  /*
+   * First-run hint: when this is a live render (no fixture, no --config)
+   * and the user has not saved a config yet, point them at `agentline
+   * install` (which seeds the default template). Suppressed for non-TTY
+   * stderr (so the host UI is unaffected) and when AGENTLINE_QUIET=1 is set.
+   */
   if (!fixture && input.args.configPath === undefined) {
     await maybeEmitFirstRunHint();
   }
@@ -113,10 +115,12 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     ...liveSnapshots,
   });
   process.stdout.write(out);
-  // Cache the live stdin and the rendered output. Best-effort and
-  // intentionally only on the live path — fixture replays and golden
-  // tests must stay deterministic. The render-cache file backs the
-  // "last statusline" view in `agentline uninstall`.
+  /*
+   * Cache the live stdin and the rendered output. Best-effort and
+   * intentionally only on the live path — fixture replays and golden
+   * tests must stay deterministic. The render-cache file backs the
+   * "last statusline" view in `agentline uninstall`.
+   */
   if (!fixture && input.args.configPath === undefined) {
     await persistLastStdin(payload);
     await saveLastRender(out, {
@@ -170,8 +174,10 @@ async function persistLastStdin(rawJson: string): Promise<void> {
     const parsed = await readStdinPayload(Readable.from([Buffer.from(rawJson, "utf8")]));
     await saveLastStdin(parsed);
   } catch {
-    // Cache write is best-effort; a malformed payload here would already
-    // have failed the render, and the user can't see this error.
+    /*
+     * Cache write is best-effort; a malformed payload here would already
+     * have failed the render, and the user can't see this error.
+     */
   }
 }
 
