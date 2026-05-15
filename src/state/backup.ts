@@ -47,18 +47,17 @@ export interface BackupPaths {
   readonly stateDir: string;
 }
 
-export function resolveBackupPaths(
-  env: NodeJS.ProcessEnv = process.env,
-): BackupPaths {
-  // Match `scripts/lib/common.sh`: CLAUDE_CONFIG_DIR is the agentline
-  // directory when set (not the parent); when unset, default to
-  // ~/.config/agentline. This keeps the backup location identical
-  // whether the user installs via `agentline doctor --fix` (TS) or
-  // `scripts/install.sh` (shell), so each tool can read what the other
-  // wrote.
+export function resolveBackupPaths(env: NodeJS.ProcessEnv = process.env): BackupPaths {
+  /*
+   * Match `scripts/lib/common.sh`: CLAUDE_CONFIG_DIR is the agentline
+   * directory when set (not the parent); when unset, default to
+   * ~/.config/agentline. This keeps the backup location identical
+   * whether the user installs via `agentline doctor --fix` (TS) or
+   * `scripts/install.sh` (shell), so each tool can read what the other
+   * wrote.
+   */
   const cfg = env.CLAUDE_CONFIG_DIR;
-  const agentlineDir =
-    cfg && cfg.length > 0 ? cfg : join(homedir(), ".config", "agentline");
+  const agentlineDir = cfg && cfg.length > 0 ? cfg : join(homedir(), ".config", "agentline");
   const stateDir = join(agentlineDir, "state");
   return { stateDir, backupFile: join(stateDir, "settings-backup.json") };
 }
@@ -115,10 +114,12 @@ export async function saveStatusLineBackup(args: {
  * malformed JSON or schema mismatch (the caller decides whether to fall
  * back to the legacy "remove if-points-at-agentline" behaviour).
  */
-export async function readStatusLineBackup(args: {
-  readonly env?: NodeJS.ProcessEnv;
-  readonly backupFile?: string;
-} = {}): Promise<StatusLineBackup | null> {
+export async function readStatusLineBackup(
+  args: {
+    readonly env?: NodeJS.ProcessEnv;
+    readonly backupFile?: string;
+  } = {},
+): Promise<StatusLineBackup | null> {
   const target = args.backupFile ?? resolveBackupPaths(args.env).backupFile;
   let raw: string;
   try {
@@ -139,10 +140,12 @@ export async function readStatusLineBackup(args: {
 /**
  * Delete the backup file. No-op when the file is already absent.
  */
-export async function deleteStatusLineBackup(args: {
-  readonly env?: NodeJS.ProcessEnv;
-  readonly backupFile?: string;
-} = {}): Promise<void> {
+export async function deleteStatusLineBackup(
+  args: {
+    readonly env?: NodeJS.ProcessEnv;
+    readonly backupFile?: string;
+  } = {},
+): Promise<void> {
   const target = args.backupFile ?? resolveBackupPaths(args.env).backupFile;
   try {
     await fs.unlink(target);
@@ -171,7 +174,6 @@ function validateBackup(parsed: unknown, source: string): StatusLineBackup {
     previousStatusLine: parsed.previousStatusLine,
   };
 }
-
 
 /**
  * Path of the agentline state directory (parent of the backup file).

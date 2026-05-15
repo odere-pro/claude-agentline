@@ -11,7 +11,7 @@
  * Missing files are silently skipped — only present files contribute.
  *
  * agentline is configured globally only — there is no per-project
- * config layer. A `.agentline.json` in the cwd is silently ignored.
+ * config. A `.agentline.json` in the cwd is silently ignored.
  *
  * The render path imports this synchronously-callable wrapper so it can
  * proceed without awaiting filesystem I/O when no user config exists.
