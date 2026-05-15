@@ -45,20 +45,30 @@ Run \`agentline config widget <sub> --help\` for per-subcommand details.
 
 interface WidgetSub<TArgs> {
   readonly parse: (rest: readonly string[]) => TArgs;
-  readonly run: (input: { args: TArgs }) => Promise<number>;
+  readonly run: (input: { readonly args: TArgs }) => Promise<number>;
+}
+
+/**
+ * Bundle a typed `parse` / `run` pair into a `WidgetSub<unknown>` entry.
+ * The single cast happens here, where TS can still see that both halves
+ * agree on `TArgs` — passing e.g. `parseWidgetRemoveArgs` with
+ * `runWidgetAddCommand` is a compile error inside this function call.
+ */
+export function defineWidgetSub<TArgs>(
+  parse: (rest: readonly string[]) => TArgs,
+  run: (input: { readonly args: TArgs }) => Promise<number>,
+): WidgetSub<unknown> {
+  return Object.freeze({ parse, run }) as unknown as WidgetSub<unknown>;
 }
 
 export const WIDGET_SUBS: Readonly<Record<string, WidgetSub<unknown>>> = Object.freeze({
-  list: { parse: parseWidgetListArgs, run: runWidgetListCommand } as WidgetSub<unknown>,
-  catalog: { parse: parseWidgetCatalogArgs, run: runWidgetCatalogCommand } as WidgetSub<unknown>,
-  add: { parse: parseWidgetAddArgs, run: runWidgetAddCommand } as WidgetSub<unknown>,
-  remove: { parse: parseWidgetRemoveArgs, run: runWidgetRemoveCommand } as WidgetSub<unknown>,
-  move: { parse: parseWidgetMoveArgs, run: runWidgetMoveCommand } as WidgetSub<unknown>,
-  replace: { parse: parseWidgetReplaceArgs, run: runWidgetReplaceCommand } as WidgetSub<unknown>,
-  "set-option": {
-    parse: parseWidgetSetOptionArgs,
-    run: runWidgetSetOptionCommand,
-  } as WidgetSub<unknown>,
+  list: defineWidgetSub(parseWidgetListArgs, runWidgetListCommand),
+  catalog: defineWidgetSub(parseWidgetCatalogArgs, runWidgetCatalogCommand),
+  add: defineWidgetSub(parseWidgetAddArgs, runWidgetAddCommand),
+  remove: defineWidgetSub(parseWidgetRemoveArgs, runWidgetRemoveCommand),
+  move: defineWidgetSub(parseWidgetMoveArgs, runWidgetMoveCommand),
+  replace: defineWidgetSub(parseWidgetReplaceArgs, runWidgetReplaceCommand),
+  "set-option": defineWidgetSub(parseWidgetSetOptionArgs, runWidgetSetOptionCommand),
 });
 
 export async function runWidgetSubgroup(rest: readonly string[]): Promise<number> {

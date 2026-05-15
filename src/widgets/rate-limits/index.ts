@@ -14,7 +14,7 @@
  *   - weekly-reset-at        (wall-clock of the next weekly reset)
  */
 
-import type { WidgetDef } from "../widget.js";
+import { eraseWidget, type WidgetDef } from "../widget.js";
 import type { WidgetRegistry } from "../registry.js";
 
 import { blockResetAtWidget, weeklyResetAtWidget } from "./reset-at.js";
@@ -39,13 +39,13 @@ export {
 } from "./duration.js";
 
 export const RATE_LIMIT_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
-  sessionUsageWidget as WidgetDef<unknown>,
-  weeklySonnetUsageWidget as WidgetDef<unknown>,
-  weeklyOpusUsageWidget as WidgetDef<unknown>,
-  blockResetTimerWidget as WidgetDef<unknown>,
-  blockResetAtWidget as WidgetDef<unknown>,
-  weeklyResetTimerWidget as WidgetDef<unknown>,
-  weeklyResetAtWidget as WidgetDef<unknown>,
+  eraseWidget(sessionUsageWidget),
+  eraseWidget(weeklySonnetUsageWidget),
+  eraseWidget(weeklyOpusUsageWidget),
+  eraseWidget(blockResetTimerWidget),
+  eraseWidget(blockResetAtWidget),
+  eraseWidget(weeklyResetTimerWidget),
+  eraseWidget(weeklyResetAtWidget),
 ]);
 
 export function registerRateLimitWidgets(registry: WidgetRegistry): void {
