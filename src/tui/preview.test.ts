@@ -237,9 +237,9 @@ describe("Preview — projection", () => {
       glyphs: GLYPHS,
       columns: 40,
     });
-    // 1 header Text + 3 rows when no wrap; wrap on row 0 only should add
-    // at least one extra Box for the continuation line(s).
-    expect(previewChildren(node).length).toBeGreaterThan(4);
+    // 3 rows produce 3 outer-Box children when no wrap; wrap on row 0
+    // should add at least one continuation Box.
+    expect(previewChildren(node).length).toBeGreaterThan(3);
   });
 
   it("never wraps when `columns` is generous", () => {
@@ -256,7 +256,7 @@ describe("Preview — projection", () => {
       glyphs: GLYPHS,
       columns: 200,
     });
-    // Header + exactly one Box per row = 4 children.
-    expect(previewChildren(node)).toHaveLength(4);
+    // Exactly one outer-Box child per row (no header element) = 3 children.
+    expect(previewChildren(node)).toHaveLength(3);
   });
 });
