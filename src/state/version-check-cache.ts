@@ -14,7 +14,7 @@
  *     pull network through a sync read of a stale cache entry's URL.
  *
  * Contract — writers:
- *   - Atomic write (write-temp + fsync + rename) via `atomicWriteJson`
+ *   - Atomic write (write-temp + fsync + rename) via `writeJsonIdempotent`
  *     — same pattern as `render-cache.ts`, `stdin-cache.ts`,
  *     `backup.ts`. Failures are swallowed (best-effort).
  *
@@ -29,7 +29,7 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { atomicWriteJson } from "../config/atomic.js";
+import { writeJsonIdempotent } from "../lib/atomic-write.js";
 import { isPlainObject } from "../lib/object.js";
 
 export const VERSION_CHECK_CACHE_VERSION = 1 as const;
@@ -76,7 +76,7 @@ export async function saveVersionCheck(
   const { cacheFile } = resolveVersionCheckPaths(env);
   const body: VersionCheckCache = { version: VERSION_CHECK_CACHE_VERSION, ...entry };
   try {
-    await atomicWriteJson(cacheFile, body, { mode: 0o600, dirMode: 0o700 });
+    await writeJsonIdempotent(cacheFile, body, { mode: 0o600, dirMode: 0o700 });
   } catch {
     // Silently swallow — the user can't see this error and the cache
     // is best-effort. The caller proceeds as if the write succeeded.

@@ -7,7 +7,7 @@
  * before disk write so a broken edit never lands.
  */
 
-import { atomicWriteJson } from "../config/atomic.js";
+import { writeJsonIdempotent } from "../lib/atomic-write.js";
 import { validateConfig } from "../config/validate.js";
 import type { AgentlineConfig, GlyphMode, LineConfig } from "../config/types.js";
 
@@ -32,7 +32,7 @@ export async function saveEditedConfig(input: SaveInput): Promise<AgentlineConfi
     ...(input.glyphs !== undefined ? { glyphs: input.glyphs } : {}),
   };
   validateConfig(next);
-  await atomicWriteJson(input.path, next);
+  await writeJsonIdempotent(input.path, next);
   return next;
 }
 

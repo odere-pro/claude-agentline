@@ -8,7 +8,7 @@
 
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
-import { atomicWriteJson } from "../config/atomic.js";
+import { writeJsonIdempotent } from "../lib/atomic-write.js";
 import { DEFAULT_CONFIG, type AgentlineConfig } from "../config/index.js";
 import { pathExists } from "../lib/fs.js";
 import { saveStatusLineBackup } from "../state/backup.js";
@@ -52,7 +52,7 @@ export async function applyFixes(
 
 async function fixD01(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
   const target = join(ctx.home, ".claude", "settings.json");
-  await atomicWriteJson(target, {}, { mode: 0o600, dirMode: 0o700 });
+  await writeJsonIdempotent(target, {}, { mode: 0o600, dirMode: 0o700 });
   return { ...r, status: "fixed", message: `created ${target}`, fixed: true, hint: undefined };
 }
 
@@ -82,7 +82,7 @@ async function fixD02(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
   // Explicit `render` subcommand: matches `agentline install`'s wired form
   // and stays unambiguous against any future top-level subcommand.
   parsed["statusLine"] = { type: "command", command: "npx -y @agentline/cli render", padding: 0 };
-  await atomicWriteJson(target, parsed, { mode: 0o600, dirMode: 0o700 });
+  await writeJsonIdempotent(target, parsed, { mode: 0o600, dirMode: 0o700 });
   const note = backup === "created" ? "; prior value backed up" : "";
   return {
     ...r,
@@ -101,7 +101,7 @@ async function fixD03(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
     await fs.copyFile(target, `${target}.bak`).catch(() => undefined);
   }
   const fresh: AgentlineConfig = structuredClone(DEFAULT_CONFIG);
-  await atomicWriteJson(target, fresh);
+  await writeJsonIdempotent(target, fresh);
   return {
     ...r,
     status: "fixed",

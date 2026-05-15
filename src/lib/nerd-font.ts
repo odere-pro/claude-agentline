@@ -11,9 +11,10 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { writeJsonIdempotent } from "./atomic-write.js";
 
 const EXEC_TIMEOUTS = {
   fcList: 2500,
@@ -60,17 +61,19 @@ export function detectNerdFontSync(): boolean {
   return false;
 }
 
-/** Write the sentinel file. Atomic via tmp + rename. */
-export function writeNerdFontStatus(stateDir: string, available: boolean): NerdFontStatus {
+/** Write the sentinel file via the shared tmp + fsync + rename helper. */
+export async function writeNerdFontStatus(
+  stateDir: string,
+  available: boolean,
+): Promise<NerdFontStatus> {
   const status: NerdFontStatus = {
     available,
     checkedAt: new Date().toISOString(),
   };
-  const target = join(stateDir, NERD_FONT_SENTINEL);
-  mkdirSync(dirname(target), { recursive: true, mode: 0o700 });
-  const tmp = `${target}.tmp.${randomBytes(6).toString("hex")}`;
-  writeFileSync(tmp, `${JSON.stringify(status, null, 2)}\n`, { mode: 0o600 });
-  renameSync(tmp, target);
+  await writeJsonIdempotent(join(stateDir, NERD_FONT_SENTINEL), status, {
+    mode: 0o600,
+    dirMode: 0o700,
+  });
   return status;
 }
 

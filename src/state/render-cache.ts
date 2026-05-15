@@ -31,7 +31,7 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { atomicWriteJson } from "../config/atomic.js";
+import { writeJsonIdempotent } from "../lib/atomic-write.js";
 import { isPlainObject } from "../lib/object.js";
 
 export const RENDER_CACHE_VERSION = 1 as const;
@@ -87,7 +87,7 @@ export async function saveLastRender(
     meta: args.meta ?? {},
   };
   try {
-    await atomicWriteJson(cacheFile, body, { mode: 0o600, dirMode: 0o700 });
+    await writeJsonIdempotent(cacheFile, body, { mode: 0o600, dirMode: 0o700 });
   } catch {
     // Silently swallow — the user can't see this error and the cache
     // is best-effort. The render path is unaffected.
