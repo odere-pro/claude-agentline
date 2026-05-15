@@ -18,7 +18,7 @@ import React, { useCallback, useMemo, useReducer, useState } from "react";
 import type { AgentlineConfig } from "../config/types.js";
 import { listBindings } from "../keys/index.js";
 import type { Theme } from "../theme/index.js";
-import { widgetMeta, widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
+import { widgetMeta, widgetVariants } from "../widgets/catalog.js";
 import { defaultRegistry, registerAllBuiltins, type WidgetMetaEntry } from "../widgets/index.js";
 
 import { footerLines } from "./footer.js";
@@ -223,15 +223,18 @@ export function App({
             exclude: usedTypes,
           })
       : null,
-    state.mode === "picker-widget" && state.pickerDraft.category
-      ? React.createElement(PickerWidget, {
-          category: state.pickerDraft.category as WidgetCategory,
-          entries: widgetEntries,
-          query: stepQuery,
-          highlight: stepHighlight,
-          exclude: usedTypes,
-        })
-      : null,
+    (() => {
+      if (state.mode !== "picker-widget") return null;
+      const category = state.pickerDraft.category;
+      if (!category) return null;
+      return React.createElement(PickerWidget, {
+        category,
+        entries: widgetEntries,
+        query: stepQuery,
+        highlight: stepHighlight,
+        exclude: usedTypes,
+      });
+    })(),
     state.mode === "picker-variant" && state.pickerDraft.widgetType
       ? React.createElement(PickerVariant, {
           widgetType: state.pickerDraft.widgetType,
