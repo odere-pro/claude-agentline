@@ -108,10 +108,11 @@ export function applyPowerline(
     segments.push(styleSegment(cell));
     const next = padded_[i + 1];
     if (next) {
-      // Chevron between cell and next: fg = cell.bg, bg = next.bg
+      // Same-bg cells: use cell.fg so the chevron stays visible on the continuous band.
+      const chevronFg = cell.bg === next.bg ? (cell.fg ?? cell.bg) : cell.bg;
       segments.push({
         text: options.glyphs.hardRight,
-        fg: cell.bg,
+        fg: chevronFg,
         bg: next.bg,
       });
     }
@@ -151,7 +152,9 @@ export function applyPowerlineLines(
   const lastBgPerLine: (Colour | undefined)[] = [];
   for (const line of lines) {
     const visible = line.filter((c) => !c.hidden && !c.flex);
-    firstBgPerLine.push(visible[0]?.bg ?? (visible.length > 0 ? defaultBg(options.theme) : undefined));
+    firstBgPerLine.push(
+      visible[0]?.bg ?? (visible.length > 0 ? defaultBg(options.theme) : undefined),
+    );
     lastBgPerLine.push(
       visible[visible.length - 1]?.bg ??
         (visible.length > 0 ? defaultBg(options.theme) : undefined),
