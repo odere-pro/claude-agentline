@@ -49,8 +49,10 @@ describe("runConfigCommand (entry-point wiring)", () => {
   });
 
   it("falls back to DEFAULT_CONFIG when no on-disk config can be loaded", async () => {
-    // No preloaded input + a CLAUDE_CONFIG_DIR pointing at an empty tmp:
-    // resolveStartingConfig hits the catch branch and returns DEFAULT_CONFIG.
+    /*
+     * No preloaded input + a CLAUDE_CONFIG_DIR pointing at an empty tmp:
+     * resolveStartingConfig hits the catch branch and returns DEFAULT_CONFIG.
+     */
     const result = await runConfigCommand({
       env: { CLAUDE_CONFIG_DIR: tmp },
     });
@@ -164,8 +166,10 @@ describe("enterAltScreen", () => {
   it("a SIGINT during the session triggers the leave sequence", () => {
     const { stream, writes } = makeStream(true);
     const restore = enterAltScreen(stream);
-    // The handler is installed via `process.once`, so emitting once is
-    // enough; the test process is otherwise untouched (Ink isn't mounted).
+    /*
+     * The handler is installed via `process.once`, so emitting once is
+     * enough; the test process is otherwise untouched (Ink isn't mounted).
+     */
     process.emit("SIGINT");
     expect(writes).toContain("\x1b[?1049l");
     restore(); // tidy any remaining listener
@@ -175,8 +179,10 @@ describe("enterAltScreen", () => {
     const { stream, writes } = makeStream(true);
     let exitCalled = false;
     const realExit = process.exit;
-    // The override matches `process.exit`'s `(code?: number) => never`
-    // signature but actually returns so the test process survives.
+    /*
+     * The override matches `process.exit`'s `(code?: number) => never`
+     * signature but actually returns so the test process survives.
+     */
     process.exit = (() => {
       exitCalled = true;
       return undefined as unknown as never;
@@ -207,8 +213,10 @@ describe("enterAltScreen", () => {
     try {
       const restore = enterAltScreen(stream, { awaitBeforeExit: () => savePromise });
       process.emit("SIGTERM", "SIGTERM");
-      // Before the save promise resolves: alt-screen still entered, no
-      // leave sequence written, exit not yet called.
+      /*
+       * Before the save promise resolves: alt-screen still entered, no
+       * leave sequence written, exit not yet called.
+       */
       expect(writes).toEqual(["\x1b[?1049h"]);
       expect(exitCalled).toBe(false);
       // Resolve the save and let two microtask ticks flush the .finally chain.
@@ -249,10 +257,7 @@ describe("fullscreenStream", () => {
     const wrapped = fullscreenStream(stream);
     wrapped.write("frame-one");
     wrapped.write("frame-two");
-    expect(writes).toEqual([
-      "\x1b[2J\x1b[3J\x1b[Hframe-one",
-      "\x1b[2J\x1b[3J\x1b[Hframe-two",
-    ]);
+    expect(writes).toEqual(["\x1b[2J\x1b[3J\x1b[Hframe-one", "\x1b[2J\x1b[3J\x1b[Hframe-two"]);
   });
 
   it("forwards passthrough properties like columns/rows", () => {

@@ -50,9 +50,11 @@ describe("saveEditedConfig", () => {
   });
 
   it("trims trailing empty rows the editor padded for navigation", async () => {
-    // The editor keeps `state.lines` at exactly MAX_LINES (3) for grid
-    // navigation. The on-disk config should mirror the user's intent —
-    // here, "one row with `model`" — not the padding scaffold.
+    /*
+     * The editor keeps `state.lines` at exactly MAX_LINES (3) for grid
+     * navigation. The on-disk config should mirror the user's intent —
+     * here, "one row with `model`" — not the padding scaffold.
+     */
     const path = join(dir, "padded.json");
     const lines = [{ widgets: [{ type: "model" }] }, { widgets: [] }, { widgets: [] }];
     const result = await saveEditedConfig({ path, base: DEFAULT_CONFIG, lines });

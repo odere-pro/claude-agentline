@@ -38,10 +38,12 @@ describe("isClaudeProject", () => {
   });
 
   it("does not match a directory named CLAUDE.md or a file named .claude (filesystem-level only)", async () => {
-    // .claude is checked via fs.access — a file *named* `.claude` still
-    // passes pathExists, so we don't try to distinguish file from dir
-    // here. This test pins the behaviour: any entry called `.claude`
-    // counts. Documenting current semantics, not aspirational ones.
+    /*
+     * .claude is checked via fs.access — a file *named* `.claude` still
+     * passes pathExists, so we don't try to distinguish file from dir
+     * here. This test pins the behaviour: any entry called `.claude`
+     * counts. Documenting current semantics, not aspirational ones.
+     */
     writeFileSync(join(tmp, ".claude"), "not a directory");
     await expect(isClaudeProject(tmp)).resolves.toBe(true);
   });

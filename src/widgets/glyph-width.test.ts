@@ -34,8 +34,10 @@ describe("catalogue glyphs", () => {
   it("are each exactly one codepoint", () => {
     for (const [type, meta] of Object.entries(WIDGET_CATALOG)) {
       if (!meta.glyph) continue;
-      // Spread iterates by codepoint so multi-codepoint emoji sequences
-      // (e.g. ZWJ joins, variation selectors) raise the length above 1.
+      /*
+       * Spread iterates by codepoint so multi-codepoint emoji sequences
+       * (e.g. ZWJ joins, variation selectors) raise the length above 1.
+       */
       expect([...meta.glyph], `${type} glyph must be one codepoint`).toHaveLength(1);
     }
   });
@@ -45,7 +47,10 @@ describe("catalogue glyphs", () => {
       if (!meta.glyph) continue;
       const cp = meta.glyph.codePointAt(0);
       expect(cp, `${type} glyph codepoint`).toBeDefined();
-      expect(inPua(cp as number), `${type} glyph U+${(cp as number).toString(16).padStart(4, "0").toUpperCase()} must sit in the Nerd Font PUA`).toBe(true);
+      expect(
+        inPua(cp as number),
+        `${type} glyph U+${(cp as number).toString(16).padStart(4, "0").toUpperCase()} must sit in the Nerd Font PUA`,
+      ).toBe(true);
     }
   });
 });

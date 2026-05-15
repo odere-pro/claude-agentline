@@ -12,12 +12,7 @@ import {
   type PickerHandlerDeps,
 } from "./editor-input-handlers.js";
 import type { SaveTracker } from "./mount.js";
-import {
-  initialState,
-  reduce,
-  type EditorAction,
-  type EditorState,
-} from "./state.js";
+import { initialState, reduce, type EditorAction, type EditorState } from "./state.js";
 
 const KEY_DEFAULTS: KeyEvent = Object.freeze({
   upArrow: false,
@@ -53,7 +48,10 @@ const enterPickerInsert = (state: EditorState): EditorState =>
 const stepToPickerWidget = (state: EditorState): EditorState =>
   reduce(enterPickerInsert(state), { type: "pick-family", family: "git" });
 
-const makePickerDeps = (state: EditorState, over: Partial<PickerHandlerDeps> = {}): {
+const makePickerDeps = (
+  state: EditorState,
+  over: Partial<PickerHandlerDeps> = {},
+): {
   deps: PickerHandlerDeps;
   dispatch: ReturnType<typeof vi.fn>;
   setStepQuery: ReturnType<typeof vi.fn>;
@@ -166,9 +164,11 @@ describe("handlePickerVariantKey", () => {
     // Force a draft into picker-variant with no widgetType (defensive path).
     const state = stepToPickerWidget(makeEdit());
     const { deps, dispatch } = makePickerDeps(state);
-    // The current state is picker-widget, not picker-variant; in real use
-    // the dispatcher only routes here when mode === "picker-variant".
-    // We exercise the early-return branch by giving an edit state.
+    /*
+     * The current state is picker-widget, not picker-variant; in real use
+     * the dispatcher only routes here when mode === "picker-variant".
+     * We exercise the early-return branch by giving an edit state.
+     */
     handlePickerVariantKey("", key({ escape: true }), {
       ...deps,
       state: makeEdit(),
@@ -293,7 +293,12 @@ describe("handleEditKey", () => {
   });
 
   it("d / x / Delete / Backspace dispatch delete", () => {
-    for (const k of [{ d: true }, { x: true }, { keyOpts: { delete: true } }, { keyOpts: { backspace: true } }]) {
+    for (const k of [
+      { d: true },
+      { x: true },
+      { keyOpts: { delete: true } },
+      { keyOpts: { backspace: true } },
+    ]) {
       const { deps, dispatch } = makeEditDeps();
       handleEditKey(
         "d" in k && k.d ? "d" : "x" in k && k.x ? "x" : "",

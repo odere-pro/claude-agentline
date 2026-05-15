@@ -109,8 +109,10 @@ describe("encodeSegments OSC 8 hyperlink", () => {
   });
 
   it("strips control characters from the URL before emitting", () => {
-    // The terminator is `ESC\\`; an unsanitised `ESC` inside the URL
-    // would close the sequence early and dump the rest as literal text.
+    /*
+     * The terminator is `ESC\\`; an unsanitised `ESC` inside the URL
+     * would close the sequence early and dump the rest as literal text.
+     */
     const segs: Segment[] = [{ text: "docs", href: "https://example.com\x1b\x07" }];
     expect(encodeSegments(segs, "truecolor")).toBe(
       `${OSC_OPEN}https://example.com${OSC_ST}docs${OSC_CLOSE}`,

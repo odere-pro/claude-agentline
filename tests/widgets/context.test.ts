@@ -16,11 +16,13 @@ describe("WidgetContext", () => {
       const now = realClock.now();
       const after = Date.now();
 
-      // `realClock.now()` is expected to fall between the two `Date.now()`
-      // brackets, but a strict equality bracket is fragile under loaded CI
-      // (clock skew, GC pauses between the two `Date.now()` calls). Allow a
-      // 1-minute tolerance on either side: more than enough headroom for any
-      // realistic scheduling, far less than the test could ever drift.
+      /*
+       * `realClock.now()` is expected to fall between the two `Date.now()`
+       * brackets, but a strict equality bracket is fragile under loaded CI
+       * (clock skew, GC pauses between the two `Date.now()` calls). Allow a
+       * 1-minute tolerance on either side: more than enough headroom for any
+       * realistic scheduling, far less than the test could ever drift.
+       */
       const TOLERANCE_MS = 60_000;
       expect(now).toBeInstanceOf(Date);
       expect(now.getTime()).toBeGreaterThanOrEqual(before - TOLERANCE_MS);
@@ -74,10 +76,12 @@ describe("WidgetContext", () => {
         env: process.env,
       };
 
-      // Assert identity / concrete values rather than the
-      // `toBeDefined()` smoke checks the smell-report flagged — those
-      // would have passed for a context whose fields had drifted into
-      // the wrong slots.
+      /*
+       * Assert identity / concrete values rather than the
+       * `toBeDefined()` smoke checks the smell-report flagged — those
+       * would have passed for a context whose fields had drifted into
+       * the wrong slots.
+       */
       expect(ctx.stdin).toBe(stdin);
       expect(ctx.stdin.truncated).toBe(false);
       expect(ctx.config).toBe(DEFAULT_CONFIG);

@@ -51,20 +51,20 @@ describe("uptime-session widget", () => {
     const sessionStart = Date.parse("2026-05-01T00:00:00Z");
     const now = sessionStart + 3 * 60 * 60 * 1000 + 30 * 60 * 1000;
     const snap = makeSnapshot(now, sessionStart);
-    const cell = uptimeSessionWidget.render(
-      makeCtx(new Date(now).toISOString(), snap),
-      { options: {}, rawValue: false },
-    );
+    const cell = uptimeSessionWidget.render(makeCtx(new Date(now).toISOString(), snap), {
+      options: {},
+      rawValue: false,
+    });
     expect(cell.text).toBe("3h30m");
   });
 
   it("renders 0m for zero elapsed time", () => {
     const sessionStart = Date.parse("2026-05-01T00:00:00Z");
     const snap = makeSnapshot(sessionStart, sessionStart);
-    const cell = uptimeSessionWidget.render(
-      makeCtx(new Date(sessionStart).toISOString(), snap),
-      { options: {}, rawValue: false },
-    );
+    const cell = uptimeSessionWidget.render(makeCtx(new Date(sessionStart).toISOString(), snap), {
+      options: {},
+      rawValue: false,
+    });
     expect(cell.text).toBe("0m");
   });
 
@@ -72,10 +72,10 @@ describe("uptime-session widget", () => {
     const sessionStart = Date.parse("2026-05-01T00:00:00Z");
     const now = sessionStart + 90 * 60 * 1000;
     const snap = makeSnapshot(now, sessionStart);
-    const cell = uptimeSessionWidget.render(
-      makeCtx(new Date(now).toISOString(), snap),
-      { options: { format: "clock" }, rawValue: false },
-    );
+    const cell = uptimeSessionWidget.render(makeCtx(new Date(now).toISOString(), snap), {
+      options: { format: "clock" },
+      rawValue: false,
+    });
     expect(cell.text).toBe("01:30:00");
   });
 
@@ -83,10 +83,10 @@ describe("uptime-session widget", () => {
     const sessionStart = Date.parse("2026-05-01T00:00:00Z");
     const now = sessionStart + 60 * 60 * 1000;
     const snap = makeSnapshot(now, sessionStart);
-    const cell = uptimeSessionWidget.render(
-      makeCtx(new Date(now).toISOString(), snap),
-      { options: { label: "up:" }, rawValue: false },
-    );
+    const cell = uptimeSessionWidget.render(makeCtx(new Date(now).toISOString(), snap), {
+      options: { label: "up:" },
+      rawValue: false,
+    });
     expect(cell.text).toBe("up:1h0m");
   });
 
@@ -94,14 +94,14 @@ describe("uptime-session widget", () => {
     const sessionStart = Date.parse("2026-05-01T00:00:00Z");
     const now = sessionStart + 60 * 60 * 1000;
     const snap = makeSnapshot(now, sessionStart);
-    const withLabel = uptimeSessionWidget.render(
-      makeCtx(new Date(now).toISOString(), snap),
-      { options: { label: "up:" }, rawValue: false },
-    );
-    const noLabel = uptimeSessionWidget.render(
-      makeCtx(new Date(now).toISOString(), snap),
-      { options: { label: "up:" }, rawValue: true },
-    );
+    const withLabel = uptimeSessionWidget.render(makeCtx(new Date(now).toISOString(), snap), {
+      options: { label: "up:" },
+      rawValue: false,
+    });
+    const noLabel = uptimeSessionWidget.render(makeCtx(new Date(now).toISOString(), snap), {
+      options: { label: "up:" },
+      rawValue: true,
+    });
     expect(withLabel.text).toBe("up:1h0m");
     expect(noLabel.text).toBe("1h0m");
   });
@@ -113,8 +113,10 @@ describe("uptime-block widget", () => {
       options: {},
       rawValue: false,
     });
-    // Without a snapshot blockAnchor defaults to undefined → blockStart uses now
-    // so elapsed = 0
+    /*
+     * Without a snapshot blockAnchor defaults to undefined → blockStart uses now
+     * so elapsed = 0
+     */
     expect(cell.text).toBe("0m");
   });
 
@@ -122,10 +124,10 @@ describe("uptime-block widget", () => {
     const anchor = Date.parse("2026-05-01T00:00:00Z");
     const now = anchor + 6 * 60 * 60 * 1000; // 1h into second block
     const snap = makeSnapshot(now, anchor, anchor);
-    const cell = uptimeBlockWidget.render(
-      makeCtx(new Date(now).toISOString(), snap),
-      { options: {}, rawValue: false },
-    );
+    const cell = uptimeBlockWidget.render(makeCtx(new Date(now).toISOString(), snap), {
+      options: {},
+      rawValue: false,
+    });
     expect(cell.text).toBe("1h0m");
   });
 
@@ -133,10 +135,10 @@ describe("uptime-block widget", () => {
     const anchor = Date.parse("2026-05-01T00:00:00Z");
     const now = anchor + 90 * 60 * 1000;
     const snap = makeSnapshot(now, anchor, anchor);
-    const cell = uptimeBlockWidget.render(
-      makeCtx(new Date(now).toISOString(), snap),
-      { options: { format: "clock" }, rawValue: false },
-    );
+    const cell = uptimeBlockWidget.render(makeCtx(new Date(now).toISOString(), snap), {
+      options: { format: "clock" },
+      rawValue: false,
+    });
     expect(cell.text).toBe("01:30:00");
   });
 
@@ -144,10 +146,10 @@ describe("uptime-block widget", () => {
     const anchor = Date.parse("2026-05-01T00:00:00Z");
     const now = anchor + 30 * 60 * 1000;
     const snap = makeSnapshot(now, anchor, anchor);
-    const cell = uptimeBlockWidget.render(
-      makeCtx(new Date(now).toISOString(), snap),
-      { options: { label: "blk:" }, rawValue: false },
-    );
+    const cell = uptimeBlockWidget.render(makeCtx(new Date(now).toISOString(), snap), {
+      options: { label: "blk:" },
+      rawValue: false,
+    });
     expect(cell.text).toBe("blk:30m");
   });
 
@@ -155,14 +157,14 @@ describe("uptime-block widget", () => {
     const anchor = Date.parse("2026-05-01T00:00:00Z");
     const now = anchor + 30 * 60 * 1000;
     const snap = makeSnapshot(now, anchor, anchor);
-    const withLabel = uptimeBlockWidget.render(
-      makeCtx(new Date(now).toISOString(), snap),
-      { options: { label: "blk:" }, rawValue: false },
-    );
-    const noLabel = uptimeBlockWidget.render(
-      makeCtx(new Date(now).toISOString(), snap),
-      { options: { label: "blk:" }, rawValue: true },
-    );
+    const withLabel = uptimeBlockWidget.render(makeCtx(new Date(now).toISOString(), snap), {
+      options: { label: "blk:" },
+      rawValue: false,
+    });
+    const noLabel = uptimeBlockWidget.render(makeCtx(new Date(now).toISOString(), snap), {
+      options: { label: "blk:" },
+      rawValue: true,
+    });
     expect(withLabel.text).toBe("blk:30m");
     expect(noLabel.text).toBe("30m");
   });

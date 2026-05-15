@@ -83,10 +83,12 @@ describe("formatClock", () => {
 
 describe("clock widget", () => {
   it("renders default HH:mm in local time when tz omitted", () => {
-    // Pin process.env.TZ for the duration of the assertion so "local"
-    // time is deterministic. Without this, the assertion below would
-    // be host-TZ dependent and the test would have to fall back to a
-    // shape-only regex check that never fails.
+    /*
+     * Pin process.env.TZ for the duration of the assertion so "local"
+     * time is deterministic. Without this, the assertion below would
+     * be host-TZ dependent and the test would have to fall back to a
+     * shape-only regex check that never fails.
+     */
     const prevTz = process.env.TZ;
     process.env.TZ = "UTC";
     try {

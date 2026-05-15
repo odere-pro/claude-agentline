@@ -73,9 +73,11 @@ afterEach(() => {
   resetPreviewModeCache();
 });
 
-// Walk the rendered tree and collect every <Text> node with its props +
-// the concatenated text of its children (each child is either a string or
-// another node — flatten to strings).
+/*
+ * Walk the rendered tree and collect every <Text> node with its props +
+ * the concatenated text of its children (each child is either a string or
+ * another node — flatten to strings).
+ */
 interface TextNode {
   readonly props: Record<string, unknown>;
   readonly text: string;
@@ -113,8 +115,10 @@ function collectTextNodes(node: unknown): TextNode[] {
 
 const GLYPHS = pickGlyphs({ unicode: true });
 
-// React.createElement nests children inside `props.children`. Normalise to
-// a flat array so wrap-line counts read cleanly.
+/*
+ * React.createElement nests children inside `props.children`. Normalise to
+ * a flat array so wrap-line counts read cleanly.
+ */
 function previewChildren(node: unknown): unknown[] {
   const props = (node as { props?: { children?: unknown } } | undefined)?.props;
   const raw = props?.children;
@@ -209,9 +213,11 @@ describe("Preview — projection", () => {
   });
 
   it("packs a wide row across multiple visual sub-lines when `columns` is tight", () => {
-    // Eleven widget slots + ten separators + an add cell are well over what
-    // a 40-column terminal can fit on one visual line. The packer should
-    // emit more than one Box-line for row 0.
+    /*
+     * Eleven widget slots + ten separators + an add cell are well over what
+     * a 40-column terminal can fit on one visual line. The packer should
+     * emit more than one Box-line for row 0.
+     */
     const node = Preview({
       base: DEFAULT_CONFIG,
       lines: [
@@ -237,8 +243,10 @@ describe("Preview — projection", () => {
       glyphs: GLYPHS,
       columns: 40,
     });
-    // 3 rows produce 3 outer-Box children when no wrap; wrap on row 0
-    // should add at least one continuation Box.
+    /*
+     * 3 rows produce 3 outer-Box children when no wrap; wrap on row 0
+     * should add at least one continuation Box.
+     */
     expect(previewChildren(node).length).toBeGreaterThan(3);
   });
 

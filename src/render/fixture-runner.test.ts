@@ -21,13 +21,17 @@ import { renderForFixture } from "./fixture-runner.js";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SHIPPED_THEMES_DIR = path.resolve(here, "..", "..", "themes");
 
-// Minimal stdin payload that drives the `model` widget — its Cell carries
-// `fg = resolveRole(ctx.theme, "accent")`, which is the easiest signal to
-// detect a theme actually flowing through the pipeline.
+/*
+ * Minimal stdin payload that drives the `model` widget — its Cell carries
+ * `fg = resolveRole(ctx.theme, "accent")`, which is the easiest signal to
+ * detect a theme actually flowing through the pipeline.
+ */
 const STDIN = JSON.stringify({ model: "claude-opus-4-7" });
 
-// Lock the env so colour-depth detection is deterministic across hosts —
-// truecolor lets us assert the exact `38;2;R;G;B` sequence per palette.
+/*
+ * Lock the env so colour-depth detection is deterministic across hosts —
+ * truecolor lets us assert the exact `38;2;R;G;B` sequence per palette.
+ */
 const TRUECOLOR_ENV = { COLORTERM: "truecolor", TERM: "xterm-256color" };
 
 function configWithTheme(name: string | null): AgentlineConfig {
@@ -74,9 +78,11 @@ describe("renderForFixture — theming", () => {
   });
 
   it("honours an explicit options.theme = null (e.g. golden fixtures)", async () => {
-    // Even though config.theme names a real theme, an explicit `null` opts
-    // out of resolution — the path goldens use to keep their fixtures
-    // byte-stable regardless of what's on the search path.
+    /*
+     * Even though config.theme names a real theme, an explicit `null` opts
+     * out of resolution — the path goldens use to keep their fixtures
+     * byte-stable regardless of what's on the search path.
+     */
     const out = await renderForFixture(STDIN, {
       config: configWithTheme("claude-code-dark"),
       theme: null,
