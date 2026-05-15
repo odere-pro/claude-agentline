@@ -78,11 +78,11 @@ update the other artefact, not this one.
 > One of the seven named groups that organise built-in widgets:
 > `session`, `tokens`, `context`, `rate-limits`, `git`, `time`, `custom`.
 
-**Used in:** `WidgetMeta.category` (code), `WIDGET_CATEGORIES` (constant),
+**Used in:** `WidgetMeta.family` (code), `WIDGET_FAMILIES` (constant),
 `src/widgets/<family>/` directories, picker step 1.  
-**Note:** TypeScript currently spells this as `WidgetCategory` / `WIDGET_CATEGORIES` /
-`CATEGORY_COLOR` / `.category`. The user-facing term is **family**; aligning the
-code to that name is tracked as a separate refactor.
+**Note:** Earlier code spelled this as `WidgetCategory` / `WIDGET_CATEGORIES` /
+`CATEGORY_COLOR` / `.category`. The TypeScript surface is now aligned with the
+user-facing term **family**.
 
 ---
 
@@ -367,39 +367,39 @@ Optional roles (missing roles fall back to the compiled defaults):
 
 Public types exported from `src/`. Source of truth over any doc that lists them.
 
-| Type                     | File                           | Description                                                       |
-| ------------------------ | ------------------------------ | ----------------------------------------------------------------- |
-| `AgentlineConfig`        | `src/config/types.ts`          | Top-level config shape                                            |
-| `PartialAgentlineConfig` | `src/config/types.ts`          | Partial version for merging                                       |
-| `GlobalConfig`           | `src/config/types.ts`          | `config.global` block                                             |
-| `LineConfig`             | `src/config/types.ts`          | Single line (array of `WidgetConfig`)                             |
-| `WidgetConfig`           | `src/config/types.ts`          | Per-widget config entry                                           |
-| `PowerlineConfig`        | `src/config/types.ts`          | `config.powerline` block                                          |
-| `PowerlineCaps`          | `src/config/types.ts`          | Start/end cap glyphs                                              |
-| `PowerlineGlyphs`        | `src/config/types.ts`          | Chevron glyph overrides                                           |
-| `TerminalWidthConfig`    | `src/config/types.ts`          | Width detection settings                                          |
-| `GlyphMode`              | `src/config/types.ts`          | `"off" \| "nerd-font"`                                            |
-| `RawColour`              | `src/config/types.ts`          | Pre-validation colour string                                      |
-| `Cell`                   | `src/widgets/types.ts`         | Atomic render unit output                                         |
-| `WidgetContext`          | `src/widgets/types.ts`         | Render-time environment passed to each widget                     |
-| `WidgetSettings`         | `src/widgets/types.ts`         | Resolved per-widget settings                                      |
-| `WidgetRender`           | `src/widgets/types.ts`         | Widget render function signature                                  |
-| `WidgetDef`              | `src/widgets/types.ts`         | Widget contract registered in `WidgetRegistry`                    |
-| `MergeMode`              | `src/widgets/types.ts`         | `"off" \| "merge" \| "merge-no-padding"`                          |
-| `Segment`                | `src/render/segment.ts`        | ANSI-encoded output segment                                       |
-| `StdinPayload`           | `src/stdin/index.ts`           | Parsed Claude Code statusline JSON                                |
-| `Theme`                  | `src/theme/index.ts`           | Loaded theme with resolved palette                                |
-| `ThemeRole`              | `src/theme/roles.ts`           | Union of valid palette role keys                                  |
-| `Colour`                 | `src/theme/colours.ts`         | Parsed colour (named / indexed / hex)                             |
-| `ResetAxis`              | `src/tokens/index.ts`          | `"session" \| "block" \| "day" \| "week" \| "model" \| "effort"`  |
-| `TokensSnapshot`         | `src/tokens/index.ts`          | Accumulated token totals                                          |
-| `TokenTotals`            | `src/tokens/index.ts`          | Token sub-totals by type                                          |
-| `KeyScope`               | `src/keys/bindings.ts`         | `"edit" \| "picker" \| "any"`                                     |
-| `KeyBinding`             | `src/keys/bindings.ts`         | Single key binding entry                                          |
-| `WidgetMeta`             | `src/widgets/catalog.ts`       | Widget metadata entry in catalog                                  |
-| `WidgetVariant`          | `src/widgets/catalog.ts`       | Named display variant for a widget                                |
-| `WidgetCategory`         | `src/widgets/catalog/types.ts` | Union of the 7 widget family strings (user-facing term: "family") |
-| `WidgetMetaEntry`        | `src/widgets/catalog.ts`       | `WidgetMeta` paired with its `type` string                        |
+| Type                     | File                           | Description                                                      |
+| ------------------------ | ------------------------------ | ---------------------------------------------------------------- |
+| `AgentlineConfig`        | `src/config/types.ts`          | Top-level config shape                                           |
+| `PartialAgentlineConfig` | `src/config/types.ts`          | Partial version for merging                                      |
+| `GlobalConfig`           | `src/config/types.ts`          | `config.global` block                                            |
+| `LineConfig`             | `src/config/types.ts`          | Single line (array of `WidgetConfig`)                            |
+| `WidgetConfig`           | `src/config/types.ts`          | Per-widget config entry                                          |
+| `PowerlineConfig`        | `src/config/types.ts`          | `config.powerline` block                                         |
+| `PowerlineCaps`          | `src/config/types.ts`          | Start/end cap glyphs                                             |
+| `PowerlineGlyphs`        | `src/config/types.ts`          | Chevron glyph overrides                                          |
+| `TerminalWidthConfig`    | `src/config/types.ts`          | Width detection settings                                         |
+| `GlyphMode`              | `src/config/types.ts`          | `"off" \| "nerd-font"`                                           |
+| `RawColour`              | `src/config/types.ts`          | Pre-validation colour string                                     |
+| `Cell`                   | `src/widgets/types.ts`         | Atomic render unit output                                        |
+| `WidgetContext`          | `src/widgets/types.ts`         | Render-time environment passed to each widget                    |
+| `WidgetSettings`         | `src/widgets/types.ts`         | Resolved per-widget settings                                     |
+| `WidgetRender`           | `src/widgets/types.ts`         | Widget render function signature                                 |
+| `WidgetDef`              | `src/widgets/types.ts`         | Widget contract registered in `WidgetRegistry`                   |
+| `MergeMode`              | `src/widgets/types.ts`         | `"off" \| "merge" \| "merge-no-padding"`                         |
+| `Segment`                | `src/render/segment.ts`        | ANSI-encoded output segment                                      |
+| `StdinPayload`           | `src/stdin/index.ts`           | Parsed Claude Code statusline JSON                               |
+| `Theme`                  | `src/theme/index.ts`           | Loaded theme with resolved palette                               |
+| `ThemeRole`              | `src/theme/roles.ts`           | Union of valid palette role keys                                 |
+| `Colour`                 | `src/theme/colours.ts`         | Parsed colour (named / indexed / hex)                            |
+| `ResetAxis`              | `src/tokens/index.ts`          | `"session" \| "block" \| "day" \| "week" \| "model" \| "effort"` |
+| `TokensSnapshot`         | `src/tokens/index.ts`          | Accumulated token totals                                         |
+| `TokenTotals`            | `src/tokens/index.ts`          | Token sub-totals by type                                         |
+| `KeyScope`               | `src/keys/bindings.ts`         | `"edit" \| "picker" \| "any"`                                    |
+| `KeyBinding`             | `src/keys/bindings.ts`         | Single key binding entry                                         |
+| `WidgetMeta`             | `src/widgets/catalog.ts`       | Widget metadata entry in catalog                                 |
+| `WidgetVariant`          | `src/widgets/catalog.ts`       | Named display variant for a widget                               |
+| `WidgetFamily`           | `src/widgets/catalog/types.ts` | Union of the 7 widget family strings                             |
+| `WidgetMetaEntry`        | `src/widgets/catalog.ts`       | `WidgetMeta` paired with its `type` string                       |
 
 ---
 
@@ -474,13 +474,13 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 
 Do not use these in new code, docs, or comments. Update any occurrence you find.
 
-| Retired term                                  | Use instead                    | Reason                                                                    |
-| --------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------- |
-| "preset" (for init configs)                   | "config template"              | Ambiguous with theme preset; init presets were removed                    |
-| "config preset" / "init preset"               | "config template"              | Same as above                                                             |
-| "category" (user-facing, for widget grouping) | "family"                       | User-facing term is "family"; TypeScript still spells it `WidgetCategory` |
-| "config layer" (implying 3 layers)            | "user config" + "env override" | Project-config layer was removed; only 2 layers remain                    |
-| "options sheet" (TUI)                         | —                              | Removed in editor redesign; nothing replaced it                           |
-| "focus" / "power" (init template names)       | —                              | Removed; only the `default` template ships                                |
-| `agentline config theme`                      | —                              | Subcommand retired; edit `config.theme` directly or use `agentline edit`  |
-| `agentline init`                              | —                              | Not in current CLI; `agentline install` seeds the config on first install |
+| Retired term                            | Use instead                    | Reason                                                                    |
+| --------------------------------------- | ------------------------------ | ------------------------------------------------------------------------- |
+| "preset" (for init configs)             | "config template"              | Ambiguous with theme preset; init presets were removed                    |
+| "config preset" / "init preset"         | "config template"              | Same as above                                                             |
+| "category" (for widget grouping)        | "family"                       | Replaced everywhere — in docs, agents, and TypeScript                     |
+| "config layer" (implying 3 layers)      | "user config" + "env override" | Project-config layer was removed; only 2 layers remain                    |
+| "options sheet" (TUI)                   | —                              | Removed in editor redesign; nothing replaced it                           |
+| "focus" / "power" (init template names) | —                              | Removed; only the `default` template ships                                |
+| `agentline config theme`                | —                              | Subcommand retired; edit `config.theme` directly or use `agentline edit`  |
+| `agentline init`                        | —                              | Not in current CLI; `agentline install` seeds the config on first install |

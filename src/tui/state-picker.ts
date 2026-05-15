@@ -11,7 +11,7 @@
  */
 
 import type { WidgetConfig } from "../config/types.js";
-import { widgetVariants, type WidgetCategory } from "../widgets/catalog.js";
+import { widgetVariants, type WidgetFamily } from "../widgets/catalog.js";
 
 import {
   FORBIDDEN_OPTION_KEYS,
@@ -50,20 +50,20 @@ export function openPicker(
   };
 }
 
-export function pickCategory(state: EditorState, category: WidgetCategory): EditorState {
+export function pickFamily(state: EditorState, family: WidgetFamily): EditorState {
   if (state.mode !== "picker-group") return state;
   return {
     ...state,
     mode: "picker-widget",
-    pickerDraft: { ...state.pickerDraft, category },
+    pickerDraft: { ...state.pickerDraft, family },
   };
 }
 
 export function pickWidget(state: EditorState, widgetType: string): EditorState {
-  // Allow `pickWidget` from either step — `picker-widget` is the in-category
+  // Allow `pickWidget` from either step — `picker-widget` is the in-family
   // path; `picker-group` is the flat-search path (App-side: typing in step 1
   // turns the group list into a global filtered list, and Enter commits the
-  // highlighted result without an intermediate category step).
+  // highlighted result without an intermediate family step).
   if (state.mode !== "picker-widget" && state.mode !== "picker-group") return state;
   if (!widgetType) return backToEdit(state);
   const variants = widgetVariants(widgetType);
@@ -97,9 +97,9 @@ export function pickVariant(state: EditorState, variantId: string | null): Edito
 export function pickerBack(state: EditorState): EditorState {
   if (state.mode === "picker-variant") {
     // Route back to the step the user came from: `picker-widget` if they
-    // drilled in via a category, `picker-group` if they picked from the
-    // flat-search list (no category in the draft).
-    const back: EditorMode = state.pickerDraft.category ? "picker-widget" : "picker-group";
+    // drilled in via a family, `picker-group` if they picked from the
+    // flat-search list (no family in the draft).
+    const back: EditorMode = state.pickerDraft.family ? "picker-widget" : "picker-group";
     return {
       ...state,
       mode: back,
@@ -110,7 +110,7 @@ export function pickerBack(state: EditorState): EditorState {
     return {
       ...state,
       mode: "picker-group",
-      pickerDraft: { ...state.pickerDraft, category: undefined },
+      pickerDraft: { ...state.pickerDraft, family: undefined },
     };
   }
   if (state.mode === "picker-group") {

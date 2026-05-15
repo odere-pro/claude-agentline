@@ -39,9 +39,9 @@ const KEY_DEFAULTS: KeyEvent = Object.freeze({
 const key = (overrides: Partial<KeyEvent> = {}): KeyEvent => ({ ...KEY_DEFAULTS, ...overrides });
 
 const widgetEntries = [
-  { type: "git-branch", name: "Git branch", description: "current branch", category: "git" },
-  { type: "model", name: "Model", description: "active model id", category: "session" },
-  { type: "tokens-total", name: "Tokens (total)", description: "total tokens", category: "tokens" },
+  { type: "git-branch", name: "Git branch", description: "current branch", family: "git" },
+  { type: "model", name: "Model", description: "active model id", family: "session" },
+  { type: "tokens-total", name: "Tokens (total)", description: "total tokens", family: "tokens" },
 ] as const;
 
 const makeEdit = (lines: LineConfig[] = [{ widgets: [{ type: "model" }] }]): EditorState =>
@@ -51,7 +51,7 @@ const enterPickerInsert = (state: EditorState): EditorState =>
   reduce(state, { type: "open-picker", intent: "add" });
 
 const stepToPickerWidget = (state: EditorState): EditorState =>
-  reduce(enterPickerInsert(state), { type: "pick-category", category: "git" });
+  reduce(enterPickerInsert(state), { type: "pick-family", family: "git" });
 
 const makePickerDeps = (state: EditorState, over: Partial<PickerHandlerDeps> = {}): {
   deps: PickerHandlerDeps;
@@ -109,12 +109,12 @@ describe("handlePickerGroupKey", () => {
     });
   });
 
-  it("with an empty query, Enter selects the highlighted category", () => {
+  it("with an empty query, Enter selects the highlighted family", () => {
     const { deps, dispatch } = makePickerDeps(state, { stepQuery: "", stepHighlight: 0 });
     handlePickerGroupKey("", key({ return: true }), deps);
     expect(dispatch).toHaveBeenCalledTimes(1);
     const action = dispatch.mock.calls[0]?.[0];
-    expect(action?.type).toBe("pick-category");
+    expect(action?.type).toBe("pick-family");
   });
 
   it("Backspace on an empty query is a no-op", () => {
@@ -137,7 +137,7 @@ describe("handlePickerWidgetKey", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "picker-back" });
   });
 
-  it("Enter commits the highlighted widget inside the active category", () => {
+  it("Enter commits the highlighted widget inside the active family", () => {
     const { deps, dispatch } = makePickerDeps(state, { stepHighlight: 0 });
     handlePickerWidgetKey("", key({ return: true }), deps);
     expect(dispatch).toHaveBeenCalledWith({
@@ -180,7 +180,7 @@ describe("handlePickerVariantKey", () => {
     // Drive a real picker-variant state by selecting a widget with variants.
     let s: EditorState = makeEdit();
     s = reduce(s, { type: "open-picker", intent: "add" });
-    s = reduce(s, { type: "pick-category", category: "tokens" });
+    s = reduce(s, { type: "pick-family", family: "tokens" });
     s = reduce(s, { type: "pick-widget", widgetType: "tokens-total" });
     if (s.mode !== "picker-variant") {
       // tokens-total may not have variants; skip the assertion in that case.

@@ -272,14 +272,14 @@ describe("picker drill-down — open-picker (replace intent)", () => {
   });
 });
 
-describe("picker drill-down — pick-category → pick-widget → pick-variant", () => {
+describe("picker drill-down — pick-family → pick-widget → pick-variant", () => {
   it("drilling through a variant-bearing widget commits with the variant's options patch", () => {
     let s = multiLine([["model"]]);
     s = reduce(s, { type: "move-cursor", dx: 1 }); // onto add-cell
     s = reduce(s, { type: "open-picker", intent: "add" });
-    s = reduce(s, { type: "pick-category", category: "session" });
+    s = reduce(s, { type: "pick-family", family: "session" });
     expect(s.mode).toBe("picker-widget");
-    expect(asPicker(s).pickerDraft.category).toBe("session");
+    expect(asPicker(s).pickerDraft.family).toBe("session");
     s = reduce(s, { type: "pick-widget", widgetType: "skills" });
     expect(s.mode).toBe("picker-variant");
     expect(asPicker(s).pickerDraft.widgetType).toBe("skills");
@@ -296,7 +296,7 @@ describe("picker drill-down — pick-category → pick-widget → pick-variant",
   it("drilling through a no-variant widget commits immediately at pick-widget", () => {
     let s = multiLine([["a"]]);
     s = reduce(s, { type: "open-picker", intent: "add" });
-    s = reduce(s, { type: "pick-category", category: "git" });
+    s = reduce(s, { type: "pick-family", family: "git" });
     s = reduce(s, { type: "pick-widget", widgetType: "git-branch" });
     expect(s.mode).toBe("edit");
     expect(s.lines[0]?.widgets[1]).toEqual({ type: "git-branch" });
@@ -305,7 +305,7 @@ describe("picker drill-down — pick-category → pick-widget → pick-variant",
   it("pick-variant with null commits without applying any options patch", () => {
     let s = multiLine([["a"]]);
     s = reduce(s, { type: "open-picker", intent: "add" });
-    s = reduce(s, { type: "pick-category", category: "session" });
+    s = reduce(s, { type: "pick-family", family: "session" });
     s = reduce(s, { type: "pick-widget", widgetType: "skills" });
     s = reduce(s, { type: "pick-variant", variantId: null });
     expect(s.lines[0]?.widgets[1]).toEqual({ type: "skills" });
@@ -318,7 +318,7 @@ describe("picker drill-down — replace target", () => {
       { widgets: [{ type: "model", fg: "#ff00ff", bold: true }] },
     ]);
     s = reduce(s, { type: "open-picker", intent: "replace" });
-    s = reduce(s, { type: "pick-category", category: "git" });
+    s = reduce(s, { type: "pick-family", family: "git" });
     s = reduce(s, { type: "pick-widget", widgetType: "git-branch" });
     expect(s.lines[0]?.widgets[0]).toEqual({ type: "git-branch" });
   });
@@ -329,22 +329,22 @@ describe("picker drill-down — flat search from picker-group", () => {
     let s = multiLine([["a"]]);
     s = reduce(s, { type: "open-picker", intent: "add" });
     expect(s.mode).toBe("picker-group");
-    // Flat-search path: skip pick-category, dispatch pick-widget straight away.
+    // Flat-search path: skip pick-family, dispatch pick-widget straight away.
     s = reduce(s, { type: "pick-widget", widgetType: "git-branch" });
     expect(s.mode).toBe("edit");
     expect(s.lines[0]?.widgets[1]).toEqual({ type: "git-branch" });
   });
 
-  it("pick-widget routes to picker-variant from picker-group without setting a category", () => {
+  it("pick-widget routes to picker-variant from picker-group without setting a family", () => {
     let s = multiLine([["a"]]);
     s = reduce(s, { type: "open-picker", intent: "add" });
     s = reduce(s, { type: "pick-widget", widgetType: "skills" });
     expect(s.mode).toBe("picker-variant");
     expect(asPicker(s).pickerDraft.widgetType).toBe("skills");
-    expect(asPicker(s).pickerDraft.category).toBeUndefined();
+    expect(asPicker(s).pickerDraft.family).toBeUndefined();
   });
 
-  it("picker-back from picker-variant returns to picker-group when no category was chosen", () => {
+  it("picker-back from picker-variant returns to picker-group when no family was chosen", () => {
     let s = multiLine([["a"]]);
     s = reduce(s, { type: "open-picker", intent: "add" });
     s = reduce(s, { type: "pick-widget", widgetType: "skills" }); // flat-search path
@@ -359,7 +359,7 @@ describe("picker drill-down — picker-back and close-picker", () => {
   it("picker-back from picker-variant returns to picker-widget for add/replace", () => {
     let s = multiLine([["a"]]);
     s = reduce(s, { type: "open-picker", intent: "add" });
-    s = reduce(s, { type: "pick-category", category: "session" });
+    s = reduce(s, { type: "pick-family", family: "session" });
     s = reduce(s, { type: "pick-widget", widgetType: "skills" });
     expect(s.mode).toBe("picker-variant");
     s = reduce(s, { type: "picker-back" });
@@ -367,7 +367,7 @@ describe("picker drill-down — picker-back and close-picker", () => {
     expect(asPicker(s).pickerDraft.widgetType).toBeUndefined();
     s = reduce(s, { type: "picker-back" });
     expect(s.mode).toBe("picker-group");
-    expect(asPicker(s).pickerDraft.category).toBeUndefined();
+    expect(asPicker(s).pickerDraft.family).toBeUndefined();
     s = reduce(s, { type: "picker-back" });
     expect(s.mode).toBe("edit");
   });
@@ -375,7 +375,7 @@ describe("picker drill-down — picker-back and close-picker", () => {
   it("close-picker from any picker-* mode returns to edit", () => {
     let s = multiLine([["a"]]);
     s = reduce(s, { type: "open-picker", intent: "add" });
-    s = reduce(s, { type: "pick-category", category: "session" });
+    s = reduce(s, { type: "pick-family", family: "session" });
     s = reduce(s, { type: "pick-widget", widgetType: "skills" });
     s = reduce(s, { type: "close-picker" });
     // The discriminated union in `EditorState` excludes `pickerDraft` /
@@ -389,7 +389,7 @@ describe("picker — option sanitisation", () => {
   it("strips prototype-polluting keys from a variant's options patch", () => {
     let s = multiLine([["a"]]);
     s = reduce(s, { type: "open-picker", intent: "add" });
-    s = reduce(s, { type: "pick-category", category: "session" });
+    s = reduce(s, { type: "pick-family", family: "session" });
     s = reduce(s, { type: "pick-widget", widgetType: "skills" });
     // Inject a malicious variantId — never matches a real variant, so commit
     // falls back to "default options" path. Defence-in-depth: sanitise.

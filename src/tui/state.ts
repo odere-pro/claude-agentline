@@ -19,8 +19,8 @@
  * ---------------------
  * Add / replace share one drill-down owned by `state-picker.ts`:
  *
- *   step 1 — `picker-group`   — pick a category (`session`, `git`, …).
- *   step 2 — `picker-widget`  — pick a widget within the chosen category.
+ *   step 1 — `picker-group`   — pick a family (`session`, `git`, …).
+ *   step 2 — `picker-widget`  — pick a widget within the chosen family.
  *   step 3 — `picker-variant` — pick a variant (same widget, different
  *                                rendering) — *skipped* when the widget
  *                                has no `variants` in the catalogue.
@@ -49,7 +49,7 @@
 
 import { MAX_LINES } from "../config/mutate.js";
 import type { GlyphMode, LineConfig, WidgetConfig } from "../config/types.js";
-import type { WidgetCategory } from "../widgets/catalog.js";
+import type { WidgetFamily } from "../widgets/catalog.js";
 
 import {
   deleteWidget,
@@ -60,7 +60,7 @@ import {
 import {
   backToEdit,
   openPicker,
-  pickCategory,
+  pickFamily,
   pickVariant,
   pickWidget,
   pickerBack,
@@ -81,7 +81,7 @@ export interface PickerTarget {
 }
 
 export interface PickerDraft {
-  readonly category?: WidgetCategory;
+  readonly family?: WidgetFamily;
   readonly widgetType?: string;
 }
 
@@ -140,7 +140,7 @@ export type EditorAction =
   | { readonly type: "toggle-glyphs" }
   // ── picker drill-down (add / replace) ────────────────────────────────────
   | { readonly type: "open-picker"; readonly intent: "add" | "replace" }
-  | { readonly type: "pick-category"; readonly category: WidgetCategory }
+  | { readonly type: "pick-family"; readonly family: WidgetFamily }
   | { readonly type: "pick-widget"; readonly widgetType: string }
   | { readonly type: "pick-variant"; readonly variantId: string | null }
   | { readonly type: "picker-back" }
@@ -191,8 +191,8 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
       };
     case "open-picker":
       return openPicker(state, action.intent);
-    case "pick-category":
-      return pickCategory(state, action.category);
+    case "pick-family":
+      return pickFamily(state, action.family);
     case "pick-widget":
       return pickWidget(state, action.widgetType);
     case "pick-variant":

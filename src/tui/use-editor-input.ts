@@ -73,13 +73,13 @@ export function useEditorInput(opts: UseEditorInputOptions): UseEditorInputResul
   // `pickerDraft` exists only on the picker branch of the discriminated
   // union. Derive nullable views so the dependency arrays stay accessible
   // without re-narrowing each time.
-  const pickerCategory = state.mode === "edit" ? undefined : state.pickerDraft.category;
+  const pickerFamily = state.mode === "edit" ? undefined : state.pickerDraft.family;
   const pickerWidgetType = state.mode === "edit" ? undefined : state.pickerDraft.widgetType;
 
   useEffect(() => {
     setStepQuery("");
     setStepHighlight(0);
-  }, [state.mode, pickerCategory, pickerWidgetType]);
+  }, [state.mode, pickerFamily, pickerWidgetType]);
 
   useInput((input, key) => {
     const deps: EditHandlerDeps = {

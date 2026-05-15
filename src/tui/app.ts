@@ -225,10 +225,10 @@ export function App({
       : null,
     (() => {
       if (state.mode !== "picker-widget") return null;
-      const category = state.pickerDraft.category;
-      if (!category) return null;
+      const family = state.pickerDraft.family;
+      if (!family) return null;
       return React.createElement(PickerWidget, {
-        category,
+        family,
         entries: widgetEntries,
         query: stepQuery,
         highlight: stepHighlight,

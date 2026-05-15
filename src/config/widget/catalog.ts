@@ -2,9 +2,9 @@
  * Body for `agentline config widget catalog [--json]`.
  *
  * Lists every registered widget type with its human name, one-line
- * description, and category — the discovery surface the in-session
+ * description, and family — the discovery surface the in-session
  * configure skill reads before suggesting widgets. JSON form is the
- * structured payload; text form groups by category in reading order.
+ * structured payload; text form groups by family in reading order.
  *
  * No preview column: the demo-fixture that backed an earlier `--preview`
  * was retired, and the TUI picker (`agentline edit`) is the real preview
@@ -13,7 +13,7 @@
 
 import { isHelpFlag, requestHelp } from "../../cli/help.js";
 import {
-  WIDGET_CATEGORIES,
+  WIDGET_FAMILIES,
   defaultRegistry,
   registerAllBuiltins,
   type WidgetMetaEntry,
@@ -25,7 +25,7 @@ Usage:
   agentline config widget catalog [--json]
 
 Options:
-  --json      emit machine-readable JSON ({ widgets: [{ type, name, description, category }] })
+  --json      emit machine-readable JSON ({ widgets: [{ type, name, description, family }] })
   -h, --help  show this message
 `;
 
@@ -57,7 +57,7 @@ export function formatJson(entries: readonly WidgetMetaEntry[]): string {
     type: e.type,
     name: e.name,
     description: e.description,
-    category: e.category,
+    family: e.family,
   }));
   return `${JSON.stringify({ widgets }, null, 2)}\n`;
 }
@@ -65,11 +65,11 @@ export function formatJson(entries: readonly WidgetMetaEntry[]): string {
 export function formatText(entries: readonly WidgetMetaEntry[]): string {
   const out: string[] = [`agentline widgets (${entries.length}):`, ""];
   const widest = entries.reduce((n, e) => Math.max(n, e.type.length), 0);
-  for (const category of WIDGET_CATEGORIES) {
-    const inCategory = entries.filter((e) => e.category === category);
-    if (inCategory.length === 0) continue;
-    out.push(`  ${category} (${inCategory.length}):`);
-    for (const e of inCategory) {
+  for (const family of WIDGET_FAMILIES) {
+    const inFamily = entries.filter((e) => e.family === family);
+    if (inFamily.length === 0) continue;
+    out.push(`  ${family} (${inFamily.length}):`);
+    for (const e of inFamily) {
       out.push(`    ${e.type.padEnd(widest, " ")}  ${e.description}`);
     }
     out.push("");

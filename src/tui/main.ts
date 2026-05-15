@@ -18,12 +18,12 @@
  * Add / replace share a three-step picker drill-down owned by
  * `use-editor-input.ts`:
  *
- *   step 1 (`picker-group`)   — empty search ⇒ pick a category;
+ *   step 1 (`picker-group`)   — empty search ⇒ pick a family;
  *                                typing flips the view to a flat global
  *                                widget list filtered by substring (across
- *                                every category at once). Picking a result
+ *                                every family at once). Picking a result
  *                                from the flat view skips step 2.
- *   step 2 (`picker-widget`)  — pick a widget within the chosen category.
+ *   step 2 (`picker-widget`)  — pick a widget within the chosen family.
  *   step 3 (`picker-variant`) — pick a variant (skipped for widgets that
  *                                have none in the catalogue).
  */

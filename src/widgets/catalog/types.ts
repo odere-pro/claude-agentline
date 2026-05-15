@@ -9,7 +9,7 @@
  * a within-catalog implementation detail.
  */
 
-export const WIDGET_CATEGORIES = [
+export const WIDGET_FAMILIES = [
   "session",
   "tokens",
   "context",
@@ -19,10 +19,10 @@ export const WIDGET_CATEGORIES = [
   "custom",
 ] as const;
 
-export type WidgetCategory = (typeof WIDGET_CATEGORIES)[number];
+export type WidgetFamily = (typeof WIDGET_FAMILIES)[number];
 
 /**
- * Per-category accent colour. The editor uses this in two surfaces that
+ * Per-family accent colour. The editor uses this in two surfaces that
  * have to agree visually — the picker's group label and the inline preview
  * widget chips — so a user scanning the layout can tell which group every
  * widget belongs to without reading the type name. Names are from Ink's
@@ -31,7 +31,7 @@ export type WidgetCategory = (typeof WIDGET_CATEGORIES)[number];
  * This is a decorative, editor-only mapping: the real render path through
  * `pipeline.ts` keeps using the configured theme's roles.
  */
-export const CATEGORY_COLOR: Readonly<Record<WidgetCategory, string>> = Object.freeze({
+export const FAMILY_COLOR: Readonly<Record<WidgetFamily, string>> = Object.freeze({
   session: "blue",
   tokens: "yellow",
   context: "magenta",
@@ -64,7 +64,7 @@ export interface WidgetMeta {
   /** One-line summary of what the widget renders; ≤ 80 chars. */
   readonly description: string;
   /** Source-tree family the widget belongs to. */
-  readonly category: WidgetCategory;
+  readonly family: WidgetFamily;
   /**
    * Optional fixture key the picker uses to render a representative
    * preview cell. Unset means the picker resolves the cell through
@@ -93,14 +93,14 @@ export type WidgetMetaEntry = WidgetMeta & { readonly type: string };
 export function entry(
   name: string,
   description: string,
-  category: WidgetCategory,
+  family: WidgetFamily,
   variants?: readonly WidgetVariant[],
 ): WidgetMeta {
   if (variants !== undefined) {
     return Object.freeze({
       name,
       description,
-      category,
+      family,
       variants: Object.freeze(
         variants.map((variant) =>
           Object.freeze({ ...variant, options: Object.freeze({ ...variant.options }) }),
@@ -108,7 +108,7 @@ export function entry(
       ),
     });
   }
-  return Object.freeze({ name, description, category });
+  return Object.freeze({ name, description, family });
 }
 
 /** Variants declared in code, by widget type. Keeps the catalogue tables compact. */
