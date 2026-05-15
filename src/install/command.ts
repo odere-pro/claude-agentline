@@ -81,10 +81,12 @@ export async function runInstallCommand(
 
   const result = spawnSync("bash", [script, ...argv], { stdio: "inherit" });
   if (result.error) throw result.error;
-  // Fire-and-forget npm-registry probe so a subsequent `agentline
-  // doctor` has a populated cache. Dry-run skips it — the user hasn't
-  // committed to anything, and dry-run is expected to do zero outbound
-  // I/O. Failure is swallowed inside `maybeRefresh`.
+  /*
+   * Fire-and-forget npm-registry probe so a subsequent `agentline
+   * doctor` has a populated cache. Dry-run skips it — the user hasn't
+   * committed to anything, and dry-run is expected to do zero outbound
+   * I/O. Failure is swallowed inside `maybeRefresh`.
+   */
   if (!args.dryRun && result.status === 0) {
     void maybeRefresh();
   }

@@ -74,11 +74,13 @@ async function fixD02(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
   } catch {
     /* leave empty — D01 fix would have been applied first */
   }
-  // Snapshot the prior `statusLine` before we overwrite it. The backup
-  // helper is idempotent (first install wins) so re-running --fix never
-  // clobbers the original pre-install value with our own freshly-written
-  // one. `scripts/uninstall.sh` reads the backup and restores the prior
-  // state on removal.
+  /*
+   * Snapshot the prior `statusLine` before we overwrite it. The backup
+   * helper is idempotent (first install wins) so re-running --fix never
+   * clobbers the original pre-install value with our own freshly-written
+   * one. `scripts/uninstall.sh` reads the backup and restores the prior
+   * state on removal.
+   */
   const previousStatusLinePresent = Object.prototype.hasOwnProperty.call(parsed, "statusLine");
   const previousStatusLine = parsed["statusLine"];
   const backup = await saveStatusLineBackup({
@@ -87,8 +89,10 @@ async function fixD02(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
     env: ctx.env,
   });
 
-  // Explicit `render` subcommand: matches `agentline install`'s wired form
-  // and stays unambiguous against any future top-level subcommand.
+  /*
+   * Explicit `render` subcommand: matches `agentline install`'s wired form
+   * and stays unambiguous against any future top-level subcommand.
+   */
   parsed["statusLine"] = { type: "command", command: "npx -y @agentline/cli render", padding: 0 };
   await writeJsonIdempotent(target, parsed, { mode: 0o600, dirMode: 0o700 });
   const note = backup === "created" ? "; prior value backed up" : "";
@@ -139,10 +143,12 @@ async function fixD05(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
     " · macOS: brew install --cask font-jetbrains-mono-nerd-font" +
     ' · or set glyphs="off" in your config to disable';
 
-  // Idempotency: if detection now succeeds, refresh the sentinel and
-  // short-circuit. Mirrors `fixD02`'s "read state, modify if needed"
-  // shape so re-running --fix on a healthy host mutates no bytes
-  // beyond the timestamp inside the sentinel.
+  /*
+   * Idempotency: if detection now succeeds, refresh the sentinel and
+   * short-circuit. Mirrors `fixD02`'s "read state, modify if needed"
+   * shape so re-running --fix on a healthy host mutates no bytes
+   * beyond the timestamp inside the sentinel.
+   */
   if (detect()) {
     await writeNerdFontStatus(sentinelDir, true).catch(() => undefined);
     return {

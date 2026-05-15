@@ -52,10 +52,12 @@ export async function maybeRefresh(options: MaybeRefreshOptions = {}): Promise<R
 
   const latest = await fetchLatestVersion(options.fetchOptions);
   if (latest === null) {
-    // Persist the failed probe so we don't re-hammer the registry on
-    // every install/doctor invocation for the next TTL window. The
-    // existing cache (if any) keeps its prior `latest` value — a stale
-    // success beats clobbering with a fresh `null`.
+    /*
+     * Persist the failed probe so we don't re-hammer the registry on
+     * every install/doctor invocation for the next TTL window. The
+     * existing cache (if any) keeps its prior `latest` value — a stale
+     * success beats clobbering with a fresh `null`.
+     */
     if (!existing) {
       const failed: VersionCheckCache = {
         version: 1,
@@ -110,8 +112,10 @@ export function isNewer(latest: string, current: string): boolean {
   if (a.major !== b.major) return a.major > b.major;
   if (a.minor !== b.minor) return a.minor > b.minor;
   if (a.patch !== b.patch) return a.patch > b.patch;
-  // Same numeric triplet: stable beats prerelease, prereleases compare
-  // lexicographically (rough but sufficient for "0.1.0-rc.2 > 0.1.0-rc.1").
+  /*
+   * Same numeric triplet: stable beats prerelease, prereleases compare
+   * lexicographically (rough but sufficient for "0.1.0-rc.2 > 0.1.0-rc.1").
+   */
   if (a.prerelease === null && b.prerelease !== null) return true;
   if (a.prerelease !== null && b.prerelease === null) return false;
   if (a.prerelease === null && b.prerelease === null) return false;

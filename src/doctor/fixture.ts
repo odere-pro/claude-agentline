@@ -13,8 +13,10 @@ const FIXTURE_INPUT = JSON.stringify({
   model: "claude-doctor-fixture",
   cwd: "/agentline/doctor/fixture",
 });
-// Default config has `glyphs: "nerd-font"`, so the model widget is rendered
-// with its Nerd Font glyph (`` = nf-md-robot) prepended + a single space.
+/*
+ * Default config has `glyphs: "nerd-font"`, so the model widget is rendered
+ * with its Nerd Font glyph (`` = nf-md-robot) prepended + a single space.
+ */
 const FIXTURE_EXPECTED = "\u{F544} claude-doctor-fixture\n";
 
 export interface FixtureOutcome {

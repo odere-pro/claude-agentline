@@ -36,8 +36,10 @@ export async function fetchLatestVersion(
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? FETCH_TIMEOUT_MS);
   try {
     const response = await fetchImpl(url, {
-      // Identify ourselves so npm support can correlate; default
-      // `undici` UA is fine functionally but blends into traffic.
+      /*
+       * Identify ourselves so npm support can correlate; default
+       * `undici` UA is fine functionally but blends into traffic.
+       */
       headers: { accept: "application/json", "user-agent": "agentline-update-check" },
       signal: controller.signal,
     });

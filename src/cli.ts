@@ -6,7 +6,7 @@
  * dispatch-only.
  *
  * Top-level surface: render (default) / edit / install /
- * uninstall / doctor / help / version.
+ * uninstall / doctor / start / config / help / version.
  *
  * The default invocation (no subcommand) runs the render path:
  * read stdin, render the merged statusline, write to stdout.
@@ -30,9 +30,11 @@ type ParsedArgs = {
   rest: string[];
 };
 
-// Global flags handled at the top level (mirrors the convention used
-// with Claude Code: `--help`/`-h` and `--version`/`-v` are flags, not
-// subcommands). Recognised here so they aren't swept into `render`.
+/*
+ * Global flags handled at the top level (mirrors the convention used
+ * with Claude Code: `--help`/`-h` and `--version`/`-v` are flags, not
+ * subcommands). Recognised here so they aren't swept into `render`.
+ */
 const GLOBAL_FLAGS: ReadonlySet<string> = new Set(["--help", "-h", "--version", "-v"]);
 
 function parseArgs(argv: string[]): ParsedArgs {
@@ -53,9 +55,11 @@ async function runRender(rest: readonly string[]): Promise<number> {
       return 0;
     }
     if (err instanceof StdinParseError) {
-      // stdout stays a single line because the host UI shows it inline
-      // as the statusline. Detail goes to stderr where a human reading
-      // the terminal can see what to do next.
+      /*
+       * stdout stays a single line because the host UI shows it inline
+       * as the statusline. Detail goes to stderr where a human reading
+       * the terminal can see what to do next.
+       */
       process.stdout.write("agentline: invalid stdin\n");
       process.stderr.write(
         [
@@ -137,11 +141,13 @@ async function runConfig(rest: readonly string[]): Promise<number> {
 }
 
 async function runEditor(): Promise<number> {
-  // Lazy-import the TUI bundle. tsup builds it as a separate
-  // `dist/tui.mjs` so Ink + React never hit cli.mjs's parse path
-  // (§1.2 N3). Use a runtime URL so the static analyser does not
-  // try to resolve `./tui.mjs` against the source tree (where
-  // `tui` is a directory, not a module file).
+  /*
+   * Lazy-import the TUI bundle. tsup builds it as a separate
+   * `dist/tui.mjs` so Ink + React never hit cli.mjs's parse path
+   * (§1.2 N3). Use a runtime URL so the static analyser does not
+   * try to resolve `./tui.mjs` against the source tree (where
+   * `tui` is a directory, not a module file).
+   */
   const moduleUrl = new URL("./tui.mjs", import.meta.url).href;
   const tui = (await import(moduleUrl)) as {
     runConfigCommand: () => Promise<{ saved: boolean }>;
@@ -204,10 +210,12 @@ async function main(): Promise<number> {
   return 1;
 }
 
-// Only auto-run when invoked as a script. Tests can import this module
-// (e.g. for the COMMANDS dispatch table) without triggering main().
-// Compares realpaths so a symlink (e.g. an npm-installed global bin
-// pointing at dist/cli.mjs) still counts as a direct invocation.
+/*
+ * Only auto-run when invoked as a script. Tests can import this module
+ * (e.g. for the COMMANDS dispatch table) without triggering main().
+ * Compares realpaths so a symlink (e.g. an npm-installed global bin
+ * pointing at dist/cli.mjs) still counts as a direct invocation.
+ */
 function isDirectInvocation(): boolean {
   try {
     const entry = process.argv[1];

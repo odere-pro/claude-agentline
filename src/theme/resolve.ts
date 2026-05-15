@@ -42,8 +42,10 @@ export function defaultBuiltinThemesDir(): string {
   return join(dirname(fileURLToPath(import.meta.url)), "..", "themes");
 }
 
-// Theme files are named `<name>.json`; reject anything path-shaped so a stale
-// `theme: "../../secrets"` can't resolve outside the search path.
+/*
+ * Theme files are named `<name>.json`; reject anything path-shaped so a stale
+ * `theme: "../../secrets"` can't resolve outside the search path.
+ */
 const SAFE_THEME_NAME = /^[a-zA-Z0-9._-]+$/;
 
 /**
