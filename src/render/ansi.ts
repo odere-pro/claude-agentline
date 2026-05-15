@@ -20,21 +20,19 @@
  * compact.
  */
 
-import {
-  parseColour,
-  type Colour,
-  type ParsedColour,
-} from "../theme/colours.js";
+import { parseColour, type Colour, type ParsedColour } from "../theme/colours.js";
 import type { ColourDepth } from "./colour-depth.js";
 import type { Segment } from "./segment.js";
 
 export const SGR_RESET = "\x1b[0m";
 
-// OSC 8 hyperlink delimiters. ST (string terminator) is `ESC \\`; we use
-// that form rather than BEL (`\x07`) because BEL collides with the
-// terminal bell on terminals that don't parse OSC 8 at all. Modern
-// terminals (iTerm2, kitty, recent gnome-terminal, WezTerm, VSCode) all
-// accept the ESC\\ form.
+/*
+ * OSC 8 hyperlink delimiters. ST (string terminator) is `ESC \\`; we use
+ * that form rather than BEL (`\x07`) because BEL collides with the
+ * terminal bell on terminals that don't parse OSC 8 at all. Modern
+ * terminals (iTerm2, kitty, recent gnome-terminal, WezTerm, VSCode) all
+ * accept the ESC\\ form.
+ */
 const OSC_8_OPEN = "\x1b]8;;";
 const OSC_8_ST = "\x1b\\";
 const OSC_8_CLOSE = `${OSC_8_OPEN}${OSC_8_ST}`;
@@ -46,16 +44,20 @@ const OSC_8_CLOSE = `${OSC_8_OPEN}${OSC_8_ST}`;
  * caller MUST skip the wrap entirely.
  */
 function sanitiseHref(href: string): string {
-  // Strip C0 control characters (0x00–0x1f) and DEL (0x7f). Everything
-  // else — including spaces, brackets, percent-encoded bytes — is left
-  // alone; the terminal does its own parsing on the URL.
+  /*
+   * Strip C0 control characters (0x00–0x1f) and DEL (0x7f). Everything
+   * else — including spaces, brackets, percent-encoded bytes — is left
+   * alone; the terminal does its own parsing on the URL.
+   */
   // eslint-disable-next-line no-control-regex
   return href.replace(/[\x00-\x1f\x7f]/g, "");
 }
 
-// xterm 256-colour protocol structural constants. Pulled out as named
-// exports so the arithmetic in rgbToAnsi256 / ansi256ToRgb reads as
-// "convert via the colour cube" rather than a wall of magic numbers.
+/*
+ * xterm 256-colour protocol structural constants. Pulled out as named
+ * exports so the arithmetic in rgbToAnsi256 / ansi256ToRgb reads as
+ * "convert via the colour cube" rather than a wall of magic numbers.
+ */
 const ANSI_BASIC_COUNT = 16; // basic + bright palette occupies indices 0..15
 const ANSI_BRIGHT_OFFSET = 8; // bright variant of basic colour `i` is `i + 8`
 const ANSI_CUBE_BASE = 16; // 6×6×6 colour cube starts at index 16
@@ -157,13 +159,13 @@ function normalise(parsed: ParsedColour): NormalisedColour {
     }
     case "indexed": {
       const rgb = ansi256ToRgb(parsed.index);
-      // Indices 0..15 are the named palette; map them straight onto the
-      // 16-colour space (modulo strips the bright bit — the bright flag
-      // is captured separately below).
+      /*
+       * Indices 0..15 are the named palette; map them straight onto the
+       * 16-colour space (modulo strips the bright bit — the bright flag
+       * is captured separately below).
+       */
       const index16 =
-        parsed.index < ANSI_BASIC_COUNT
-          ? parsed.index % ANSI_BRIGHT_OFFSET
-          : nearest16Index(rgb);
+        parsed.index < ANSI_BASIC_COUNT ? parsed.index % ANSI_BRIGHT_OFFSET : nearest16Index(rgb);
       return {
         index256: parsed.index,
         rgb,
@@ -192,8 +194,10 @@ function rgbToAnsi256(rgb: Rgb): number {
       ANSI_GREY_BASE
     );
   }
-  // 6×6×6 colour cube: stride 36 on R, 6 on G, 1 on B; per-axis values
-  // quantise the 0..255 range into 0..5.
+  /*
+   * 6×6×6 colour cube: stride 36 on R, 6 on G, 1 on B; per-axis values
+   * quantise the 0..255 range into 0..5.
+   */
   return (
     ANSI_CUBE_BASE +
     ANSI_CUBE_R_STRIDE * Math.round((rgb.r / 255) * (ANSI_CUBE_SIDE - 1)) +
@@ -294,9 +298,11 @@ function wrapHref(text: string, href: string | undefined): string {
 
 export function encodeSegments(segments: readonly Segment[], depth: ColourDepth): string {
   if (depth === "none") {
-    // No SGR escapes and no OSC 8 hyperlinks — terminals that pre-date
-    // OSC 8 would render the wrap as garbage. `--no-color` is the
-    // user's "give me plain text" knob, so we honour it for links too.
+    /*
+     * No SGR escapes and no OSC 8 hyperlinks — terminals that pre-date
+     * OSC 8 would render the wrap as garbage. `--no-color` is the
+     * user's "give me plain text" knob, so we honour it for links too.
+     */
     return segments.map((s) => s.text).join("");
   }
   let out = "";

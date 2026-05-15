@@ -95,10 +95,12 @@ function padded(cell: Cell, theme: Theme | null): PaddedCell {
     bg: cell.bg ?? defaultBg(theme),
     bold: cell.bold ?? false,
     italic: cell.italic ?? false,
-    // The OSC 8 wrap covers the padded text too — clicking the
-    // surrounding whitespace inside the powerline chip should still
-    // open the link, matching the user's mental model of "the chip
-    // is the link".
+    /*
+     * The OSC 8 wrap covers the padded text too — clicking the
+     * surrounding whitespace inside the powerline chip should still
+     * open the link, matching the user's mental model of "the chip
+     * is the link".
+     */
     href: typeof cell.href === "string" && cell.href.length > 0 ? cell.href : undefined,
   };
 }
@@ -152,9 +154,11 @@ export function applyPowerline(
     }
   }
 
-  // End cap: chevron whose fg = last cell's bg. bg is either the
-  // carried continueBg (multi-line auto-thread) or terminal default
-  // (no bg set on the segment).
+  /*
+   * End cap: chevron whose fg = last cell's bg. bg is either the
+   * carried continueBg (multi-line auto-thread) or terminal default
+   * (no bg set on the segment).
+   */
   const lastBg = padded_[padded_.length - 1]?.bg;
   if (options.capEnd && lastBg !== undefined) {
     const capEnd = pickIndexed(options.capEnd, lineIdx, "cycle");
@@ -183,8 +187,10 @@ export function applyPowerlineLines(
     readonly continueColors: boolean;
   },
 ): Segment[][] {
-  // First pass: figure out each line's first-cell bg (for continueBg
-  // wiring) and last-cell bg (for autoAlign padding).
+  /*
+   * First pass: figure out each line's first-cell bg (for continueBg
+   * wiring) and last-cell bg (for autoAlign padding).
+   */
   const firstBgPerLine: (Colour | undefined)[] = [];
   const lastBgPerLine: (Colour | undefined)[] = [];
   for (const line of lines) {
