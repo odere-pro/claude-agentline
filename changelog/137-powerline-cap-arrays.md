@@ -1,0 +1,1 @@
+- Powerline cap arrays: `powerline.caps.start` and `powerline.caps.end` now accept either a single string or an array of strings cycling per line index, so a `["[", "<", "{"]` reads as bracket / chevron / brace across three statuslines (and wraps back to bracket on line four).

@@ -36,22 +36,39 @@ import type { PowerlineGlyphSet } from "./glyphs.js";
 export interface PowerlineTransformOptions {
   readonly glyphs: PowerlineGlyphSet;
   readonly theme: Theme | null;
-  readonly capStart?: string;
-  readonly capEnd?: string;
+  readonly capStart?: string | readonly string[];
+  readonly capEnd?: string | readonly string[];
   /** Background colour of the next line's first cell, when carried. */
   readonly continueBg?: Colour;
+  /** 0-based line index; used to pick per-line entries from cap arrays. */
+  readonly lineIndex?: number;
 }
 
 const SPACE = " ";
 
 /**
- * Resolve a `string | readonly string[]` glyph entry to the single glyph
- * for chevron position `idx`. Clamps to the last entry once exhausted —
- * the array form is read as "hard, soft, soft, soft…", not "cycle".
+ * Resolve a `string | readonly string[]` entry to the single glyph at
+ * position `idx`. Two semantics share one helper:
+ *
+ *   - `"clamp"` (glyphs): once `idx ≥ entry.length`, the last entry
+ *     repeats. Glyph arrays describe a fixed sequence of hard-vs-soft
+ *     chevron variants — "hard then soft, soft, soft…" — so repetition
+ *     of the tail glyph is the natural read.
+ *   - `"cycle"` (caps): `idx % entry.length`, so a 2-element array
+ *     alternates across lines 0/1, line 2 wraps to entry 0, etc. Caps
+ *     cycle because the natural use case is alternating themes across
+ *     several statuslines.
+ *
+ * They are deliberately asymmetric — do not fold them into one rule.
  */
-function pickIndexed(entry: string | readonly string[], idx: number): string {
+function pickIndexed(
+  entry: string | readonly string[],
+  idx: number,
+  mode: "clamp" | "cycle",
+): string {
   if (typeof entry === "string") return entry;
-  const i = idx >= entry.length ? entry.length - 1 : idx;
+  if (entry.length === 0) return "";
+  const i = mode === "cycle" ? idx % entry.length : Math.min(idx, entry.length - 1);
   return entry[i] ?? "";
 }
 
@@ -108,9 +125,13 @@ export function applyPowerline(
   const segments: Segment[] = [];
 
   // Start cap (before first cell)
+  const lineIdx = options.lineIndex ?? 0;
   const firstBg = padded_[0]?.bg;
   if (options.capStart && firstBg !== undefined) {
-    segments.push({ text: options.capStart, bg: firstBg });
+    const capStart = pickIndexed(options.capStart, lineIdx, "cycle");
+    if (capStart.length > 0) {
+      segments.push({ text: capStart, bg: firstBg });
+    }
   }
 
   let chevronIdx = 0;
@@ -123,7 +144,7 @@ export function applyPowerline(
       // Same-bg cells: use cell.fg so the chevron stays visible on the continuous band.
       const chevronFg = cell.bg === next.bg ? (cell.fg ?? cell.bg) : cell.bg;
       segments.push({
-        text: pickIndexed(options.glyphs.hardRight, chevronIdx),
+        text: pickIndexed(options.glyphs.hardRight, chevronIdx, "clamp"),
         fg: chevronFg,
         bg: next.bg,
       });
@@ -136,8 +157,11 @@ export function applyPowerline(
   // (no bg set on the segment).
   const lastBg = padded_[padded_.length - 1]?.bg;
   if (options.capEnd && lastBg !== undefined) {
-    const cap: Segment = { text: options.capEnd, fg: lastBg };
-    segments.push(options.continueBg !== undefined ? { ...cap, bg: options.continueBg } : cap);
+    const capEnd = pickIndexed(options.capEnd, lineIdx, "cycle");
+    if (capEnd.length > 0) {
+      const cap: Segment = { text: capEnd, fg: lastBg };
+      segments.push(options.continueBg !== undefined ? { ...cap, bg: options.continueBg } : cap);
+    }
   }
 
   return segments;
@@ -180,6 +204,7 @@ export function applyPowerlineLines(
     const continueBg = options.continueColors ? firstBgPerLine[i + 1] : undefined;
     const lineSegments = applyPowerline(line, {
       ...options,
+      lineIndex: i,
       ...(continueBg !== undefined ? { continueBg } : {}),
     });
     out.push(lineSegments);
