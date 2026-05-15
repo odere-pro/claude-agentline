@@ -29,7 +29,7 @@ agentline install
 Either way, install:
 
 1. Wires `statusLine` into `~/.claude/settings.json` (always global; backs up any prior value).
-2. Seeds the user config at `~/.config/agentline/config.json` from the default preset.
+2. Seeds the user config at `~/.config/agentline/config.json` from the default config template.
 3. Copies shipped themes into `~/.config/agentline/themes/`.
 4. Installs five skill files into `~/.claude/agents/` (`agentline.md`, `agentline-onboarding.md`, `agentline-configure.md`, `agentline-themes.md`, `agentline-troubleshoot.md`).
 5. Writes a manifest at `~/.config/agentline/state/manifest.json` so `agentline uninstall` is exact.
@@ -40,7 +40,7 @@ See [install.md](./install.md) for `--force`, `--dry-run`, and `CLAUDE_CONFIG_DI
 
 ## Step 2 — See the default
 
-Restart your Claude Code session. The statusline appears at the bottom of the prompt with the default preset (model, git-branch, context, tokens, session-usage, block-reset-timer, clock).
+Restart your Claude Code session. The statusline appears at the bottom of the prompt with the default layout (model, git-branch, context, tokens, session-usage, block-reset-timer, clock).
 
 If it doesn't render:
 
@@ -60,7 +60,7 @@ The five installed skills give any Claude Code session enough context to drive a
 - _"switch the theme to vscode-dark"_
 - _"add a context-percentage widget"_
 - _"remove the session-usage widget"_
-- _"reset my config to the minimal preset"_
+- _"restore the default layout"_
 
 The agent edits `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` directly. agentline is configured globally only; there is no per-project config. The change shows up on the **next prompt render** — Claude Code re-runs the statusline bin every prompt — so no restart is needed.
 
@@ -91,7 +91,7 @@ The prior `statusLine` was backed up at install time and is restored from `~/.co
 | ------------------------------------- | ------------------------------------------ |
 | Change widgets or layout              | [config.md](./config.md)                   |
 | Pick or author a theme                | [themes.md](./themes.md)                   |
-| Browse all 55 available widgets       | [widgets.md](./widgets.md)                 |
+| Browse all 42 available widgets       | [widgets.md](./widgets.md)                 |
 | Use the interactive TUI config editor | [keymap.md](./keymap.md)                   |
 | Understand health checks in detail    | [doctor.md](./doctor.md)                   |
 | Something is broken                   | [troubleshooting.md](./troubleshooting.md) |

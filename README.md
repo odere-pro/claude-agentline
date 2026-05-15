@@ -14,9 +14,9 @@ A standalone, fast, themeable Claude Code statusline. Reads the Claude Code stdi
 
 ## Features
 
-- **39 widgets** across seven families — `session`, `git`, `tokens`, `context`, `rate-limits`, `time`, and `custom` (opt-in `git-pr` lookup)
+- **42 widgets** across seven families — `session`, `git`, `tokens`, `context`, `rate-limits`, `time`, and `custom` (opt-in `git-pr` lookup)
 - **Opt-in Nerd Font glyph layer** — set `"glyphs": "nerd-font"` to prepend a per-widget icon; default `"off"` keeps output byte-stable
-- **4 shipped themes** with full truecolor / 256-colour / 16-colour degradation
+- **1 shipped theme** (`claude-code-dark`) with full truecolor / 256-colour / 16-colour degradation; drop your own JSON into the user themes directory to add more
 - **Configured globally** — one config file at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`, layered under built-in defaults and `AGENTLINE_*` env overrides; there is no per-project layer
 - **Single binary, no network at render time** — the pricing table, themes, and widget registry are all embedded
 - **`agentline doctor`** with auto-fix for the four most common wiring problems
@@ -57,7 +57,7 @@ Restart Claude Code. The statusline appears at the bottom of the prompt.
 
 In a fresh session, ask the agent:
 
-> "switch the theme to vscode-dark"
+> "switch the theme to claude-code-dark"
 > "add a context-percentage widget"
 > "remove the session-usage widget"
 
@@ -70,7 +70,7 @@ agentline uninstall          # restores prior statusLine, removes installed skil
 agentline uninstall --purge  # also removes user config + custom themes
 ```
 
-Full walkthrough (doctor, presets, TUI editor, JSON Schema) → [docs/get-started.md](./docs/get-started.md)
+Full walkthrough (doctor, TUI editor, JSON Schema) → [docs/get-started.md](./docs/get-started.md)
 
 ---
 
@@ -95,6 +95,22 @@ Full walkthrough (doctor, presets, TUI editor, JSON Schema) → [docs/get-starte
 - Node.js 20 LTS or newer
 - macOS, Linux, or Windows under Git Bash / WSL
 - Claude Code run at least once (settings file must exist)
+
+---
+
+## Source layout
+
+Core modules follow the architecture in `docs/plan/SPEC-v0.1.0.md §2`.
+Additional directories in `src/` not in the spec table:
+
+| Directory        | Purpose                                                              |
+| ---------------- | -------------------------------------------------------------------- |
+| `src/cli/`       | CLI help-string utilities                                            |
+| `src/lib/`       | Shared pure utilities (env, fs, nerd-font detection, object, result) |
+| `src/install/`   | `agentline install` command                                          |
+| `src/uninstall/` | `agentline uninstall` command                                        |
+| `src/start/`     | `agentline start` — preview statusline from last cached stdin        |
+| `src/state/`     | Stdin payload cache, render output cache, config backup              |
 
 ---
 
