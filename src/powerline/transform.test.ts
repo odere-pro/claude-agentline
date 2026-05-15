@@ -58,11 +58,34 @@ describe("applyPowerline", () => {
     expect(chev?.bg).toBe("blue");
   });
 
-  it("emits caps when configured", () => {
+  it("uses cell.fg for the chevron when adjacent cells share a bg", () => {
     const segs = applyPowerline(
-      [cell({ text: "a", bg: "red" })],
-      { ...baseOpts, capStart: "[", capEnd: "]" },
+      [cell({ text: "a", bg: "red", fg: "yellow" }), cell({ text: "b", bg: "red", fg: "white" })],
+      baseOpts,
     );
+    expect(segs).toHaveLength(3);
+    const chev = segs[1];
+    expect(chev?.fg).toBe("yellow");
+    expect(chev?.bg).toBe("red");
+  });
+
+  it("falls back to cell.bg for the chevron when same-bg cell has no fg", () => {
+    const segs = applyPowerline(
+      [cell({ text: "a", bg: "red" }), cell({ text: "b", bg: "red" })],
+      baseOpts,
+    );
+    expect(segs).toHaveLength(3);
+    const chev = segs[1];
+    expect(chev?.fg).toBe("red");
+    expect(chev?.bg).toBe("red");
+  });
+
+  it("emits caps when configured", () => {
+    const segs = applyPowerline([cell({ text: "a", bg: "red" })], {
+      ...baseOpts,
+      capStart: "[",
+      capEnd: "]",
+    });
     expect(segs[0]?.text).toBe("[");
     expect(segs[0]?.bg).toBe("red");
     expect(segs[segs.length - 1]?.text).toBe("]");
@@ -93,10 +116,7 @@ describe("applyPowerlineLines", () => {
 
   it("renders multi-line independently when autoAlign / continueColors are off", () => {
     const lines = applyPowerlineLines(
-      [
-        [cell({ text: "abc", bg: "red" })],
-        [cell({ text: "z", bg: "blue" })],
-      ],
+      [[cell({ text: "abc", bg: "red" })], [cell({ text: "z", bg: "blue" })]],
       opts,
     );
     expect(lines).toHaveLength(2);
@@ -106,10 +126,7 @@ describe("applyPowerlineLines", () => {
 
   it("autoAlign pads shorter lines on the right with the line's last bg", () => {
     const lines = applyPowerlineLines(
-      [
-        [cell({ text: "abc", bg: "red" })],
-        [cell({ text: "z", bg: "blue" })],
-      ],
+      [[cell({ text: "abc", bg: "red" })], [cell({ text: "z", bg: "blue" })]],
       { ...opts, autoAlign: true },
     );
     const line2 = lines[1];
@@ -125,10 +142,7 @@ describe("applyPowerlineLines", () => {
 
   it("continueColors threads next line's first bg into the prior end-cap", () => {
     const lines = applyPowerlineLines(
-      [
-        [cell({ text: "a", bg: "red" })],
-        [cell({ text: "b", bg: "blue" })],
-      ],
+      [[cell({ text: "a", bg: "red" })], [cell({ text: "b", bg: "blue" })]],
       { ...opts, continueColors: true, capEnd: ">" },
     );
     const line0 = lines[0];

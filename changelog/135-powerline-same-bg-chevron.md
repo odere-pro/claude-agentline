@@ -1,0 +1,1 @@
+- Powerline chevron polish: when adjacent powerline cells share a `bg`, the chevron now uses the previous cell's `fg` (falling back to its `bg`) instead of rendering an invisible same-on-same arrow.
