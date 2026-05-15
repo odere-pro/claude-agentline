@@ -8,7 +8,7 @@
 [![gates](https://github.com/odere-pro/claude-agentline/actions/workflows/gates.yml/badge.svg?branch=main)](https://github.com/odere-pro/claude-agentline/actions/workflows/gates.yml)
 [![install-matrix](https://github.com/odere-pro/claude-agentline/actions/workflows/install-matrix.yml/badge.svg?branch=main)](https://github.com/odere-pro/claude-agentline/actions/workflows/install-matrix.yml)
 
-A fast, themeable statusline for **Claude Code**. Reads the stdin payload Claude Code hands its statusline, writes an ANSI-styled line, exits. No network. No native modules. No plugin scaffolding.
+A fast, themeable statusline for Claude Code. Reads the stdin payload Claude Code's statusline contract sends, writes an ANSI-styled line, exits. No network. No native modules. No plugin scaffolding.
 
 ```text
  Opus 4.7   main ●3 ↑1   23k tokens   $0.70   4h 12m left
@@ -21,8 +21,8 @@ A fast, themeable statusline for **Claude Code**. Reads the stdin payload Claude
 - **42 widgets** across 7 families — `session` · `tokens` · `context` · `rate-limits` · `git` · `time` · `custom`
 - **Powerline-ready** rendering with arrayed chevrons & caps that cycle per line
 - **Theme engine** — truecolor / 256-colour / 16-colour graceful degradation, optional Nerd Font glyph layer
-- **Configure in-session** — five Claude Code skills let you say _"add a context widget"_ and the agent edits your config
-- **TUI editor** with live preview, widget picker, options sheet (`agentline edit`)
+- **Configure in-session** — five skills wired into Claude Code let you say _"add a context widget"_ and the agent edits your config
+- **TUI editor** with live preview and widget picker (`agentline edit`)
 - **Scriptable layout** — `agentline config widget <add|remove|move|replace|set-option|list|catalog>`
 - **`agentline doctor --fix`** — auto-repairs settings wiring and installs JetBrainsMono Nerd Font
 - **Reversible** — `install` backs up your prior `statusLine`; `uninstall` restores it byte-for-byte
@@ -47,7 +47,7 @@ npm install -g @agentline/cli
 agentline install
 ```
 
-Install wires `statusLine` into `~/.claude/settings.json`, seeds `~/.config/agentline/config.json`, copies shipped themes, and installs five `agentline*.md` skills into `~/.claude/agents/`. Honours `$CLAUDE_CONFIG_DIR`. Backs up any prior `statusLine` so `uninstall` restores it.
+Install wires `statusLine` into Claude Code's settings, seeds `agentline/config.json` under `$CLAUDE_CONFIG_DIR`, copies shipped themes, and installs five `agentline*.md` skills wired into Claude Code. Backs up any prior `statusLine` so `uninstall` restores it.
 
 Restart Claude Code — the statusline appears at the bottom of the prompt.
 
@@ -119,7 +119,7 @@ bash tests/gates/run-all.sh        # full gate suite
 
 # Iterate
 npm run test:watch                 # unit tests
-node dist/cli.mjs install --from-source  # link this checkout to your real Claude Code
+node dist/cli.mjs install --from-source  # link this checkout to Claude Code
 node dist/cli.mjs start            # preview against the last cached stdin
 node dist/cli.mjs edit             # exercise the TUI editor
 
