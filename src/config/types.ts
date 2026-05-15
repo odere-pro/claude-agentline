@@ -55,10 +55,10 @@ export interface PowerlineCaps {
 }
 
 export interface PowerlineGlyphs {
-  hardRight?: string;
-  softRight?: string;
-  hardLeft?: string;
-  softLeft?: string;
+  hardRight?: string | readonly string[];
+  softRight?: string | readonly string[];
+  hardLeft?: string | readonly string[];
+  softLeft?: string | readonly string[];
 }
 
 export interface PowerlineConfig {

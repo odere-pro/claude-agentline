@@ -1,0 +1,1 @@
+- Powerline glyph arrays: `powerline.glyphs.hardRight` / `softRight` / `hardLeft` / `softLeft` now accept either a single string or an array of strings indexed by chevron position; arrays clamp on the last entry so a `["", ""]` reads as "hard then soft, soft, soft…".

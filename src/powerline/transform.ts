@@ -44,6 +44,17 @@ export interface PowerlineTransformOptions {
 
 const SPACE = " ";
 
+/**
+ * Resolve a `string | readonly string[]` glyph entry to the single glyph
+ * for chevron position `idx`. Clamps to the last entry once exhausted —
+ * the array form is read as "hard, soft, soft, soft…", not "cycle".
+ */
+function pickIndexed(entry: string | readonly string[], idx: number): string {
+  if (typeof entry === "string") return entry;
+  const i = idx >= entry.length ? entry.length - 1 : idx;
+  return entry[i] ?? "";
+}
+
 interface PaddedCell {
   readonly text: string;
   readonly fg: Colour | undefined;
@@ -102,6 +113,7 @@ export function applyPowerline(
     segments.push({ text: options.capStart, bg: firstBg });
   }
 
+  let chevronIdx = 0;
   for (let i = 0; i < padded_.length; i += 1) {
     const cell = padded_[i];
     if (!cell) continue;
@@ -111,10 +123,11 @@ export function applyPowerline(
       // Same-bg cells: use cell.fg so the chevron stays visible on the continuous band.
       const chevronFg = cell.bg === next.bg ? (cell.fg ?? cell.bg) : cell.bg;
       segments.push({
-        text: options.glyphs.hardRight,
+        text: pickIndexed(options.glyphs.hardRight, chevronIdx),
         fg: chevronFg,
         bg: next.bg,
       });
+      chevronIdx += 1;
     }
   }
 
