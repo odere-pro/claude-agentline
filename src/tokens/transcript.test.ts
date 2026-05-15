@@ -14,8 +14,10 @@ let prevRoot: string | undefined;
 
 beforeEach(() => {
   tmp = mkdtempSync(path.join(os.tmpdir(), "agentline-transcript-"));
-  // Tests use OS tmp dir, which is outside the default ~/.claude root
-  // permitted by isPermittedTranscriptPath. Override for the test scope.
+  /*
+   * Tests use OS tmp dir, which is outside the default ~/.claude root
+   * permitted by isPermittedTranscriptPath. Override for the test scope.
+   */
   prevRoot = process.env.AGENTLINE_TRANSCRIPT_ROOT;
   process.env.AGENTLINE_TRANSCRIPT_ROOT = tmp;
   clearTranscriptCache();
@@ -111,9 +113,15 @@ describe("readTranscript", () => {
     const before = readTranscript(file, FIXED_NOW);
     writeFileSync(
       file,
-      JSON.stringify({ timestamp: "2026-05-01T00:00:01Z", message: { usage: { input_tokens: 2 } } }) +
+      JSON.stringify({
+        timestamp: "2026-05-01T00:00:01Z",
+        message: { usage: { input_tokens: 2 } },
+      }) +
         "\n" +
-        JSON.stringify({ timestamp: "2026-05-01T00:00:02Z", message: { usage: { input_tokens: 3 } } }) +
+        JSON.stringify({
+          timestamp: "2026-05-01T00:00:02Z",
+          message: { usage: { input_tokens: 3 } },
+        }) +
         "\n",
     );
     const after = readTranscript(file, FIXED_NOW + 1000);
@@ -126,9 +134,11 @@ describe("readTranscript", () => {
       { timestamp: "2026-05-01T00:00:00Z", message: { usage: { input_tokens: 1 } } },
     ]);
     const first = readTranscript(file, FIXED_NOW);
-    // Advance well past the eviction threshold; the next read should
-    // re-parse the file (different reference) instead of returning the
-    // cached events array.
+    /*
+     * Advance well past the eviction threshold; the next read should
+     * re-parse the file (different reference) instead of returning the
+     * cached events array.
+     */
     const second = readTranscript(file, FIXED_NOW + FIVE_HOURS_MS + 1);
     expect(second).not.toBe(first);
     expect(second).toHaveLength(1);
@@ -139,9 +149,7 @@ describe("readTranscript", () => {
     const sibling = mkdtempSync(path.join(os.tmpdir(), "agentline-sibling-"));
     process.env.AGENTLINE_TRANSCRIPT_ROOT = sibling;
     try {
-      const outside = writeTranscript("outside.jsonl", [
-        { timestamp: "2026-05-01T00:00:00Z" },
-      ]);
+      const outside = writeTranscript("outside.jsonl", [{ timestamp: "2026-05-01T00:00:00Z" }]);
       expect(readTranscript(outside, FIXED_NOW)).toEqual([]);
     } finally {
       rmSync(sibling, { recursive: true, force: true });

@@ -69,9 +69,11 @@ describe("runDoctor", () => {
     });
     const d01 = report.results.find((r) => r.id === "D01");
     expect(d01?.status).toBe("fixed");
-    // D02 runs after D01 in the same pass and writes statusLine into the
-    // freshly-created file — that's expected; the file must exist and be
-    // valid JSON.
+    /*
+     * D02 runs after D01 in the same pass and writes statusLine into the
+     * freshly-created file — that's expected; the file must exist and be
+     * valid JSON.
+     */
     const text = await fs.readFile(join(home, ".claude", "settings.json"), "utf8");
     const parsed = JSON.parse(text);
     expect(parsed).toBeTypeOf("object");
@@ -127,9 +129,7 @@ describe("runDoctor", () => {
     });
     const d02 = report.results.find((r) => r.id === "D02");
     expect(d02?.status).toBe("fixed");
-    const settings = JSON.parse(
-      await fs.readFile(join(home, ".claude", "settings.json"), "utf8"),
-    );
+    const settings = JSON.parse(await fs.readFile(join(home, ".claude", "settings.json"), "utf8"));
     expect(settings.statusLine.command).toMatch(/agentline/);
   });
 
@@ -152,15 +152,10 @@ describe("runDoctor", () => {
     const d02 = report.results.find((r) => r.id === "D02");
     expect(d02?.status).toBe("fixed");
     expect(d02?.message).toMatch(/backed up/);
-    const settings = JSON.parse(
-      await fs.readFile(join(home, ".claude", "settings.json"), "utf8"),
-    );
+    const settings = JSON.parse(await fs.readFile(join(home, ".claude", "settings.json"), "utf8"));
     expect(settings.statusLine.command).toMatch(/agentline/);
     const backup = JSON.parse(
-      await fs.readFile(
-        join(cfgDir, "state", "settings-backup.json"),
-        "utf8",
-      ),
+      await fs.readFile(join(cfgDir, "state", "settings-backup.json"), "utf8"),
     );
     expect(backup.previousStatusLinePresent).toBe(true);
     expect(backup.previousStatusLine).toEqual({ command: "starship init bash" });
@@ -183,8 +178,10 @@ describe("runDoctor", () => {
       env: { CLAUDE_CONFIG_DIR: cfgDir },
       cwd: cfgDir,
     });
-    // Second run: settings.json now points at agentline. The backup MUST
-    // still hold starship — first install wins.
+    /*
+     * Second run: settings.json now points at agentline. The backup MUST
+     * still hold starship — first install wins.
+     */
     await runDoctor({
       fix: true,
       // Short-circuit D05 — these tests don't exercise font install.
@@ -196,10 +193,7 @@ describe("runDoctor", () => {
       cwd: cfgDir,
     });
     const backup = JSON.parse(
-      await fs.readFile(
-        join(cfgDir, "state", "settings-backup.json"),
-        "utf8",
-      ),
+      await fs.readFile(join(cfgDir, "state", "settings-backup.json"), "utf8"),
     );
     expect(backup.previousStatusLine).toEqual({ command: "starship init bash" });
   });

@@ -46,9 +46,9 @@ describe("renderWidget", () => {
 
   it("throws WidgetTypeMissingError for unknown widget when strict", () => {
     const r = new WidgetRegistry();
-    expect(() =>
-      renderWidget(r, { type: "missing" }, makeCtx(), { strict: true }),
-    ).toThrow(WidgetTypeMissingError);
+    expect(() => renderWidget(r, { type: "missing" }, makeCtx(), { strict: true })).toThrow(
+      WidgetTypeMissingError,
+    );
   });
 
   it("passes options and rawValue through to the widget", () => {
@@ -99,11 +99,7 @@ describe("renderWidget", () => {
   it("config.merged overrides the widget's merge mode", () => {
     const r = new WidgetRegistry();
     r.register(echo);
-    const cell = renderWidget(
-      r,
-      { type: "echo", merged: "merge-no-padding" },
-      makeCtx(),
-    );
+    const cell = renderWidget(r, { type: "echo", merged: "merge-no-padding" }, makeCtx());
     expect(cell.merged).toBe("merge-no-padding");
   });
 
@@ -135,8 +131,10 @@ describe("glyph layer", () => {
 
   it("prepends the catalogued glyph + plain space when config.glyphs is 'nerd-font'", () => {
     const r = new WidgetRegistry();
-    // `echo` is a fixture type with no catalogue glyph, so we register a
-    // widget under a real catalogue type to exercise the lookup.
+    /*
+     * `echo` is a fixture type with no catalogue glyph, so we register a
+     * widget under a real catalogue type to exercise the lookup.
+     */
     r.register(defineWidget("git-branch", () => ({ text: "main" })));
     const glyph = widgetGlyph("git-branch");
     expect(glyph).toBeTruthy();
@@ -200,9 +198,12 @@ describe("renderWidget — href passthrough", () => {
 describe("widget contract integration", () => {
   it("accepts an empty options block when widget declares typed options", () => {
     const r = new WidgetRegistry();
-    const widget = defineWidget<{ a?: string }>("typed", (_, s: WidgetSettings<{ a?: string }>) => ({
-      text: s.options.a ?? "default",
-    }));
+    const widget = defineWidget<{ a?: string }>(
+      "typed",
+      (_, s: WidgetSettings<{ a?: string }>) => ({
+        text: s.options.a ?? "default",
+      }),
+    );
     r.register(widget);
     expect(renderWidget(r, { type: "typed" }, makeCtx()).text).toBe("default");
     expect(renderWidget(r, { type: "typed", options: { a: "ok" } }, makeCtx()).text).toBe("ok");

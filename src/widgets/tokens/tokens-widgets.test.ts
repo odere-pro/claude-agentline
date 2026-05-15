@@ -20,10 +20,7 @@ import { WidgetRegistry } from "../registry.js";
 
 import { contextBarWidget } from "../context/context-bar.js";
 import { contextLengthWidget } from "../context/context-length.js";
-import {
-  contextPercentageUsableWidget,
-  contextPercentageWidget,
-} from "../context/percentage.js";
+import { contextPercentageUsableWidget, contextPercentageWidget } from "../context/percentage.js";
 import { registerContextWidgets, CONTEXT_WIDGETS } from "../context/index.js";
 
 import {
@@ -48,7 +45,10 @@ const ev = (overrides: Partial<TranscriptEvent>): TranscriptEvent => ({
   ...overrides,
 });
 
-function makeSnapshot(events: TranscriptEvent[], overrides: Partial<TokensSnapshot> = {}): TokensSnapshot {
+function makeSnapshot(
+  events: TranscriptEvent[],
+  overrides: Partial<TokensSnapshot> = {},
+): TokensSnapshot {
   const now = overrides.now ?? 1_000_000;
   return Object.freeze({
     events: Object.freeze(events) as readonly TranscriptEvent[],
@@ -61,7 +61,10 @@ function makeSnapshot(events: TranscriptEvent[], overrides: Partial<TokensSnapsh
   });
 }
 
-function makeCtx(snapshot: TokensSnapshot | undefined, overrides: Partial<WidgetContext> = {}): WidgetContext {
+function makeCtx(
+  snapshot: TokensSnapshot | undefined,
+  overrides: Partial<WidgetContext> = {},
+): WidgetContext {
   return {
     stdin: baseStdin,
     config: DEFAULT_CONFIG,
@@ -116,8 +119,10 @@ describe("resolveResetAxis", () => {
 describe("token widgets", () => {
   it("hide when ctx.tokens is undefined", () => {
     const ctx = makeCtx(undefined);
-    // Cover every axis explicitly so a refactor that introduces a hidden-on-no-data
-    // regression on any individual widget is caught here.
+    /*
+     * Cover every axis explicitly so a refactor that introduces a hidden-on-no-data
+     * regression on any individual widget is caught here.
+     */
     expect(tokensInputWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
     expect(tokensOutputWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
     expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
@@ -144,9 +149,7 @@ describe("token widgets", () => {
 
   it("tokens-input does not include output or cached tokens", () => {
     const ctx = makeCtx(
-      makeSnapshot([
-        ev({ timestamp: 0, inputTokens: 100, outputTokens: 999, cachedTokens: 999 }),
-      ]),
+      makeSnapshot([ev({ timestamp: 0, inputTokens: 100, outputTokens: 999, cachedTokens: 999 })]),
     );
     expect(tokensInputWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("100");
   });
@@ -163,9 +166,7 @@ describe("token widgets", () => {
 
   it("tokens-output does not include input or cached tokens", () => {
     const ctx = makeCtx(
-      makeSnapshot([
-        ev({ timestamp: 0, inputTokens: 999, outputTokens: 200, cachedTokens: 999 }),
-      ]),
+      makeSnapshot([ev({ timestamp: 0, inputTokens: 999, outputTokens: 200, cachedTokens: 999 })]),
     );
     expect(tokensOutputWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("200");
   });
@@ -182,9 +183,7 @@ describe("token widgets", () => {
 
   it("tokens-cached does not include input or output tokens", () => {
     const ctx = makeCtx(
-      makeSnapshot([
-        ev({ timestamp: 0, inputTokens: 999, outputTokens: 999, cachedTokens: 100 }),
-      ]),
+      makeSnapshot([ev({ timestamp: 0, inputTokens: 999, outputTokens: 999, cachedTokens: 100 })]),
     );
     expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("100");
   });
@@ -222,12 +221,12 @@ describe("token widgets", () => {
 
   it("supports a custom label and rawValue suppression", () => {
     const ctx = makeCtx(makeSnapshot([ev({ timestamp: 0, inputTokens: 100 })]));
-    expect(
-      tokensInputWidget.render(ctx, { options: { label: "in:" }, rawValue: false }).text,
-    ).toBe("in:100");
-    expect(
-      tokensInputWidget.render(ctx, { options: { label: "in:" }, rawValue: true }).text,
-    ).toBe("100");
+    expect(tokensInputWidget.render(ctx, { options: { label: "in:" }, rawValue: false }).text).toBe(
+      "in:100",
+    );
+    expect(tokensInputWidget.render(ctx, { options: { label: "in:" }, rawValue: true }).text).toBe(
+      "100",
+    );
   });
 });
 
@@ -261,7 +260,9 @@ describe("speed widgets", () => {
 describe("context widgets", () => {
   it("context-length sums input + cached for the session", () => {
     const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 0, inputTokens: 1500, outputTokens: 9999, cachedTokens: 500 })]),
+      makeSnapshot([
+        ev({ timestamp: 0, inputTokens: 1500, outputTokens: 9999, cachedTokens: 500 }),
+      ]),
     );
     expect(contextLengthWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("2k");
   });
@@ -276,18 +277,18 @@ describe("context widgets", () => {
 
   it("context-percentage colour-grades at 60 / 80% boundaries", () => {
     const events = (used: number) => [ev({ timestamp: 0, inputTokens: used })];
-    const lo = contextPercentageWidget.render(
-      makeCtx(makeSnapshot(events(50_000))),
-      { options: {}, rawValue: false },
-    );
-    const mid = contextPercentageWidget.render(
-      makeCtx(makeSnapshot(events(140_000))),
-      { options: {}, rawValue: false },
-    );
-    const hi = contextPercentageWidget.render(
-      makeCtx(makeSnapshot(events(180_000))),
-      { options: {}, rawValue: false },
-    );
+    const lo = contextPercentageWidget.render(makeCtx(makeSnapshot(events(50_000))), {
+      options: {},
+      rawValue: false,
+    });
+    const mid = contextPercentageWidget.render(makeCtx(makeSnapshot(events(140_000))), {
+      options: {},
+      rawValue: false,
+    });
+    const hi = contextPercentageWidget.render(makeCtx(makeSnapshot(events(180_000))), {
+      options: {},
+      rawValue: false,
+    });
     expect(lo.fg).toBe(DEFAULT_PALETTE["tokens-low"]);
     expect(mid.fg).toBe(DEFAULT_PALETTE["tokens-mid"]);
     expect(hi.fg).toBe(DEFAULT_PALETTE["tokens-high"]);

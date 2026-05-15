@@ -97,20 +97,24 @@ describe("previewWidget — label mode (no cache)", () => {
 
   it("propagates per-widget colour and style overrides", () => {
     setPreviewModeForTesting({ kind: "label" });
-    // The wrapper consults `config.fg`/`bg`/`bold`/`italic`; only `fg`
-    // and `bold` show up on a label cell because `previewWidget` doesn't
-    // accept them — but the renderWidgetLabel branch we exercise *does*
-    // emit those when set on the WidgetConfig. We verify the basic text
-    // path; full override surface is covered in render-widget.test.ts.
+    /*
+     * The wrapper consults `config.fg`/`bg`/`bold`/`italic`; only `fg`
+     * and `bold` show up on a label cell because `previewWidget` doesn't
+     * accept them — but the renderWidgetLabel branch we exercise *does*
+     * emit those when set on the WidgetConfig. We verify the basic text
+     * path; full override surface is covered in render-widget.test.ts.
+     */
     const cell = previewWidget("tokens-input");
     expect(cell.text).toBe("tokens-input");
   });
 
   it("hides hidden:true widgets even in label mode (caller responsibility)", () => {
-    // `previewWidget` takes (type, options) only — `hidden` flag would
-    // need to be threaded via the WidgetConfig used internally. This
-    // test pins the public contract: a known widget always renders its
-    // label, never `(hidden)`.
+    /*
+     * `previewWidget` takes (type, options) only — `hidden` flag would
+     * need to be threaded via the WidgetConfig used internally. This
+     * test pins the public contract: a known widget always renders its
+     * label, never `(hidden)`.
+     */
     setPreviewModeForTesting({ kind: "label" });
     expect(previewWidget("git-branch").text).toBe("git-branch");
   });

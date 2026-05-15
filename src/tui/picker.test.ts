@@ -92,10 +92,7 @@ describe("selectedAt", () => {
 
 describe("filterWidgets", () => {
   it("substring-matches over type and name across every family", () => {
-    expect(filterWidgets(ENTRIES, "git").map((e) => e.type)).toEqual([
-      "git-branch",
-      "git-changes",
-    ]);
+    expect(filterWidgets(ENTRIES, "git").map((e) => e.type)).toEqual(["git-branch", "git-changes"]);
     expect(filterWidgets(ENTRIES, "MODEL").map((e) => e.type)).toEqual(["model"]);
   });
 
@@ -124,9 +121,11 @@ describe("filterWidgets", () => {
   });
 
   it("single-letter queries stay substring-only", () => {
-    // `g` should NOT initialism-match `git-branch` (every widget whose
-    // first token starts with `g` would otherwise leak in). It still
-    // substring-matches `git-branch` because the type contains `g`.
+    /*
+     * `g` should NOT initialism-match `git-branch` (every widget whose
+     * first token starts with `g` would otherwise leak in). It still
+     * substring-matches `git-branch` because the type contains `g`.
+     */
     const out = filterWidgets(ENTRIES, "g").map((e) => e.type);
     expect(out).toEqual(["git-branch", "git-changes"]);
   });
@@ -144,8 +143,10 @@ describe("filterWidgets", () => {
 describe("widgetsInFamily — initialism", () => {
   it("scopes initialism to the family", () => {
     expect(widgetsInFamily(ENTRIES, "git", "gb").map((e) => e.type)).toEqual(["git-branch"]);
-    // The same query in a family that has no matching initialism
-    // returns nothing — initialism does not cross family bounds.
+    /*
+     * The same query in a family that has no matching initialism
+     * returns nothing — initialism does not cross family bounds.
+     */
     expect(widgetsInFamily(ENTRIES, "time", "gb")).toEqual([]);
   });
 });
@@ -159,9 +160,7 @@ describe("PICKER_PAGE", () => {
 
 describe("Picker components — smoke", () => {
   it("PickerGroup renders without throwing", () => {
-    expect(() =>
-      PickerGroup({ entries: ENTRIES, highlight: 0, glyphs: GLYPHS }),
-    ).not.toThrow();
+    expect(() => PickerGroup({ entries: ENTRIES, highlight: 0, glyphs: GLYPHS })).not.toThrow();
   });
 
   it("PickerWidget renders without throwing, even with an out-of-range highlight", () => {
@@ -179,8 +178,10 @@ describe("Picker components — smoke", () => {
   it("PickerWidget includes each widget's description text in its row", () => {
     const node = PickerWidget({ family: "git", entries: ENTRIES, query: "", highlight: 0 });
     const serialised = JSON.stringify(node);
-    // Both git widgets' descriptions from ENTRIES must appear in the
-    // rendered tree (separate dim-coloured Text children).
+    /*
+     * Both git widgets' descriptions from ENTRIES must appear in the
+     * rendered tree (separate dim-coloured Text children).
+     */
     expect(serialised).toContain("branch");
     expect(serialised).toContain("changes");
   });
@@ -209,9 +210,7 @@ describe("Picker components — smoke", () => {
   });
 
   it("PickerSearch renders gracefully when nothing matches", () => {
-    expect(() =>
-      PickerSearch({ entries: ENTRIES, query: "zzz", highlight: 0 }),
-    ).not.toThrow();
+    expect(() => PickerSearch({ entries: ENTRIES, query: "zzz", highlight: 0 })).not.toThrow();
   });
 
   it("PickerVariant renders for a widget with variants and one without", () => {

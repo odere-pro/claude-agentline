@@ -59,9 +59,11 @@ describe("initialState", () => {
   });
 
   it("starts in edit mode (no picker fields)", () => {
-    // The discriminated union in `EditorState` excludes `pickerDraft` /
-    // `pickerTarget` from the edit branch — the assertion on `mode`
-    // alone covers the contract.
+    /*
+     * The discriminated union in `EditorState` excludes `pickerDraft` /
+     * `pickerTarget` from the edit branch — the assertion on `mode`
+     * alone covers the contract.
+     */
     const s = makeState([{ type: "a" }]);
     expect(s.mode).toBe("edit");
   });
@@ -378,9 +380,11 @@ describe("picker drill-down — picker-back and close-picker", () => {
     s = reduce(s, { type: "pick-family", family: "session" });
     s = reduce(s, { type: "pick-widget", widgetType: "skills" });
     s = reduce(s, { type: "close-picker" });
-    // The discriminated union in `EditorState` excludes `pickerDraft` /
-    // `pickerTarget` from the edit branch — asserting on `mode` covers
-    // the contract that the picker fields are gone after close.
+    /*
+     * The discriminated union in `EditorState` excludes `pickerDraft` /
+     * `pickerTarget` from the edit branch — asserting on `mode` covers
+     * the contract that the picker fields are gone after close.
+     */
     expect(s.mode).toBe("edit");
   });
 });
@@ -391,8 +395,10 @@ describe("picker — option sanitisation", () => {
     s = reduce(s, { type: "open-picker", intent: "add" });
     s = reduce(s, { type: "pick-family", family: "session" });
     s = reduce(s, { type: "pick-widget", widgetType: "skills" });
-    // Inject a malicious variantId — never matches a real variant, so commit
-    // falls back to "default options" path. Defence-in-depth: sanitise.
+    /*
+     * Inject a malicious variantId — never matches a real variant, so commit
+     * falls back to "default options" path. Defence-in-depth: sanitise.
+     */
     s = reduce(s, { type: "pick-variant", variantId: "__proto__" });
     expect(s.lines[0]?.widgets[1]?.options).toBeUndefined();
     expect(s.mode).toBe("edit");

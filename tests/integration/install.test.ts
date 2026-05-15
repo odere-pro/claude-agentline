@@ -66,7 +66,11 @@ async function teardown(sb: Sandbox): Promise<void> {
 }
 
 async function runScript(script: string, args: string[], env: NodeJS.ProcessEnv, cwd?: string) {
-  return execFileP("bash", [script, ...args], { env, timeout: 30000, ...(cwd !== undefined && { cwd }) });
+  return execFileP("bash", [script, ...args], {
+    env,
+    timeout: 30000,
+    ...(cwd !== undefined && { cwd }),
+  });
 }
 
 async function readJson(path: string): Promise<unknown> {
@@ -122,16 +126,20 @@ describe("scripts/install.sh", () => {
       statusLine?: { command?: string };
     };
     expect(settings.statusLine?.command).toMatch(/agentline/);
-    // The wired command must be the explicit `render` form so a future
-    // top-level subcommand can never mis-dispatch the statusline payload.
+    /*
+     * The wired command must be the explicit `render` form so a future
+     * top-level subcommand can never mis-dispatch the statusline payload.
+     */
     expect(settings.statusLine?.command).toMatch(/\brender\b/);
   });
 
   it("migrates a legacy bare-form `agentline` entry to the explicit `render` form", async () => {
     await fs.mkdir(join(sb.home, ".claude"), { recursive: true });
     const settingsPath = join(sb.home, ".claude", "settings.json");
-    // Simulate a host wired by an older agentline release: bare path, no
-    // `render` subcommand. Re-running install must rewrite this in place.
+    /*
+     * Simulate a host wired by an older agentline release: bare path, no
+     * `render` subcommand. Re-running install must rewrite this in place.
+     */
     const legacy = "/usr/local/bin/agentline";
     await fs.writeFile(
       settingsPath,
@@ -143,9 +151,11 @@ describe("scripts/install.sh", () => {
     const after = (await readJson(settingsPath)) as { statusLine: { command: string } };
     expect(after.statusLine.command).toMatch(/agentline/);
     expect(after.statusLine.command).toMatch(/\brender\b/);
-    // The migration is recognising our own prior wiring — the backup file
-    // must NOT capture the bare-form value as if it were a foreign
-    // pre-install statusLine to restore on uninstall.
+    /*
+     * The migration is recognising our own prior wiring — the backup file
+     * must NOT capture the bare-form value as if it were a foreign
+     * pre-install statusLine to restore on uninstall.
+     */
     const backupPath = join(sb.configDir, "state", "settings-backup.json");
     if (await exists(backupPath)) {
       const backup = (await readJson(backupPath)) as {
@@ -178,7 +188,11 @@ describe("scripts/install.sh", () => {
   it("preserves a user-edited config on re-run", async () => {
     await runScript(installSh, [], sb.env, sb.root);
     const userCfg = join(sb.configDir, "config.json");
-    const edited = JSON.stringify({ version: 1, theme: "claude-code-dark", lines: [{ widgets: [{ type: "model" }] }] });
+    const edited = JSON.stringify({
+      version: 1,
+      theme: "claude-code-dark",
+      lines: [{ widgets: [{ type: "model" }] }],
+    });
     await fs.writeFile(userCfg, edited);
 
     await runScript(installSh, [], sb.env, sb.root);
@@ -197,9 +211,10 @@ describe("scripts/install.sh", () => {
     await runScript(installSh, [], sb.env, sb.root);
     const after = (await readJson(settingsPath)) as { statusLine: { command: string } };
     expect(after.statusLine.command).toMatch(/agentline/);
-    const backup = (await readJson(
-      join(sb.configDir, "state", "settings-backup.json"),
-    )) as { previousStatusLinePresent: boolean; previousStatusLine: { command: string } };
+    const backup = (await readJson(join(sb.configDir, "state", "settings-backup.json"))) as {
+      previousStatusLinePresent: boolean;
+      previousStatusLine: { command: string };
+    };
     expect(backup.previousStatusLinePresent).toBe(true);
     expect(backup.previousStatusLine.command).toBe("starship init bash");
   });
@@ -226,9 +241,9 @@ describe("scripts/install.sh", () => {
     );
     await runScript(installSh, [], sb.env, sb.root); // backs up starship
     await runScript(installSh, [], sb.env, sb.root); // settings.json now has agentline
-    const backup = (await readJson(
-      join(sb.configDir, "state", "settings-backup.json"),
-    )) as { previousStatusLine: { command: string } };
+    const backup = (await readJson(join(sb.configDir, "state", "settings-backup.json"))) as {
+      previousStatusLine: { command: string };
+    };
     expect(backup.previousStatusLine.command).toBe("starship init bash");
   });
 
@@ -306,9 +321,7 @@ describe("scripts/uninstall.sh", () => {
     await runScript(uninstallSh, [], sb.env, sb.root); // restore from backup
     const after = (await readJson(settingsPath)) as { statusLine: { command: string } };
     expect(after.statusLine.command).toBe("starship init bash");
-    expect(
-      await exists(join(sb.configDir, "state", "settings-backup.json")),
-    ).toBe(false);
+    expect(await exists(join(sb.configDir, "state", "settings-backup.json"))).toBe(false);
   });
 
   it("install with no prior statusLine + uninstall removes the key entirely", async () => {

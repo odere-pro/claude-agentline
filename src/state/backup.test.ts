@@ -20,7 +20,9 @@ describe("resolveBackupPaths", () => {
 
   it("falls back to ~/.config/agentline when CLAUDE_CONFIG_DIR is unset", () => {
     const paths = resolveBackupPaths({});
-    expect(paths.backupFile).toMatch(/[/\\]\.config[/\\]agentline[/\\]state[/\\]settings-backup\.json$/);
+    expect(paths.backupFile).toMatch(
+      /[/\\]\.config[/\\]agentline[/\\]state[/\\]settings-backup\.json$/,
+    );
   });
 });
 
@@ -80,11 +82,13 @@ describe("saveStatusLineBackup / readStatusLineBackup", () => {
   });
 
   it("two concurrent writers race the O_EXCL open; exactly one wins", async () => {
-    // The original implementation had a TOCTOU between `pathExists` and
-    // the temp+rename in `atomicWriteJson`: both callers could observe
-    // the file absent, both could write a temp, and the second rename
-    // would overwrite the first writer's snapshot. `O_EXCL` collapses
-    // the check-then-write to one syscall so exactly one writer wins.
+    /*
+     * The original implementation had a TOCTOU between `pathExists` and
+     * the temp+rename in `atomicWriteJson`: both callers could observe
+     * the file absent, both could write a temp, and the second rename
+     * would overwrite the first writer's snapshot. `O_EXCL` collapses
+     * the check-then-write to one syscall so exactly one writer wins.
+     */
     const writers = Array.from({ length: 8 }, (_, i) =>
       saveStatusLineBackup({
         previousStatusLine: `writer-${i}`,

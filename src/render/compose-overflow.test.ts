@@ -48,8 +48,10 @@ describe("composeLines (plain mode, overflow)", () => {
   });
 
   it("wraps trailing cells onto a second line when width is exceeded", () => {
-    // 4 cells of width 5, with separator " | " (3 chars) between them, in a
-    // 16-character window: line 1 packs two, line 2 packs the rest.
+    /*
+     * 4 cells of width 5, with separator " | " (3 chars) between them, in a
+     * 16-character window: line 1 packs two, line 2 packs the rest.
+     */
     const cells = ["aaaaa", "bbbbb", "ccccc", "ddddd"].map((t) => cell(t));
     const out = composeLines([cells], baseOptions({ width: 16 }));
     expect(out.length).toBeGreaterThan(1);

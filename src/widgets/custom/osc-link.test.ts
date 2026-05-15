@@ -57,9 +57,11 @@ describe("osc-link widget", () => {
 
   it("visible width equals label length, not the inflated escape sequence", () => {
     const cell = render({ url: "https://example.com/very/long/path", label: "Docs" });
-    // The OSC 8 escape is applied by the encoder, not the widget. The
-    // cell.text the layout engine sees stays the bare label — this is
-    // the invariant width math depends on.
+    /*
+     * The OSC 8 escape is applied by the encoder, not the widget. The
+     * cell.text the layout engine sees stays the bare label — this is
+     * the invariant width math depends on.
+     */
     expect(cell.text.length).toBe(4);
   });
 });

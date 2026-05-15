@@ -34,8 +34,10 @@ describe("WIDGET_SUBS dispatch table", () => {
 
 describe("defineWidgetSub type linkage", () => {
   it("accepts matched parse/run pairs", () => {
-    // Plain runtime assertion that the helper returns a usable shape;
-    // the real value here is the compile-time check in the
+    /*
+     * Plain runtime assertion that the helper returns a usable shape;
+     * the real value here is the compile-time check in the
+     */
     // `@ts-expect-error` block below.
     const sub = defineWidgetSub(parseWidgetAddArgs, runWidgetAddCommand);
     expect(sub.parse).toBeTypeOf("function");
@@ -44,8 +46,10 @@ describe("defineWidgetSub type linkage", () => {
 
   it("rejects a parse/run pair whose args shapes disagree", () => {
     // @ts-expect-error parseWidgetRemoveArgs returns WidgetRemoveArgs but
-    // runWidgetAddCommand expects { args: WidgetAddArgs } — TS refuses
-    // the cross-wired pair inside defineWidgetSub.
+    /*
+     * runWidgetAddCommand expects { args: WidgetAddArgs } — TS refuses
+     * the cross-wired pair inside defineWidgetSub.
+     */
     void defineWidgetSub(parseWidgetRemoveArgs, runWidgetAddCommand);
   });
 });

@@ -50,9 +50,11 @@ describe("Widget registry-catalog parity", () => {
   });
 
   it("has no widgets in catalog that are not in registry", () => {
-    // Cross-check against the registry, not against the catalog itself.
-    // The previous loop iterated `Object.keys(WIDGET_CATALOG)` and asserted
-    // each value was defined — a no-op against `Object.keys`'s own output.
+    /*
+     * Cross-check against the registry, not against the catalog itself.
+     * The previous loop iterated `Object.keys(WIDGET_CATALOG)` and asserted
+     * each value was defined — a no-op against `Object.keys`'s own output.
+     */
     const registry = defaultRegistry();
     registerAllBuiltins(registry);
 
@@ -75,8 +77,10 @@ describe("Widget registry-catalog parity", () => {
 
     for (const entry of meta) {
       expect(registryTypes.has(entry.type)).toBe(true);
-      // Empty strings would have satisfied the prior `toBeDefined()`
-      // checks — assert non-empty content + a known family instead.
+      /*
+       * Empty strings would have satisfied the prior `toBeDefined()`
+       * checks — assert non-empty content + a known family instead.
+       */
       expect(entry.name.length).toBeGreaterThan(0);
       expect(entry.description.length).toBeGreaterThan(0);
       expect(FAMILIES.has(entry.family)).toBe(true);

@@ -41,8 +41,10 @@ const realTokens: TokensSnapshot = Object.freeze({
   pricingVersion: PRICING_TABLE_VERSION,
 });
 
-// Pin a real-mode preview context so tests that depend on widgets
-// rendering "main", "Opus 4.7" etc. don't fall through to label mode.
+/*
+ * Pin a real-mode preview context so tests that depend on widgets
+ * rendering "main", "Opus 4.7" etc. don't fall through to label mode.
+ */
 beforeEach(() => {
   setPreviewModeForTesting({
     kind: "real",
@@ -156,9 +158,11 @@ describe("buildPreview", () => {
   });
 
   it("surfaces a self-hiding widget (no data right now) with the widget's type name as fallback", () => {
-    // `git-worktree` hides cleanly when `inWorktree === false` — the
-    // demo session is a plain checkout, so its preview falls back to
-    // the widget's type name (dimmed) instead of a decorative chip.
+    /*
+     * `git-worktree` hides cleanly when `inWorktree === false` — the
+     * demo session is a plain checkout, so its preview falls back to
+     * the widget's type name (dimmed) instead of a decorative chip.
+     */
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
       lines: [{ widgets: [{ type: "git-worktree" }] }],
@@ -211,8 +215,10 @@ describe("buildPreview — label-only fallback (no stdin cache)", () => {
   });
 });
 
-// Use the helper in one assertion to keep it referenced; the rest of the
-// tests inspect individual slots directly.
+/*
+ * Use the helper in one assertion to keep it referenced; the rest of the
+ * tests inspect individual slots directly.
+ */
 describe("buildPreview — row slot summary", () => {
   it("yields slots in order: w0 join w1 join w2 + (with default joins)", () => {
     const rows = buildPreview({

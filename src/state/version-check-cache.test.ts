@@ -90,8 +90,10 @@ describe("saveVersionCheck + readVersionCheckSync", () => {
   });
 
   it("swallows write errors so a broken cache dir never bubbles up", async () => {
-    // Point at a path whose parent we can't create (a regular-file
-    // "directory"). `saveVersionCheck` must NOT throw.
+    /*
+     * Point at a path whose parent we can't create (a regular-file
+     * "directory"). `saveVersionCheck` must NOT throw.
+     */
     const blocker = join(tmpRoot, "blocker");
     writeFileSync(blocker, "i am not a directory");
     const blockerEnv = { CLAUDE_CONFIG_DIR: blocker };
