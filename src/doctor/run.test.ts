@@ -59,6 +59,8 @@ describe("runDoctor", () => {
   it("--fix repairs D01 by creating the Claude Code settings file (and chains into D02)", async () => {
     const { report } = await runDoctor({
       fix: true,
+      // Short-circuit D05 — these tests don't exercise font install.
+      detectNerdFont: () => true,
       json: false,
       strict: false,
       home,
@@ -79,6 +81,8 @@ describe("runDoctor", () => {
   it("--fix is idempotent on a healthy host", async () => {
     await runDoctor({
       fix: true,
+      // Short-circuit D05 — these tests don't exercise font install.
+      detectNerdFont: () => true,
       json: false,
       strict: false,
       home,
@@ -90,6 +94,8 @@ describe("runDoctor", () => {
 
     const second = await runDoctor({
       fix: true,
+      // Short-circuit D05 — these tests don't exercise font install.
+      detectNerdFont: () => true,
       json: false,
       strict: false,
       home,
@@ -111,6 +117,8 @@ describe("runDoctor", () => {
     await fs.writeFile(join(home, ".claude", "settings.json"), "{}");
     const { report } = await runDoctor({
       fix: true,
+      // Short-circuit D05 — these tests don't exercise font install.
+      detectNerdFont: () => true,
       json: false,
       strict: false,
       home,
@@ -133,6 +141,8 @@ describe("runDoctor", () => {
     );
     const { report } = await runDoctor({
       fix: true,
+      // Short-circuit D05 — these tests don't exercise font install.
+      detectNerdFont: () => true,
       json: false,
       strict: false,
       home,
@@ -165,6 +175,8 @@ describe("runDoctor", () => {
     // First run: backs up starship.
     await runDoctor({
       fix: true,
+      // Short-circuit D05 — these tests don't exercise font install.
+      detectNerdFont: () => true,
       json: false,
       strict: false,
       home,
@@ -175,6 +187,8 @@ describe("runDoctor", () => {
     // still hold starship — first install wins.
     await runDoctor({
       fix: true,
+      // Short-circuit D05 — these tests don't exercise font install.
+      detectNerdFont: () => true,
       json: false,
       strict: false,
       home,

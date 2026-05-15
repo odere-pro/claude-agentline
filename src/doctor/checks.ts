@@ -193,20 +193,22 @@ async function checkD05(ctx: CheckCtx): Promise<CheckResult> {
   if (installed) {
     return ok("D05", "Nerd Font present", "nerd font detected");
   }
-  const reason = wantsPowerline && wantsGlyphs
-    ? "no Nerd Font detected for Powerline + glyphs"
-    : wantsPowerline
-      ? "no Nerd Font detected for Powerline glyphs"
-      : "no Nerd Font detected for config.glyphs=\"nerd-font\"";
+  const reason =
+    wantsPowerline && wantsGlyphs
+      ? "no Nerd Font detected for Powerline + glyphs"
+      : wantsPowerline
+        ? "no Nerd Font detected for Powerline glyphs"
+        : 'no Nerd Font detected for config.glyphs="nerd-font"';
   return {
     id: "D05",
     title: "Nerd Font present",
     status: "warn",
     message: reason,
     hint:
-      "download a Nerd Font from https://www.nerdfonts.com (e.g. JetBrainsMono, FiraCode, Hack)" +
+      "run `agentline doctor --fix` to install JetBrainsMono Nerd Font automatically" +
+      " · or download manually from https://www.nerdfonts.com (e.g. JetBrainsMono, FiraCode, Hack)" +
       " · macOS: brew install --cask font-jetbrains-mono-nerd-font" +
-      " · or set glyphs=\"off\" in your config to disable",
+      ' · or set glyphs="off" in your config to disable',
   };
 }
 
@@ -337,7 +339,12 @@ async function checkD09(ctx: CheckCtx): Promise<CheckResult> {
 async function checkD10(_ctx: CheckCtx): Promise<CheckResult> {
   const ok = await runEmbeddedRenderFixture();
   if (ok.match) {
-    return { id: "D10", title: "Render dry-run matches snapshot", status: "pass", message: "render fixture ok" };
+    return {
+      id: "D10",
+      title: "Render dry-run matches snapshot",
+      status: "pass",
+      message: "render fixture ok",
+    };
   }
   return {
     id: "D10",
@@ -399,7 +406,9 @@ async function detectNerdFont(): Promise<boolean> {
       return /nerd font/i.test(stdout);
     }
     if (process.platform === "darwin") {
-      const { stdout } = await execFileP("system_profiler", ["SPFontsDataType"], { timeout: EXEC_TIMEOUTS.systemProfiler });
+      const { stdout } = await execFileP("system_profiler", ["SPFontsDataType"], {
+        timeout: EXEC_TIMEOUTS.systemProfiler,
+      });
       return /nerd font/i.test(stdout);
     }
   } catch {
