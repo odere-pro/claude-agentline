@@ -1,5 +1,5 @@
 {
-  "$id": "https://agentline.dev/schemas/theme.schema.json",
+  "$id": "https://github.com/odere-pro/claude-agentline/schemas/theme.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "agentline theme",
   "type": "object",
@@ -32,19 +32,58 @@
         "bg-emphasis"
       ],
       "properties": {
-        "accent": { "type": "string", "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$" },
-        "info": { "type": "string", "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$" },
-        "success": { "type": "string", "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$" },
-        "warning": { "type": "string", "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$" },
-        "danger": { "type": "string", "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$" },
-        "muted": { "type": "string", "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$" },
-        "git-clean": { "type": "string", "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$" },
-        "git-dirty": { "type": "string", "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$" },
-        "tokens-low": { "type": "string", "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$" },
-        "tokens-mid": { "type": "string", "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$" },
-        "tokens-high": { "type": "string", "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$" },
-        "bg-section": { "type": "string", "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$" },
-        "bg-emphasis": { "type": "string", "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$" }
+        "accent": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$"
+        },
+        "info": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$"
+        },
+        "success": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$"
+        },
+        "warning": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$"
+        },
+        "danger": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$"
+        },
+        "muted": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$"
+        },
+        "git-clean": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$"
+        },
+        "git-dirty": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$"
+        },
+        "tokens-low": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$"
+        },
+        "tokens-mid": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$"
+        },
+        "tokens-high": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$"
+        },
+        "bg-section": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$"
+        },
+        "bg-emphasis": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$"
+        }
       }
     },
     "powerline": {
