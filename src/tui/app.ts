@@ -138,7 +138,7 @@ export function App({
         });
         dispatch({ type: "mark-clean" });
         setStatusMessage(
-          `saved → ${path} — run "agentline start" to preview, or Restart Claude Code`,
+          `saved → ${path} — applies on your next Claude Code prompt (run "agentline start" to preview now)`,
         );
         onSaved(true);
       } catch (err) {

@@ -26,6 +26,14 @@ export interface StdinPayload {
   truncated: boolean;
   /** Convenience accessors for known fields; all optional. */
   model?: string;
+  /**
+   * Claude Code's user-facing label for the model when sent as
+   * `model: { display_name }` (e.g. `"Opus 4.7 (1M context)"`). Widgets
+   * that want a human-readable name without doing their own id→label
+   * mapping read this first; falls back to `model` and then to the
+   * widget's own table.
+   */
+  modelDisplayName?: string;
   version?: string;
   /**
    * Known values at the time of writing: `"default"`, `"explanatory"`,
@@ -69,23 +77,40 @@ export class StdinParseError extends Error {
  * Exported so consumers that already have parsed JSON (tests, future
  * cache replay, contract-drift shims) can hit the seam directly without
  * routing through stdin I/O.
+ *
+ * Claude Code's contract uses snake_case keys and nests several values
+ * one level deep:
+ *
+ *   - `model`         → `{ id, display_name }`  → keep `id`
+ *   - `output_style`  → `{ name }`              → keep `name`
+ *   - `effort`        → `{ level }`             → keep `level`
+ *   - `workspace`     → `{ current_dir, … }`    → fallback for `cwd`
+ *
+ * The adapter normalises both shapes (and accepts a flat-string `model`
+ * for back-compat with the older docs), so widgets read a single
+ * camelCase, flat-string surface.
  */
 export function adaptStatuslinePayload(
   raw: Record<string, unknown>,
   opts: { truncated?: boolean } = {},
 ): StdinPayload {
+  const modelBlock = isPlainObject(raw["model"]) ? raw["model"] : undefined;
+  const outputStyleBlock = isPlainObject(raw["output_style"]) ? raw["output_style"] : undefined;
+  const effortBlock = isPlainObject(raw["effort"]) ? raw["effort"] : undefined;
+  const workspaceBlock = isPlainObject(raw["workspace"]) ? raw["workspace"] : undefined;
   return {
     raw,
     truncated: opts.truncated ?? false,
-    model: pickString(raw, "model"),
+    model: pickString(modelBlock, "id") ?? pickString(raw, "model"),
+    modelDisplayName: pickString(modelBlock, "display_name"),
     version: pickString(raw, "version"),
-    outputStyle: pickString(raw, "outputStyle"),
-    sessionId: pickString(raw, "sessionId"),
-    sessionName: pickString(raw, "sessionName"),
-    cwd: pickString(raw, "cwd"),
-    thinkingEffort: pickString(raw, "thinkingEffort"),
-    vimMode: pickString(raw, "vimMode"),
-    transcriptPath: pickString(raw, "transcriptPath"),
+    outputStyle: pickString(outputStyleBlock, "name") ?? pickString(raw, "output_style"),
+    sessionId: pickString(raw, "session_id"),
+    sessionName: pickString(raw, "session_name"),
+    cwd: pickString(raw, "cwd") ?? pickString(workspaceBlock, "current_dir"),
+    thinkingEffort: pickString(effortBlock, "level"),
+    vimMode: pickString(raw, "vim_mode"),
+    transcriptPath: pickString(raw, "transcript_path"),
   };
 }
 
