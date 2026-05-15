@@ -51,12 +51,7 @@ import { MAX_LINES } from "../config/mutate.js";
 import type { GlyphMode, LineConfig, WidgetConfig } from "../config/types.js";
 import type { WidgetFamily } from "../widgets/catalog.js";
 
-import {
-  deleteWidget,
-  moveCursor,
-  moveWidget,
-  setOption,
-} from "./state-mutations.js";
+import { deleteWidget, moveCursor, moveWidget, setOption } from "./state-mutations.js";
 import {
   backToEdit,
   openPicker,
@@ -202,8 +197,10 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
     case "close-picker":
       return state.mode === "edit" ? state : backToEdit(state);
     case "mark-clean":
-      // Refresh the memento on save so a subsequent `revert` returns
-      // here, not to the original loaded config.
+      /*
+       * Refresh the memento on save so a subsequent `revert` returns
+       * here, not to the original loaded config.
+       */
       return {
         ...state,
         dirty: false,
@@ -218,8 +215,10 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
         lines: state.lastSaved.lines,
         glyphs: state.lastSaved.glyphs,
         dirty: false,
-        // Pull cursor back into bounds in case the discarded edits had
-        // extended a row beyond what the snapshot contains.
+        /*
+         * Pull cursor back into bounds in case the discarded edits had
+         * extended a row beyond what the snapshot contains.
+         */
         cursor: clampCursor(state.cursor, state.lastSaved.lines),
       };
   }

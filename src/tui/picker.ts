@@ -121,10 +121,7 @@ function matches(entry: WidgetMetaEntry, q: string): boolean {
   const type = entry.type.toLowerCase();
   const name = entry.name.toLowerCase();
   return (
-    matchesInitialism(q, type) ||
-    matchesInitialism(q, name) ||
-    type.includes(q) ||
-    name.includes(q)
+    matchesInitialism(q, type) || matchesInitialism(q, name) || type.includes(q) || name.includes(q)
   );
 }
 
@@ -250,11 +247,13 @@ export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
   const highlight = clampIndex(props.highlight, matches.length);
   const { start, rows } = windowSlice(matches, highlight);
   const widestType = rows.reduce((n, e) => Math.max(n, e.type.length), 0);
-  // Pad preview text so descriptions line up in their own column. When a
-  // widget returns no data (real mode, source absent) we fall back to its
-  // type name so the picker still demonstrates *which* widget is on offer
-  // — `(hidden)` here would be misleading because the widget itself is
-  // not configured as hidden, it just can't produce data right now.
+  /*
+   * Pad preview text so descriptions line up in their own column. When a
+   * widget returns no data (real mode, source absent) we fall back to its
+   * type name so the picker still demonstrates *which* widget is on offer
+   * — `(hidden)` here would be misleading because the widget itself is
+   * not configured as hidden, it just can't produce data right now.
+   */
   const previews = rows.map((e) => previewWidget(e.type).text || e.type);
   const widestPreview = previews.reduce((n, p) => Math.max(n, p.length), 0);
   const countLabel = `${matches.length} match${matches.length === 1 ? "" : "es"}`;
@@ -268,9 +267,11 @@ export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
           const selected = idx === highlight;
           const preview = previews[i] ?? "";
           const head = `  ${selected ? "▸ " : "  "}${e.type.padEnd(widestType, " ")}`;
-          // Only the group label carries the family accent — individual
-          // widget rows stay neutral so the accent doesn't bleed onto every
-          // line. Selection emphasis is bold + cyan on the highlighted row.
+          /*
+           * Only the group label carries the family accent — individual
+           * widget rows stay neutral so the accent doesn't bleed onto every
+           * line. Selection emphasis is bold + cyan on the highlighted row.
+           */
           return React.createElement(
             Box,
             { key: e.type, flexDirection: "row" },
@@ -416,4 +417,3 @@ function previewForVariant(widgetType: string, row: VariantRow): string {
   const cell = previewWidget(widgetType, variant ? { ...variant.options } : undefined);
   return cell.text || widgetType;
 }
-

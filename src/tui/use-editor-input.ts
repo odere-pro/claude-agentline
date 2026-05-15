@@ -65,14 +65,18 @@ export function useEditorInput(opts: UseEditorInputOptions): UseEditorInputResul
   } = opts;
   const { exit } = useApp();
 
-  // Per-step transient UI state — reset on every mode change so each
-  // step starts with a clean filter and the highlight at row 0.
+  /*
+   * Per-step transient UI state — reset on every mode change so each
+   * step starts with a clean filter and the highlight at row 0.
+   */
   const [stepQuery, setStepQuery] = useState("");
   const [stepHighlight, setStepHighlight] = useState(0);
 
-  // `pickerDraft` exists only on the picker branch of the discriminated
-  // union. Derive nullable views so the dependency arrays stay accessible
-  // without re-narrowing each time.
+  /*
+   * `pickerDraft` exists only on the picker branch of the discriminated
+   * union. Derive nullable views so the dependency arrays stay accessible
+   * without re-narrowing each time.
+   */
   const pickerFamily = state.mode === "edit" ? undefined : state.pickerDraft.family;
   const pickerWidgetType = state.mode === "edit" ? undefined : state.pickerDraft.widgetType;
 

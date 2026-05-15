@@ -54,8 +54,10 @@ export function footerLines(
   const scope = modeToScope(mode);
   const inScope = bindings.filter((b) => b.scope === scope || b.scope === "any");
   const fmt = (b: KeyBinding) => `${b.key} ${FOOTER_LABEL[b.action] ?? b.description}`;
-  // Motion bindings come from the current scope only — `any`-scope bindings
-  // (quit, help) belong on the actions line so they sit beside the verbs.
+  /*
+   * Motion bindings come from the current scope only — `any`-scope bindings
+   * (quit, help) belong on the actions line so they sit beside the verbs.
+   */
   const motion = inScope.filter((b) => b.scope !== "any" && MOTION_ACTIONS.has(b.action));
   const actions = inScope.filter((b) => b.scope === "any" || !MOTION_ACTIONS.has(b.action));
   return {

@@ -105,10 +105,7 @@ export function setOption(state: EditorState, key: string, value: unknown): Edit
   }));
 }
 
-function mutateCurrent(
-  state: EditorState,
-  fn: (w: WidgetConfig) => WidgetConfig,
-): EditorState {
+function mutateCurrent(state: EditorState, fn: (w: WidgetConfig) => WidgetConfig): EditorState {
   const line = currentLine(state);
   if (!line || state.cursor.widget >= line.widgets.length) return state;
   const target = line.widgets[state.cursor.widget];
