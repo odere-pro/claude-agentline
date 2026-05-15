@@ -33,7 +33,10 @@ export interface AuthLookupSource {
 
 export function resolveAuthFilePath(source: AuthLookupSource): string {
   const fromEnv = source.env["CLAUDE_CONFIG_DIR"];
-  const base = fromEnv && fromEnv.trim() !== "" ? fromEnv : path.join(source.homedir ?? os.homedir(), ".claude");
+  const base =
+    fromEnv && fromEnv.trim() !== ""
+      ? fromEnv
+      : path.join(source.homedir ?? os.homedir(), ".claude");
   return path.join(base, "auth.json");
 }
 
@@ -41,8 +44,10 @@ export function readAuthFile(source: AuthLookupSource): AuthSnapshot | null {
   const target = resolveAuthFilePath(source);
   let raw: string;
   try {
-    // Bound the read so a symlink to a huge file can't pin the render
-    // path. The auth file ships as a small JSON object; 64 KB is ample.
+    /*
+     * Bound the read so a symlink to a huge file can't pin the render
+     * path. The auth file ships as a small JSON object; 64 KB is ample.
+     */
     const stat = statSync(target);
     if (stat.size > MAX_AUTH_FILE_BYTES) return null;
     raw = readFileSync(target, "utf8");

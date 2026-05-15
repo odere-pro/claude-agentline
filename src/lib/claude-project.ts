@@ -95,9 +95,11 @@ function askYesNo(
   const prompt =
     `agentline ${command}: this directory is not a Claude project ` +
     `(no .claude/ or CLAUDE.md). proceed? [y/N] `;
-  // `readline.createInterface` needs a stream pair with the same
-  // `write` shape as stdout/stderr. We pass the stderr-or-test stub
-  // for both prompt echo and downstream logging.
+  /*
+   * `readline.createInterface` needs a stream pair with the same
+   * `write` shape as stdout/stderr. We pass the stderr-or-test stub
+   * for both prompt echo and downstream logging.
+   */
   const rl = createInterface({
     input: input as NodeJS.ReadableStream,
     output: output as unknown as NodeJS.WritableStream,

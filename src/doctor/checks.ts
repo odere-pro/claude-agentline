@@ -2,8 +2,8 @@
  * Implementations of the ten doctor checks (D01–D10).
  *
  * Reporting and repair are split: a check NEVER mutates the host;
- * `--fix` calls the matching `tryFix*` helper in `fix.ts` separately
- * (only D01–D04 have fixers, per spec).
+ * `--fix` calls the matching `fixD0N` helper in `fix.ts` separately
+ * (D01–D05 have fixers; D06–D10 are reporting-only).
  *
  * On a missing-but-expected file (e.g. no Powerline-only Nerd Font when
  * Powerline is disabled) the check returns `pass` with an explanatory
@@ -397,9 +397,11 @@ function hasGitWidget(cfg: AgentlineConfig | null): boolean {
 }
 
 async function detectNerdFont(): Promise<boolean> {
-  // Best-effort cross-platform check — looks for a `*Nerd Font*` family
-  // via `fc-list` (Linux), system_profiler (macOS), or a font-cache file
-  // on Windows. Failure to find one is reported as warn, never fatal.
+  /*
+   * Best-effort cross-platform check — looks for a `*Nerd Font*` family
+   * via `fc-list` (Linux), system_profiler (macOS), or a font-cache file
+   * on Windows. Failure to find one is reported as warn, never fatal.
+   */
   try {
     if (process.platform === "linux") {
       const { stdout } = await execFileP("fc-list", [], { timeout: EXEC_TIMEOUTS.fcList });
