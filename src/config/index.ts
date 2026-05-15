@@ -7,7 +7,12 @@
  */
 
 export { loadConfig, type LoadOptions, type LoadedConfig } from "./load.js";
-export { atomicWrite, atomicWriteJson, type AtomicWriteOptions } from "./atomic.js";
+export {
+  writeIdempotent,
+  writeJsonIdempotent,
+  writeOnce,
+  type AtomicWriteOptions,
+} from "../lib/atomic-write.js";
 export { resolveConfigPaths, type ConfigPaths } from "./paths.js";
 export { validateConfig, ConfigValidationError } from "./validate.js";
 export { DEFAULT_CONFIG } from "./defaults.js";

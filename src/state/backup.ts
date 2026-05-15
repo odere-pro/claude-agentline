@@ -19,10 +19,10 @@
  */
 
 import { promises as fs } from "node:fs";
-import { dirname } from "node:path";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import { writeOnce } from "../lib/atomic-write.js";
 import { isEexist, isEnoent } from "../lib/fs.js";
 import { isPlainObject } from "../lib/object.js";
 import { AGENTLINE_VERSION } from "../version.js";
@@ -91,7 +91,6 @@ export async function saveStatusLineBackup(args: {
   readonly clock?: () => Date;
 }): Promise<"created" | "skipped"> {
   const target = args.backupFile ?? resolveBackupPaths(args.env).backupFile;
-  await fs.mkdir(dirname(target), { recursive: true, mode: 0o700 });
   const body: StatusLineBackup = {
     version: STATUS_LINE_BACKUP_VERSION,
     createdAt: (args.clock ?? (() => new Date()))().toISOString(),
@@ -99,18 +98,14 @@ export async function saveStatusLineBackup(args: {
     previousStatusLinePresent: args.previousStatusLinePresent,
     previousStatusLine: args.previousStatusLine,
   };
-  let fh: Awaited<ReturnType<typeof fs.open>>;
   try {
-    fh = await fs.open(target, "wx", 0o600);
+    await writeOnce(target, `${JSON.stringify(body, null, 2)}\n`, {
+      mode: 0o600,
+      dirMode: 0o700,
+    });
   } catch (err) {
     if (isEexist(err)) return "skipped";
     throw err;
-  }
-  try {
-    await fh.writeFile(`${JSON.stringify(body, null, 2)}\n`, "utf8");
-    await fh.sync();
-  } finally {
-    await fh.close();
   }
   return "created";
 }
