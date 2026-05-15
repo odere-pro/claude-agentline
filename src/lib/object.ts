@@ -5,6 +5,19 @@
  */
 
 /**
+ * Narrows `unknown` to a string-keyed record when `v` is a plain object —
+ * one whose prototype is `Object.prototype` or `null`. Rejects arrays,
+ * `null`, primitives, and exotic objects (Map, Set, class instances).
+ *
+ * Use as the gate before treating a `JSON.parse` result as a property bag.
+ */
+export function isPlainObject(v: unknown): v is Record<string, unknown> {
+  if (v === null || typeof v !== "object") return false;
+  const proto = Object.getPrototypeOf(v);
+  return proto === Object.prototype || proto === null;
+}
+
+/**
  * Returns `obj[key]` when it is a non-empty string. Any other shape —
  * undefined obj, missing key, non-string, empty string — yields `undefined`.
  */

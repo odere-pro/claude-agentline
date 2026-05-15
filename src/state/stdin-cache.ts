@@ -24,6 +24,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { atomicWriteJson } from "../config/atomic.js";
+import { isPlainObject } from "../lib/object.js";
 import { adaptStatuslinePayload, type StdinPayload } from "../stdin/index.js";
 
 export const STDIN_CACHE_VERSION = 1 as const;
@@ -96,31 +97,24 @@ export function readLastStdinSync(env: NodeJS.ProcessEnv = process.env): CachedS
   } catch {
     return null;
   }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-  const o = parsed as Record<string, unknown>;
-  if (o.version !== STDIN_CACHE_VERSION) return null;
-  const cachedPayload = o.payload;
-  if (
-    !cachedPayload ||
-    typeof cachedPayload !== "object" ||
-    Array.isArray(cachedPayload)
-  ) {
-    return null;
-  }
+  if (!isPlainObject(parsed)) return null;
+  if (parsed.version !== STDIN_CACHE_VERSION) return null;
+  const cachedPayload = parsed.payload;
+  if (!isPlainObject(cachedPayload)) return null;
   // Reconstruct the StdinPayload via the same adapter the live stdin
   // path uses (`adaptStatuslinePayload`). This re-validates every typed
   // field instead of trusting the on-disk shape — a stale cache from an
   // older agentline version whose `StdinPayload` had different field
   // names won't silently surface as a half-populated object.
-  const cached = cachedPayload as { raw?: unknown; truncated?: unknown };
-  const rawObj = cached.raw;
-  if (!rawObj || typeof rawObj !== "object" || Array.isArray(rawObj)) return null;
-  const payload: StdinPayload = adaptStatuslinePayload(rawObj as Record<string, unknown>, {
-    truncated: typeof cached.truncated === "boolean" ? cached.truncated : false,
+  const rawObj = cachedPayload.raw;
+  if (!isPlainObject(rawObj)) return null;
+  const truncated = cachedPayload.truncated;
+  const payload: StdinPayload = adaptStatuslinePayload(rawObj, {
+    truncated: typeof truncated === "boolean" ? truncated : false,
   });
   return {
     version: STDIN_CACHE_VERSION,
-    savedAt: typeof o.savedAt === "string" ? o.savedAt : "",
+    savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : "",
     payload,
   };
 }

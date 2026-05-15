@@ -14,15 +14,11 @@
  *     here keeps the merge function safe in isolation.
  */
 
+import { isPlainObject } from "../lib/object.js";
+
 type Plain = Record<string, unknown>;
 
 const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
-
-function isPlainObject(v: unknown): v is Plain {
-  if (v === null || typeof v !== "object") return false;
-  const proto = Object.getPrototypeOf(v);
-  return proto === Object.prototype || proto === null;
-}
 
 export function deepMerge<T>(base: T, override: unknown): T {
   if (override === undefined) return base;

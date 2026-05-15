@@ -24,6 +24,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { isEexist, isEnoent } from "../lib/fs.js";
+import { isPlainObject } from "../lib/object.js";
 import { AGENTLINE_VERSION } from "../version.js";
 
 export const STATUS_LINE_BACKUP_VERSION = 1 as const;
@@ -156,24 +157,23 @@ export async function deleteStatusLineBackup(args: {
 }
 
 function validateBackup(parsed: unknown, source: string): StatusLineBackup {
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+  if (!isPlainObject(parsed)) {
     throw new Error(`agentline: backup at ${source} is not a JSON object`);
   }
-  const o = parsed as Record<string, unknown>;
-  if (o.version !== STATUS_LINE_BACKUP_VERSION) {
+  if (parsed.version !== STATUS_LINE_BACKUP_VERSION) {
     throw new Error(
-      `agentline: backup at ${source} has unsupported version ${String(o.version)}; expected ${STATUS_LINE_BACKUP_VERSION}`,
+      `agentline: backup at ${source} has unsupported version ${String(parsed.version)}; expected ${STATUS_LINE_BACKUP_VERSION}`,
     );
   }
-  if (typeof o.previousStatusLinePresent !== "boolean") {
+  if (typeof parsed.previousStatusLinePresent !== "boolean") {
     throw new Error(`agentline: backup at ${source} missing previousStatusLinePresent`);
   }
   return {
     version: STATUS_LINE_BACKUP_VERSION,
-    createdAt: typeof o.createdAt === "string" ? o.createdAt : "",
-    agentlineVersion: typeof o.agentlineVersion === "string" ? o.agentlineVersion : "",
-    previousStatusLinePresent: o.previousStatusLinePresent,
-    previousStatusLine: o.previousStatusLine,
+    createdAt: typeof parsed.createdAt === "string" ? parsed.createdAt : "",
+    agentlineVersion: typeof parsed.agentlineVersion === "string" ? parsed.agentlineVersion : "",
+    previousStatusLinePresent: parsed.previousStatusLinePresent,
+    previousStatusLine: parsed.previousStatusLine,
   };
 }
 

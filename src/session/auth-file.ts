@@ -15,6 +15,8 @@ import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 
+import { isPlainObject } from "../lib/object.js";
+
 const MAX_AUTH_FILE_BYTES = 64 * 1024;
 
 export interface AuthSnapshot {
@@ -53,11 +55,10 @@ export function readAuthFile(source: AuthLookupSource): AuthSnapshot | null {
   } catch {
     return null;
   }
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
-  const obj = parsed as Record<string, unknown>;
+  if (!isPlainObject(parsed)) return null;
   return {
-    ...(typeof obj["email"] === "string" ? { email: obj["email"] } : {}),
-    ...(typeof obj["authMethod"] === "string" ? { authMethod: obj["authMethod"] } : {}),
-    ...(typeof obj["orgSlug"] === "string" ? { orgSlug: obj["orgSlug"] } : {}),
+    ...(typeof parsed["email"] === "string" ? { email: parsed["email"] } : {}),
+    ...(typeof parsed["authMethod"] === "string" ? { authMethod: parsed["authMethod"] } : {}),
+    ...(typeof parsed["orgSlug"] === "string" ? { orgSlug: parsed["orgSlug"] } : {}),
   };
 }

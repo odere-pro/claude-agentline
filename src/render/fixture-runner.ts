@@ -18,6 +18,7 @@ import type { AgentlineConfig } from "../config/types.js";
 import type { Theme } from "../theme/index.js";
 import { resolveConfiguredTheme } from "../theme/resolve.js";
 import { frozenClock, realClock, type Clock } from "../widgets/clock.js";
+import { isPlainObject } from "../lib/object.js";
 import { readStdinPayload } from "../stdin/index.js";
 
 import type { AccessibilityFlags } from "./accessibility.js";
@@ -99,9 +100,9 @@ const FORBIDDEN_KEYS: ReadonlySet<string> = new Set(["__proto__", "constructor",
 // merge layer's defence in depth (merge.ts) symmetric on the fixture path.
 function stripPrototypeKeys(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stripPrototypeKeys);
-  if (value === null || typeof value !== "object") return value;
+  if (!isPlainObject(value)) return value;
   const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+  for (const [k, v] of Object.entries(value)) {
     if (FORBIDDEN_KEYS.has(k)) continue;
     out[k] = stripPrototypeKeys(v);
   }

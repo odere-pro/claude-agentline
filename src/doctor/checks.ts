@@ -18,6 +18,7 @@ import { promisify } from "node:util";
 import { loadConfig, type AgentlineConfig } from "../config/index.js";
 import { resolveEnv } from "../lib/env.js";
 import { pathExists } from "../lib/fs.js";
+import { isPlainObject } from "../lib/object.js";
 import { readVersionCheckSync } from "../state/version-check-cache.js";
 import { PRICING_TABLE_VERSION } from "../tokens/pricing.js";
 import { isNewer } from "../update-check/refresh.js";
@@ -94,16 +95,19 @@ async function checkD01(ctx: CheckCtx): Promise<CheckResult> {
 async function checkD02(ctx: CheckCtx): Promise<CheckResult> {
   const settings = settingsPath(ctx.home);
   const parsed = await readJsonOrNull(settings);
-  if (parsed === null) {
+  if (!isPlainObject(parsed)) {
     return {
       id: "D02",
       title: "statusLine wired to agentline",
       status: "warn",
-      message: "Claude Code settings file is missing or unreadable",
+      message:
+        parsed === null
+          ? "Claude Code settings file is missing or unreadable"
+          : "Claude Code settings file is not a JSON object",
       hint: "fix D01 first, then run `agentline doctor --fix`",
     };
   }
-  const sl = (parsed as Record<string, unknown>)["statusLine"];
+  const sl = parsed["statusLine"];
   if (sl === undefined || sl === null) {
     return {
       id: "D02",
@@ -365,8 +369,8 @@ async function readJsonOrNull(path: string): Promise<unknown> {
 
 function extractStatusLineCommand(sl: unknown): string | null {
   if (typeof sl === "string") return sl;
-  if (typeof sl === "object" && sl !== null) {
-    const cmd = (sl as Record<string, unknown>)["command"];
+  if (isPlainObject(sl)) {
+    const cmd = sl["command"];
     if (typeof cmd === "string") return cmd;
   }
   return null;

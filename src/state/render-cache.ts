@@ -32,6 +32,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { atomicWriteJson } from "../config/atomic.js";
+import { isPlainObject } from "../lib/object.js";
 
 export const RENDER_CACHE_VERSION = 1 as const;
 
@@ -111,28 +112,20 @@ export function readLastRenderSync(env: NodeJS.ProcessEnv = process.env): Cached
   } catch {
     return null;
   }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-  const o = parsed as Record<string, unknown>;
-  if (o.version !== RENDER_CACHE_VERSION) return null;
-  if (typeof o.rendered !== "string") return null;
-  const meta = o.meta;
-  const safeMeta: RenderCacheMeta =
-    meta && typeof meta === "object" && !Array.isArray(meta)
-      ? {
-          width:
-            typeof (meta as Record<string, unknown>).width === "number"
-              ? ((meta as Record<string, unknown>).width as number)
-              : undefined,
-          lineCount:
-            typeof (meta as Record<string, unknown>).lineCount === "number"
-              ? ((meta as Record<string, unknown>).lineCount as number)
-              : undefined,
-        }
-      : {};
+  if (!isPlainObject(parsed)) return null;
+  if (parsed.version !== RENDER_CACHE_VERSION) return null;
+  if (typeof parsed.rendered !== "string") return null;
+  const meta = parsed.meta;
+  const safeMeta: RenderCacheMeta = isPlainObject(meta)
+    ? {
+        width: typeof meta.width === "number" ? meta.width : undefined,
+        lineCount: typeof meta.lineCount === "number" ? meta.lineCount : undefined,
+      }
+    : {};
   return {
     version: RENDER_CACHE_VERSION,
-    savedAt: typeof o.savedAt === "string" ? o.savedAt : "",
-    rendered: o.rendered,
+    savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : "",
+    rendered: parsed.rendered,
     meta: safeMeta,
   };
 }
