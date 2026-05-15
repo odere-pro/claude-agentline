@@ -10,7 +10,7 @@ widget itself wins over the theme.
 ```json
 {
   "$schema": "https://github.com/odere-pro/claude-agentline/schemas/theme.schema.json",
-  "name": "vscode-dark",
+  "name": "my-theme",
   "palette": {
     "fg": "#d4d4d4",
     "bg": "#1e1e1e",
@@ -27,7 +27,7 @@ widget itself wins over the theme.
 ```
 
 Validate against `schemas/theme.schema.json`. The `name` field MUST be
-kebab-case and MUST match the filename (`vscode-dark` → `vscode-dark.json`).
+kebab-case and MUST match the filename (`my-theme` → `my-theme.json`).
 
 Colour values accept the same three forms as widget colours
 (see [config.md](./config.md#widget-shape)):
@@ -39,56 +39,54 @@ Colour values accept the same three forms as widget colours
 ## Where themes live
 
 - **Shipped** — `themes/` in this repo and in the published tarball.
-  These are the four presets below. `scripts/install.sh` copies them
-  into the user themes directory.
+  `scripts/install.sh` copies them into the user themes directory.
 - **User** —
   `${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/themes/<name>.json`.
   Files here override shipped themes of the same name.
 
-## Shipped presets
+## Shipped theme presets
 
-Each swatch shows the 13 palette roles left to right (accent → info → success → warning → danger → muted → git-clean → git-dirty → tokens-low → tokens-mid → tokens-high → bg-section → bg-emphasis). Hover a square to see the role name.
+| Name               | Base            |
+| ------------------ | --------------- |
+| `claude-code-dark` | dark warm brown |
 
-| Name                | Base            | Palette                                                                              |
-| ------------------- | --------------- | ------------------------------------------------------------------------------------ |
-| `claude-code-dark`  | dark warm brown | <img src="themes/claude-code-dark.svg" alt="claude-code-dark palette" height="16">   |
-| `claude-code-light` | warm beige      | <img src="themes/claude-code-light.svg" alt="claude-code-light palette" height="16"> |
-| `vscode-dark`       | dark grey       | <img src="themes/vscode-dark.svg" alt="vscode-dark palette" height="16">             |
-| `vscode-light`      | light grey      | <img src="themes/vscode-light.svg" alt="vscode-light palette" height="16">           |
+Additional community themes can be placed in
+`${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/themes/` and referenced
+by name in your config. See [Authoring a theme](#authoring-a-theme) below.
 
-To browse and inspect themes:
-
-```bash
-agentline config theme                         # swatch table — name + 13 palette blocks per theme
-agentline config theme --list                  # tab-separated name<TAB>path (for scripts and CI)
-agentline config theme --show vscode-dark      # pretty-print the resolved palette
-```
-
-`agentline config theme` (no flags) prints one row per theme with a swatch
-of all 13 palette roles rendered through the same ANSI encoder the
-statusline uses, so what you see in the table is what you get on the
-bar.
-
-To activate a theme, set `"theme": "<name>"` in your config (or use the TUI editor with `agentline config`) and restart your Claude Code session.
+To activate a theme, set `"theme": "<name>"` in your config (or use the
+TUI editor with `agentline edit`) and restart your Claude Code session.
 
 ## Palette roles
 
 Built-in widgets ask the active theme for these roles. Widgets that
 don't declare a role fall back to `fg` / `bg`.
 
-| Role         | Used by                                         |
-| ------------ | ----------------------------------------------- |
-| `fg`         | default foreground when no widget colour is set |
-| `bg`         | default background                              |
-| `accent`     | session widgets (`model`, `version`, `org`)     |
-| `info`       | context, tokens (low usage)                     |
-| `warning`    | context / tokens approaching their cap          |
-| `danger`     | rate-limit hit, error states                    |
-| `muted`      | separators, labels in `minimalist` mode         |
-| `git.branch` | `git-branch`                                    |
-| `git.dirty`  | `git-changes` when the worktree is dirty        |
-| `git.clean`  | `git-changes` when the worktree is clean        |
-| `clock`      | `clock`, `uptime`                               |
+Required roles (every theme must supply all 13):
+
+| Role          | Used by                                  |
+| ------------- | ---------------------------------------- |
+| `accent`      | session widgets (`model`, `version`, …)  |
+| `info`        | context, tokens (low usage)              |
+| `success`     | git clean state indicators               |
+| `warning`     | context / tokens approaching their cap   |
+| `danger`      | rate-limit hit, error states             |
+| `muted`       | separators, labels in `minimalist` mode  |
+| `git-clean`   | `git-changes` when the worktree is clean |
+| `git-dirty`   | `git-changes` when the worktree is dirty |
+| `tokens-low`  | token widgets (low usage)                |
+| `tokens-mid`  | token widgets (medium usage)             |
+| `tokens-high` | token widgets (high usage)               |
+| `bg-section`  | section background areas                 |
+| `bg-emphasis` | emphasis / highlight background areas    |
+
+Optional roles (missing roles fall back to the compiled defaults):
+
+| Role    | Used by                                         |
+| ------- | ----------------------------------------------- |
+| `fg`    | default foreground when no widget colour is set |
+| `bg`    | default background                              |
+| `clock` | `clock`, `uptime-session`, `uptime-block`       |
 
 Themes can supply a subset of the role keys; missing roles fall back to
 the in-code defaults so an old theme keeps working when new widgets
@@ -96,10 +94,10 @@ ship.
 
 ## Authoring a theme
 
-1. Copy the closest preset:
+1. Copy the shipped theme as a starting point:
 
    ```bash
-   cp themes/vscode-dark.json \
+   cp themes/claude-code-dark.json \
      "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/themes/my-theme.json"
    ```
 

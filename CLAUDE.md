@@ -6,7 +6,7 @@ This file is the agent's entry-point briefing for the `agentline` repository. It
 
 `agentline` is a **standalone CLI statusline tool**, distributed as the npm package `@agentline/cli`. The compiled bin reads JSON from stdin (Claude Code's statusline contract) and writes ANSI-styled output to stdout.
 
-It is **not** a Claude Code plugin. There is no `.claude-plugin/plugin.json`. Wiring into Claude Code is consumer-side: `agentline install` writes the bin invocation into the `statusLine` key of `~/.claude/settings.json` and copies Claude skill files from `.claude/agents/` into `~/.claude/agents/` so Claude Code can assist with configuration and troubleshooting. `agentline uninstall` reverses both steps.
+It is **not** a Claude Code plugin. There is no `.claude-plugin/plugin.json`. Wiring into Claude Code is consumer-side: `agentline install` writes the bin invocation into the `statusLine` key of `~/.claude/settings.json` and copies Claude skill files from `agents/` (repo root) into `~/.claude/agents/` so Claude Code can assist with configuration and troubleshooting. `agentline uninstall` reverses both steps.
 
 ## Where the spec lives
 
@@ -17,7 +17,7 @@ The normative spec is **`docs/plan/SPEC-v0.1.0.md`**. Treat it as authoritative.
 - **Clean-room.** The two drafts under `tmp/` are inspirational requirements only. Do not derive code, comments, or identifiers from any third-party implementation.
 - **TypeScript on Node ≥20 LTS.** No native modules. Pure-JS dependencies only. Runtime deps pinned by exact version.
 - **No network at render time.** The render hot path never makes outbound requests.
-- **Render path stays light.** Ink and the TUI editor are imported only when `agentline config` is invoked.
+- **Render path stays light.** Ink and the TUI editor are imported only when `agentline edit` is invoked.
 - **Atomic config writes.** Persisted config writes go through write-temp + `fsync` + `rename`.
 - **Reset axes are explicit.** Token, cost, and rate-limit widgets must declare their `reset` axis (`session` / `block` / `day` / `week` / `model` / `effort`); mixed-axis aggregation is forbidden.
 - **No absolute paths in artefacts.** Gate 02 enforces — no `/Users/`, `/home/`, or `~/.claude/` literals in shipped files.
@@ -28,7 +28,7 @@ The normative spec is **`docs/plan/SPEC-v0.1.0.md`**. Treat it as authoritative.
 | Artefact  | Pattern                        | Example                           |
 | --------- | ------------------------------ | --------------------------------- |
 | TS source | feature-folder under `src/`    | `src/widgets/git/branch.ts`       |
-| Themes    | `<kebab-case>.json`            | `vscode-dark.json`                |
+| Themes    | `<kebab-case>.json`            | `claude-code-dark.json`           |
 | Branch    | `<type>/agentline-<NN>-<slug>` | `feat/agentline-06-config-loader` |
 
 ## Non-goals (v0.1.0)
@@ -37,17 +37,31 @@ Plugin distribution (`.claude-plugin/`), native binaries, Homebrew, curl-install
 
 ## Quick commands
 
-| Command                                   | Purpose                                  |
-| ----------------------------------------- | ---------------------------------------- |
-| `npm i && npm run build`                  | Bootstrap and build                      |
-| `npm test`                                | Unit tests                               |
-| `bash tests/gates/run-all.sh`             | Run all repo gates                       |
-| `node dist/cli.mjs install --from-source` | Wire statusline + install skills locally |
-| `node dist/cli.mjs init`                  | Write the default user config            |
-| `node dist/cli.mjs edit`                  | Open the TUI editor                      |
-| `npm run preview:watch`                   | Live-reload preview while editing config |
-| `bash scripts/install.sh --dry-run`       | Preview the install actions (legacy)     |
-| `bash scripts/doctor.sh`                  | Diagnose host configuration (legacy)     |
+| Command                                   | Purpose                                    |
+| ----------------------------------------- | ------------------------------------------ |
+| `npm i && npm run build`                  | Bootstrap and build                        |
+| `npm test`                                | Unit tests                                 |
+| `bash tests/gates/run-all.sh`             | Run all repo gates                         |
+| `node dist/cli.mjs install --from-source` | Wire statusline + install skills locally   |
+| `node dist/cli.mjs start`                 | Preview statusline using last cached stdin |
+| `node dist/cli.mjs edit`                  | Open the TUI editor                        |
+| `npm run preview:watch`                   | Live-reload preview while editing config   |
+| `bash scripts/install.sh --dry-run`       | Preview the install actions (legacy)       |
+| `bash scripts/doctor.sh`                  | Diagnose host configuration (legacy)       |
+
+## Source layout
+
+Core modules follow `docs/plan/SPEC-v0.1.0.md §2`. Additional directories
+present in `src/` that are not in the spec architecture table:
+
+| Directory        | Purpose                                                              |
+| ---------------- | -------------------------------------------------------------------- |
+| `src/cli/`       | CLI help-string utilities (separate from the dispatch entry)         |
+| `src/lib/`       | Shared pure utilities (env, fs, nerd-font detection, object, result) |
+| `src/install/`   | `agentline install` command implementation                           |
+| `src/uninstall/` | `agentline uninstall` command implementation                         |
+| `src/start/`     | `agentline start` — preview statusline from last cached stdin        |
+| `src/state/`     | Stdin payload cache, render output cache, config backup              |
 
 ## When in doubt
 
