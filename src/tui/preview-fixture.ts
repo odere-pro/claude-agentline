@@ -72,10 +72,10 @@ let cachedMode: PreviewMode | undefined;
  * Compute the preview mode from the cached last-stdin file. Sync, so
  * Ink can call `previewWidget` from a React render without async
  * plumbing. The TUI bundle is loaded only on `agentline edit`, so this
- * never touches the render hot path.
+ * never touches the render path.
  *
  * `loadLiveSnapshots` (shared with `render/fixture-command.ts`) shells
- * out to `git` once; we accept that here (not the render hot path) so
+ * out to `git` once; we accept that here (not the render path) so
  * widgets such as `git-branch` show the user's actual checkout instead
  * of a label.
  */

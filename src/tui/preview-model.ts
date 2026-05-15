@@ -116,9 +116,11 @@ function renderSlot(
     };
   }
   const cell: Cell = previewWidget(widget.type, widget.options, { glyphs });
-  // `previewWidget` returns HIDDEN_CELL (`text: "", hidden: true`) when the
-  // widget self-hides (data absent). Fall back to the widget's type name
-  // so the user still sees *what* widget is there, dimmed.
+  /*
+   * `previewWidget` returns HIDDEN_CELL (`text: "", hidden: true`) when the
+   * widget self-hides (data absent). Fall back to the widget's type name
+   * so the user still sees *what* widget is there, dimmed.
+   */
   if (cell.hidden || cell.text === "") {
     return {
       kind: "widget",

@@ -9,7 +9,7 @@
  * on success; everything else is delegated.
  *
  * Loaded only via the dynamic `import("./tui.mjs")` from cli.mjs;
- * never reaches the render hot path.
+ * never reaches the render path.
  */
 
 import { Box, Text } from "ink";
@@ -25,12 +25,7 @@ import { footerLines } from "./footer.js";
 import type { EditorGlyphs } from "./glyphs.js";
 import type { SaveTracker } from "./mount.js";
 import { saveEditedConfig } from "./persist.js";
-import {
-  PickerGroup,
-  PickerSearch,
-  PickerVariant,
-  PickerWidget,
-} from "./picker.js";
+import { PickerGroup, PickerSearch, PickerVariant, PickerWidget } from "./picker.js";
 import { Preview } from "./preview.js";
 import { currentWidget, initialState, reduce } from "./state.js";
 import { useEditorInput } from "./use-editor-input.js";
@@ -100,17 +95,21 @@ export function App({
   );
   const widgetEntries = useMemo(() => builtinWidgetEntries(), []);
 
-  // Types already placed in the layout. The picker hides these so the user
-  // can't add the same widget twice. In replace mode the widget under the
-  // cursor is on its way out — but we only let its type back into the
-  // picker when the widget has variants, so users on a variant-bearing
-  // widget can still swap variants via replace. For variant-less widgets,
-  // re-picking the same type would be a no-op and is excluded.
+  /*
+   * Types already placed in the layout. The picker hides these so the user
+   * can't add the same widget twice. In replace mode the widget under the
+   * cursor is on its way out — but we only let its type back into the
+   * picker when the widget has variants, so users on a variant-bearing
+   * widget can still swap variants via replace. For variant-less widgets,
+   * re-picking the same type would be a no-op and is excluded.
+   */
   const usedTypes = useMemo(() => {
     const set = new Set<string>();
     for (const line of state.lines) for (const w of line.widgets) set.add(w.type);
-    // `state.pickerTarget` exists only on the picker branch of the
-    // discriminated union; the mode-check narrows it for TS.
+    /*
+     * `state.pickerTarget` exists only on the picker branch of the
+     * discriminated union; the mode-check narrows it for TS.
+     */
     if (state.mode !== "edit" && state.pickerTarget.kind === "replace") {
       const line = state.lines[state.pickerTarget.line];
       const target = line?.widgets[state.pickerTarget.index];
@@ -120,12 +119,14 @@ export function App({
   }, [state]);
 
   const onSave = useCallback(async (): Promise<void> => {
-    // Re-entry guard: a second `s` keypress during an in-flight save
-    // returns the existing promise so callers can still await
-    // completion. The previous boolean ref worked because `useInput`
-    // fires synchronously, but a Promise reference makes the contract
-    // explicit and lets the SIGTERM handler in `enterAltScreen` await
-    // the same value.
+    /*
+     * Re-entry guard: a second `s` keypress during an in-flight save
+     * returns the existing promise so callers can still await
+     * completion. The previous boolean ref worked because `useInput`
+     * fires synchronously, but a Promise reference makes the contract
+     * explicit and lets the SIGTERM handler in `enterAltScreen` await
+     * the same value.
+     */
     if (saveTracker.inFlight) return saveTracker.inFlight;
     const promise = (async () => {
       try {
@@ -177,9 +178,11 @@ export function App({
       Box,
       { marginTop: 1 },
       React.createElement(Preview, {
-        // Synthesize an effective base that reflects the editor's live
-        // glyph mode so toggling `g` is visible immediately. Everything
-        // else — theme, global, powerline — comes from the loaded config.
+        /*
+         * Synthesize an effective base that reflects the editor's live
+         * glyph mode so toggling `g` is visible immediately. Everything
+         * else — theme, global, powerline — comes from the loaded config.
+         */
         base: { ...initialConfig, glyphs: state.glyphs },
         lines: state.lines,
         cursor: state.cursor,

@@ -64,11 +64,7 @@ export interface EditHandlerDeps extends PickerHandlerDeps {
  *                    Backspace through the query returns to the
  *                    group view.
  */
-export function handlePickerGroupKey(
-  input: string,
-  key: KeyEvent,
-  deps: PickerHandlerDeps,
-): void {
+export function handlePickerGroupKey(input: string, key: KeyEvent, deps: PickerHandlerDeps): void {
   const { dispatch, widgetEntries, usedTypes, stepQuery, stepHighlight } = deps;
   const searching = stepQuery.length > 0;
 
@@ -113,8 +109,10 @@ export function handlePickerGroupKey(
       return;
     }
   }
-  // Any printable key extends the search query and flips the view to
-  // flat results on the next render.
+  /*
+   * Any printable key extends the search query and flips the view to
+   * flat results on the next render.
+   */
   if (input.length === 1 && input >= " " && !key.ctrl && !key.meta) {
     deps.setStepQuery((q) => q + input);
     deps.setStepHighlight(0);
@@ -122,11 +120,7 @@ export function handlePickerGroupKey(
 }
 
 /** Picker step 2: narrow to a widget within the chosen family. */
-export function handlePickerWidgetKey(
-  input: string,
-  key: KeyEvent,
-  deps: PickerHandlerDeps,
-): void {
+export function handlePickerWidgetKey(input: string, key: KeyEvent, deps: PickerHandlerDeps): void {
   const { state, dispatch, widgetEntries, usedTypes, stepQuery, stepHighlight } = deps;
   if (state.mode === "edit") return; // TS narrowing; the dispatcher only routes here in picker-widget mode.
   const family = state.pickerDraft.family;
@@ -217,9 +211,11 @@ export function handleEditKey(input: string, key: KeyEvent, deps: EditHandlerDep
   }
   if (input === "s" || input === "S" || (key.ctrl && input === "s")) {
     if (saveTracker.inFlight) return;
-    // Defense-in-depth: `onSave` catches its own errors today, but `void`
-    // would silently swallow any rejection that ever leaked through.
-    // Surface it in the status line instead.
+    /*
+     * Defense-in-depth: `onSave` catches its own errors today, but `void`
+     * would silently swallow any rejection that ever leaked through.
+     * Surface it in the status line instead.
+     */
     tryAsync(onSave).then((r) => {
       if (isErr(r)) setStatusMessage(`save failed: ${r.error.message}`);
     });
@@ -243,8 +239,10 @@ export function handleEditKey(input: string, key: KeyEvent, deps: EditHandlerDep
   }
   if (key.return) {
     if (isAddCell(state)) dispatch({ type: "open-picker", intent: "add" });
-    // On a populated widget ↵ is a no-op now — `u`/`r` cover the edit
-    // paths the options sheet used to surface.
+    /*
+     * On a populated widget ↵ is a no-op now — `a` opens the picker for
+     * an insert at the cursor and `r` opens it in replace mode.
+     */
     return;
   }
   if (input === "a") {
@@ -261,10 +259,12 @@ export function handleEditKey(input: string, key: KeyEvent, deps: EditHandlerDep
   }
   if (input === "g") {
     const next = state.glyphs === "nerd-font" ? "off" : "nerd-font";
-    // When `agentline install` couldn't find a Nerd Font, lock the toggle
-    // to "off" — enabling glyphs would only paint tofu boxes onto the
-    // rendered statusline. Toggling *off* is still allowed so a user who
-    // edited the file by hand can recover via the UI.
+    /*
+     * When `agentline install` couldn't find a Nerd Font, lock the toggle
+     * to "off" — enabling glyphs would only paint tofu boxes onto the
+     * rendered statusline. Toggling *off* is still allowed so a user who
+     * edited the file by hand can recover via the UI.
+     */
     if (!nerdFontAvailable && next === "nerd-font") {
       setStatusMessage("glyphs: disabled — install a Nerd Font, then re-run `agentline install`");
       return;

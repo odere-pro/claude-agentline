@@ -34,12 +34,16 @@ export function openPicker(
   const line = state.cursor.line;
   const widgetCount = widgetCountAt(state, line);
   const onAdd = state.cursor.widget >= widgetCount;
-  // "replace" requires a real widget under the cursor — on the add-cell,
-  // degrade gracefully to "insert".
+  /*
+   * "replace" requires a real widget under the cursor — on the add-cell,
+   * degrade gracefully to "insert".
+   */
   const effective: PickerTargetKind = intent === "replace" && !onAdd ? "replace" : "insert";
-  // Insert *after* the cursor for `add` on a widget; *at* the cursor for the
-  // add-cell (which already points at the row's end). Replace targets the
-  // selected widget directly.
+  /*
+   * Insert *after* the cursor for `add` on a widget; *at* the cursor for the
+   * add-cell (which already points at the row's end). Replace targets the
+   * selected widget directly.
+   */
   const index =
     effective === "replace" ? state.cursor.widget : onAdd ? widgetCount : state.cursor.widget + 1;
   return {
@@ -60,10 +64,12 @@ export function pickFamily(state: EditorState, family: WidgetFamily): EditorStat
 }
 
 export function pickWidget(state: EditorState, widgetType: string): EditorState {
-  // Allow `pickWidget` from either step — `picker-widget` is the in-family
-  // path; `picker-group` is the flat-search path (App-side: typing in step 1
-  // turns the group list into a global filtered list, and Enter commits the
-  // highlighted result without an intermediate family step).
+  /*
+   * Allow `pickWidget` from either step — `picker-widget` is the in-family
+   * path; `picker-group` is the flat-search path (App-side: typing in step 1
+   * turns the group list into a global filtered list, and Enter commits the
+   * highlighted result without an intermediate family step).
+   */
   if (state.mode !== "picker-widget" && state.mode !== "picker-group") return state;
   if (!widgetType) return backToEdit(state);
   const variants = widgetVariants(widgetType);
@@ -96,9 +102,11 @@ export function pickVariant(state: EditorState, variantId: string | null): Edito
 
 export function pickerBack(state: EditorState): EditorState {
   if (state.mode === "picker-variant") {
-    // Route back to the step the user came from: `picker-widget` if they
-    // drilled in via a family, `picker-group` if they picked from the
-    // flat-search list (no family in the draft).
+    /*
+     * Route back to the step the user came from: `picker-widget` if they
+     * drilled in via a family, `picker-group` if they picked from the
+     * flat-search list (no family in the draft).
+     */
     const back: EditorMode = state.pickerDraft.family ? "picker-widget" : "picker-group";
     return {
       ...state,
@@ -120,9 +128,11 @@ export function pickerBack(state: EditorState): EditorState {
 }
 
 export function backToEdit(state: EditorPickerState): EditorEditState {
-  // Strip picker-only fields so the returned state matches `EditorEditState`
-  // — the discriminated union prevents picker code from accidentally
-  // reading them after commit.
+  /*
+   * Strip picker-only fields so the returned state matches `EditorEditState`
+   * — the discriminated union prevents picker code from accidentally
+   * reading them after commit.
+   */
   const { pickerTarget: _pickerTarget, pickerDraft: _pickerDraft, ...base } = state;
   return { ...base, mode: "edit" };
 }

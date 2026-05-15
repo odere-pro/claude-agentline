@@ -78,8 +78,10 @@ export function pickGlyphs(opts: GlyphPickOptions = {}): EditorGlyphs {
   if (opts.unicode === false) return ASCII;
   const env = opts.env ?? process.env;
   if (env.NO_UNICODE === "1" || env.AGENTLINE_GLYPHS === "ascii") return ASCII;
-  // Heuristic: most macOS/Linux terminals support Unicode by default; only
-  // back off when LANG/LC_ALL clearly aren't UTF.
+  /*
+   * Heuristic: most macOS/Linux terminals support Unicode by default; only
+   * back off when LANG/LC_ALL clearly aren't UTF.
+   */
   const locale = env.LC_ALL ?? env.LC_CTYPE ?? env.LANG ?? "";
   if (locale && !/utf-?8/i.test(locale)) return ASCII;
   return UNICODE;

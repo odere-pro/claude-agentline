@@ -89,8 +89,10 @@ export function fullscreenStream(target: NodeJS.WriteStream): NodeJS.WriteStream
       if (prop === "write") {
         return (chunk: string | Uint8Array, ...rest: unknown[]): boolean => {
           const data = typeof chunk === "string" ? chunk : Buffer.from(chunk).toString();
-          // Use Reflect.apply so the underlying stream's `this` is the
-          // real WriteStream — the EventEmitter machinery relies on it.
+          /*
+           * Use Reflect.apply so the underlying stream's `this` is the
+           * real WriteStream — the EventEmitter machinery relies on it.
+           */
           return Reflect.apply(t.write as (...args: unknown[]) => boolean, t, [
             `${FULLSCREEN_RESET}${data}`,
             ...rest,
@@ -98,8 +100,10 @@ export function fullscreenStream(target: NodeJS.WriteStream): NodeJS.WriteStream
         };
       }
       const value = Reflect.get(t, prop, receiver);
-      // Functions on a Node stream must be invoked with the real stream
-      // as `this` — the Proxy is not a substitute for the EventEmitter.
+      /*
+       * Functions on a Node stream must be invoked with the real stream
+       * as `this` — the Proxy is not a substitute for the EventEmitter.
+       */
       return typeof value === "function" ? value.bind(t) : value;
     },
   }) as NodeJS.WriteStream;
@@ -152,28 +156,34 @@ export function enterAltScreen(
     restored = true;
     stream.write(LEAVE);
   };
-  // POSIX exit-code convention for a signal-terminated process is
-  // `128 + signal_number`. SIGTERM = 15.
+  /*
+   * POSIX exit-code convention for a signal-terminated process is
+   * `128 + signal_number`. SIGTERM = 15.
+   */
   const SIGTERM_SIGNAL = 15;
   const SIGTERM_EXIT_CODE = 128 + SIGTERM_SIGNAL;
   const onSignal = (signal: NodeJS.Signals): void => {
-    // Ink owns SIGINT via exitOnCtrlC (default true). For SIGINT we
-    // restore the scrollback and let Ink drive exit. For SIGTERM we
-    // wait for any in-flight save (so an atomic write isn't killed
-    // between fsync and rename) and then re-raise the default exit
-    // code so the host shell sees the signal rather than a polite
-    // zero exit.
+    /*
+     * Ink owns SIGINT via exitOnCtrlC (default true). For SIGINT we
+     * restore the scrollback and let Ink drive exit. For SIGTERM we
+     * wait for any in-flight save (so an atomic write isn't killed
+     * between fsync and rename) and then re-raise the default exit
+     * code so the host shell sees the signal rather than a polite
+     * zero exit.
+     */
     if (signal !== "SIGTERM") {
       restore();
       return;
     }
     const inFlight = options.awaitBeforeExit?.();
     if (inFlight) {
-      // Keep the alt-screen up until the save settles so the user
-      // doesn't see a half-redrawn shell while the rename completes.
-      // `.finally` runs regardless of resolution; we deliberately
-      // suppress any rejection — the save callback already surfaces
-      // errors to the editor's status line.
+      /*
+       * Keep the alt-screen up until the save settles so the user
+       * doesn't see a half-redrawn shell while the rename completes.
+       * `.finally` runs regardless of resolution; we deliberately
+       * suppress any rejection — the save callback already surfaces
+       * errors to the editor's status line.
+       */
       void inFlight.finally(() => {
         restore();
         process.exit(SIGTERM_EXIT_CODE);

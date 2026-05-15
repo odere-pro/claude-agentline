@@ -35,11 +35,7 @@ import { resolveConfiguredTheme } from "../theme/resolve.js";
 
 import type { RunConfigInput, RunConfigResult } from "./app.js";
 import { pickGlyphs } from "./glyphs.js";
-import {
-  mountEditor,
-  resolveNerdFontAvailable,
-  resolveStartingConfig,
-} from "./mount.js";
+import { mountEditor, resolveNerdFontAvailable, resolveStartingConfig } from "./mount.js";
 
 export type { RunConfigInput, RunConfigResult } from "./app.js";
 
@@ -50,11 +46,13 @@ export async function runConfigCommand(input: RunConfigInput = {}): Promise<RunC
     ...(input.stdin !== undefined ? { stdin: input.stdin } : {}),
   });
   if (gate === "skip") return { saved: false, path: "", skipped: true };
-  // Fire-and-forget npm-registry probe so the cache that `agentline
-  // doctor` reads is reasonably fresh after every editor session.
-  // Wrapped in a swallowed `.catch` for belt-and-braces — `maybeRefresh`
-  // already never throws, but a bare `void` would let a runtime
-  // surprise (e.g. unhandled rejection in a test seam) bubble.
+  /*
+   * Fire-and-forget npm-registry probe so the cache that `agentline
+   * doctor` reads is reasonably fresh after every editor session.
+   * Wrapped in a swallowed `.catch` for belt-and-braces — `maybeRefresh`
+   * already never throws, but a bare `void` would let a runtime
+   * surprise (e.g. unhandled rejection in a test seam) bubble.
+   */
   void maybeRefresh().catch(() => undefined);
   const { config, path } = await resolveStartingConfig(input);
   const env = resolveEnv(input);
