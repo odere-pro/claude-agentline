@@ -98,6 +98,8 @@ describe("shipped theme", () => {
       "utf8",
     );
     const json = JSON.parse(raw) as { $id: string };
-    expect(json.$id).toBe("https://agentline.dev/schemas/theme.schema.json");
+    expect(json.$id).toBe(
+      "https://github.com/odere-pro/claude-agentline/schemas/theme.schema.json",
+    );
   });
 });

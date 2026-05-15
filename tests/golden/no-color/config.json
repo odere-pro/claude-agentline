@@ -1,5 +1,5 @@
 {
-  "$schema": "https://agentline.dev/schemas/config.schema.json",
+  "$schema": "https://github.com/odere-pro/claude-agentline/schemas/config.schema.json",
   "version": 1,
   "theme": null,
   "lines": [
