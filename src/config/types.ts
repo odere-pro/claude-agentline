@@ -50,8 +50,8 @@ export interface GlobalConfig {
 }
 
 export interface PowerlineCaps {
-  start: string;
-  end: string;
+  start: string | readonly string[];
+  end: string | readonly string[];
 }
 
 export interface PowerlineGlyphs {

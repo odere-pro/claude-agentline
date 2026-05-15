@@ -127,8 +127,8 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "start": { "type": "string", "default": "" },
-            "end": { "type": "string", "default": "" }
+            "start": { "$ref": "#/definitions/stringOrStringArray", "default": "" },
+            "end": { "$ref": "#/definitions/stringOrStringArray", "default": "" }
           }
         },
         "autoAlign": { "type": "boolean", "default": false },

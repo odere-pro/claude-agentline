@@ -185,6 +185,58 @@ describe("applyPowerlineLines", () => {
     expect(w0).toBe(w1);
   });
 
+  it("cycles caps.start across lines (3 entries, 3 lines)", () => {
+    const lines = applyPowerlineLines(
+      [
+        [cell({ text: "a", bg: "red" })],
+        [cell({ text: "b", bg: "red" })],
+        [cell({ text: "c", bg: "red" })],
+      ],
+      { ...opts, capStart: ["[", "<", "{"] },
+    );
+    expect(lines[0]?.[0]?.text).toBe("[");
+    expect(lines[1]?.[0]?.text).toBe("<");
+    expect(lines[2]?.[0]?.text).toBe("{");
+  });
+
+  it("cycles caps.start across more lines than entries (4 lines, 2 entries)", () => {
+    const lines = applyPowerlineLines(
+      [
+        [cell({ text: "a", bg: "red" })],
+        [cell({ text: "b", bg: "red" })],
+        [cell({ text: "c", bg: "red" })],
+        [cell({ text: "d", bg: "red" })],
+      ],
+      { ...opts, capStart: ["A", "B"] },
+    );
+    expect(lines[0]?.[0]?.text).toBe("A");
+    expect(lines[1]?.[0]?.text).toBe("B");
+    expect(lines[2]?.[0]?.text).toBe("A");
+    expect(lines[3]?.[0]?.text).toBe("B");
+  });
+
+  it("cycles caps.end the same way as caps.start", () => {
+    const lines = applyPowerlineLines(
+      [[cell({ text: "a", bg: "red" })], [cell({ text: "b", bg: "red" })]],
+      { ...opts, capEnd: ["X", "Y"] },
+    );
+    const tail0 = lines[0]?.at(-1);
+    const tail1 = lines[1]?.at(-1);
+    expect(tail0?.text).toBe("X");
+    expect(tail1?.text).toBe("Y");
+  });
+
+  it("single-string caps still work with multi-line input (regression)", () => {
+    const lines = applyPowerlineLines(
+      [[cell({ text: "a", bg: "red" })], [cell({ text: "b", bg: "red" })]],
+      { ...opts, capStart: "[", capEnd: "]" },
+    );
+    expect(lines[0]?.[0]?.text).toBe("[");
+    expect(lines[1]?.[0]?.text).toBe("[");
+    expect(lines[0]?.at(-1)?.text).toBe("]");
+    expect(lines[1]?.at(-1)?.text).toBe("]");
+  });
+
   it("continueColors threads next line's first bg into the prior end-cap", () => {
     const lines = applyPowerlineLines(
       [[cell({ text: "a", bg: "red" })], [cell({ text: "b", bg: "blue" })]],
