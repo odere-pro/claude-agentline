@@ -147,12 +147,12 @@ describe("enterAltScreen", () => {
     expect(writes).toEqual([]);
   });
 
-  it("writes the alt-screen enter sequence on call and the leave sequence on restore", () => {
+  it("writes the alt-screen enter sequence + a clean-canvas reset on call, and the leave sequence on restore", () => {
     const { stream, writes } = makeStream(true);
     const restore = enterAltScreen(stream);
-    expect(writes).toEqual(["\x1b[?1049h"]);
+    expect(writes).toEqual(["\x1b[?1049h", "\x1b[2J\x1b[3J\x1b[H"]);
     restore();
-    expect(writes).toEqual(["\x1b[?1049h", "\x1b[?1049l"]);
+    expect(writes).toEqual(["\x1b[?1049h", "\x1b[2J\x1b[3J\x1b[H", "\x1b[?1049l"]);
   });
 
   it("restore is idempotent — calling twice does not double-write the leave sequence", () => {
@@ -217,7 +217,7 @@ describe("enterAltScreen", () => {
        * Before the save promise resolves: alt-screen still entered, no
        * leave sequence written, exit not yet called.
        */
-      expect(writes).toEqual(["\x1b[?1049h"]);
+      expect(writes).toEqual(["\x1b[?1049h", "\x1b[2J\x1b[3J\x1b[H"]);
       expect(exitCalled).toBe(false);
       // Resolve the save and let two microtask ticks flush the .finally chain.
       resolveSave!();
@@ -252,12 +252,38 @@ describe("fullscreenStream", () => {
     expect(fullscreenStream(stream)).toBe(stream);
   });
 
-  it("prepends erase-screen + erase-scrollback + cursor-home on every write batch", () => {
+  it("prepends erase-screen + erase-scrollback + cursor-home on writes that look like Ink frames", () => {
     const { stream, writes } = makeStream(true);
     const wrapped = fullscreenStream(stream);
-    wrapped.write("frame-one");
-    wrapped.write("frame-two");
-    expect(writes).toEqual(["\x1b[2J\x1b[3J\x1b[Hframe-one", "\x1b[2J\x1b[3J\x1b[Hframe-two"]);
+    /*
+     * log-update emits every frame as `eraseLines(N) + output + '\n'`,
+     * so frame writes always end in '\n' — that's the signal the
+     * wrapper uses to add the FULLSCREEN_RESET prefix.
+     */
+    wrapped.write("frame-one\n");
+    wrapped.write("frame-two\n");
+    expect(writes).toEqual([
+      "\x1b[2J\x1b[3J\x1b[Hframe-one\n",
+      "\x1b[2J\x1b[3J\x1b[Hframe-two\n",
+    ]);
+  });
+
+  it("passes short ANSI control writes through without the FULLSCREEN_RESET prefix", () => {
+    /*
+     * Regression guard for the blank-first-frame bug: Ink's `App`
+     * fires `cliCursor.hide(stdout)` from `componentDidMount`, right
+     * after `resetAfterCommit` paints the first frame. The cursor-hide
+     * sequence carries no trailing newline; if the wrapper still
+     * prepended FULLSCREEN_RESET to it, the just-rendered frame would
+     * be wiped and the user would see a blank editor until a key was
+     * pressed.
+     */
+    const { stream, writes } = makeStream(true);
+    const wrapped = fullscreenStream(stream);
+    wrapped.write("\x1b[?25l"); // cliCursor.hide
+    wrapped.write("\x1b[?25h"); // cliCursor.show
+    wrapped.write("\x1b[2K\x1b[1A\x1b[G"); // log-update's eraseLines(1)
+    expect(writes).toEqual(["\x1b[?25l", "\x1b[?25h", "\x1b[2K\x1b[1A\x1b[G"]);
   });
 
   it("forwards passthrough properties like columns/rows", () => {
@@ -268,10 +294,10 @@ describe("fullscreenStream", () => {
     expect(wrapped.isTTY).toBe(true);
   });
 
-  it("handles Uint8Array chunks by converting to string before prepending the reset", () => {
+  it("handles Uint8Array chunks by converting to string before checking the frame suffix", () => {
     const { stream, writes } = makeStream(true);
     const wrapped = fullscreenStream(stream);
-    wrapped.write(Buffer.from("buffered"));
-    expect(writes).toEqual(["\x1b[2J\x1b[3J\x1b[Hbuffered"]);
+    wrapped.write(Buffer.from("buffered\n"));
+    expect(writes).toEqual(["\x1b[2J\x1b[3J\x1b[Hbuffered\n"]);
   });
 });

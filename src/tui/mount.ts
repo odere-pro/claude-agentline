@@ -69,7 +69,7 @@ export function createSaveTracker(): SaveTracker {
 const FULLSCREEN_RESET = "\x1b[2J\x1b[3J\x1b[H";
 
 /**
- * Wrap a TTY stream so every `.write()` call is preceded by a
+ * Wrap a TTY stream so every Ink *frame* write is preceded by a
  * cursor-home + clear-screen sequence. Ink's default log-update pipeline
  * tracks the cursor between frames and issues cursor-up / erase-line
  * sequences to redraw in place. That breaks down whenever the previous
@@ -78,6 +78,19 @@ const FULLSCREEN_RESET = "\x1b[2J\x1b[3J\x1b[H";
  * frame). Forcing each frame to start at (1,1) on a cleared buffer
  * eliminates the stacked-frame artefact users see when the editor
  * preview wraps onto extra rows.
+ *
+ * The prefix is gated on a trailing newline. log-update emits every
+ * frame as `eraseLines(N) + output + '\n'`, so frame writes always end
+ * in `\n`. Ink also issues short ANSI control writes through the same
+ * stream — `cliCursor.hide()` writes `\x1b[?25l` from `App`'s
+ * `componentDidMount`, `log.clear()` writes `eraseLines(N)`, and
+ * `cliCursor.show()` writes `\x1b[?25h` on unmount. Those control
+ * writes carry no newline, and prepending `FULLSCREEN_RESET` to them
+ * wipes the just-rendered frame: React's commit order is
+ * `resetAfterCommit` (which paints the first frame) before
+ * `commitLayoutEffects` (which fires `componentDidMount` and the
+ * cursor-hide), so without this gate the user sees a blank screen
+ * until the next stdin event triggers a fresh frame.
  *
  * Non-TTY streams (CI, redirected output, vitest) are returned
  * unchanged so test transcripts and recorded output stay clean.
@@ -89,14 +102,13 @@ export function fullscreenStream(target: NodeJS.WriteStream): NodeJS.WriteStream
       if (prop === "write") {
         return (chunk: string | Uint8Array, ...rest: unknown[]): boolean => {
           const data = typeof chunk === "string" ? chunk : Buffer.from(chunk).toString();
+          const isFrame = data.endsWith("\n");
+          const payload = isFrame ? `${FULLSCREEN_RESET}${data}` : data;
           /*
            * Use Reflect.apply so the underlying stream's `this` is the
            * real WriteStream — the EventEmitter machinery relies on it.
            */
-          return Reflect.apply(t.write as (...args: unknown[]) => boolean, t, [
-            `${FULLSCREEN_RESET}${data}`,
-            ...rest,
-          ]);
+          return Reflect.apply(t.write as (...args: unknown[]) => boolean, t, [payload, ...rest]);
         };
       }
       const value = Reflect.get(t, prop, receiver);
@@ -150,6 +162,15 @@ export function enterAltScreen(
   const ENTER = "\x1b[?1049h";
   const LEAVE = "\x1b[?1049l";
   stream.write(ENTER);
+  /*
+   * Paint a clean canvas immediately so the editor's first frame lands
+   * on a blank, cursor-home buffer even on terminals where `?1049h` is
+   * a no-op (Warp, tmux without `alternate-screen on`, some Apple
+   * Terminal configurations). Without this, the first Ink frame can
+   * sit invisible until a stdin event nudges Ink to redraw — users see
+   * the editor only after their first keystroke.
+   */
+  stream.write(FULLSCREEN_RESET);
   let restored = false;
   const restore = (): void => {
     if (restored) return;
@@ -221,24 +242,22 @@ export function mountEditor(opts: MountEditorOptions): {
   const leaveAltScreen = enterAltScreen(process.stdout, {
     awaitBeforeExit: () => saveTracker.inFlight,
   });
-  const inst = render(
-    React.createElement(App, {
-      initialConfig: opts.config,
-      path: opts.path,
-      previewTheme: opts.previewTheme,
-      glyphs: opts.glyphs,
-      nerdFontAvailable: opts.nerdFontAvailable,
-      onSaved: (saved) => {
-        savedRef.value = saved;
-      },
-      saveTracker,
-    }),
-    {
-      stdout: fullscreenStream(process.stdout),
-      patchConsole: false,
-      exitOnCtrlC: true,
+  const element = React.createElement(App, {
+    initialConfig: opts.config,
+    path: opts.path,
+    previewTheme: opts.previewTheme,
+    glyphs: opts.glyphs,
+    nerdFontAvailable: opts.nerdFontAvailable,
+    onSaved: (saved) => {
+      savedRef.value = saved;
     },
-  );
+    saveTracker,
+  });
+  const inst = render(element, {
+    stdout: fullscreenStream(process.stdout),
+    patchConsole: false,
+    exitOnCtrlC: true,
+  });
   // Restore the alt-screen on every exit path — save, q, Esc, exception.
   const waitUntilExit = inst.waitUntilExit().finally(leaveAltScreen);
   return { waitUntilExit, unmount: inst.unmount, savedRef };
