@@ -129,13 +129,13 @@ function renderSlot(
   }
   const meta = widgetMeta(widget.type);
   const accent = meta ? CATEGORY_COLOR[meta.category] : undefined;
-  const resolvedFg = widget.fg ?? accent ?? (cell.fg as string | undefined);
+  const resolvedFg = widget.fg ?? accent ?? cell.fg;
   return {
     kind: "widget",
     widgetIndex: idx,
     text: cell.text,
     ...(resolvedFg ? { fg: resolvedFg } : {}),
-    ...(widget.bg ? { bg: widget.bg } : cell.bg ? { bg: cell.bg as string } : {}),
+    ...(widget.bg ? { bg: widget.bg } : cell.bg ? { bg: cell.bg } : {}),
     ...((widget.bold ?? cell.bold) ? { bold: true } : {}),
     ...((widget.italic ?? cell.italic) ? { italic: true } : {}),
     hidden: false,

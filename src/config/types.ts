@@ -1,20 +1,31 @@
 /**
  * Type-level mirror of `schemas/config.schema.json` (§4).
  * The schema is authoritative; these types follow it.
+ *
+ * The colour fields below (`WidgetConfig.fg`/`bg`,
+ * `GlobalConfig.overrideFg`/`overrideBg`) are typed as the strict
+ * `Colour` union, not a loose `string`. The schema's `colourOrNull`
+ * pattern enforces the same set at runtime, and `validateConfig`
+ * re-checks with `isColour` post-AJV (belt-and-braces against schema
+ * drift). The render path therefore consumes typed colours — no
+ * boundary casts needed.
  */
 
+import type { Colour } from "../theme/colours.js";
+
 /**
- * Pre-validation colour: any string from the config file. Validated and
- * narrowed to `Colour` (the strict union of named / 256-indexed / hex
- * forms) in `src/theme/colours.ts` before reaching the render path.
+ * @deprecated Pre-validation colour alias retained for compatibility
+ * with external consumers of the config barrel. New code should use
+ * `Colour` from `../theme/colours.js` (or `import { Colour } from
+ * "../theme/index.js"`).
  */
 export type RawColour = string;
 
 export interface WidgetConfig {
   type: string;
   id?: string;
-  fg?: RawColour | null;
-  bg?: RawColour | null;
+  fg?: Colour | null;
+  bg?: Colour | null;
   bold?: boolean;
   italic?: boolean;
   rawValue?: boolean;
@@ -34,8 +45,8 @@ export interface GlobalConfig {
   bold: boolean;
   italic: boolean;
   minimalist: boolean;
-  overrideFg: RawColour | null;
-  overrideBg: RawColour | null;
+  overrideFg: Colour | null;
+  overrideBg: Colour | null;
 }
 
 export interface PowerlineCaps {
