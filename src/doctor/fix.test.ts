@@ -21,9 +21,7 @@ describe("applyFixes", () => {
   });
 
   it("passes through results with status: pass unchanged", async () => {
-    const results: CheckResult[] = [
-      { id: "D03", title: "Title", status: "pass", message: "ok" },
-    ];
+    const results: CheckResult[] = [{ id: "D03", title: "Title", status: "pass", message: "ok" }];
     const out = await applyFixes(results, { home, env: {} });
     expect(out[0]?.status).toBe("pass");
   });
@@ -59,10 +57,79 @@ describe("applyFixes", () => {
 
   it("D04 fix downgrades to warn (bundled themes not present)", async () => {
     const results: CheckResult[] = [
-      { id: "D04", title: "Referenced themes installed", status: "warn", message: "missing themes: my-theme" },
+      {
+        id: "D04",
+        title: "Referenced themes installed",
+        status: "warn",
+        message: "missing themes: my-theme",
+      },
     ];
     const out = await applyFixes(results, { home, env: {} });
     expect(out[0]?.status).toBe("warn");
+  });
+
+  it("D05 fix short-circuits to fixed when a Nerd Font is already installed", async () => {
+    const results: CheckResult[] = [
+      { id: "D05", title: "Nerd Font present", status: "warn", message: "no Nerd Font" },
+    ];
+    const out = await applyFixes(results, {
+      home,
+      env: { CLAUDE_CONFIG_DIR: cfgDir },
+      detectNerdFont: () => true,
+      // `fontInstaller` should never be called on the already-installed path.
+      fontInstaller: async () => {
+        throw new Error("must not download when font is already present");
+      },
+    });
+    expect(out[0]?.status).toBe("fixed");
+    expect(out[0]?.message).toMatch(/already installed/);
+  });
+
+  it("D05 fix downloads + installs and returns fixed when detection then succeeds", async () => {
+    const results: CheckResult[] = [
+      { id: "D05", title: "Nerd Font present", status: "warn", message: "no Nerd Font" },
+    ];
+    let detectCalls = 0;
+    const out = await applyFixes(results, {
+      home,
+      env: { CLAUDE_CONFIG_DIR: cfgDir, HOME: home },
+      detectNerdFont: () => {
+        detectCalls += 1;
+        return detectCalls > 1; // first call (pre-install) false, second (post-install) true
+      },
+      fontInstaller: async () => ({ installed: ["JetBrainsMonoNerdFont-Regular.ttf"] }),
+    });
+    expect(out[0]?.status).toBe("fixed");
+    expect(out[0]?.message).toMatch(/JetBrainsMono Nerd Font/);
+  });
+
+  it("D05 fix downgrades to warn when the network is unreachable", async () => {
+    const results: CheckResult[] = [
+      { id: "D05", title: "Nerd Font present", status: "warn", message: "no Nerd Font" },
+    ];
+    const out = await applyFixes(results, {
+      home,
+      env: { CLAUDE_CONFIG_DIR: cfgDir, HOME: home },
+      detectNerdFont: () => false,
+      fontInstaller: async () => ({ error: "ENETUNREACH" }),
+    });
+    expect(out[0]?.status).toBe("warn");
+    expect(out[0]?.message).toMatch(/ENETUNREACH/);
+    expect(out[0]?.hint).toMatch(/nerdfonts\.com/);
+  });
+
+  it("D05 fix downgrades to warn when install succeeds but detection still reports absent", async () => {
+    const results: CheckResult[] = [
+      { id: "D05", title: "Nerd Font present", status: "warn", message: "no Nerd Font" },
+    ];
+    const out = await applyFixes(results, {
+      home,
+      env: { CLAUDE_CONFIG_DIR: cfgDir, HOME: home },
+      detectNerdFont: () => false, // never reports present, even after install
+      fontInstaller: async () => ({ installed: ["JetBrainsMonoNerdFont-Regular.ttf"] }),
+    });
+    expect(out[0]?.status).toBe("warn");
+    expect(out[0]?.message).toMatch(/terminal may need restart/);
   });
 
   it("unrecognised warn result passes through unchanged", async () => {
