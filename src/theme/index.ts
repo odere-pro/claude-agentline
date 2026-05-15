@@ -107,9 +107,10 @@ export function loadThemeFromString(raw: string, filePath?: string): Theme {
     );
     throw new ThemeLoadError("theme failed schema validation", errors);
   }
-  // Schema guarantees structural shape; double-check colour patterns at runtime
-  // because Ajv's pattern-only matching can drift if the schema is mutated.
-  const json = parsed as ThemeJsonShape;
+  // The typed `ValidateFunction<ThemeJsonShape>` narrowed `parsed` above.
+  // Double-check colour patterns at runtime so the strict `Colour` cast
+  // inside `buildTheme` stays sound even if the schema drifts.
+  const json = parsed;
   for (const role of THEME_ROLES) {
     const supplied = json.palette[role];
     if (supplied !== undefined && !isColour(supplied)) {

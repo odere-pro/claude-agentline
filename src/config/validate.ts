@@ -16,6 +16,7 @@
 import Ajv from "ajv";
 import type { ErrorObject, ValidateFunction } from "ajv";
 import { CONFIG_SCHEMA } from "../schema/embedded.js";
+import { isColour } from "../theme/colours.js";
 import type { AgentlineConfig } from "./types.js";
 
 export class ConfigValidationError extends Error {
@@ -41,6 +42,48 @@ export function validateConfig(value: unknown): asserts value is AgentlineConfig
   if (!validate(value)) {
     throw new ConfigValidationError(validate.errors ?? []);
   }
+  narrowColours(value as AgentlineConfig);
+}
+
+/**
+ * Belt-and-braces re-check that every persisted colour is a `Colour`.
+ * The schema's `colourOrNull` pattern enforces this at validation
+ * time, but a future schema edit that loosens the pattern would
+ * silently leak unvalidated strings into the typed config. Catch it
+ * here so the render path can consume typed colours without casts.
+ */
+function narrowColours(cfg: AgentlineConfig): void {
+  const errors: ErrorObject[] = [];
+  for (let li = 0; li < cfg.lines.length; li++) {
+    const widgets = cfg.lines[li]?.widgets ?? [];
+    for (let wi = 0; wi < widgets.length; wi++) {
+      const w = widgets[wi];
+      if (!w) continue;
+      if (w.fg !== undefined && w.fg !== null && !isColour(w.fg)) {
+        errors.push(colourError(`/lines/${li}/widgets/${wi}/fg`, w.fg));
+      }
+      if (w.bg !== undefined && w.bg !== null && !isColour(w.bg)) {
+        errors.push(colourError(`/lines/${li}/widgets/${wi}/bg`, w.bg));
+      }
+    }
+  }
+  if (cfg.global.overrideFg !== null && !isColour(cfg.global.overrideFg)) {
+    errors.push(colourError("/global/overrideFg", cfg.global.overrideFg));
+  }
+  if (cfg.global.overrideBg !== null && !isColour(cfg.global.overrideBg)) {
+    errors.push(colourError("/global/overrideBg", cfg.global.overrideBg));
+  }
+  if (errors.length > 0) throw new ConfigValidationError(errors);
+}
+
+function colourError(instancePath: string, value: unknown): ErrorObject {
+  return {
+    instancePath,
+    schemaPath: "#/definitions/colour",
+    keyword: "colour",
+    params: { value },
+    message: `not a valid colour: ${JSON.stringify(value)}`,
+  };
 }
 
 function formatErrors(errors: ErrorObject[]): string {
