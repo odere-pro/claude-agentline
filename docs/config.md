@@ -7,9 +7,14 @@ seeds at `${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json` on
 first run.
 
 agentline is configured globally only — there is no per-project
-config layer. An existing user config is preserved by `agentline
-install`; to start fresh, delete the file and re-run `agentline
-install`.
+config layer. **The single source of truth is
+`${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json`**; every
+invocation reads from it, every `agentline edit` or `agentline config`
+writes to it, regardless of which cwd or git worktree you run from.
+An existing user config is preserved by `agentline install`; to start
+fresh, delete the file and re-run `agentline install`. See
+[install.md](./install.md#how-agentline-syncs-with-claude-code) for
+the end-to-end sync diagram.
 
 The canonical schema lives at `schemas/config.schema.json` and is also
 embedded in the binary so validation works offline.

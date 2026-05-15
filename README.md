@@ -47,6 +47,11 @@ npm install -g @agentline/cli
 agentline install
 ```
 
+Both paths produce identical runtime state — same `settings.json`,
+`config.json`, themes, and manifest. Only the bytes inside the bin
+differ (local checkout vs. published tarball). See
+[install equivalence](./docs/install.md#install-paths-are-equivalent).
+
 Install wires `statusLine` into Claude Code's settings, seeds `agentline/config.json` under `$CLAUDE_CONFIG_DIR`, copies shipped themes, and installs five `agentline*.md` skills wired into Claude Code. Backs up any prior `statusLine` so `uninstall` restores it.
 
 Restart Claude Code — the statusline appears at the bottom of the prompt.

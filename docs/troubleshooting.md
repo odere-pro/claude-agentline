@@ -25,6 +25,45 @@ Restart Claude Code after wiring — the `statusLine` setting is read at startup
 
 ---
 
+## Statusline shows stale data, or edits don't apply
+
+Symptom: `agentline edit` writes new widgets, the editor preview is
+correct, but the live statusline shows the **previous** layout and
+never updates.
+
+Cause: `~/.claude/settings.json`'s `statusLine.command` points at a bin
+that no longer exists (common after `npm uninstall -g @agentline/cli`,
+`npm unlink`, or a Homebrew node prefix change). Claude Code keeps
+painting the last cached frame from `state/last-render.json` instead of
+re-rendering.
+
+Diagnose:
+
+```bash
+agentline doctor              # D02 reports the broken command path
+which agentline               # should resolve; if not, the bin is gone
+```
+
+Or check directly:
+
+```bash
+jq -r '.statusLine.command' ~/.claude/settings.json    # what is wired
+ls -la "$(jq -r '.statusLine.command' ~/.claude/settings.json | awk '{print $1}')"
+```
+
+Fix: reinstall the bin and re-wire in one step:
+
+```bash
+npm install -g @agentline/cli && agentline install     # registry
+# or, from a checkout:
+node dist/cli.mjs install --from-source
+```
+
+Both paths produce identical runtime state — see
+[install.md](./install.md#install-paths-are-equivalent).
+
+---
+
 ## Blank or garbled output
 
 Run `agentline doctor` to check colour-depth detection and the active theme. If the issue looks like a palette problem, switch to a simpler theme by editing the config:

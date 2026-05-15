@@ -55,7 +55,12 @@ so that D02 can populate the `statusLine` entry on the next run.
 ### D02 — statusLine wiring
 
 Verifies `settings.json` contains a `statusLine` entry whose `command`
-resolves to an `agentline` binary at run time. With `--fix`, writes:
+resolves to an `agentline` binary **that still exists and is
+executable** at run time. This catches the orphaned-bin failure mode
+where a user removed the global package (`npm uninstall -g
+@agentline/cli`, `npm unlink`, prefix change) without running
+`agentline uninstall` — Claude Code keeps painting the last cached
+render until the wiring is repaired. With `--fix`, writes:
 
 ```json
 {
