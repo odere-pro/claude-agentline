@@ -18,6 +18,8 @@ export interface Segment {
   readonly bg?: Colour;
   readonly bold?: boolean;
   readonly italic?: boolean;
+  /** OSC 8 hyperlink target; the encoder wraps `text` when set. */
+  readonly href?: string;
 }
 
 export function plainSegment(text: string): Segment {

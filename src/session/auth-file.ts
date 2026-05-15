@@ -15,6 +15,8 @@ import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 
+import { isPlainObject } from "../lib/object.js";
+
 const MAX_AUTH_FILE_BYTES = 64 * 1024;
 
 export interface AuthSnapshot {
@@ -31,7 +33,10 @@ export interface AuthLookupSource {
 
 export function resolveAuthFilePath(source: AuthLookupSource): string {
   const fromEnv = source.env["CLAUDE_CONFIG_DIR"];
-  const base = fromEnv && fromEnv.trim() !== "" ? fromEnv : path.join(source.homedir ?? os.homedir(), ".claude");
+  const base =
+    fromEnv && fromEnv.trim() !== ""
+      ? fromEnv
+      : path.join(source.homedir ?? os.homedir(), ".claude");
   return path.join(base, "auth.json");
 }
 
@@ -39,8 +44,10 @@ export function readAuthFile(source: AuthLookupSource): AuthSnapshot | null {
   const target = resolveAuthFilePath(source);
   let raw: string;
   try {
-    // Bound the read so a symlink to a huge file can't pin the render
-    // path. The auth file ships as a small JSON object; 64 KB is ample.
+    /*
+     * Bound the read so a symlink to a huge file can't pin the render
+     * path. The auth file ships as a small JSON object; 64 KB is ample.
+     */
     const stat = statSync(target);
     if (stat.size > MAX_AUTH_FILE_BYTES) return null;
     raw = readFileSync(target, "utf8");
@@ -53,11 +60,10 @@ export function readAuthFile(source: AuthLookupSource): AuthSnapshot | null {
   } catch {
     return null;
   }
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null;
-  const obj = parsed as Record<string, unknown>;
+  if (!isPlainObject(parsed)) return null;
   return {
-    ...(typeof obj["email"] === "string" ? { email: obj["email"] } : {}),
-    ...(typeof obj["authMethod"] === "string" ? { authMethod: obj["authMethod"] } : {}),
-    ...(typeof obj["orgSlug"] === "string" ? { orgSlug: obj["orgSlug"] } : {}),
+    ...(typeof parsed["email"] === "string" ? { email: parsed["email"] } : {}),
+    ...(typeof parsed["authMethod"] === "string" ? { authMethod: parsed["authMethod"] } : {}),
+    ...(typeof parsed["orgSlug"] === "string" ? { orgSlug: parsed["orgSlug"] } : {}),
   };
 }

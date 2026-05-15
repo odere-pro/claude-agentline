@@ -10,7 +10,7 @@
  * — it doesn't try to replicate `renderFromInputs`'s flex/Powerline byte
  * output. It does honour:
  *
- *   - per-category accent colours (`CATEGORY_COLOR`) so every widget chip
+ *   - per-family accent colours (`FAMILY_COLOR`) so every widget chip
  *     visually matches the group it belongs to in the picker; the user's
  *     explicit `widget.fg` override still wins. The real statusline path
  *     (`pipeline.ts`) is unaffected and keeps using the theme palette;
@@ -22,8 +22,8 @@
  */
 
 import type { AgentlineConfig, LineConfig, WidgetConfig } from "../config/types.js";
-import { previewWidget } from "../render/preview-fixture.js";
-import { CATEGORY_COLOR, widgetMeta } from "../widgets/catalog.js";
+import { previewWidget } from "./preview-fixture.js";
+import { FAMILY_COLOR, widgetMeta } from "../widgets/catalog.js";
 import type { Cell } from "../widgets/cell.js";
 
 /** A single drawable in a preview row. */
@@ -95,8 +95,8 @@ function buildRow(line: number, row: LineConfig, base: AgentlineConfig): Preview
  * those cases as their own demo string, which is not a real demonstration
  * of what the widget renders.
  *
- * The slot's foreground colour is the widget's category accent
- * (`CATEGORY_COLOR`) by default, so every chip in the preview matches
+ * The slot's foreground colour is the widget's family accent
+ * (`FAMILY_COLOR`) by default, so every chip in the preview matches
  * the group it belongs to in the picker. User overrides on the widget
  * itself (`widget.fg`) still win; widgets whose `type` is unknown to
  * the catalogue (custom registrations) fall back to the cell's own
@@ -116,9 +116,11 @@ function renderSlot(
     };
   }
   const cell: Cell = previewWidget(widget.type, widget.options, { glyphs });
-  // `previewWidget` returns HIDDEN_CELL (`text: "", hidden: true`) when the
-  // widget self-hides (data absent). Fall back to the widget's type name
-  // so the user still sees *what* widget is there, dimmed.
+  /*
+   * `previewWidget` returns HIDDEN_CELL (`text: "", hidden: true`) when the
+   * widget self-hides (data absent). Fall back to the widget's type name
+   * so the user still sees *what* widget is there, dimmed.
+   */
   if (cell.hidden || cell.text === "") {
     return {
       kind: "widget",
@@ -128,14 +130,14 @@ function renderSlot(
     };
   }
   const meta = widgetMeta(widget.type);
-  const accent = meta ? CATEGORY_COLOR[meta.category] : undefined;
-  const resolvedFg = widget.fg ?? accent ?? (cell.fg as string | undefined);
+  const accent = meta ? FAMILY_COLOR[meta.family] : undefined;
+  const resolvedFg = widget.fg ?? accent ?? cell.fg;
   return {
     kind: "widget",
     widgetIndex: idx,
     text: cell.text,
     ...(resolvedFg ? { fg: resolvedFg } : {}),
-    ...(widget.bg ? { bg: widget.bg } : cell.bg ? { bg: cell.bg as string } : {}),
+    ...(widget.bg ? { bg: widget.bg } : cell.bg ? { bg: cell.bg } : {}),
     ...((widget.bold ?? cell.bold) ? { bold: true } : {}),
     ...((widget.italic ?? cell.italic) ? { italic: true } : {}),
     hidden: false,

@@ -15,7 +15,7 @@
  *     live here.
  */
 
-import { pickString } from "../lib/object.js";
+import { isPlainObject, pickString } from "../lib/object.js";
 
 const MAX_PAYLOAD_BYTES = 256 * 1024;
 
@@ -27,11 +27,28 @@ export interface StdinPayload {
   /** Convenience accessors for known fields; all optional. */
   model?: string;
   version?: string;
+  /**
+   * Known values at the time of writing: `"default"`, `"explanatory"`,
+   * `"learning"`. Typed as `string` for forward-compat — callers that
+   * need exhaustive handling should use `pickEnum` from `lib/object.ts`
+   * against an explicit allow-list at their own boundary.
+   */
   outputStyle?: string;
   sessionId?: string;
   sessionName?: string;
   cwd?: string;
+  /**
+   * Known values: `"low"`, `"medium"`, `"high"`, `"xhigh"`. Typed as
+   * `string` so the `thinking-effort` widget can pass an unknown
+   * future level through uncoloured rather than hide it. Consumers
+   * that need a colour role or bucketing key narrow it themselves
+   * (see `widgets/session/thinking-effort.ts`).
+   */
   thinkingEffort?: string;
+  /**
+   * Known values: `"normal"`, `"insert"`, `"visual"`, `"replace"`.
+   * Same forward-compat reasoning as `thinkingEffort`.
+   */
   vimMode?: string;
   transcriptPath?: string;
 }
@@ -83,10 +100,10 @@ export async function readStdinPayload(stream: NodeJS.ReadableStream): Promise<S
   } catch (err) {
     throw new StdinParseError("invalid stdin JSON", err);
   }
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+  if (!isPlainObject(parsed)) {
     throw new StdinParseError("stdin payload must be a JSON object");
   }
-  return adaptStatuslinePayload(parsed as Record<string, unknown>, {
+  return adaptStatuslinePayload(parsed, {
     truncated: buf.byteLength === MAX_PAYLOAD_BYTES,
   });
 }

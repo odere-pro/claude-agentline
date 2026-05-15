@@ -10,9 +10,9 @@ import {
 } from "./catalog.js";
 
 const sample: readonly WidgetMetaEntry[] = [
-  { type: "git-branch", name: "Git branch", description: "Current branch", category: "git" },
-  { type: "model", name: "Model", description: "Active model id", category: "session" },
-  { type: "clock", name: "Clock", description: "Wall-clock time", category: "time" },
+  { type: "git-branch", name: "Git branch", description: "Current branch", family: "git" },
+  { type: "model", name: "Model", description: "Active model id", family: "session" },
+  { type: "clock", name: "Clock", description: "Wall-clock time", family: "time" },
 ];
 
 describe("parseWidgetCatalogArgs", () => {
@@ -33,25 +33,25 @@ describe("builtinMeta", () => {
   it("returns the catalogued built-in widgets with non-empty fields", () => {
     const entries = builtinMeta();
     expect(entries.length).toBeGreaterThan(0);
-    expect(entries.every((e) => e.type && e.name && e.description && e.category)).toBe(true);
+    expect(entries.every((e) => e.type && e.name && e.description && e.family)).toBe(true);
   });
 });
 
 describe("formatJson", () => {
-  it("emits a widgets array with type/name/description/category", () => {
+  it("emits a widgets array with type/name/description/family", () => {
     const parsed = JSON.parse(formatJson(sample)) as {
-      widgets: { type: string; name: string; description: string; category: string }[];
+      widgets: { type: string; name: string; description: string; family: string }[];
     };
     expect(parsed.widgets).toEqual([
-      { type: "git-branch", name: "Git branch", description: "Current branch", category: "git" },
-      { type: "model", name: "Model", description: "Active model id", category: "session" },
-      { type: "clock", name: "Clock", description: "Wall-clock time", category: "time" },
+      { type: "git-branch", name: "Git branch", description: "Current branch", family: "git" },
+      { type: "model", name: "Model", description: "Active model id", family: "session" },
+      { type: "clock", name: "Clock", description: "Wall-clock time", family: "time" },
     ]);
   });
 });
 
 describe("formatText", () => {
-  it("groups by category in family reading order", () => {
+  it("groups by family in family reading order", () => {
     const text = formatText(sample);
     expect(text).toContain("agentline widgets (3):");
     expect(text).toContain("session (1):");

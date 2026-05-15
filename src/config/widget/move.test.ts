@@ -30,7 +30,7 @@ describe("parseWidgetMoveArgs", () => {
   });
 
   it("rejects non-integer values and stray arguments", () => {
-    expect(() => parseWidgetMoveArgs(["--from-at", "x"])).toThrow(/requires an integer/);
+    expect(() => parseWidgetMoveArgs(["--from-at", "x"])).toThrow(/must be an integer/);
     expect(() => parseWidgetMoveArgs(["--from-at", "0", "junk"])).toThrow(/unexpected argument/);
   });
 });

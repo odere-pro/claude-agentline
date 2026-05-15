@@ -23,7 +23,12 @@ export async function runDoctor(opts: RunOptions): Promise<{ report: RunReport; 
   };
   let results = await runChecks({ ...opts, home: ctx.home, env: ctx.env, cwd: ctx.cwd });
   if (opts.fix) {
-    results = await applyFixes(results, ctx);
+    results = await applyFixes(results, {
+      home: ctx.home,
+      env: ctx.env,
+      ...(opts.fontInstaller ? { fontInstaller: opts.fontInstaller } : {}),
+      ...(opts.detectNerdFont ? { detectNerdFont: opts.detectNerdFont } : {}),
+    });
   }
   const worst = summariseWorst(results);
   const report: RunReport = { results, worst };

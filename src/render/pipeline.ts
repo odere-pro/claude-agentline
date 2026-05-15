@@ -12,39 +12,33 @@
  * frozen clock, an injected env, or an arbitrary stdin payload —
  * goldens depend on full input determinism (§11.3).
  *
- * Snapshots (`session`, `tokens`, `git`) stay undefined here. The
- * widgets that need them hide cleanly when absent so the render
- * remains usable; producers wire their loaders in via separate
- * follow-ups (Doctor + cli already load session / tokens; git
- * snapshot loading is left to the no-args render path).
+ * Snapshots (`session`, `tokens`, `git`) are taken as inputs from
+ * `RenderInputs` rather than loaded inside this pipeline. Widgets
+ * that need a missing snapshot hide cleanly so the render remains
+ * usable. Producers wire their loaders separately: the live render
+ * path in `runRenderCommand` calls `loadLiveSnapshots`; doctor and
+ * golden fixtures pin them deterministically.
  */
 
 import { detectColourDepth } from "./colour-depth.js";
 import { detectTerminalWidth, applyWidthMode } from "./width.js";
-import {
-  applyAccessibility,
-  effectiveDepth,
-  honourNoColorEnv,
-  type AccessibilityFlags,
-} from "./accessibility.js";
+import { applyAccessibility, effectiveDepth, honourNoColorEnv } from "./accessibility.js";
 import { encodeSegments, SGR_RESET } from "./ansi.js";
 import { composeLines } from "./compose.js";
+import { buildWidgetContext } from "./context.js";
+import type { RenderInputs } from "./inputs.js";
 import type { Segment } from "./segment.js";
 
-import { detectGlyphSupport } from "../powerline/index.js";
 import type { AgentlineConfig } from "../config/types.js";
+import { resolveEnv } from "../lib/env.js";
+import { detectGlyphSupport } from "../powerline/index.js";
 import { resolveRole, type Theme } from "../theme/index.js";
 import type { Cell } from "../widgets/cell.js";
-import type { Clock } from "../widgets/clock.js";
-import type { WidgetContext } from "../widgets/context.js";
-import { realClock } from "../widgets/clock.js";
-import { renderWidget } from "../widgets/render-widget.js";
+import { realClock, type Clock } from "../widgets/clock.js";
 import { defaultRegistry, registerAllBuiltins } from "../widgets/index.js";
-import type { TokensSnapshot } from "../tokens/index.js";
-import type { GitState } from "../git/index.js";
-import type { ResolvedSessionFields } from "../session/index.js";
-import type { StdinPayload } from "../stdin/index.js";
-import { resolveEnv } from "../lib/env.js";
+import { renderWidget } from "../widgets/render-widget.js";
+
+export type { RenderInputs } from "./inputs.js";
 
 /**
  * Maximum warning lines appended below the rendered statusline (Phase 2
@@ -56,23 +50,12 @@ export const MAX_WARNING_LINES = 6;
 
 function ensureRegistry(): void {
   const reg = defaultRegistry();
-  // size() > 0 means the registry was already populated; this stays
-  // coherent with resetDefaultRegistry() which clears the singleton.
+  /*
+   * size() > 0 means the registry was already populated; this stays
+   * coherent with resetDefaultRegistry() which clears the singleton.
+   */
   if (reg.size() > 0) return;
   registerAllBuiltins(reg);
-}
-
-export interface RenderInputs {
-  readonly payload: StdinPayload;
-  readonly config: AgentlineConfig;
-  readonly theme: Theme | null;
-  readonly clock?: Clock;
-  readonly env?: NodeJS.ProcessEnv;
-  readonly width?: number;
-  readonly flags?: AccessibilityFlags;
-  readonly tokens?: TokensSnapshot;
-  readonly git?: GitState;
-  readonly session?: ResolvedSessionFields;
 }
 
 export function renderFromInputs(inputs: RenderInputs): string {
@@ -81,16 +64,16 @@ export function renderFromInputs(inputs: RenderInputs): string {
   const flags = honourNoColorEnv(inputs.flags ?? { noColor: false, noUnicode: false }, env);
   const clock: Clock = inputs.clock ?? realClock;
   const width = inputs.width ?? resolveWidth(inputs.config, env);
-  const ctx: WidgetContext = {
-    stdin: inputs.payload,
+  const ctx = buildWidgetContext({
+    payload: inputs.payload,
     config: inputs.config,
     theme: inputs.theme,
     clock,
     env,
-    ...(inputs.tokens !== undefined ? { tokens: inputs.tokens } : {}),
-    ...(inputs.git !== undefined ? { git: inputs.git } : {}),
-    ...(inputs.session !== undefined ? { session: inputs.session } : {}),
-  };
+    tokens: inputs.tokens,
+    git: inputs.git,
+    session: inputs.session,
+  });
 
   const registry = defaultRegistry();
   const unknownTypes = new Set<string>();
@@ -119,9 +102,11 @@ export function renderFromInputs(inputs: RenderInputs): string {
     .map((segs) => {
       const accessible = applyAccessibility(segs, flags);
       const text = encodeSegments(accessible, depth);
-      // Append SGR reset only when the line actually carried styled
-      // bytes; otherwise a bare reset pollutes plain output and
-      // breaks downstream byte-for-byte diffing.
+      /*
+       * Append SGR reset only when the line actually carried styled
+       * bytes; otherwise a bare reset pollutes plain output and
+       * breaks downstream byte-for-byte diffing.
+       */
       const styled = depth !== "none" && hasStyle(accessible);
       return styled ? `${text}${SGR_RESET}` : text;
     })

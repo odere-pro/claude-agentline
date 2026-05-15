@@ -64,6 +64,12 @@
     "colourOrNull": {
       "oneOf": [{ "$ref": "#/definitions/colour" }, { "type": "null" }]
     },
+    "stringOrStringArray": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      ]
+    },
     "line": {
       "type": "object",
       "additionalProperties": false,
@@ -121,8 +127,8 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "start": { "type": "string", "default": "" },
-            "end": { "type": "string", "default": "" }
+            "start": { "$ref": "#/definitions/stringOrStringArray", "default": "" },
+            "end": { "$ref": "#/definitions/stringOrStringArray", "default": "" }
           }
         },
         "autoAlign": { "type": "boolean", "default": false },
@@ -131,10 +137,10 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "hardRight": { "type": "string" },
-            "softRight": { "type": "string" },
-            "hardLeft": { "type": "string" },
-            "softLeft": { "type": "string" }
+            "hardRight": { "$ref": "#/definitions/stringOrStringArray" },
+            "softRight": { "$ref": "#/definitions/stringOrStringArray" },
+            "hardLeft": { "$ref": "#/definitions/stringOrStringArray" },
+            "softLeft": { "$ref": "#/definitions/stringOrStringArray" }
           }
         }
       }

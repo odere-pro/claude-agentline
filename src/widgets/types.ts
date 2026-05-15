@@ -37,6 +37,14 @@ export interface Cell {
    * set this flag.
    */
   readonly flex?: boolean;
+  /**
+   * OSC 8 hyperlink target. When set and the colour depth is not
+   * `"none"`, the encoder wraps `text` in `ESC]8;;URL\\ESC\\` /
+   * `ESC]8;;\\ESC\\` so the visible label becomes clickable in
+   * OSC-8-capable terminals. The URL is excluded from width math —
+   * `codePointLength` only sees `text` (the visible label).
+   */
+  readonly href?: string;
 }
 
 export const HIDDEN_CELL: Cell = Object.freeze({ text: "", hidden: true });
@@ -103,4 +111,19 @@ export function defineWidget<TOptions = unknown>(
     throw new Error("agentline: widget type must be a non-empty string");
   }
   return Object.freeze({ type, render });
+}
+
+/**
+ * Erase a typed widget def's option-type parameter so it can sit in a
+ * shared `readonly WidgetDef<unknown>[]` family array. `WidgetRender<T>`
+ * takes `WidgetSettings<T>` in input position (contravariant), so TS
+ * rightly refuses to widen `WidgetDef<MyOptions>` to `WidgetDef<unknown>`
+ * implicitly. At runtime the registry only ever calls the render with
+ * settings whose `options` shape matches the widget's expected `TOptions`
+ * (the config schema is validated before dispatch), so the cast is sound
+ * in practice. Confining the cast to this one helper keeps every family
+ * `index.ts` free of inline `as` noise.
+ */
+export function eraseWidget<TOptions>(def: WidgetDef<TOptions>): WidgetDef<unknown> {
+  return def as unknown as WidgetDef<unknown>;
 }

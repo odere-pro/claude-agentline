@@ -15,9 +15,7 @@ describe("parsePullRequestJson", () => {
   });
 
   it("freezes the returned object", () => {
-    const out = parsePullRequestJson(
-      '{"number":1,"url":"https://x/pull/1","title":"t"}',
-    );
+    const out = parsePullRequestJson('{"number":1,"url":"https://x/pull/1","title":"t"}');
     expect(Object.isFrozen(out)).toBe(true);
   });
 
@@ -58,9 +56,11 @@ describe("parsePullRequestJson", () => {
 
 describe("loadPullRequest", () => {
   it("returns null when invoked against a directory `gh` cannot resolve", () => {
-    // We don't assume `gh` is installed on the test host. Either path —
-    // `gh` missing entirely, or `gh` running but failing to find a PR for
-    // the temp directory — the loader must swallow and return null.
+    /*
+     * We don't assume `gh` is installed on the test host. Either path —
+     * `gh` missing entirely, or `gh` running but failing to find a PR for
+     * the temp directory — the loader must swallow and return null.
+     */
     const out = loadPullRequest({ cwd: "/tmp", timeoutMs: 250 });
     expect(out).toBeNull();
   });

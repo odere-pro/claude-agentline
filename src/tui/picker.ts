@@ -2,10 +2,10 @@
  * Widget picker overlay — three steps. Shown while the reducer's mode is
  * `picker-group`, `picker-widget`, or `picker-variant`:
  *
- *   step 1 — empty search → `PickerGroup` (pick a category).
- *            non-empty   → `PickerSearch` (flat list across every category,
+ *   step 1 — empty search → `PickerGroup` (pick a family).
+ *            non-empty   → `PickerSearch` (flat list across every family,
  *                          substring-filtered by the search field on top).
- *   step 2 (`PickerWidget`)  — pick a widget in that category (live filter).
+ *   step 2 (`PickerWidget`)  — pick a widget in that family (live filter).
  *   step 3 (`PickerVariant`) — pick a variant for widgets that have them.
  *
  * Each component is a thin Ink projection over pure helpers; `App` owns the
@@ -16,19 +16,19 @@
 import { Box, Text } from "ink";
 import React from "react";
 
-import { previewWidget } from "../render/preview-fixture.js";
+import { previewWidget } from "./preview-fixture.js";
 import {
-  CATEGORY_COLOR,
-  WIDGET_CATEGORIES,
+  FAMILY_COLOR,
+  WIDGET_FAMILIES,
   widgetVariants,
-  type WidgetCategory,
+  type WidgetFamily,
   type WidgetMetaEntry,
   type WidgetVariant,
 } from "../widgets/catalog.js";
 
 import type { EditorGlyphs } from "./glyphs.js";
 
-export { CATEGORY_COLOR };
+export { FAMILY_COLOR };
 
 /** How many rows the picker windows show at once. */
 export const PICKER_PAGE = 8;
@@ -38,41 +38,73 @@ export const PICKER_PAGE = 8;
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
- * Categories the registered widgets actually populate, in catalogue order.
+ * Families the registered widgets actually populate, in catalogue order.
  * `exclude` drops any widget already added to the editor so groups that
  * have no remaining widgets disappear from step 1 of the picker.
  */
-export function categoriesWithWidgets(
+export function familiesWithWidgets(
   entries: readonly WidgetMetaEntry[],
   exclude: ReadonlySet<string> = new Set(),
-): readonly WidgetCategory[] {
-  const present = new Set<WidgetCategory>(
-    entries.filter((e) => !exclude.has(e.type)).map((e) => e.category),
+): readonly WidgetFamily[] {
+  const present = new Set<WidgetFamily>(
+    entries.filter((e) => !exclude.has(e.type)).map((e) => e.family),
   );
-  return WIDGET_CATEGORIES.filter((c) => present.has(c));
+  return WIDGET_FAMILIES.filter((c) => present.has(c));
 }
 
 /**
- * All entries in `category`, substring-filtered (case-insensitive), with
- * any widget types in `exclude` removed (used to hide already-added
- * widgets from the picker).
+ * Token-boundary characters used by `matchesInitialism`. Both display
+ * names ("Git branch") and widget types ("git-branch", "tokens_total")
+ * tokenise on whitespace, hyphen, and underscore.
  */
-export function widgetsInCategory(
+const INITIALISM_BOUNDARY = /[-\s_]+/;
+
+/**
+ * Initialism match — `gb` matches `git-branch`, `tt` matches
+ * `tokens-total`, `su` matches `session-usage`. Single-letter queries
+ * fall through to the substring path (matching every entry starting
+ * with that letter would be surprising); we only kick in at length ≥ 2.
+ *
+ * The implementation is intentionally simple: split on token
+ * boundaries, take the first letter of each non-empty token, then
+ * check `startsWith` so prefix-matches still find a widget while you
+ * are still typing (e.g. `g` after `gb` keeps `git-branch` selected
+ * via the substring fallback in the caller). No fuzzy scoring — that
+ * is a separate concern and out of scope here.
+ */
+function matchesInitialism(query: string, text: string): boolean {
+  if (query.length < 2) return false;
+  let initials = "";
+  for (const token of text.split(INITIALISM_BOUNDARY)) {
+    if (token.length === 0) continue;
+    initials += token[0]!.toLowerCase();
+  }
+  return initials.startsWith(query);
+}
+
+/**
+ * All entries in `family`, filtered (case-insensitive) by initialism
+ * or substring match against `type` and `name`, with any widget types
+ * in `exclude` removed (used to hide already-added widgets from the
+ * picker).
+ */
+export function widgetsInFamily(
   entries: readonly WidgetMetaEntry[],
-  category: WidgetCategory,
+  family: WidgetFamily,
   query: string,
   exclude: ReadonlySet<string> = new Set(),
 ): readonly WidgetMetaEntry[] {
   const q = query.trim().toLowerCase();
-  const scoped = entries.filter((e) => e.category === category && !exclude.has(e.type));
+  const scoped = entries.filter((e) => e.family === family && !exclude.has(e.type));
   if (q === "") return scoped;
-  return scoped.filter((e) => e.type.toLowerCase().includes(q) || e.name.toLowerCase().includes(q));
+  return scoped.filter((e) => matches(e, q));
 }
 
 /**
- * Substring filter over all entries — matches against the widget's `type`
- * and human `name`, optionally dropping entries whose `type` is in
- * `exclude` (used to hide already-added widgets from the flat search).
+ * Initialism + substring filter over all entries — matches against the
+ * widget's `type` and human `name`, optionally dropping entries whose
+ * `type` is in `exclude` (used to hide already-added widgets from the
+ * flat search).
  */
 export function filterWidgets(
   entries: readonly WidgetMetaEntry[],
@@ -82,8 +114,14 @@ export function filterWidgets(
   const q = query.trim().toLowerCase();
   const scoped = exclude.size === 0 ? entries : entries.filter((e) => !exclude.has(e.type));
   if (q === "") return scoped;
-  return scoped.filter(
-    (e) => e.type.toLowerCase().includes(q) || e.name.toLowerCase().includes(q),
+  return scoped.filter((e) => matches(e, q));
+}
+
+function matches(entry: WidgetMetaEntry, q: string): boolean {
+  const type = entry.type.toLowerCase();
+  const name = entry.name.toLowerCase();
+  return (
+    matchesInitialism(q, type) || matchesInitialism(q, name) || type.includes(q) || name.includes(q)
   );
 }
 
@@ -116,7 +154,13 @@ export function selectedAt<T>(rows: readonly T[], highlight: number): T | undefi
   return rows[clampIndex(highlight, rows.length)];
 }
 
-function clampIndex(value: number, length: number): number {
+/**
+ * Clamp `value` to the half-open range `[0, max(0, length - 1)]`. Returns
+ * `0` for an empty list. Used both by `selectedAt` to pick the row under
+ * the cursor and by `main.ts`'s picker key handlers to bound the next
+ * highlight after an arrow-key move.
+ */
+export function clampIndex(value: number, length: number): number {
   if (length <= 0) return 0;
   if (value < 0) return 0;
   if (value > length - 1) return length - 1;
@@ -135,7 +179,7 @@ function windowSlice<T>(
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// step 1 — pick a category
+// step 1 — pick a family
 // ────────────────────────────────────────────────────────────────────────────
 
 export interface PickerGroupProps {
@@ -150,7 +194,7 @@ export interface PickerGroupProps {
 
 export function PickerGroup(props: PickerGroupProps): React.ReactElement {
   const exclude = props.exclude ?? new Set<string>();
-  const cats = categoriesWithWidgets(props.entries, exclude);
+  const cats = familiesWithWidgets(props.entries, exclude);
   const highlight = clampIndex(props.highlight, cats.length);
   const widest = cats.reduce((n, c) => Math.max(n, c.length), 0);
   return React.createElement(
@@ -170,9 +214,9 @@ export function PickerGroup(props: PickerGroupProps): React.ReactElement {
     ),
     ...cats.map((cat, idx) => {
       const selected = idx === highlight;
-      const count = props.entries.filter((e) => e.category === cat && !exclude.has(e.type)).length;
-      const icon = props.glyphs.category[cat] ?? " ";
-      const accent = CATEGORY_COLOR[cat];
+      const count = props.entries.filter((e) => e.family === cat && !exclude.has(e.type)).length;
+      const icon = props.glyphs.family[cat] ?? " ";
+      const accent = FAMILY_COLOR[cat];
       const body = `${selected ? "▸ " : "  "}${icon}  ${cat.padEnd(widest, " ")}`;
       return React.createElement(
         Box,
@@ -189,7 +233,7 @@ export function PickerGroup(props: PickerGroupProps): React.ReactElement {
 // ────────────────────────────────────────────────────────────────────────────
 
 export interface PickerWidgetProps {
-  readonly category: WidgetCategory;
+  readonly family: WidgetFamily;
   readonly entries: readonly WidgetMetaEntry[];
   readonly query: string;
   readonly highlight: number;
@@ -199,19 +243,21 @@ export interface PickerWidgetProps {
 
 export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
   const exclude = props.exclude ?? new Set<string>();
-  const matches = widgetsInCategory(props.entries, props.category, props.query, exclude);
+  const matches = widgetsInFamily(props.entries, props.family, props.query, exclude);
   const highlight = clampIndex(props.highlight, matches.length);
   const { start, rows } = windowSlice(matches, highlight);
   const widestType = rows.reduce((n, e) => Math.max(n, e.type.length), 0);
-  // Pad preview text so descriptions line up in their own column. When a
-  // widget returns no data (real mode, source absent) we fall back to its
-  // type name so the picker still demonstrates *which* widget is on offer
-  // — `(hidden)` here would be misleading because the widget itself is
-  // not configured as hidden, it just can't produce data right now.
+  /*
+   * Pad preview text so descriptions line up in their own column. When a
+   * widget returns no data (real mode, source absent) we fall back to its
+   * type name so the picker still demonstrates *which* widget is on offer
+   * — `(hidden)` here would be misleading because the widget itself is
+   * not configured as hidden, it just can't produce data right now.
+   */
   const previews = rows.map((e) => previewWidget(e.type).text || e.type);
   const widestPreview = previews.reduce((n, p) => Math.max(n, p.length), 0);
   const countLabel = `${matches.length} match${matches.length === 1 ? "" : "es"}`;
-  const accent = CATEGORY_COLOR[props.category];
+  const accent = FAMILY_COLOR[props.family];
 
   const body =
     matches.length === 0
@@ -221,9 +267,11 @@ export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
           const selected = idx === highlight;
           const preview = previews[i] ?? "";
           const head = `  ${selected ? "▸ " : "  "}${e.type.padEnd(widestType, " ")}`;
-          // Only the group label carries the category accent — individual
-          // widget rows stay neutral so the accent doesn't bleed onto every
-          // line. Selection emphasis is bold + cyan on the highlighted row.
+          /*
+           * Only the group label carries the family accent — individual
+           * widget rows stay neutral so the accent doesn't bleed onto every
+           * line. Selection emphasis is bold + cyan on the highlighted row.
+           */
           return React.createElement(
             Box,
             { key: e.type, flexDirection: "row" },
@@ -250,7 +298,7 @@ export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
       Text,
       { bold: true },
       "Pick a widget — group ",
-      React.createElement(Text, { color: accent, bold: true }, `‹${props.category}›`),
+      React.createElement(Text, { color: accent, bold: true }, `‹${props.family}›`),
     ),
     React.createElement(Text, null, `filter: ${props.query}▏`),
     React.createElement(
@@ -263,7 +311,7 @@ export function PickerWidget(props: PickerWidgetProps): React.ReactElement {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// step 1b — flat search across every category (when the search field is non-empty)
+// step 1b — flat search across every family (when the search field is non-empty)
 // ────────────────────────────────────────────────────────────────────────────
 
 export interface PickerSearchProps {
@@ -280,7 +328,7 @@ export function PickerSearch(props: PickerSearchProps): React.ReactElement {
   const highlight = clampIndex(props.highlight, matches.length);
   const { start, rows } = windowSlice(matches, highlight);
   const widestType = rows.reduce((n, e) => Math.max(n, e.type.length), 0);
-  const widestCategory = rows.reduce((n, e) => Math.max(n, e.category.length), 0);
+  const widestFamily = rows.reduce((n, e) => Math.max(n, e.family.length), 0);
   const previews = rows.map((e) => previewWidget(e.type).text || e.type);
   const widestPreview = previews.reduce((n, p) => Math.max(n, p.length), 0);
   const countLabel = `${matches.length} match${matches.length === 1 ? "" : "es"}`;
@@ -292,15 +340,15 @@ export function PickerSearch(props: PickerSearchProps): React.ReactElement {
           const idx = start + i;
           const selected = idx === highlight;
           const preview = previews[i] ?? "";
-          const accent = CATEGORY_COLOR[e.category];
+          const accent = FAMILY_COLOR[e.family];
           const head = `  ${selected ? "▸ " : "  "}${e.type.padEnd(widestType, " ")}`;
-          const categoryBadge = `[${e.category.padEnd(widestCategory, " ")}]`;
+          const familyBadge = `[${e.family.padEnd(widestFamily, " ")}]`;
           return React.createElement(
             Box,
             { key: e.type, flexDirection: "row" },
             React.createElement(Text, { color: accent, bold: selected }, head),
             React.createElement(Text, null, `  ${preview.padEnd(widestPreview, " ")}`),
-            React.createElement(Text, { color: accent, dimColor: !selected }, `  ${categoryBadge}`),
+            React.createElement(Text, { color: accent, dimColor: !selected }, `  ${familyBadge}`),
             React.createElement(Text, { dimColor: true }, `  ${e.description}`),
           );
         });
@@ -369,4 +417,3 @@ function previewForVariant(widgetType: string, row: VariantRow): string {
   const cell = previewWidget(widgetType, variant ? { ...variant.options } : undefined);
   return cell.text || widgetType;
 }
-

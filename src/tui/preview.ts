@@ -22,6 +22,7 @@ import { Box, Text } from "ink";
 import React from "react";
 
 import type { AgentlineConfig, LineConfig } from "../config/types.js";
+import { FALLBACK_WIDTH } from "../render/width.js";
 import type { Theme } from "../theme/index.js";
 
 import type { EditorGlyphs } from "./glyphs.js";
@@ -46,7 +47,8 @@ export interface PreviewProps {
   readonly glyphs: EditorGlyphs;
   /**
    * Override the terminal width used for wrap calculations. Defaults to
-   * `process.stdout.columns` (or 80 if unavailable). Primarily a test hook.
+   * `process.stdout.columns` (or `FALLBACK_WIDTH` if unavailable). Primarily
+   * a test hook.
    */
   readonly columns?: number;
 }
@@ -63,9 +65,11 @@ export function Preview(props: PreviewProps): React.ReactElement {
   const rows = buildPreview({ base: props.base, lines: props.lines });
   const cols = resolveColumns(props.columns);
   const gutterWidth = computeGutterWidth(rows, props.glyphs);
-  // Reserve: 2 for the round border, 2 for `paddingX: 1`, plus the gutter
-  // width. Clamp to a minimum so wrap doesn't degenerate when the terminal
-  // is unusually narrow.
+  /*
+   * Reserve: 2 for the round border, 2 for `paddingX: 1`, plus the gutter
+   * width. Clamp to a minimum so wrap doesn't degenerate when the terminal
+   * is unusually narrow.
+   */
   const available = Math.max(20, cols - 4 - gutterWidth);
   return React.createElement(
     Box,
@@ -82,13 +86,15 @@ export function Preview(props: PreviewProps): React.ReactElement {
 function resolveColumns(override: number | undefined): number {
   if (typeof override === "number" && override > 0) return override;
   const real = process.stdout && process.stdout.columns;
-  return typeof real === "number" && real > 0 ? real : 80;
+  return typeof real === "number" && real > 0 ? real : FALLBACK_WIDTH;
 }
 
 function computeGutterWidth(rows: readonly PreviewRow[], glyphs: EditorGlyphs): number {
-  // The first-line gutter is `{marker} {line#} {gutter} ` — marker is 1
-  // glyph, line# takes `digits` columns, gutter is 1 glyph, plus three
-  // single-space separators.
+  /*
+   * The first-line gutter is `{marker} {line#} {gutter} ` — marker is 1
+   * glyph, line# takes `digits` columns, gutter is 1 glyph, plus three
+   * single-space separators.
+   */
   const maxLine = rows.reduce((m, r) => Math.max(m, r.line), 0);
   const digits = String(maxLine).length;
   return 1 + 1 + digits + 1 + codePointLength(glyphs.gutter) + 1;
@@ -217,8 +223,10 @@ function renderSlot(
   if (slot.bg) textProps.backgroundColor = slot.bg;
   if (slot.bold) textProps.bold = true;
   if (slot.italic) textProps.italic = true;
-  // The selection brackets wrap the cell so the highlight is also
-  // legible without inverse support (e.g. some `NO_COLOR` paths).
+  /*
+   * The selection brackets wrap the cell so the highlight is also
+   * legible without inverse support (e.g. some `NO_COLOR` paths).
+   */
   const body = selected ? `${glyphs.selectionOpen}${slot.text}${glyphs.selectionClose}` : slot.text;
   return React.createElement(
     Box,

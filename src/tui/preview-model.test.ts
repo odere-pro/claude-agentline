@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import type { LineConfig } from "../config/types.js";
 import type { GitState } from "../git/index.js";
-import { resetPreviewModeCache, setPreviewModeForTesting } from "../render/preview-fixture.js";
+import { resetPreviewModeCache, setPreviewModeForTesting } from "./preview-fixture.js";
 import { PRICING_TABLE_VERSION, contextWindowFor, type TokensSnapshot } from "../tokens/index.js";
 
 import { buildPreview, type PreviewRow } from "./preview-model.js";
@@ -41,8 +41,10 @@ const realTokens: TokensSnapshot = Object.freeze({
   pricingVersion: PRICING_TABLE_VERSION,
 });
 
-// Pin a real-mode preview context so tests that depend on widgets
-// rendering "main", "Opus 4.7" etc. don't fall through to label mode.
+/*
+ * Pin a real-mode preview context so tests that depend on widgets
+ * rendering "main", "Opus 4.7" etc. don't fall through to label mode.
+ */
 beforeEach(() => {
   setPreviewModeForTesting({
     kind: "real",
@@ -156,9 +158,11 @@ describe("buildPreview", () => {
   });
 
   it("surfaces a self-hiding widget (no data right now) with the widget's type name as fallback", () => {
-    // `git-worktree` hides cleanly when `inWorktree === false` — the
-    // demo session is a plain checkout, so its preview falls back to
-    // the widget's type name (dimmed) instead of a decorative chip.
+    /*
+     * `git-worktree` hides cleanly when `inWorktree === false` — the
+     * demo session is a plain checkout, so its preview falls back to
+     * the widget's type name (dimmed) instead of a decorative chip.
+     */
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
       lines: [{ widgets: [{ type: "git-worktree" }] }],
@@ -175,7 +179,7 @@ describe("buildPreview", () => {
     expect(JSON.stringify(lines)).toBe(snapshot);
   });
 
-  it("widget slots default to the category accent so chips match the picker", () => {
+  it("widget slots default to the family accent so chips match the picker", () => {
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
       lines: [{ widgets: [{ type: "model" }, { type: "git-branch" }, { type: "clock" }] }],
@@ -187,7 +191,7 @@ describe("buildPreview", () => {
     if (widgets[2]?.kind === "widget") expect(widgets[2].fg).toBe("cyan");
   });
 
-  it("widget overrides win over the category accent", () => {
+  it("widget overrides win over the family accent", () => {
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
       lines: [{ widgets: [{ type: "model", fg: "#ff0080" }] }],
@@ -211,8 +215,10 @@ describe("buildPreview — label-only fallback (no stdin cache)", () => {
   });
 });
 
-// Use the helper in one assertion to keep it referenced; the rest of the
-// tests inspect individual slots directly.
+/*
+ * Use the helper in one assertion to keep it referenced; the rest of the
+ * tests inspect individual slots directly.
+ */
 describe("buildPreview — row slot summary", () => {
   it("yields slots in order: w0 join w1 join w2 + (with default joins)", () => {
     const rows = buildPreview({

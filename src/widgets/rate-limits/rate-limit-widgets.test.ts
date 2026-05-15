@@ -21,12 +21,14 @@ import { WidgetRegistry } from "../registry.js";
 import { formatDuration, resolveDurationFormat } from "./duration.js";
 import { blockResetAtWidget, weeklyResetAtWidget } from "./reset-at.js";
 import { blockResetTimerWidget, weeklyResetTimerWidget } from "./timers.js";
-import { sessionUsageWidget } from "./usage.js";
+import { sessionUsageWidget, weeklyOpusUsageWidget, weeklySonnetUsageWidget } from "./usage.js";
 import { RATE_LIMIT_WIDGETS, registerRateLimitWidgets } from "./index.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
 
 const HOUR_MS = 60 * 60 * 1000;
+/** Pinned wall-clock for snapshot defaults so the tests stay deterministic. */
+const FIXED_NOW_MS = Date.parse("2026-05-01T03:00:00Z");
 
 const ev = (overrides: Partial<TranscriptEvent>): TranscriptEvent => ({
   timestamp: 0,
@@ -41,15 +43,11 @@ function makeSnapshot(
   events: TranscriptEvent[],
   overrides: Partial<TokensSnapshot> = {},
 ): TokensSnapshot {
-  const now = overrides.now ?? Date.parse("2026-05-01T03:00:00Z");
+  const now = overrides.now ?? FIXED_NOW_MS;
   const blockAnchor =
-    overrides.blockAnchor !== undefined
-      ? overrides.blockAnchor
-      : (events[0]?.timestamp ?? now);
+    overrides.blockAnchor !== undefined ? overrides.blockAnchor : (events[0]?.timestamp ?? now);
   const sessionStart =
-    overrides.sessionStart !== undefined
-      ? overrides.sessionStart
-      : (events[0]?.timestamp ?? now);
+    overrides.sessionStart !== undefined ? overrides.sessionStart : (events[0]?.timestamp ?? now);
   return Object.freeze({
     events: Object.freeze(events) as readonly TranscriptEvent[],
     now,
@@ -65,7 +63,7 @@ function makeCtx(
   snapshot: TokensSnapshot | undefined,
   overrides: Partial<WidgetContext> = {},
 ): WidgetContext {
-  const now = snapshot?.now ?? Date.parse("2026-05-01T03:00:00Z");
+  const now = snapshot?.now ?? FIXED_NOW_MS;
   return {
     stdin: baseStdin,
     config: DEFAULT_CONFIG,
@@ -113,16 +111,18 @@ describe("registerRateLimitWidgets", () => {
   it("ships exactly five widgets in sorted order", () => {
     const r = new WidgetRegistry();
     registerRateLimitWidgets(r);
-    expect(r.size()).toBe(5);
+    expect(r.size()).toBe(7);
     expect(r.list()).toEqual([
       "block-reset-at",
       "block-reset-timer",
       "session-usage",
+      "weekly-opus-usage",
       "weekly-reset-at",
       "weekly-reset-timer",
+      "weekly-sonnet-usage",
     ]);
     expect(Object.isFrozen(RATE_LIMIT_WIDGETS)).toBe(true);
-    expect(RATE_LIMIT_WIDGETS).toHaveLength(5);
+    expect(RATE_LIMIT_WIDGETS).toHaveLength(7);
   });
 });
 
@@ -224,6 +224,163 @@ describe("session-usage widget", () => {
   });
 });
 
+describe("weekly-sonnet-usage / weekly-opus-usage widgets", () => {
+  /*
+   * Anchor inside the week so any "older than 7 days" timestamps fall
+   * before the local-week boundary regardless of which weekday `NOW`
+   * lands on.
+   */
+  const NOW = Date.parse("2026-05-08T12:00:00Z"); // Friday
+  const sameWeek = (overrides: Partial<TranscriptEvent>): TranscriptEvent =>
+    ev({ timestamp: NOW - 2 * HOUR_MS, ...overrides });
+  /*
+   * 30 days back — always before the local-week boundary no matter
+   * which day the test runs.
+   */
+  const lastMonth = (overrides: Partial<TranscriptEvent>): TranscriptEvent =>
+    ev({ timestamp: NOW - 30 * 24 * HOUR_MS, ...overrides });
+
+  it("hides when no snapshot is supplied", () => {
+    const sonnetCell = weeklySonnetUsageWidget.render(makeCtx(undefined), {
+      options: {},
+      rawValue: false,
+    });
+    const opusCell = weeklyOpusUsageWidget.render(makeCtx(undefined), {
+      options: {},
+      rawValue: false,
+    });
+    expect(sonnetCell.hidden).toBe(true);
+    expect(opusCell.hidden).toBe(true);
+  });
+
+  it("sums only Sonnet events for the Sonnet widget", () => {
+    const snap = makeSnapshot(
+      [
+        sameWeek({ model: "claude-sonnet-4-6", inputTokens: 30_000 }),
+        sameWeek({ model: "claude-opus-4-7", inputTokens: 999_999 }),
+        sameWeek({ model: "claude-haiku-4-5", inputTokens: 999_999 }),
+      ],
+      { now: NOW },
+    );
+    const cell = weeklySonnetUsageWidget.render(makeCtx(snap), {
+      options: { limit: 100_000 },
+      rawValue: false,
+    });
+    expect(cell.text).toBe("30%");
+  });
+
+  it("sums only Opus events for the Opus widget", () => {
+    const snap = makeSnapshot(
+      [
+        sameWeek({ model: "claude-sonnet-4-6", inputTokens: 999_999 }),
+        sameWeek({ model: "claude-opus-4-7", inputTokens: 45_000 }),
+        sameWeek({ model: "claude-opus-4-7[1m]", inputTokens: 5_000 }),
+      ],
+      { now: NOW },
+    );
+    const cell = weeklyOpusUsageWidget.render(makeCtx(snap), {
+      options: { limit: 100_000 },
+      rawValue: false,
+    });
+    /*
+     * 45k + 5k = 50k against 100k = 50%. The `[1m]` variant is still
+     * an Opus family member via prefix match.
+     */
+    expect(cell.text).toBe("50%");
+  });
+
+  it("excludes events outside the current local week", () => {
+    const snap = makeSnapshot(
+      [
+        lastMonth({ model: "claude-sonnet-4-6", inputTokens: 999_999 }),
+        sameWeek({ model: "claude-sonnet-4-6", inputTokens: 10_000 }),
+      ],
+      { now: NOW },
+    );
+    const cell = weeklySonnetUsageWidget.render(makeCtx(snap), {
+      options: { limit: 100_000 },
+      rawValue: false,
+    });
+    expect(cell.text).toBe("10%");
+  });
+
+  it("skips events with no model id", () => {
+    const snap = makeSnapshot(
+      [
+        sameWeek({ inputTokens: 999_999 }), // no model → unattributable
+        sameWeek({ model: "claude-sonnet-4-6", inputTokens: 20_000 }),
+      ],
+      { now: NOW },
+    );
+    const cell = weeklySonnetUsageWidget.render(makeCtx(snap), {
+      options: { limit: 100_000 },
+      rawValue: false,
+    });
+    expect(cell.text).toBe("20%");
+  });
+
+  it("falls back to formatCount when no limit is set", () => {
+    const snap = makeSnapshot(
+      [sameWeek({ model: "claude-sonnet-4-6", inputTokens: 1_500, outputTokens: 500 })],
+      { now: NOW },
+    );
+    const cell = weeklySonnetUsageWidget.render(makeCtx(snap), {
+      options: {},
+      rawValue: false,
+    });
+    expect(cell.text).toBe("2k");
+  });
+
+  it("renders a 12-cell bar for display=bar", () => {
+    const snap = makeSnapshot([sameWeek({ model: "claude-opus-4-7", inputTokens: 50_000 })], {
+      now: NOW,
+    });
+    const cell = weeklyOpusUsageWidget.render(makeCtx(snap), {
+      options: { limit: 100_000, display: "bar" },
+      rawValue: false,
+    });
+    expect(cell.text.length).toBe(12);
+    expect(cell.text.startsWith("█")).toBe(true);
+  });
+
+  it("rawValue suppresses label", () => {
+    const snap = makeSnapshot([sameWeek({ model: "claude-opus-4-7", inputTokens: 1_000 })], {
+      now: NOW,
+    });
+    const cell = weeklyOpusUsageWidget.render(makeCtx(snap), {
+      options: { label: "opus ", limit: 10_000 },
+      rawValue: true,
+    });
+    expect(cell.text).toBe("10%");
+  });
+
+  it("Sonnet and Opus families do not bleed across each other", () => {
+    /*
+     * Pure cross-check: a snapshot containing only Sonnet events
+     * returns zero (0%) for the Opus widget, and vice versa.
+     */
+    const sonnetOnly = makeSnapshot(
+      [sameWeek({ model: "claude-sonnet-4-6", inputTokens: 10_000 })],
+      { now: NOW },
+    );
+    const opusOnly = makeSnapshot([sameWeek({ model: "claude-opus-4-7", inputTokens: 10_000 })], {
+      now: NOW,
+    });
+    expect(
+      weeklyOpusUsageWidget.render(makeCtx(sonnetOnly), {
+        options: { limit: 100_000 },
+        rawValue: false,
+      }).text,
+    ).toBe("0%");
+    expect(
+      weeklySonnetUsageWidget.render(makeCtx(opusOnly), {
+        options: { limit: 100_000 },
+        rawValue: false,
+      }).text,
+    ).toBe("0%");
+  });
+});
+
 describe("block-reset-timer widget", () => {
   it("default label says 'resets '", () => {
     const anchor = Date.parse("2026-05-01T00:00:00Z");
@@ -299,9 +456,11 @@ describe("weekly-reset-timer widget", () => {
       options: { format: "long" },
       rawValue: false,
     });
-    // Locale-dependent (the spec defines week boundary as local Monday
-    // 00:00). The widget delegates to weekStart which uses the local
-    // calendar, so we only assert the label + non-empty body shape.
+    /*
+     * Locale-dependent (the spec defines week boundary as local Monday
+     * 00:00). The widget delegates to weekStart which uses the local
+     * calendar, so we only assert the label + non-empty body shape.
+     */
     expect(cell.text.startsWith("week resets ")).toBe(true);
     expect(/\d+(h \d+m| ?m)/.test(cell.text)).toBe(true);
   });

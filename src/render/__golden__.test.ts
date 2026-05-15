@@ -65,9 +65,11 @@ describe("golden render scenarios", () => {
       const actual = await renderForFixture(stdin, {
         configPath: scenario.configPath,
         frozenClockISO: clockISO,
-        // Lock env to a minimal, host-independent shape so goldens
-        // are byte-identical on every machine. ASCII glyphs keep
-        // Powerline scenarios reproducible without a Nerd Font.
+        /*
+         * Lock env to a minimal, host-independent shape so goldens
+         * are byte-identical on every machine. ASCII glyphs keep
+         * Powerline scenarios reproducible without a Nerd Font.
+         */
         env: { NO_COLOR: "1", AGENTLINE_GLYPHS: "ascii" },
         flags: { noColor: true, noUnicode: false },
         width: 80,

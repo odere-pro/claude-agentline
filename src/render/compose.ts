@@ -57,10 +57,7 @@ function composePowerline(
   lines: readonly (readonly Cell[])[],
   options: ComposeOptions,
 ): Segment[][] {
-  const glyphs = resolveGlyphs(
-    options.powerline.glyphs,
-    options.glyphSupport === "ascii",
-  );
+  const glyphs = resolveGlyphs(options.powerline.glyphs, options.glyphSupport === "ascii");
   return applyPowerlineLines(lines, {
     glyphs,
     theme: options.theme,
@@ -76,10 +73,7 @@ function composePowerline(
  * line whose composed width exceeds `options.width` wraps onto a new
  * line; callers concatenate the result respecting `MAX_LINES`.
  */
-function composePlainLine(
-  cells: readonly Cell[],
-  options: ComposeOptions,
-): Segment[][] {
+function composePlainLine(cells: readonly Cell[], options: ComposeOptions): Segment[][] {
   const visible = cells.filter((c) => !c.hidden);
   if (visible.length === 0) return [];
   const packed = packIntoLines(visible, options);
@@ -122,10 +116,12 @@ function packIntoLines(visible: readonly Cell[], options: ComposeOptions): Cell[
 }
 
 function composeOneLine(cells: readonly Cell[], options: ComposeOptions): Segment[] {
-  // Pass 1: build the segment list with separator / padding /
-  // merging applied. Flex cells are emitted as marker segments
-  // (text === "" + a sentinel object identity) so pass 2 can
-  // measure remaining width and fill them.
+  /*
+   * Pass 1: build the segment list with separator / padding /
+   * merging applied. Flex cells are emitted as marker segments
+   * (text === "" + a sentinel object identity) so pass 2 can
+   * measure remaining width and fill them.
+   */
   const segments: ComposedSegment[] = [];
   for (let i = 0; i < cells.length; i += 1) {
     const cell = cells[i];
@@ -141,8 +137,10 @@ function composeOneLine(cells: readonly Cell[], options: ComposeOptions): Segmen
     }
   }
 
-  // Pass 2: flex expansion. Compute remaining width budget; share
-  // equally among all flex segments (any leftover goes on the last).
+  /*
+   * Pass 2: flex expansion. Compute remaining width budget; share
+   * equally among all flex segments (any leftover goes on the last).
+   */
   const flexIndices = segments
     .map((s, idx) => ({ s, idx }))
     .filter((entry) => entry.s.flex === true)
@@ -188,6 +186,7 @@ function cellToSegment(cell: Cell): ComposedSegment {
     ...(cell.bg !== undefined ? { bg: cell.bg } : {}),
     ...(cell.bold === true ? { bold: true } : {}),
     ...(cell.italic === true ? { italic: true } : {}),
+    ...(typeof cell.href === "string" && cell.href.length > 0 ? { href: cell.href } : {}),
   };
 }
 

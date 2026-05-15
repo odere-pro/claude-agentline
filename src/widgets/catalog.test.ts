@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   WIDGET_CATALOG,
-  WIDGET_CATEGORIES,
+  WIDGET_FAMILIES,
   activeVariantId,
   widgetMeta,
   widgetVariants,
@@ -16,7 +16,7 @@ function builtinRegistry(): WidgetRegistry {
   return r;
 }
 
-const CATEGORY_SET = new Set<string>(WIDGET_CATEGORIES);
+const FAMILY_SET = new Set<string>(WIDGET_FAMILIES);
 const DESCRIPTION_MAX = 80;
 
 describe("WIDGET_CATALOG", () => {
@@ -28,9 +28,9 @@ describe("WIDGET_CATALOG", () => {
     expect({ missing, extra }).toEqual({ missing: [], extra: [] });
   });
 
-  it("covers all 39 shipped widgets", () => {
-    expect(Object.keys(WIDGET_CATALOG)).toHaveLength(39);
-    expect(builtinRegistry().size()).toBe(39);
+  it("covers all 42 shipped widgets", () => {
+    expect(Object.keys(WIDGET_CATALOG)).toHaveLength(42);
+    expect(builtinRegistry().size()).toBe(42);
   });
 
   it("every entry has a non-empty description of at most 80 chars", () => {
@@ -43,9 +43,9 @@ describe("WIDGET_CATALOG", () => {
     }
   });
 
-  it("every entry has a known category", () => {
+  it("every entry has a known family", () => {
     for (const [type, meta] of Object.entries(WIDGET_CATALOG)) {
-      expect(CATEGORY_SET.has(meta.category), `${type}: category ${meta.category}`).toBe(true);
+      expect(FAMILY_SET.has(meta.family), `${type}: family ${meta.family}`).toBe(true);
     }
   });
 
@@ -62,7 +62,7 @@ describe("widgetMeta", () => {
     expect(widgetMeta("git-branch")).toMatchObject({
       name: "Git branch",
       description: "Current branch, or short SHA when detached",
-      category: "git",
+      family: "git",
     });
   });
 
@@ -74,12 +74,36 @@ describe("widgetMeta", () => {
 describe("WIDGET_CATALOG — variants", () => {
   it("declares variants for widgets that branch on an option (skills/usage/clock/timers/uptime/account-email)", () => {
     expect(widgetVariants("skills").map((v) => v.id)).toEqual(["count", "list", "last"]);
-    expect(widgetVariants("session-usage").map((v) => v.id)).toEqual(["percent", "bar", "short-bar"]);
-    expect(widgetVariants("account-email").map((v) => v.id)).toEqual(["full", "domain", "localpart"]);
-    expect(widgetVariants("block-reset-timer").map((v) => v.id)).toEqual(["short", "long", "clock"]);
-    expect(widgetVariants("block-reset-at").map((v) => v.id)).toEqual(["time-24h", "time-12h", "seconds"]);
-    expect(widgetVariants("weekly-reset-timer").map((v) => v.id)).toEqual(["short", "long", "clock"]);
-    expect(widgetVariants("weekly-reset-at").map((v) => v.id)).toEqual(["time-24h", "time-12h", "seconds"]);
+    expect(widgetVariants("session-usage").map((v) => v.id)).toEqual([
+      "percent",
+      "bar",
+      "short-bar",
+    ]);
+    expect(widgetVariants("account-email").map((v) => v.id)).toEqual([
+      "full",
+      "domain",
+      "localpart",
+    ]);
+    expect(widgetVariants("block-reset-timer").map((v) => v.id)).toEqual([
+      "short",
+      "long",
+      "clock",
+    ]);
+    expect(widgetVariants("block-reset-at").map((v) => v.id)).toEqual([
+      "time-24h",
+      "time-12h",
+      "seconds",
+    ]);
+    expect(widgetVariants("weekly-reset-timer").map((v) => v.id)).toEqual([
+      "short",
+      "long",
+      "clock",
+    ]);
+    expect(widgetVariants("weekly-reset-at").map((v) => v.id)).toEqual([
+      "time-24h",
+      "time-12h",
+      "seconds",
+    ]);
     expect(widgetVariants("uptime-session").map((v) => v.id)).toEqual(["short", "long", "clock"]);
     expect(widgetVariants("uptime-block").map((v) => v.id)).toEqual(["short", "long", "clock"]);
     expect(widgetVariants("clock").length).toBeGreaterThanOrEqual(2);
@@ -100,7 +124,9 @@ describe("WIDGET_CATALOG — variants", () => {
       for (const variant of variants) {
         expect(variant.id.trim().length, `${type}/${variant.id}: id`).toBeGreaterThan(0);
         expect(variant.label.trim().length, `${type}/${variant.id}: label`).toBeGreaterThan(0);
-        expect(Object.isFrozen(variant.options), `${type}/${variant.id}: options frozen`).toBe(true);
+        expect(Object.isFrozen(variant.options), `${type}/${variant.id}: options frozen`).toBe(
+          true,
+        );
       }
     }
   });
@@ -112,8 +138,10 @@ describe("WIDGET_CATALOG — glyphs", () => {
       const glyph = meta.glyph;
       if (glyph === undefined) continue;
       expect(glyph.length, `${type}: empty glyph`).toBeGreaterThan(0);
-      // Iterator splits surrogate pairs at code-point boundaries; we
-      // require exactly one user-perceived character per slot.
+      /*
+       * Iterator splits surrogate pairs at code-point boundaries; we
+       * require exactly one user-perceived character per slot.
+       */
       expect([...glyph], `${type}: multi-grapheme glyph ${JSON.stringify(glyph)}`).toHaveLength(1);
     }
   });

@@ -90,8 +90,10 @@ describe("loadConfig", () => {
   });
 
   it("propagates non-SyntaxError fs errors unchanged", async () => {
-    // Make the user config file unreadable so fs.readFile throws EACCES;
-    // exercises the rethrow branch (not ENOENT, not SyntaxError).
+    /*
+     * Make the user config file unreadable so fs.readFile throws EACCES;
+     * exercises the rethrow branch (not ENOENT, not SyntaxError).
+     */
     const cfgPath = join(claudeCfgDir, "agentline", "config.json");
     await fs.mkdir(join(claudeCfgDir, "agentline"), { recursive: true });
     await fs.writeFile(cfgPath, JSON.stringify({ version: 1 }));
@@ -101,8 +103,10 @@ describe("loadConfig", () => {
         loadConfig({
           env: { CLAUDE_CONFIG_DIR: claudeCfgDir },
         }),
-        // Unreadable file: rethrown as-is rather than wrapped in the JSON
-        // helper. Match on permission-denied to avoid root-running CI flakes.
+        /*
+         * Unreadable file: rethrown as-is rather than wrapped in the JSON
+         * helper. Match on permission-denied to avoid root-running CI flakes.
+         */
       ).rejects.toThrow(/EACCES|permission/i);
     } finally {
       await fs.chmod(cfgPath, 0o600).catch(() => undefined);
@@ -110,13 +114,15 @@ describe("loadConfig", () => {
   });
 
   it("silently ignores a project-shaped .agentline.json next to cwd", async () => {
-    // Regression guard for the project-layer removal: previously this file
-    // would have layered on top of user config. With agentline always
-    // configured globally it must be ignored, and the loader must still
-    // return user config without errors. We can't change process.cwd in a
-    // test, so we assert the shape of LoadOptions: `cwd` is no longer a
-    // recognised input — passing extra fields would be a compile error,
-    // and the loader has no code path that reads the cwd.
+    /*
+     * Regression guard for the project-layer removal: previously this file
+     * would have layered on top of user config. With agentline always
+     * configured globally it must be ignored, and the loader must still
+     * return user config without errors. We can't change process.cwd in a
+     * test, so we assert the shape of LoadOptions: `cwd` is no longer a
+     * recognised input — passing extra fields would be a compile error,
+     * and the loader has no code path that reads the cwd.
+     */
     const userCfg = join(claudeCfgDir, "agentline", "config.json");
     await fs.mkdir(join(claudeCfgDir, "agentline"), { recursive: true });
     await fs.writeFile(userCfg, JSON.stringify({ version: 1, theme: "nord" }));

@@ -2,8 +2,8 @@
  * Implementations of the ten doctor checks (D01–D10).
  *
  * Reporting and repair are split: a check NEVER mutates the host;
- * `--fix` calls the matching `tryFix*` helper in `fix.ts` separately
- * (only D01–D04 have fixers, per spec).
+ * `--fix` calls the matching `fixD0N` helper in `fix.ts` separately
+ * (D01–D05 have fixers; D06–D10 are reporting-only).
  *
  * On a missing-but-expected file (e.g. no Powerline-only Nerd Font when
  * Powerline is disabled) the check returns `pass` with an explanatory
@@ -18,7 +18,11 @@ import { promisify } from "node:util";
 import { loadConfig, type AgentlineConfig } from "../config/index.js";
 import { resolveEnv } from "../lib/env.js";
 import { pathExists } from "../lib/fs.js";
+import { isPlainObject } from "../lib/object.js";
+import { readVersionCheckSync } from "../state/version-check-cache.js";
 import { PRICING_TABLE_VERSION } from "../tokens/pricing.js";
+import { isNewer } from "../update-check/refresh.js";
+import { AGENTLINE_VERSION } from "../version.js";
 import { runEmbeddedRenderFixture } from "./fixture.js";
 import type { CheckResult, RunOptions } from "./types.js";
 
@@ -67,6 +71,7 @@ export async function runChecks(opts: RunOptions): Promise<CheckResult[]> {
     await checkD06(ctx),
     await checkD07(ctx),
     await checkD08(ctx),
+    await checkD09(ctx),
     await checkD10(ctx),
   ];
 }
@@ -90,16 +95,19 @@ async function checkD01(ctx: CheckCtx): Promise<CheckResult> {
 async function checkD02(ctx: CheckCtx): Promise<CheckResult> {
   const settings = settingsPath(ctx.home);
   const parsed = await readJsonOrNull(settings);
-  if (parsed === null) {
+  if (!isPlainObject(parsed)) {
     return {
       id: "D02",
       title: "statusLine wired to agentline",
       status: "warn",
-      message: "Claude Code settings file is missing or unreadable",
+      message:
+        parsed === null
+          ? "Claude Code settings file is missing or unreadable"
+          : "Claude Code settings file is not a JSON object",
       hint: "fix D01 first, then run `agentline doctor --fix`",
     };
   }
-  const sl = (parsed as Record<string, unknown>)["statusLine"];
+  const sl = parsed["statusLine"];
   if (sl === undefined || sl === null) {
     return {
       id: "D02",
@@ -185,20 +193,22 @@ async function checkD05(ctx: CheckCtx): Promise<CheckResult> {
   if (installed) {
     return ok("D05", "Nerd Font present", "nerd font detected");
   }
-  const reason = wantsPowerline && wantsGlyphs
-    ? "no Nerd Font detected for Powerline + glyphs"
-    : wantsPowerline
-      ? "no Nerd Font detected for Powerline glyphs"
-      : "no Nerd Font detected for config.glyphs=\"nerd-font\"";
+  const reason =
+    wantsPowerline && wantsGlyphs
+      ? "no Nerd Font detected for Powerline + glyphs"
+      : wantsPowerline
+        ? "no Nerd Font detected for Powerline glyphs"
+        : 'no Nerd Font detected for config.glyphs="nerd-font"';
   return {
     id: "D05",
     title: "Nerd Font present",
     status: "warn",
     message: reason,
     hint:
-      "download a Nerd Font from https://www.nerdfonts.com (e.g. JetBrainsMono, FiraCode, Hack)" +
+      "run `agentline doctor --fix` to install JetBrainsMono Nerd Font automatically" +
+      " · or download manually from https://www.nerdfonts.com (e.g. JetBrainsMono, FiraCode, Hack)" +
       " · macOS: brew install --cask font-jetbrains-mono-nerd-font" +
-      " · or set glyphs=\"off\" in your config to disable",
+      ' · or set glyphs="off" in your config to disable',
   };
 }
 
@@ -281,11 +291,60 @@ async function checkD08(ctx: CheckCtx): Promise<CheckResult> {
   }
 }
 
+/**
+ * D09 — Update-check cache (read-only). Surfaces a hint when the cache
+ * says a newer `@agentline/cli` exists. Never initiates a fetch from
+ * inside `runChecks`; the cache is refreshed by `install`, `edit`,
+ * and any future explicit refresh entry point. A missing cache or
+ * registry-unreachable state is reported as `pass` with an
+ * explanation — none of that is "broken host wiring".
+ */
+async function checkD09(ctx: CheckCtx): Promise<CheckResult> {
+  const cache = readVersionCheckSync(ctx.env);
+  if (cache === null) {
+    return {
+      id: "D09",
+      title: "Update check",
+      status: "pass",
+      message: `no cached check yet (current: ${AGENTLINE_VERSION})`,
+      hint: "run `agentline install` or `agentline edit` to populate the cache",
+    };
+  }
+  if (cache.latest === null) {
+    return {
+      id: "D09",
+      title: "Update check",
+      status: "pass",
+      message: `last probe failed; running ${AGENTLINE_VERSION}`,
+    };
+  }
+  if (isNewer(cache.latest, AGENTLINE_VERSION)) {
+    return {
+      id: "D09",
+      title: "Update check",
+      status: "pass",
+      message: `update available: ${AGENTLINE_VERSION} → ${cache.latest}`,
+      hint: "npm i -g @agentline/cli",
+    };
+  }
+  return {
+    id: "D09",
+    title: "Update check",
+    status: "pass",
+    message: `up to date (${AGENTLINE_VERSION})`,
+  };
+}
+
 /** D10 — Render dry-run on embedded fixture matches snapshot. */
 async function checkD10(_ctx: CheckCtx): Promise<CheckResult> {
   const ok = await runEmbeddedRenderFixture();
   if (ok.match) {
-    return { id: "D10", title: "Render dry-run matches snapshot", status: "pass", message: "render fixture ok" };
+    return {
+      id: "D10",
+      title: "Render dry-run matches snapshot",
+      status: "pass",
+      message: "render fixture ok",
+    };
   }
   return {
     id: "D10",
@@ -317,8 +376,8 @@ async function readJsonOrNull(path: string): Promise<unknown> {
 
 function extractStatusLineCommand(sl: unknown): string | null {
   if (typeof sl === "string") return sl;
-  if (typeof sl === "object" && sl !== null) {
-    const cmd = (sl as Record<string, unknown>)["command"];
+  if (isPlainObject(sl)) {
+    const cmd = sl["command"];
     if (typeof cmd === "string") return cmd;
   }
   return null;
@@ -338,16 +397,20 @@ function hasGitWidget(cfg: AgentlineConfig | null): boolean {
 }
 
 async function detectNerdFont(): Promise<boolean> {
-  // Best-effort cross-platform check — looks for a `*Nerd Font*` family
-  // via `fc-list` (Linux), system_profiler (macOS), or a font-cache file
-  // on Windows. Failure to find one is reported as warn, never fatal.
+  /*
+   * Best-effort cross-platform check — looks for a `*Nerd Font*` family
+   * via `fc-list` (Linux), system_profiler (macOS), or a font-cache file
+   * on Windows. Failure to find one is reported as warn, never fatal.
+   */
   try {
     if (process.platform === "linux") {
       const { stdout } = await execFileP("fc-list", [], { timeout: EXEC_TIMEOUTS.fcList });
       return /nerd font/i.test(stdout);
     }
     if (process.platform === "darwin") {
-      const { stdout } = await execFileP("system_profiler", ["SPFontsDataType"], { timeout: EXEC_TIMEOUTS.systemProfiler });
+      const { stdout } = await execFileP("system_profiler", ["SPFontsDataType"], {
+        timeout: EXEC_TIMEOUTS.systemProfiler,
+      });
       return /nerd font/i.test(stdout);
     }
   } catch {

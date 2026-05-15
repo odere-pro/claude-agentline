@@ -19,45 +19,45 @@ import {
   PickerSearch,
   PickerVariant,
   PickerWidget,
-  categoriesWithWidgets,
+  familiesWithWidgets,
   filterWidgets,
   selectedAt,
   variantRows,
-  widgetsInCategory,
+  widgetsInFamily,
 } from "./picker.js";
 
 const ENTRIES: readonly WidgetMetaEntry[] = [
-  { type: "git-branch", name: "Git branch", description: "branch", category: "git" },
-  { type: "git-changes", name: "Git changes", description: "changes", category: "git" },
-  { type: "model", name: "Model", description: "model id", category: "session" },
-  { type: "skills", name: "Skills", description: "skills attached", category: "session" },
-  { type: "clock", name: "Clock", description: "wall-clock", category: "time" },
+  { type: "git-branch", name: "Git branch", description: "branch", family: "git" },
+  { type: "git-changes", name: "Git changes", description: "changes", family: "git" },
+  { type: "model", name: "Model", description: "model id", family: "session" },
+  { type: "skills", name: "Skills", description: "skills attached", family: "session" },
+  { type: "clock", name: "Clock", description: "wall-clock", family: "time" },
 ];
 
 const GLYPHS = pickGlyphs({ unicode: true });
 
-describe("categoriesWithWidgets", () => {
-  it("lists every category that has ≥1 widget, in catalogue order", () => {
-    expect(categoriesWithWidgets(ENTRIES)).toEqual(["session", "git", "time"]);
+describe("familiesWithWidgets", () => {
+  it("lists every family that has ≥1 widget, in catalogue order", () => {
+    expect(familiesWithWidgets(ENTRIES)).toEqual(["session", "git", "time"]);
   });
 
   it("returns empty when no entries are present", () => {
-    expect(categoriesWithWidgets([])).toEqual([]);
+    expect(familiesWithWidgets([])).toEqual([]);
   });
 });
 
-describe("widgetsInCategory", () => {
-  it("scopes to the given category and substring-filters", () => {
-    expect(widgetsInCategory(ENTRIES, "git", "").map((e) => e.type)).toEqual([
+describe("widgetsInFamily", () => {
+  it("scopes to the given family and substring-filters", () => {
+    expect(widgetsInFamily(ENTRIES, "git", "").map((e) => e.type)).toEqual([
       "git-branch",
       "git-changes",
     ]);
-    expect(widgetsInCategory(ENTRIES, "git", "BRANCH").map((e) => e.type)).toEqual(["git-branch"]);
-    expect(widgetsInCategory(ENTRIES, "session", "skills").map((e) => e.type)).toEqual(["skills"]);
+    expect(widgetsInFamily(ENTRIES, "git", "BRANCH").map((e) => e.type)).toEqual(["git-branch"]);
+    expect(widgetsInFamily(ENTRIES, "session", "skills").map((e) => e.type)).toEqual(["skills"]);
   });
 
   it("returns empty when nothing matches", () => {
-    expect(widgetsInCategory(ENTRIES, "git", "zzz")).toEqual([]);
+    expect(widgetsInFamily(ENTRIES, "git", "zzz")).toEqual([]);
   });
 });
 
@@ -91,11 +91,8 @@ describe("selectedAt", () => {
 });
 
 describe("filterWidgets", () => {
-  it("substring-matches over type and name across every category", () => {
-    expect(filterWidgets(ENTRIES, "git").map((e) => e.type)).toEqual([
-      "git-branch",
-      "git-changes",
-    ]);
+  it("substring-matches over type and name across every family", () => {
+    expect(filterWidgets(ENTRIES, "git").map((e) => e.type)).toEqual(["git-branch", "git-changes"]);
     expect(filterWidgets(ENTRIES, "MODEL").map((e) => e.type)).toEqual(["model"]);
   });
 
@@ -109,6 +106,49 @@ describe("filterWidgets", () => {
     ]);
     expect(filterWidgets(ENTRIES, "model", exclude)).toEqual([]);
   });
+
+  it("initialism-matches hyphenated types (`gb` → `git-branch`)", () => {
+    expect(filterWidgets(ENTRIES, "gb").map((e) => e.type)).toEqual(["git-branch"]);
+    expect(filterWidgets(ENTRIES, "gc").map((e) => e.type)).toEqual(["git-changes"]);
+  });
+
+  it("initialism-matches multi-word display names (`gb` → `Git branch`)", () => {
+    // Even if the type didn't tokenise the same way, the human name does.
+    const onlyName: readonly WidgetMetaEntry[] = [
+      { type: "githubpr", name: "Git branch", description: "x", family: "git" },
+    ];
+    expect(filterWidgets(onlyName, "gb").map((e) => e.type)).toEqual(["githubpr"]);
+  });
+
+  it("single-letter queries stay substring-only", () => {
+    /*
+     * `g` should NOT initialism-match `git-branch` (every widget whose
+     * first token starts with `g` would otherwise leak in). It still
+     * substring-matches `git-branch` because the type contains `g`.
+     */
+    const out = filterWidgets(ENTRIES, "g").map((e) => e.type);
+    expect(out).toEqual(["git-branch", "git-changes"]);
+  });
+
+  it("substring still wins for longer queries (no regression)", () => {
+    expect(filterWidgets(ENTRIES, "branch").map((e) => e.type)).toEqual(["git-branch"]);
+    expect(filterWidgets(ENTRIES, "skills").map((e) => e.type)).toEqual(["skills"]);
+  });
+
+  it("initialism is case-insensitive", () => {
+    expect(filterWidgets(ENTRIES, "GB").map((e) => e.type)).toEqual(["git-branch"]);
+  });
+});
+
+describe("widgetsInFamily — initialism", () => {
+  it("scopes initialism to the family", () => {
+    expect(widgetsInFamily(ENTRIES, "git", "gb").map((e) => e.type)).toEqual(["git-branch"]);
+    /*
+     * The same query in a family that has no matching initialism
+     * returns nothing — initialism does not cross family bounds.
+     */
+    expect(widgetsInFamily(ENTRIES, "time", "gb")).toEqual([]);
+  });
 });
 
 describe("PICKER_PAGE", () => {
@@ -120,40 +160,40 @@ describe("PICKER_PAGE", () => {
 
 describe("Picker components — smoke", () => {
   it("PickerGroup renders without throwing", () => {
-    expect(() =>
-      PickerGroup({ entries: ENTRIES, highlight: 0, glyphs: GLYPHS }),
-    ).not.toThrow();
+    expect(() => PickerGroup({ entries: ENTRIES, highlight: 0, glyphs: GLYPHS })).not.toThrow();
   });
 
   it("PickerWidget renders without throwing, even with an out-of-range highlight", () => {
     expect(() =>
-      PickerWidget({ category: "git", entries: ENTRIES, query: "", highlight: 99 }),
+      PickerWidget({ family: "git", entries: ENTRIES, query: "", highlight: 99 }),
     ).not.toThrow();
   });
 
   it("PickerWidget renders gracefully when nothing matches", () => {
     expect(() =>
-      PickerWidget({ category: "git", entries: ENTRIES, query: "zzz", highlight: 0 }),
+      PickerWidget({ family: "git", entries: ENTRIES, query: "zzz", highlight: 0 }),
     ).not.toThrow();
   });
 
   it("PickerWidget includes each widget's description text in its row", () => {
-    const node = PickerWidget({ category: "git", entries: ENTRIES, query: "", highlight: 0 });
+    const node = PickerWidget({ family: "git", entries: ENTRIES, query: "", highlight: 0 });
     const serialised = JSON.stringify(node);
-    // Both git widgets' descriptions from ENTRIES must appear in the
-    // rendered tree (separate dim-coloured Text children).
+    /*
+     * Both git widgets' descriptions from ENTRIES must appear in the
+     * rendered tree (separate dim-coloured Text children).
+     */
     expect(serialised).toContain("branch");
     expect(serialised).toContain("changes");
   });
 
-  it("PickerSearch renders flat results across categories filtered by query", () => {
+  it("PickerSearch renders flat results across families filtered by query", () => {
     const node = PickerSearch({ entries: ENTRIES, query: "git", highlight: 0 });
     const serialised = JSON.stringify(node);
     expect(serialised).toContain("git-branch");
     expect(serialised).toContain("git-changes");
     // Out-of-query entries do not appear.
     expect(serialised).not.toContain("clock");
-    // Each row carries its category badge.
+    // Each row carries its family badge.
     expect(serialised).toContain("[git");
   });
 
@@ -170,9 +210,7 @@ describe("Picker components — smoke", () => {
   });
 
   it("PickerSearch renders gracefully when nothing matches", () => {
-    expect(() =>
-      PickerSearch({ entries: ENTRIES, query: "zzz", highlight: 0 }),
-    ).not.toThrow();
+    expect(() => PickerSearch({ entries: ENTRIES, query: "zzz", highlight: 0 })).not.toThrow();
   });
 
   it("PickerVariant renders for a widget with variants and one without", () => {

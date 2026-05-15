@@ -36,13 +36,41 @@ import type { PowerlineGlyphSet } from "./glyphs.js";
 export interface PowerlineTransformOptions {
   readonly glyphs: PowerlineGlyphSet;
   readonly theme: Theme | null;
-  readonly capStart?: string;
-  readonly capEnd?: string;
+  readonly capStart?: string | readonly string[];
+  readonly capEnd?: string | readonly string[];
   /** Background colour of the next line's first cell, when carried. */
   readonly continueBg?: Colour;
+  /** 0-based line index; used to pick per-line entries from cap arrays. */
+  readonly lineIndex?: number;
 }
 
 const SPACE = " ";
+
+/**
+ * Resolve a `string | readonly string[]` entry to the single glyph at
+ * position `idx`. Two semantics share one helper:
+ *
+ *   - `"clamp"` (glyphs): once `idx ≥ entry.length`, the last entry
+ *     repeats. Glyph arrays describe a fixed sequence of hard-vs-soft
+ *     chevron variants — "hard then soft, soft, soft…" — so repetition
+ *     of the tail glyph is the natural read.
+ *   - `"cycle"` (caps): `idx % entry.length`, so a 2-element array
+ *     alternates across lines 0/1, line 2 wraps to entry 0, etc. Caps
+ *     cycle because the natural use case is alternating themes across
+ *     several statuslines.
+ *
+ * They are deliberately asymmetric — do not fold them into one rule.
+ */
+function pickIndexed(
+  entry: string | readonly string[],
+  idx: number,
+  mode: "clamp" | "cycle",
+): string {
+  if (typeof entry === "string") return entry;
+  if (entry.length === 0) return "";
+  const i = mode === "cycle" ? idx % entry.length : Math.min(idx, entry.length - 1);
+  return entry[i] ?? "";
+}
 
 interface PaddedCell {
   readonly text: string;
@@ -50,6 +78,7 @@ interface PaddedCell {
   readonly bg: Colour;
   readonly bold: boolean;
   readonly italic: boolean;
+  readonly href: string | undefined;
 }
 
 function defaultBg(theme: Theme | null): Colour {
@@ -66,14 +95,25 @@ function padded(cell: Cell, theme: Theme | null): PaddedCell {
     bg: cell.bg ?? defaultBg(theme),
     bold: cell.bold ?? false,
     italic: cell.italic ?? false,
+    /*
+     * The OSC 8 wrap covers the padded text too — clicking the
+     * surrounding whitespace inside the powerline chip should still
+     * open the link, matching the user's mental model of "the chip
+     * is the link".
+     */
+    href: typeof cell.href === "string" && cell.href.length > 0 ? cell.href : undefined,
   };
 }
 
 function styleSegment(cell: PaddedCell): Segment {
   const seg: Segment = { text: cell.text, bg: cell.bg };
-  return cell.fg !== undefined
-    ? { ...seg, fg: cell.fg, ...(cell.bold ? { bold: true } : {}), ...(cell.italic ? { italic: true } : {}) }
-    : { ...seg, ...(cell.bold ? { bold: true } : {}), ...(cell.italic ? { italic: true } : {}) };
+  const withFg = cell.fg !== undefined ? { ...seg, fg: cell.fg } : seg;
+  const withStyle = {
+    ...withFg,
+    ...(cell.bold ? { bold: true } : {}),
+    ...(cell.italic ? { italic: true } : {}),
+  };
+  return cell.href !== undefined ? { ...withStyle, href: cell.href } : withStyle;
 }
 
 export function applyPowerline(
@@ -87,33 +127,45 @@ export function applyPowerline(
   const segments: Segment[] = [];
 
   // Start cap (before first cell)
+  const lineIdx = options.lineIndex ?? 0;
   const firstBg = padded_[0]?.bg;
   if (options.capStart && firstBg !== undefined) {
-    segments.push({ text: options.capStart, bg: firstBg });
+    const capStart = pickIndexed(options.capStart, lineIdx, "cycle");
+    if (capStart.length > 0) {
+      segments.push({ text: capStart, bg: firstBg });
+    }
   }
 
+  let chevronIdx = 0;
   for (let i = 0; i < padded_.length; i += 1) {
     const cell = padded_[i];
     if (!cell) continue;
     segments.push(styleSegment(cell));
     const next = padded_[i + 1];
     if (next) {
-      // Chevron between cell and next: fg = cell.bg, bg = next.bg
+      // Same-bg cells: use cell.fg so the chevron stays visible on the continuous band.
+      const chevronFg = cell.bg === next.bg ? (cell.fg ?? cell.bg) : cell.bg;
       segments.push({
-        text: options.glyphs.hardRight,
-        fg: cell.bg,
+        text: pickIndexed(options.glyphs.hardRight, chevronIdx, "clamp"),
+        fg: chevronFg,
         bg: next.bg,
       });
+      chevronIdx += 1;
     }
   }
 
-  // End cap: chevron whose fg = last cell's bg. bg is either the
-  // carried continueBg (multi-line auto-thread) or terminal default
-  // (no bg set on the segment).
+  /*
+   * End cap: chevron whose fg = last cell's bg. bg is either the
+   * carried continueBg (multi-line auto-thread) or terminal default
+   * (no bg set on the segment).
+   */
   const lastBg = padded_[padded_.length - 1]?.bg;
   if (options.capEnd && lastBg !== undefined) {
-    const cap: Segment = { text: options.capEnd, fg: lastBg };
-    segments.push(options.continueBg !== undefined ? { ...cap, bg: options.continueBg } : cap);
+    const capEnd = pickIndexed(options.capEnd, lineIdx, "cycle");
+    if (capEnd.length > 0) {
+      const cap: Segment = { text: capEnd, fg: lastBg };
+      segments.push(options.continueBg !== undefined ? { ...cap, bg: options.continueBg } : cap);
+    }
   }
 
   return segments;
@@ -135,13 +187,17 @@ export function applyPowerlineLines(
     readonly continueColors: boolean;
   },
 ): Segment[][] {
-  // First pass: figure out each line's first-cell bg (for continueBg
-  // wiring) and last-cell bg (for autoAlign padding).
+  /*
+   * First pass: figure out each line's first-cell bg (for continueBg
+   * wiring) and last-cell bg (for autoAlign padding).
+   */
   const firstBgPerLine: (Colour | undefined)[] = [];
   const lastBgPerLine: (Colour | undefined)[] = [];
   for (const line of lines) {
     const visible = line.filter((c) => !c.hidden && !c.flex);
-    firstBgPerLine.push(visible[0]?.bg ?? (visible.length > 0 ? defaultBg(options.theme) : undefined));
+    firstBgPerLine.push(
+      visible[0]?.bg ?? (visible.length > 0 ? defaultBg(options.theme) : undefined),
+    );
     lastBgPerLine.push(
       visible[visible.length - 1]?.bg ??
         (visible.length > 0 ? defaultBg(options.theme) : undefined),
@@ -154,6 +210,7 @@ export function applyPowerlineLines(
     const continueBg = options.continueColors ? firstBgPerLine[i + 1] : undefined;
     const lineSegments = applyPowerline(line, {
       ...options,
+      lineIndex: i,
       ...(continueBg !== undefined ? { continueBg } : {}),
     });
     out.push(lineSegments);

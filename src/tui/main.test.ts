@@ -26,13 +26,9 @@ vi.mock("ink", () => {
 
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import { DEFAULT_KEY_BINDINGS } from "../keys/bindings.js";
-import {
-  enterAltScreen,
-  footerLines,
-  fullscreenStream,
-  pruneStaleWidgets,
-  runConfigCommand,
-} from "./main.js";
+import { footerLines } from "./footer.js";
+import { runConfigCommand } from "./main.js";
+import { enterAltScreen, fullscreenStream, pruneStaleWidgets } from "./mount.js";
 
 describe("runConfigCommand (entry-point wiring)", () => {
   let tmp: string;
@@ -53,8 +49,10 @@ describe("runConfigCommand (entry-point wiring)", () => {
   });
 
   it("falls back to DEFAULT_CONFIG when no on-disk config can be loaded", async () => {
-    // No preloaded input + a CLAUDE_CONFIG_DIR pointing at an empty tmp:
-    // resolveStartingConfig hits the catch branch and returns DEFAULT_CONFIG.
+    /*
+     * No preloaded input + a CLAUDE_CONFIG_DIR pointing at an empty tmp:
+     * resolveStartingConfig hits the catch branch and returns DEFAULT_CONFIG.
+     */
     const result = await runConfigCommand({
       env: { CLAUDE_CONFIG_DIR: tmp },
     });
@@ -168,11 +166,69 @@ describe("enterAltScreen", () => {
   it("a SIGINT during the session triggers the leave sequence", () => {
     const { stream, writes } = makeStream(true);
     const restore = enterAltScreen(stream);
-    // The handler is installed via `process.once`, so emitting once is
-    // enough; the test process is otherwise untouched (Ink isn't mounted).
+    /*
+     * The handler is installed via `process.once`, so emitting once is
+     * enough; the test process is otherwise untouched (Ink isn't mounted).
+     */
     process.emit("SIGINT");
     expect(writes).toContain("\x1b[?1049l");
     restore(); // tidy any remaining listener
+  });
+
+  it("SIGTERM with no in-flight save exits immediately", () => {
+    const { stream, writes } = makeStream(true);
+    let exitCalled = false;
+    const realExit = process.exit;
+    /*
+     * The override matches `process.exit`'s `(code?: number) => never`
+     * signature but actually returns so the test process survives.
+     */
+    process.exit = (() => {
+      exitCalled = true;
+      return undefined as unknown as never;
+    }) as typeof process.exit;
+    try {
+      const restore = enterAltScreen(stream, { awaitBeforeExit: () => null });
+      process.emit("SIGTERM", "SIGTERM");
+      expect(writes).toContain("\x1b[?1049l");
+      expect(exitCalled).toBe(true);
+      restore();
+    } finally {
+      process.exit = realExit;
+    }
+  });
+
+  it("SIGTERM with an in-flight save waits for the save before restoring + exiting", async () => {
+    const { stream, writes } = makeStream(true);
+    let exitCalled = false;
+    let resolveSave: (() => void) | null = null;
+    const savePromise = new Promise<void>((res) => {
+      resolveSave = res;
+    });
+    const realExit = process.exit;
+    process.exit = (() => {
+      exitCalled = true;
+      return undefined as unknown as never;
+    }) as typeof process.exit;
+    try {
+      const restore = enterAltScreen(stream, { awaitBeforeExit: () => savePromise });
+      process.emit("SIGTERM", "SIGTERM");
+      /*
+       * Before the save promise resolves: alt-screen still entered, no
+       * leave sequence written, exit not yet called.
+       */
+      expect(writes).toEqual(["\x1b[?1049h"]);
+      expect(exitCalled).toBe(false);
+      // Resolve the save and let two microtask ticks flush the .finally chain.
+      resolveSave!();
+      await savePromise;
+      await Promise.resolve();
+      expect(writes).toContain("\x1b[?1049l");
+      expect(exitCalled).toBe(true);
+      restore();
+    } finally {
+      process.exit = realExit;
+    }
   });
 });
 
@@ -201,10 +257,7 @@ describe("fullscreenStream", () => {
     const wrapped = fullscreenStream(stream);
     wrapped.write("frame-one");
     wrapped.write("frame-two");
-    expect(writes).toEqual([
-      "\x1b[2J\x1b[3J\x1b[Hframe-one",
-      "\x1b[2J\x1b[3J\x1b[Hframe-two",
-    ]);
+    expect(writes).toEqual(["\x1b[2J\x1b[3J\x1b[Hframe-one", "\x1b[2J\x1b[3J\x1b[Hframe-two"]);
   });
 
   it("forwards passthrough properties like columns/rows", () => {

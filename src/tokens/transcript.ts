@@ -17,6 +17,8 @@ import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve, sep } from "node:path";
 
+import { isPlainObject } from "../lib/object.js";
+
 export interface TranscriptEvent {
   readonly timestamp: number;
   readonly model?: string;
@@ -41,7 +43,10 @@ const MAX_TRANSCRIPT_BYTES = 16 * 1024 * 1024;
 const cache: Map<string, CacheEntry> = new Map();
 let totalBytes = 0;
 
-export function readTranscript(transcriptPath: string | undefined, now: number): readonly TranscriptEvent[] {
+export function readTranscript(
+  transcriptPath: string | undefined,
+  now: number,
+): readonly TranscriptEvent[] {
   if (!transcriptPath) return [];
   if (!isPermittedTranscriptPath(transcriptPath)) return [];
   let stat;
@@ -50,14 +55,21 @@ export function readTranscript(transcriptPath: string | undefined, now: number):
   } catch {
     return [];
   }
-  // Bound the read so a stdin payload pointing at a multi-GB file or a
-  // /dev/zero symlink can't OOM the render path.
+  /*
+   * Bound the read so a stdin payload pointing at a multi-GB file or a
+   * /dev/zero symlink can't OOM the render path.
+   */
   if (stat.size > MAX_TRANSCRIPT_BYTES) return [];
   const key = `${transcriptPath}:${stat.mtimeMs}:${stat.size}`;
   evictExpired(now);
   const hit = cache.get(transcriptPath);
   if (hit && hit.key === key) {
-    cache.set(transcriptPath, { key: hit.key, events: hit.events, bytes: hit.bytes, lastUsed: now });
+    cache.set(transcriptPath, {
+      key: hit.key,
+      events: hit.events,
+      bytes: hit.bytes,
+      lastUsed: now,
+    });
     return hit.events;
   }
   const events = parseFile(transcriptPath);
@@ -74,11 +86,13 @@ export function clearTranscriptCache(): void {
   totalBytes = 0;
 }
 
-// Defence-in-depth: stdin is supplied by Claude Code and the payload is
-// trusted, but the JSONL reader will gladly parse any path it's handed
-// (`/etc/shadow` if readable). Constrain to a known transcript root so a
-// malformed payload can't turn this into an arbitrary-path read primitive.
-// Tests can override via AGENTLINE_TRANSCRIPT_ROOT.
+/*
+ * Defence-in-depth: stdin is supplied by Claude Code and the payload is
+ * trusted, but the JSONL reader will gladly parse any path it's handed
+ * (`/etc/shadow` if readable). Constrain to a known transcript root so a
+ * malformed payload can't turn this into an arbitrary-path read primitive.
+ * Tests can override via AGENTLINE_TRANSCRIPT_ROOT.
+ */
 function isPermittedTranscriptPath(p: string): boolean {
   const abs = resolve(p);
   if (abs.includes(`${sep}..${sep}`) || abs.endsWith(`${sep}..`)) return false;
@@ -113,16 +127,17 @@ function parseFile(path: string): readonly TranscriptEvent[] {
 }
 
 function toEvent(obj: unknown): TranscriptEvent | null {
-  if (typeof obj !== "object" || obj === null) return null;
-  const o = obj as Record<string, unknown>;
-  const ts = parseTimestamp(o["timestamp"]);
+  if (!isPlainObject(obj)) return null;
+  const ts = parseTimestamp(obj["timestamp"]);
   if (ts === null) return null;
-  const compaction = o["type"] === "compaction" || o["compaction"] === true;
-  const usage = extractUsage(o);
+  const compaction = obj["type"] === "compaction" || obj["compaction"] === true;
+  const usage = extractUsage(obj);
+  const model = obj["model"];
+  const effort = obj["thinkingEffort"];
   return {
     timestamp: ts,
-    model: typeof o["model"] === "string" ? (o["model"] as string) : undefined,
-    effort: typeof o["thinkingEffort"] === "string" ? (o["thinkingEffort"] as string) : undefined,
+    model: typeof model === "string" ? model : undefined,
+    effort: typeof effort === "string" ? effort : undefined,
     inputTokens: usage.input,
     outputTokens: usage.output,
     cachedTokens: usage.cached,
@@ -147,16 +162,12 @@ interface UsageTotals {
 
 function extractUsage(o: Record<string, unknown>): UsageTotals {
   const message = o["message"];
-  if (typeof message === "object" && message !== null) {
-    const usage = (message as Record<string, unknown>)["usage"];
-    if (typeof usage === "object" && usage !== null) {
-      return readUsage(usage as Record<string, unknown>);
-    }
+  if (isPlainObject(message)) {
+    const usage = message["usage"];
+    if (isPlainObject(usage)) return readUsage(usage);
   }
   const usage = o["usage"];
-  if (typeof usage === "object" && usage !== null) {
-    return readUsage(usage as Record<string, unknown>);
-  }
+  if (isPlainObject(usage)) return readUsage(usage);
   return { input: 0, output: 0, cached: 0 };
 }
 
@@ -164,7 +175,8 @@ function readUsage(u: Record<string, unknown>): UsageTotals {
   return {
     input: numberOrZero(u["input_tokens"]),
     output: numberOrZero(u["output_tokens"]),
-    cached: numberOrZero(u["cache_read_input_tokens"]) + numberOrZero(u["cache_creation_input_tokens"]),
+    cached:
+      numberOrZero(u["cache_read_input_tokens"]) + numberOrZero(u["cache_creation_input_tokens"]),
   };
 }
 

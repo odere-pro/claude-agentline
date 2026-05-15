@@ -11,8 +11,11 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { writeJsonIdempotent } from "./atomic-write.js";
+import { isPlainObject } from "./object.js";
 
 const EXEC_TIMEOUTS = {
   fcList: 2500,
@@ -59,17 +62,19 @@ export function detectNerdFontSync(): boolean {
   return false;
 }
 
-/** Write the sentinel file. Atomic via tmp + rename. */
-export function writeNerdFontStatus(stateDir: string, available: boolean): NerdFontStatus {
+/** Write the sentinel file via the shared tmp + fsync + rename helper. */
+export async function writeNerdFontStatus(
+  stateDir: string,
+  available: boolean,
+): Promise<NerdFontStatus> {
   const status: NerdFontStatus = {
     available,
     checkedAt: new Date().toISOString(),
   };
-  const target = join(stateDir, NERD_FONT_SENTINEL);
-  mkdirSync(dirname(target), { recursive: true, mode: 0o700 });
-  const tmp = `${target}.tmp.${process.pid}`;
-  writeFileSync(tmp, `${JSON.stringify(status, null, 2)}\n`, { mode: 0o600 });
-  renameSync(tmp, target);
+  await writeJsonIdempotent(join(stateDir, NERD_FONT_SENTINEL), status, {
+    mode: 0o600,
+    dirMode: 0o700,
+  });
   return status;
 }
 
@@ -79,17 +84,18 @@ export function writeNerdFontStatus(stateDir: string, available: boolean): NerdF
  * "Nerd Font assumed present" so a user who skipped install isn't punished.
  */
 export function readNerdFontStatus(stateDir: string): NerdFontStatus | null {
+  let parsed: unknown;
   try {
-    const raw = readFileSync(join(stateDir, NERD_FONT_SENTINEL), "utf8");
-    const parsed = JSON.parse(raw) as Partial<NerdFontStatus>;
-    if (typeof parsed.available !== "boolean") return null;
-    return {
-      available: parsed.available,
-      checkedAt: typeof parsed.checkedAt === "string" ? parsed.checkedAt : "",
-    };
+    parsed = JSON.parse(readFileSync(join(stateDir, NERD_FONT_SENTINEL), "utf8"));
   } catch {
     return null;
   }
+  if (!isPlainObject(parsed)) return null;
+  if (typeof parsed.available !== "boolean") return null;
+  return {
+    available: parsed.available,
+    checkedAt: typeof parsed.checkedAt === "string" ? parsed.checkedAt : "",
+  };
 }
 
 /**

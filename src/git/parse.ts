@@ -24,15 +24,7 @@ const ZERO_COUNTS: PorcelainCounts = Object.freeze({
   added: 0,
 });
 
-const UNMERGED_SET: ReadonlySet<string> = new Set([
-  "DD",
-  "AU",
-  "UD",
-  "UA",
-  "DU",
-  "AA",
-  "UU",
-]);
+const UNMERGED_SET: ReadonlySet<string> = new Set(["DD", "AU", "UD", "UA", "DU", "AA", "UU"]);
 
 export function parsePorcelain(input: string | null): PorcelainCounts {
   if (!input) return ZERO_COUNTS;
@@ -70,8 +62,10 @@ export interface AheadBehind {
 
 export function parseAheadBehind(input: string | null): AheadBehind {
   if (!input) return { ahead: 0, behind: 0 };
-  // `git rev-list --left-right --count UPSTREAM...HEAD` emits
-  // `<behind>\t<ahead>` because LEFT is upstream, RIGHT is HEAD.
+  /*
+   * `git rev-list --left-right --count UPSTREAM...HEAD` emits
+   * `<behind>\t<ahead>` because LEFT is upstream, RIGHT is HEAD.
+   */
   const parts = input.trim().split(/\s+/);
   const behind = parts[0] !== undefined ? toNonNegInt(parts[0]) : 0;
   const ahead = parts[1] !== undefined ? toNonNegInt(parts[1]) : 0;

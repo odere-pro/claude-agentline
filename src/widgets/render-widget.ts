@@ -15,7 +15,6 @@
  */
 
 import type { WidgetConfig } from "../config/types.js";
-import type { Colour } from "../theme/colours.js";
 import { widgetGlyph } from "./catalog.js";
 import type { Cell, MergeMode } from "./cell.js";
 import { HIDDEN_CELL } from "./cell.js";
@@ -53,24 +52,23 @@ function applyGlyph(text: string, type: string, ctx: WidgetContext): string {
 
 function applyOverrides(cell: Cell, config: WidgetConfig, ctx: WidgetContext): Cell {
   const merged: MergeMode = config.merged ?? cell.merged ?? "off";
-  // Glyph mode prepends the catalogue glyph + a thin space when
-  // `config.glyphs === "nerd-font"`. Skipped on flex separators (their
-  // text is the fill character, not a label) and empty cells.
+  /*
+   * Glyph mode prepends the catalogue glyph + GLYPH_SEPARATOR (a plain
+   * space, see the constant above) when `config.glyphs === "nerd-font"`.
+   * Skipped on flex separators (their text is the fill character, not a
+   * label) and empty cells.
+   */
   const text = cell.flex === true ? cell.text : applyGlyph(cell.text, config.type, ctx);
-  // The config layer's `Colour` is a loose `string` alias validated against
-  // the JSON Schema; the cell layer's `Colour` is the strict union the
-  // encoder consumes. Cast at the boundary because validation already
-  // guaranteed the shape.
   const next: Cell = {
     text,
     merged,
     ...(config.fg !== undefined && config.fg !== null
-      ? { fg: config.fg as Colour }
+      ? { fg: config.fg }
       : cell.fg !== undefined
         ? { fg: cell.fg }
         : {}),
     ...(config.bg !== undefined && config.bg !== null
-      ? { bg: config.bg as Colour }
+      ? { bg: config.bg }
       : cell.bg !== undefined
         ? { bg: cell.bg }
         : {}),
@@ -86,6 +84,7 @@ function applyOverrides(cell: Cell, config: WidgetConfig, ctx: WidgetContext): C
         : {}),
     ...(cell.hidden !== undefined ? { hidden: cell.hidden } : {}),
     ...(cell.flex === true ? { flex: true } : {}),
+    ...(typeof cell.href === "string" && cell.href.length > 0 ? { href: cell.href } : {}),
   };
   return Object.freeze(next);
 }
@@ -129,8 +128,8 @@ export function renderWidgetLabel(
   const next: Cell = {
     text,
     merged: config.merged ?? "off",
-    ...(config.fg !== undefined && config.fg !== null ? { fg: config.fg as Colour } : {}),
-    ...(config.bg !== undefined && config.bg !== null ? { bg: config.bg as Colour } : {}),
+    ...(config.fg !== undefined && config.fg !== null ? { fg: config.fg } : {}),
+    ...(config.bg !== undefined && config.bg !== null ? { bg: config.bg } : {}),
     ...(config.bold !== undefined ? { bold: config.bold } : {}),
     ...(config.italic !== undefined ? { italic: config.italic } : {}),
   };

@@ -15,10 +15,12 @@ Prerequisites:
 Bootstrap:
 
 ```bash
-npm i
+npm i             # first-time setup; or `npm ci` for a deterministic install from package-lock.json
 npm run build
 bash tests/gates/run-all.sh
 ```
+
+CI and reproducible builds should always use `npm ci` — runtime deps are exact-pinned, dev deps use caret ranges that `npm ci` resolves strictly against the lockfile.
 
 ## Running agentline locally
 

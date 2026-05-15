@@ -19,16 +19,14 @@ import { promises as fs } from "node:fs";
 import { Readable } from "node:stream";
 
 import { isHelpFlag, requestHelp } from "../cli/help.js";
+import { loadConfig } from "../config/load.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import { pathExists } from "../lib/fs.js";
 import { saveLastRender } from "../state/render-cache.js";
 import { saveLastStdin } from "../state/stdin-cache.js";
 import { readStdinPayload } from "../stdin/index.js";
-import { loadConfig } from "../config/load.js";
-import { loadGitSnapshot } from "../git/snapshot.js";
-import { loadSessionFields } from "../session/index.js";
-import { loadTokensSnapshot } from "../tokens/index.js";
 import { parseAccessibilityArgs, type AccessibilityFlags } from "./accessibility.js";
+import { loadLiveSnapshots } from "./context.js";
 import { renderForFixture, type RenderForFixtureOptions } from "./fixture-runner.js";
 
 const HELP = `agentline render — re-render a recorded stdin payload
@@ -94,15 +92,17 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     }
     return 1;
   }
-  // First-run hint: when this is a live render (no fixture, no --config)
-  // and the user has not saved a config yet, point them at `agentline
-  // install` (which seeds the default template). Suppressed for non-TTY
-  // stderr (so the host UI is unaffected) and when AGENTLINE_QUIET=1 is set.
+  /*
+   * First-run hint: when this is a live render (no fixture, no --config)
+   * and the user has not saved a config yet, point them at `agentline
+   * install` (which seeds the default template). Suppressed for non-TTY
+   * stderr (so the host UI is unaffected) and when AGENTLINE_QUIET=1 is set.
+   */
   if (!fixture && input.args.configPath === undefined) {
     await maybeEmitFirstRunHint();
   }
   const isLive = !fixture && input.args.configPath === undefined;
-  const liveSnapshots = isLive ? await loadLiveSnapshots(payload) : {};
+  const liveSnapshots = isLive ? await loadLiveSnapshotsForRender(payload) : {};
   const liveConfig = isLive ? await loadLiveConfig() : undefined;
   const out = await renderForFixture(payload, {
     ...(liveConfig !== undefined ? { config: liveConfig } : {}),
@@ -115,10 +115,12 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     ...liveSnapshots,
   });
   process.stdout.write(out);
-  // Cache the live stdin and the rendered output. Best-effort and
-  // intentionally only on the live path — fixture replays and golden
-  // tests must stay deterministic. The render-cache file backs the
-  // "last statusline" view in `agentline uninstall`.
+  /*
+   * Cache the live stdin and the rendered output. Best-effort and
+   * intentionally only on the live path — fixture replays and golden
+   * tests must stay deterministic. The render-cache file backs the
+   * "last statusline" view in `agentline uninstall`.
+   */
   if (!fixture && input.args.configPath === undefined) {
     await persistLastStdin(payload);
     await saveLastRender(out, {
@@ -155,7 +157,7 @@ async function loadLiveConfig() {
  * `ctx.tokens` / `ctx.session` hides — leaving only the stdin-only
  * widgets (model, version, clock, session-id) on the statusline.
  */
-async function loadLiveSnapshots(
+async function loadLiveSnapshotsForRender(
   rawJson: string,
 ): Promise<Pick<RenderForFixtureOptions, "session" | "tokens" | "git">> {
   let parsed;
@@ -164,15 +166,7 @@ async function loadLiveSnapshots(
   } catch {
     return {};
   }
-  const env = process.env;
-  const session = loadSessionFields(parsed, { env });
-  const tokens = loadTokensSnapshot({
-    transcriptPath: parsed.transcriptPath,
-    modelId: parsed.model,
-    now: Date.now(),
-  });
-  const git = loadGitSnapshot({ cwd: parsed.cwd, env });
-  return { session, tokens, git };
+  return loadLiveSnapshots(parsed);
 }
 
 async function persistLastStdin(rawJson: string): Promise<void> {
@@ -180,9 +174,49 @@ async function persistLastStdin(rawJson: string): Promise<void> {
     const parsed = await readStdinPayload(Readable.from([Buffer.from(rawJson, "utf8")]));
     await saveLastStdin(parsed);
   } catch {
-    // Cache write is best-effort; a malformed payload here would already
-    // have failed the render, and the user can't see this error.
+    /*
+     * Cache write is best-effort; a malformed payload here would already
+     * have failed the render, and the user can't see this error.
+     */
   }
+}
+
+/**
+ * Match `arg` against `--name` (next-token form) or `--name=value`
+ * (joined form). Returns `null` when the flag does not match.
+ *
+ * For the next-token form, the value is `rest[i + 1]` and the caller
+ * should consume one extra slot (`advance: 2`); for the joined form,
+ * the value is the substring after `=` and only the current slot is
+ * consumed (`advance: 1`). The value is returned raw (possibly empty
+ * or `"-"`-prefixed); each caller validates per-flag.
+ */
+function matchFlag(
+  arg: string | undefined,
+  rest: readonly string[],
+  i: number,
+  name: string,
+): { value: string | undefined; advance: number } | null {
+  if (!arg) return null;
+  if (arg === name) return { value: rest[i + 1], advance: 2 };
+  const prefix = `${name}=`;
+  if (arg.startsWith(prefix)) return { value: arg.slice(prefix.length), advance: 1 };
+  return null;
+}
+
+function requirePathValue(name: string, value: string | undefined, label: string): string {
+  if (!value || value.startsWith("-")) {
+    throw new Error(`agentline render: ${name} requires ${label}`);
+  }
+  return value;
+}
+
+function requirePositiveInt(name: string, value: string | undefined): number {
+  const parsed = value !== undefined ? Number.parseInt(value, 10) : Number.NaN;
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`agentline render: ${name} requires a positive integer`);
+  }
+  return parsed;
 }
 
 export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {
@@ -194,49 +228,36 @@ export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {
   for (let i = 0; i < rest.length; i += 1) {
     const arg = rest[i];
     if (isHelpFlag(arg)) {
+      // `requestHelp` throws `HelpRequestedError`; never returns.
       requestHelp(HELP);
-    } else if (arg === "--fixture") {
-      const next = rest[i + 1];
-      if (!next || next.startsWith("-")) {
-        throw new Error("agentline render: --fixture requires a path");
-      }
-      fixture = next;
-      i += 1;
-    } else if (arg && arg.startsWith("--fixture=")) {
-      fixture = arg.slice("--fixture=".length);
-    } else if (arg === "--config") {
-      const next = rest[i + 1];
-      if (!next || next.startsWith("-")) {
-        throw new Error("agentline render: --config requires a path");
-      }
-      configPath = next;
-      i += 1;
-    } else if (arg && arg.startsWith("--config=")) {
-      configPath = arg.slice("--config=".length);
-    } else if (arg === "--frozen-clock") {
-      const next = rest[i + 1];
-      if (!next || next.startsWith("-")) {
-        throw new Error("agentline render: --frozen-clock requires an ISO timestamp");
-      }
-      frozenClockISO = next;
-      i += 1;
-    } else if (arg && arg.startsWith("--frozen-clock=")) {
-      frozenClockISO = arg.slice("--frozen-clock=".length);
-    } else if (arg === "--width") {
-      const next = rest[i + 1];
-      const parsed = next ? Number.parseInt(next, 10) : Number.NaN;
-      if (!Number.isFinite(parsed) || parsed <= 0) {
-        throw new Error("agentline render: --width requires a positive integer");
-      }
-      width = parsed;
-      i += 1;
-    } else if (arg && arg.startsWith("--width=")) {
-      const parsed = Number.parseInt(arg.slice("--width=".length), 10);
-      if (!Number.isFinite(parsed) || parsed <= 0) {
-        throw new Error("agentline render: --width requires a positive integer");
-      }
-      width = parsed;
-    } else if (arg && ACCESSIBILITY_FLAGS.has(arg)) {
+    }
+
+    const fixtureMatch = matchFlag(arg, rest, i, "--fixture");
+    if (fixtureMatch) {
+      fixture = requirePathValue("--fixture", fixtureMatch.value, "a path");
+      i += fixtureMatch.advance - 1;
+      continue;
+    }
+    const configMatch = matchFlag(arg, rest, i, "--config");
+    if (configMatch) {
+      configPath = requirePathValue("--config", configMatch.value, "a path");
+      i += configMatch.advance - 1;
+      continue;
+    }
+    const clockMatch = matchFlag(arg, rest, i, "--frozen-clock");
+    if (clockMatch) {
+      frozenClockISO = requirePathValue("--frozen-clock", clockMatch.value, "an ISO timestamp");
+      i += clockMatch.advance - 1;
+      continue;
+    }
+    const widthMatch = matchFlag(arg, rest, i, "--width");
+    if (widthMatch) {
+      width = requirePositiveInt("--width", widthMatch.value);
+      i += widthMatch.advance - 1;
+      continue;
+    }
+
+    if (arg && ACCESSIBILITY_FLAGS.has(arg)) {
       accessibilityArgv.push(arg);
     } else if (arg) {
       throw new Error(`agentline render: unknown argument '${arg}'`);

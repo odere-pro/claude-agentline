@@ -22,8 +22,9 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { atomicWriteJson } from "../config/atomic.js";
-import { isEnoent, pathExists } from "../lib/fs.js";
+import { writeOnce } from "../lib/atomic-write.js";
+import { isEexist, isEnoent } from "../lib/fs.js";
+import { isPlainObject } from "../lib/object.js";
 import { AGENTLINE_VERSION } from "../version.js";
 
 export const STATUS_LINE_BACKUP_VERSION = 1 as const;
@@ -46,18 +47,17 @@ export interface BackupPaths {
   readonly stateDir: string;
 }
 
-export function resolveBackupPaths(
-  env: NodeJS.ProcessEnv = process.env,
-): BackupPaths {
-  // Match `scripts/lib/common.sh`: CLAUDE_CONFIG_DIR is the agentline
-  // directory when set (not the parent); when unset, default to
-  // ~/.config/agentline. This keeps the backup location identical
-  // whether the user installs via `agentline doctor --fix` (TS) or
-  // `scripts/install.sh` (shell), so each tool can read what the other
-  // wrote.
+export function resolveBackupPaths(env: NodeJS.ProcessEnv = process.env): BackupPaths {
+  /*
+   * Match `scripts/lib/common.sh`: CLAUDE_CONFIG_DIR is the agentline
+   * directory when set (not the parent); when unset, default to
+   * ~/.config/agentline. This keeps the backup location identical
+   * whether the user installs via `agentline doctor --fix` (TS) or
+   * `scripts/install.sh` (shell), so each tool can read what the other
+   * wrote.
+   */
   const cfg = env.CLAUDE_CONFIG_DIR;
-  const agentlineDir =
-    cfg && cfg.length > 0 ? cfg : join(homedir(), ".config", "agentline");
+  const agentlineDir = cfg && cfg.length > 0 ? cfg : join(homedir(), ".config", "agentline");
   const stateDir = join(agentlineDir, "state");
   return { stateDir, backupFile: join(stateDir, "settings-backup.json") };
 }
@@ -65,8 +65,22 @@ export function resolveBackupPaths(
 /**
  * Save the current `statusLine` value to the backup file.
  *
- * @returns `"created"` when a fresh backup was written,
- *          `"skipped"` when a backup already existed (first install wins).
+ * Concurrency contract: only the first writer wins. Two concurrent
+ * `agentline doctor --fix` runs (or `install` + `doctor`) race the
+ * exclusive `O_EXCL` open on the target path — exactly one succeeds and
+ * writes the body; the others observe `EEXIST` and return `"skipped"`
+ * without touching the file. The earlier check-then-write pattern had a
+ * TOCTOU window between `pathExists` and the temp-rename in
+ * `atomicWriteJson` that allowed the loser to clobber the winner's
+ * snapshot of the original `statusLine`, defeating "first install wins".
+ *
+ * Trade-off: skipping the temp+rename pattern means a process killed
+ * mid-write leaves a partial JSON file at the target. The backup is
+ * written once per install and is small (≤ ~256 bytes), so the
+ * partial-write window is microseconds and recovery is `rm <file>`.
+ *
+ * @returns `"created"` when this caller wrote the backup,
+ *          `"skipped"` when another caller had already won the race.
  */
 export async function saveStatusLineBackup(args: {
   readonly previousStatusLine: unknown;
@@ -76,7 +90,6 @@ export async function saveStatusLineBackup(args: {
   readonly clock?: () => Date;
 }): Promise<"created" | "skipped"> {
   const target = args.backupFile ?? resolveBackupPaths(args.env).backupFile;
-  if (await pathExists(target)) return "skipped";
   const body: StatusLineBackup = {
     version: STATUS_LINE_BACKUP_VERSION,
     createdAt: (args.clock ?? (() => new Date()))().toISOString(),
@@ -84,7 +97,15 @@ export async function saveStatusLineBackup(args: {
     previousStatusLinePresent: args.previousStatusLinePresent,
     previousStatusLine: args.previousStatusLine,
   };
-  await atomicWriteJson(target, body, { mode: 0o600, dirMode: 0o700 });
+  try {
+    await writeOnce(target, `${JSON.stringify(body, null, 2)}\n`, {
+      mode: 0o600,
+      dirMode: 0o700,
+    });
+  } catch (err) {
+    if (isEexist(err)) return "skipped";
+    throw err;
+  }
   return "created";
 }
 
@@ -93,10 +114,12 @@ export async function saveStatusLineBackup(args: {
  * malformed JSON or schema mismatch (the caller decides whether to fall
  * back to the legacy "remove if-points-at-agentline" behaviour).
  */
-export async function readStatusLineBackup(args: {
-  readonly env?: NodeJS.ProcessEnv;
-  readonly backupFile?: string;
-} = {}): Promise<StatusLineBackup | null> {
+export async function readStatusLineBackup(
+  args: {
+    readonly env?: NodeJS.ProcessEnv;
+    readonly backupFile?: string;
+  } = {},
+): Promise<StatusLineBackup | null> {
   const target = args.backupFile ?? resolveBackupPaths(args.env).backupFile;
   let raw: string;
   try {
@@ -117,10 +140,12 @@ export async function readStatusLineBackup(args: {
 /**
  * Delete the backup file. No-op when the file is already absent.
  */
-export async function deleteStatusLineBackup(args: {
-  readonly env?: NodeJS.ProcessEnv;
-  readonly backupFile?: string;
-} = {}): Promise<void> {
+export async function deleteStatusLineBackup(
+  args: {
+    readonly env?: NodeJS.ProcessEnv;
+    readonly backupFile?: string;
+  } = {},
+): Promise<void> {
   const target = args.backupFile ?? resolveBackupPaths(args.env).backupFile;
   try {
     await fs.unlink(target);
@@ -130,27 +155,25 @@ export async function deleteStatusLineBackup(args: {
 }
 
 function validateBackup(parsed: unknown, source: string): StatusLineBackup {
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+  if (!isPlainObject(parsed)) {
     throw new Error(`agentline: backup at ${source} is not a JSON object`);
   }
-  const o = parsed as Record<string, unknown>;
-  if (o.version !== STATUS_LINE_BACKUP_VERSION) {
+  if (parsed.version !== STATUS_LINE_BACKUP_VERSION) {
     throw new Error(
-      `agentline: backup at ${source} has unsupported version ${String(o.version)}; expected ${STATUS_LINE_BACKUP_VERSION}`,
+      `agentline: backup at ${source} has unsupported version ${String(parsed.version)}; expected ${STATUS_LINE_BACKUP_VERSION}`,
     );
   }
-  if (typeof o.previousStatusLinePresent !== "boolean") {
+  if (typeof parsed.previousStatusLinePresent !== "boolean") {
     throw new Error(`agentline: backup at ${source} missing previousStatusLinePresent`);
   }
   return {
     version: STATUS_LINE_BACKUP_VERSION,
-    createdAt: typeof o.createdAt === "string" ? o.createdAt : "",
-    agentlineVersion: typeof o.agentlineVersion === "string" ? o.agentlineVersion : "",
-    previousStatusLinePresent: o.previousStatusLinePresent,
-    previousStatusLine: o.previousStatusLine,
+    createdAt: typeof parsed.createdAt === "string" ? parsed.createdAt : "",
+    agentlineVersion: typeof parsed.agentlineVersion === "string" ? parsed.agentlineVersion : "",
+    previousStatusLinePresent: parsed.previousStatusLinePresent,
+    previousStatusLine: parsed.previousStatusLine,
   };
 }
-
 
 /**
  * Path of the agentline state directory (parent of the backup file).

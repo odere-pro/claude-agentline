@@ -8,11 +8,11 @@ import { SEPARATOR_CYCLE, separatorWidget } from "./separator.js";
 const ctx = {} as WidgetContext;
 
 describe("registerCustomWidgets", () => {
-  it("registers only the separator widget", () => {
+  it("registers the custom widget family", () => {
     const r = new WidgetRegistry();
     registerCustomWidgets(r);
-    expect(r.size()).toBe(1);
-    expect(r.list()).toEqual(["separator"]);
+    expect(r.size()).toBe(2);
+    expect([...r.list()].sort()).toEqual(["osc-link", "separator"]);
     expect(Object.isFrozen(CUSTOM_WIDGETS)).toBe(true);
   });
 });

@@ -69,17 +69,17 @@ describe("renderFromInputs", () => {
       env: { NO_COLOR: "1" },
     });
     const lines = result.split("\n");
-    // First "line" is the rendered statusline (empty since the widget hides);
-    // the next line carries the warning.
+    /*
+     * First "line" is the rendered statusline (empty since the widget hides);
+     * the next line carries the warning.
+     */
     expect(lines.some((l) => /unknown widget type 'no-such-widget'/.test(l))).toBe(true);
   });
 
   it("deduplicates repeated unknown widget types", () => {
     const config = {
       ...DEFAULT_CONFIG,
-      lines: [
-        { widgets: [{ type: "no-such-widget" }, { type: "no-such-widget" }] },
-      ],
+      lines: [{ widgets: [{ type: "no-such-widget" }, { type: "no-such-widget" }] }],
     };
     const result = renderFromInputs({
       payload: basePayload,
@@ -91,7 +91,7 @@ describe("renderFromInputs", () => {
     expect(matches.length).toBe(1);
   });
 
-  it("caps warning lines at MAX_WARNING_LINES (6)", () => {
+  it("caps warning lines at MAX_WARNING_LINES (6) and emits them in sorted order", () => {
     const types = Array.from({ length: 12 }, (_, i) => ({ type: `bogus-${i}` }));
     const config = { ...DEFAULT_CONFIG, lines: [{ widgets: types }] };
     const result = renderFromInputs({
@@ -100,10 +100,14 @@ describe("renderFromInputs", () => {
       theme: null,
       env: { NO_COLOR: "1" },
     });
-    const warningLines = result
-      .split("\n")
-      .filter((l) => /unknown widget type/.test(l));
+    const warningLines = result.split("\n").filter((l) => /unknown widget type/.test(l));
     expect(warningLines).toHaveLength(6);
+    /*
+     * `buildWarningLines` deduplicates + sorts the unknown types so the
+     * surfaced lines stay stable across renders. Assert the sort.
+     */
+    const sorted = [...warningLines].sort();
+    expect(warningLines).toEqual(sorted);
   });
 
   it("emits no warning lines when every widget type is known", () => {

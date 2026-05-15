@@ -1,7 +1,58 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { HelpRequestedError } from "../cli/help.js";
-import { runWidgetSubgroup } from "./widget-command.js";
+import { parseWidgetAddArgs, runWidgetAddCommand } from "./widget/add.js";
+import { parseWidgetRemoveArgs } from "./widget/remove.js";
+import { WIDGET_SUBS, defineWidgetSub, runWidgetSubgroup } from "./widget-command.js";
+
+const EXPECTED_SUBS = [
+  "list",
+  "catalog",
+  "add",
+  "remove",
+  "move",
+  "replace",
+  "set-option",
+] as const;
+
+describe("WIDGET_SUBS dispatch table", () => {
+  it("exposes every documented subcommand with parse + run pairs", () => {
+    for (const sub of EXPECTED_SUBS) {
+      expect(WIDGET_SUBS[sub]?.parse).toBeTypeOf("function");
+      expect(WIDGET_SUBS[sub]?.run).toBeTypeOf("function");
+    }
+  });
+
+  it("exposes exactly the documented surface (no surprise entries)", () => {
+    expect(Object.keys(WIDGET_SUBS).sort()).toEqual([...EXPECTED_SUBS].sort());
+  });
+
+  it("is frozen", () => {
+    expect(Object.isFrozen(WIDGET_SUBS)).toBe(true);
+  });
+});
+
+describe("defineWidgetSub type linkage", () => {
+  it("accepts matched parse/run pairs", () => {
+    /*
+     * Plain runtime assertion that the helper returns a usable shape;
+     * the real value here is the compile-time check in the
+     */
+    // `@ts-expect-error` block below.
+    const sub = defineWidgetSub(parseWidgetAddArgs, runWidgetAddCommand);
+    expect(sub.parse).toBeTypeOf("function");
+    expect(sub.run).toBeTypeOf("function");
+  });
+
+  it("rejects a parse/run pair whose args shapes disagree", () => {
+    // @ts-expect-error parseWidgetRemoveArgs returns WidgetRemoveArgs but
+    /*
+     * runWidgetAddCommand expects { args: WidgetAddArgs } — TS refuses
+     * the cross-wired pair inside defineWidgetSub.
+     */
+    void defineWidgetSub(parseWidgetRemoveArgs, runWidgetAddCommand);
+  });
+});
 
 describe("runWidgetSubgroup", () => {
   afterEach(() => vi.restoreAllMocks());

@@ -13,6 +13,9 @@ import { saveReplaceWidget } from "../mutate.js";
 import { resolveConfigPaths } from "../paths.js";
 import { resolveEnv } from "../../lib/env.js";
 import type { WidgetConfig } from "../types.js";
+import { readIntFlag, readOptionsFlag } from "./_args.js";
+
+const PREFIX = "agentline config widget replace";
 
 const HELP = `agentline config widget replace — swap the widget at a position
 
@@ -30,8 +33,6 @@ Options:
 
 Run \`agentline config widget list\` first to see widget indices.
 `;
-
-const FORBIDDEN_OPTION_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 export interface WidgetReplaceArgs {
   readonly type: string;
@@ -69,62 +70,30 @@ export function parseWidgetReplaceArgs(rest: readonly string[]): WidgetReplaceAr
     if (arg === undefined) continue;
     if (isHelpFlag(arg)) requestHelp(HELP);
     else if (arg === "--line" || arg.startsWith("--line=")) {
-      line = readIntFlag(arg, rest, i, "--line");
+      line = readIntFlag(arg, rest, i, "--line", PREFIX);
       if (!arg.includes("=")) i += 1;
     } else if (arg === "--at" || arg.startsWith("--at=")) {
-      at = readIntFlag(arg, rest, i, "--at");
+      at = readIntFlag(arg, rest, i, "--at", PREFIX);
       if (!arg.includes("=")) i += 1;
     } else if (arg === "--options" || arg.startsWith("--options=")) {
-      options = readOptionsFlag(arg, rest, i);
+      options = readOptionsFlag(arg, rest, i, PREFIX);
       if (!arg.includes("=")) i += 1;
     } else if (arg.startsWith("-")) {
-      throw new Error(`agentline config widget replace: unknown option '${arg}'`);
+      throw new Error(`${PREFIX}: unknown option '${arg}'`);
     } else if (type === undefined) {
       type = arg;
     } else {
-      throw new Error(`agentline config widget replace: unexpected argument '${arg}'`);
+      throw new Error(`${PREFIX}: unexpected argument '${arg}'`);
     }
   }
 
   if (type === undefined || type.trim() === "") {
-    throw new Error("agentline config widget replace: a replacement <type> is required");
+    throw new Error(`${PREFIX}: a replacement <type> is required`);
   }
   if (at === undefined) {
-    throw new Error("agentline config widget replace: --at <index> is required");
+    throw new Error(`${PREFIX}: --at <index> is required`);
   }
   const out: WidgetReplaceArgs = { type, line, at };
   if (options !== undefined) (out as { options: Record<string, unknown> }).options = options;
   return out;
-}
-
-function readIntFlag(arg: string, rest: readonly string[], i: number, name: string): number {
-  const raw = arg.includes("=") ? arg.slice(arg.indexOf("=") + 1) : rest[i + 1];
-  if (raw === undefined || !/^-?\d+$/.test(raw)) {
-    throw new Error(`agentline config widget replace: ${name} requires an integer`);
-  }
-  return Number(raw);
-}
-
-function readOptionsFlag(arg: string, rest: readonly string[], i: number): Record<string, unknown> {
-  const raw = arg.includes("=") ? arg.slice(arg.indexOf("=") + 1) : rest[i + 1];
-  if (raw === undefined) {
-    throw new Error("agentline config widget replace: --options requires a JSON object");
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (err) {
-    throw new Error(
-      `agentline config widget replace: --options is not valid JSON (${(err as Error).message})`,
-    );
-  }
-  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("agentline config widget replace: --options must be a JSON object");
-  }
-  for (const key of Object.keys(parsed as object)) {
-    if (FORBIDDEN_OPTION_KEYS.has(key)) {
-      throw new Error(`agentline config widget replace: option key '${key}' is not allowed`);
-    }
-  }
-  return parsed as Record<string, unknown>;
 }

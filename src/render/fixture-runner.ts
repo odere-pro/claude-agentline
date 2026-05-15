@@ -18,6 +18,7 @@ import type { AgentlineConfig } from "../config/types.js";
 import type { Theme } from "../theme/index.js";
 import { resolveConfiguredTheme } from "../theme/resolve.js";
 import { frozenClock, realClock, type Clock } from "../widgets/clock.js";
+import { isPlainObject } from "../lib/object.js";
 import { readStdinPayload } from "../stdin/index.js";
 
 import type { AccessibilityFlags } from "./accessibility.js";
@@ -54,8 +55,10 @@ export async function renderForFixture(
   const stream = Readable.from([Buffer.from(stdinJson, "utf8")]);
   const payload = await readStdinPayload(stream);
   const config = await resolveConfig(options);
-  // `theme: null` means "no theme — keep defaults"; `theme: undefined`
-  // means "fall back to config.theme". Goldens pass `null` explicitly.
+  /*
+   * `theme: null` means "no theme — keep defaults"; `theme: undefined`
+   * means "fall back to config.theme". Goldens pass `null` explicitly.
+   */
   const theme =
     options.theme !== undefined
       ? options.theme
@@ -86,22 +89,24 @@ async function resolveConfig(options: RenderForFixtureOptions): Promise<Agentlin
     const raw = await fs.readFile(options.configPath, "utf8");
     const parsed = stripPrototypeKeys(JSON.parse(raw));
     validateConfig(parsed);
-    return parsed as AgentlineConfig;
+    return parsed;
   }
   return DEFAULT_CONFIG;
 }
 
 const FORBIDDEN_KEYS: ReadonlySet<string> = new Set(["__proto__", "constructor", "prototype"]);
 
-// AJV blocks unknown top-level keys, but `widgets[].options` and `palette`
-// declare additionalProperties: true so a `__proto__` nested under those
-// would survive validation. Strip recursively before validate to keep the
-// merge layer's defence in depth (merge.ts) symmetric on the fixture path.
+/*
+ * AJV blocks unknown top-level keys, but `widgets[].options` and `palette`
+ * declare additionalProperties: true so a `__proto__` nested under those
+ * would survive validation. Strip recursively before validate to keep the
+ * merge layer's defence in depth (merge.ts) symmetric on the fixture path.
+ */
 function stripPrototypeKeys(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stripPrototypeKeys);
-  if (value === null || typeof value !== "object") return value;
+  if (!isPlainObject(value)) return value;
   const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+  for (const [k, v] of Object.entries(value)) {
     if (FORBIDDEN_KEYS.has(k)) continue;
     out[k] = stripPrototypeKeys(v);
   }

@@ -1,1 +1,0 @@
-- Tighten the editor picker: widget rows in step 2 no longer carry the group's accent colour (only the group label does), and replace mode hides the to-be-replaced widget type unless it has variants, so variant-less widgets can't appear as duplicates in the picker.

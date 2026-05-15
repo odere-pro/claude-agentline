@@ -73,8 +73,10 @@ describe("runInstallCommand — project gate", () => {
       { fromSource: false, force: false, dryRun: false },
       { cwd: tmp, stdin },
     );
-    // Gate short-circuits before spawnSync ever runs the install script,
-    // so the temp dir stays untouched and we get a clean exit.
+    /*
+     * Gate short-circuits before spawnSync ever runs the install script,
+     * so the temp dir stays untouched and we get a clean exit.
+     */
     expect(code).toBe(0);
   });
 });

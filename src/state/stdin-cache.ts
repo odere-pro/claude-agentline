@@ -16,15 +16,16 @@
  *   - Read is synchronous because the TUI preview calls it from React
  *     renders; the file is small (one JSON object) and the TUI bundle
  *     is loaded only when `agentline edit` runs, so the read is off
- *     the render hot path.
+ *     the render path.
  */
 
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { atomicWriteJson } from "../config/atomic.js";
-import type { StdinPayload } from "../stdin/index.js";
+import { writeJsonIdempotent } from "../lib/atomic-write.js";
+import { isPlainObject } from "../lib/object.js";
+import { adaptStatuslinePayload, type StdinPayload } from "../stdin/index.js";
 
 export const STDIN_CACHE_VERSION = 1 as const;
 
@@ -46,8 +47,7 @@ export interface CachePaths {
  */
 export function resolveCachePaths(env: NodeJS.ProcessEnv = process.env): CachePaths {
   const cfg = env.CLAUDE_CONFIG_DIR;
-  const agentlineDir =
-    cfg && cfg.length > 0 ? cfg : join(homedir(), ".config", "agentline");
+  const agentlineDir = cfg && cfg.length > 0 ? cfg : join(homedir(), ".config", "agentline");
   const stateDir = join(agentlineDir, "state");
   return { stateDir, cacheFile: join(stateDir, "last-stdin.json") };
 }
@@ -68,10 +68,12 @@ export async function saveLastStdin(
     payload,
   };
   try {
-    await atomicWriteJson(cacheFile, body, { mode: 0o600, dirMode: 0o700 });
+    await writeJsonIdempotent(cacheFile, body, { mode: 0o600, dirMode: 0o700 });
   } catch {
-    // Silently swallow — the user can't see this error and the cache
-    // is best-effort. The render path is unaffected.
+    /*
+     * Silently swallow — the user can't see this error and the cache
+     * is best-effort. The render path is unaffected.
+     */
   }
 }
 
@@ -80,7 +82,7 @@ export async function saveLastStdin(
  * file is absent, unreadable, malformed, or carries an unknown
  * version. Sync because the TUI preview reads it inside React renders;
  * the TUI bundle is only loaded when `agentline edit` runs, so this
- * never touches the render hot path.
+ * never touches the render path.
  */
 export function readLastStdinSync(env: NodeJS.ProcessEnv = process.env): CachedStdin | null {
   const { cacheFile } = resolveCachePaths(env);
@@ -96,14 +98,26 @@ export function readLastStdinSync(env: NodeJS.ProcessEnv = process.env): CachedS
   } catch {
     return null;
   }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-  const o = parsed as Record<string, unknown>;
-  if (o.version !== STDIN_CACHE_VERSION) return null;
-  const payload = o.payload;
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+  if (!isPlainObject(parsed)) return null;
+  if (parsed.version !== STDIN_CACHE_VERSION) return null;
+  const cachedPayload = parsed.payload;
+  if (!isPlainObject(cachedPayload)) return null;
+  /*
+   * Reconstruct the StdinPayload via the same adapter the live stdin
+   * path uses (`adaptStatuslinePayload`). This re-validates every typed
+   * field instead of trusting the on-disk shape — a stale cache from an
+   * older agentline version whose `StdinPayload` had different field
+   * names won't silently surface as a half-populated object.
+   */
+  const rawObj = cachedPayload.raw;
+  if (!isPlainObject(rawObj)) return null;
+  const truncated = cachedPayload.truncated;
+  const payload: StdinPayload = adaptStatuslinePayload(rawObj, {
+    truncated: typeof truncated === "boolean" ? truncated : false,
+  });
   return {
     version: STDIN_CACHE_VERSION,
-    savedAt: typeof o.savedAt === "string" ? o.savedAt : "",
-    payload: payload as StdinPayload,
+    savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : "",
+    payload,
   };
 }

@@ -1,1 +1,0 @@
-- Editor redraws no longer stack in host scrollback: each Ink frame now resets the screen with `2J` (erase display) + `3J` (erase scrollback) + cursor home — mirroring `ansi-escapes.clearTerminal` — so terminals that ignore alt-screen entry (Warp, tmux without `alternate-screen on`, some Apple Terminal configs) can no longer accumulate prior frames above the current render.

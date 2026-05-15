@@ -74,10 +74,12 @@ export async function runUninstallCommand(
   } = {},
 ): Promise<number> {
   const out = io.stdout ?? process.stdout;
-  // Show the last rendered statusline (Memento) so the user has a
-  // parting view of what was on screen, and point at how to restore
-  // agentline if they change their mind. Skipped on --dry-run to keep
-  // its output focused on the would-be filesystem actions.
+  /*
+   * Show the last rendered statusline (Memento) so the user has a
+   * parting view of what was on screen, and point at how to restore
+   * agentline if they change their mind. Skipped on --dry-run to keep
+   * its output focused on the would-be filesystem actions.
+   */
   if (!args.dryRun) {
     const banner = formatLastRenderBanner(readLastRenderSync(io.env ?? process.env));
     if (banner) out.write(banner);

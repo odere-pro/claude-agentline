@@ -1,1 +1,0 @@
-- Editor frames now paint into a known-blank alt-screen on every redraw: each Ink write is prefixed with cursor-home + erase-screen, so stale fragments from prior frames can no longer stack above the current render when the preview wraps or the rendered height shifts.

@@ -13,6 +13,9 @@ import { isHelpFlag, requestHelp } from "../../cli/help.js";
 import { saveSetWidgetOption } from "../mutate.js";
 import { resolveConfigPaths } from "../paths.js";
 import { resolveEnv } from "../../lib/env.js";
+import { readIntFlag } from "./_args.js";
+
+const PREFIX = "agentline config widget set-option";
 
 const HELP = `agentline config widget set-option — set one option on a widget
 
@@ -66,13 +69,13 @@ export function parseWidgetSetOptionArgs(rest: readonly string[]): WidgetSetOpti
     if (isHelpFlag(arg)) requestHelp(HELP);
     else if (arg === "--json") json = true;
     else if (arg === "--line" || arg.startsWith("--line=")) {
-      line = readIntFlag(arg, rest, i, "--line");
+      line = readIntFlag(arg, rest, i, "--line", PREFIX);
       if (!arg.includes("=")) i += 1;
     } else if (arg === "--at" || arg.startsWith("--at=")) {
-      at = readIntFlag(arg, rest, i, "--at");
+      at = readIntFlag(arg, rest, i, "--at", PREFIX);
       if (!arg.includes("=")) i += 1;
     } else if (arg.startsWith("--")) {
-      throw new Error(`agentline config widget set-option: unknown option '${arg}'`);
+      throw new Error(`${PREFIX}: unknown option '${arg}'`);
     } else {
       positionals.push(arg);
     }
@@ -80,21 +83,13 @@ export function parseWidgetSetOptionArgs(rest: readonly string[]): WidgetSetOpti
 
   const [key, rawValue] = positionals;
   if (key === undefined || rawValue === undefined || positionals.length > 2) {
-    throw new Error("agentline config widget set-option: a <key> and a <value> are required");
+    throw new Error(`${PREFIX}: a <key> and a <value> are required`);
   }
   if (at === undefined) {
-    throw new Error("agentline config widget set-option: --at <index> is required");
+    throw new Error(`${PREFIX}: --at <index> is required`);
   }
   const value = json ? parseJsonValue(rawValue) : rawValue;
   return { line, at, key, value };
-}
-
-function readIntFlag(arg: string, rest: readonly string[], i: number, name: string): number {
-  const raw = arg.includes("=") ? arg.slice(arg.indexOf("=") + 1) : rest[i + 1];
-  if (raw === undefined || !/^-?\d+$/.test(raw)) {
-    throw new Error(`agentline config widget set-option: ${name} requires an integer`);
-  }
-  return Number(raw);
 }
 
 function parseJsonValue(raw: string): unknown {
@@ -102,7 +97,7 @@ function parseJsonValue(raw: string): unknown {
     return JSON.parse(raw);
   } catch (err) {
     throw new Error(
-      `agentline config widget set-option: --json was given but <value> is not valid JSON (${(err as Error).message})`,
+      `${PREFIX}: --json was given but <value> is not valid JSON (${(err as Error).message})`,
     );
   }
 }

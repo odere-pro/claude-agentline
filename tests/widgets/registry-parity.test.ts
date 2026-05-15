@@ -7,12 +7,14 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { WIDGET_CATALOG } from "../../src/widgets/catalog.js";
+import { WIDGET_CATALOG, WIDGET_FAMILIES } from "../../src/widgets/catalog.js";
 import {
   defaultRegistry,
   resetDefaultRegistry,
   registerAllBuiltins,
 } from "../../src/widgets/index.js";
+
+const FAMILIES: ReadonlySet<string> = new Set(WIDGET_FAMILIES);
 
 describe("Widget registry-catalog parity", () => {
   beforeEach(() => {
@@ -48,14 +50,18 @@ describe("Widget registry-catalog parity", () => {
   });
 
   it("has no widgets in catalog that are not in registry", () => {
+    /*
+     * Cross-check against the registry, not against the catalog itself.
+     * The previous loop iterated `Object.keys(WIDGET_CATALOG)` and asserted
+     * each value was defined — a no-op against `Object.keys`'s own output.
+     */
     const registry = defaultRegistry();
     registerAllBuiltins(registry);
 
-    const catalogTypes = Object.keys(WIDGET_CATALOG);
+    const registryTypes = new Set(registry.list());
 
-    for (const type of catalogTypes) {
-      // All widgets in the catalog should have metadata
-      expect(WIDGET_CATALOG[type]).toBeDefined();
+    for (const type of Object.keys(WIDGET_CATALOG)) {
+      expect(registryTypes.has(type)).toBe(true);
     }
   });
 
@@ -71,9 +77,13 @@ describe("Widget registry-catalog parity", () => {
 
     for (const entry of meta) {
       expect(registryTypes.has(entry.type)).toBe(true);
-      expect(entry.name).toBeDefined();
-      expect(entry.description).toBeDefined();
-      expect(entry.category).toBeDefined();
+      /*
+       * Empty strings would have satisfied the prior `toBeDefined()`
+       * checks — assert non-empty content + a known family instead.
+       */
+      expect(entry.name.length).toBeGreaterThan(0);
+      expect(entry.description.length).toBeGreaterThan(0);
+      expect(FAMILIES.has(entry.family)).toBe(true);
     }
   });
 

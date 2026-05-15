@@ -1,19 +1,17 @@
 /**
  * Public surface of the widget base layer (§7.1).
  *
- * PR 9 ships the contract; built-in widgets register themselves
- * against `defaultRegistry()` in subsequent PRs (10–14).
+ * Re-exports the contract types (`Cell`, `WidgetDef`, …), the registry, the
+ * dispatcher, and the catalogue lookup helpers. `registerAllBuiltins` wires
+ * every built-in family (session, tokens, context, rate-limits, git, time,
+ * custom) into a given registry; the render pipeline calls it once during
+ * boot against `defaultRegistry()`.
  */
 
 export { HIDDEN_CELL, isHidden, plainCell, type Cell, type MergeMode } from "./cell.js";
 export { realClock, frozenClock, type Clock } from "./clock.js";
 export { type WidgetContext } from "./context.js";
-export {
-  defineWidget,
-  type WidgetDef,
-  type WidgetRender,
-  type WidgetSettings,
-} from "./widget.js";
+export { defineWidget, type WidgetDef, type WidgetRender, type WidgetSettings } from "./widget.js";
 export {
   WidgetRegistry,
   WidgetTypeAlreadyRegistered,
@@ -21,16 +19,12 @@ export {
   defaultRegistry,
   resetDefaultRegistry,
 } from "./registry.js";
-export {
-  renderWidget,
-  WidgetTypeMissingError,
-  type RenderWidgetOptions,
-} from "./render-widget.js";
+export { renderWidget, WidgetTypeMissingError, type RenderWidgetOptions } from "./render-widget.js";
 export {
   WIDGET_CATALOG,
-  WIDGET_CATEGORIES,
+  WIDGET_FAMILIES,
   widgetMeta,
-  type WidgetCategory,
+  type WidgetFamily,
   type WidgetMeta,
   type WidgetMetaEntry,
 } from "./catalog.js";

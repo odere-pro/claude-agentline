@@ -58,11 +58,79 @@ describe("applyPowerline", () => {
     expect(chev?.bg).toBe("blue");
   });
 
-  it("emits caps when configured", () => {
+  it("uses cell.fg for the chevron when adjacent cells share a bg", () => {
     const segs = applyPowerline(
-      [cell({ text: "a", bg: "red" })],
-      { ...baseOpts, capStart: "[", capEnd: "]" },
+      [cell({ text: "a", bg: "red", fg: "yellow" }), cell({ text: "b", bg: "red", fg: "white" })],
+      baseOpts,
     );
+    expect(segs).toHaveLength(3);
+    const chev = segs[1];
+    expect(chev?.fg).toBe("yellow");
+    expect(chev?.bg).toBe("red");
+  });
+
+  it("falls back to cell.bg for the chevron when same-bg cell has no fg", () => {
+    const segs = applyPowerline(
+      [cell({ text: "a", bg: "red" }), cell({ text: "b", bg: "red" })],
+      baseOpts,
+    );
+    expect(segs).toHaveLength(3);
+    const chev = segs[1];
+    expect(chev?.fg).toBe("red");
+    expect(chev?.bg).toBe("red");
+  });
+
+  it("indexes hardRight glyph arrays by chevron position", () => {
+    const glyphs = { ...ASCII_GLYPHS, hardRight: ["A", "B", "C"] };
+    const segs = applyPowerline(
+      [
+        cell({ text: "1", bg: "red" }),
+        cell({ text: "2", bg: "blue" }),
+        cell({ text: "3", bg: "green" }),
+        cell({ text: "4", bg: "yellow" }),
+      ],
+      { ...baseOpts, glyphs },
+    );
+    // 4 cells + 3 chevrons = 7 segments
+    expect(segs).toHaveLength(7);
+    expect(segs[1]?.text).toBe("A");
+    expect(segs[3]?.text).toBe("B");
+    expect(segs[5]?.text).toBe("C");
+  });
+
+  it("clamps hardRight glyph arrays — last entry repeats once exhausted", () => {
+    const glyphs = { ...ASCII_GLYPHS, hardRight: ["A", "B"] };
+    const segs = applyPowerline(
+      [
+        cell({ text: "1", bg: "red" }),
+        cell({ text: "2", bg: "blue" }),
+        cell({ text: "3", bg: "green" }),
+        cell({ text: "4", bg: "yellow" }),
+        cell({ text: "5", bg: "magenta" }),
+      ],
+      { ...baseOpts, glyphs },
+    );
+    // 5 cells + 4 chevrons; idx 0 → A, idx 1 → B, idx 2..3 → B (clamp)
+    expect(segs[1]?.text).toBe("A");
+    expect(segs[3]?.text).toBe("B");
+    expect(segs[5]?.text).toBe("B");
+    expect(segs[7]?.text).toBe("B");
+  });
+
+  it("string glyphs keep working unchanged when no array is configured", () => {
+    const segs = applyPowerline([cell({ text: "a", bg: "red" }), cell({ text: "b", bg: "blue" })], {
+      ...baseOpts,
+      glyphs: { ...ASCII_GLYPHS, hardRight: "#" },
+    });
+    expect(segs[1]?.text).toBe("#");
+  });
+
+  it("emits caps when configured", () => {
+    const segs = applyPowerline([cell({ text: "a", bg: "red" })], {
+      ...baseOpts,
+      capStart: "[",
+      capEnd: "]",
+    });
     expect(segs[0]?.text).toBe("[");
     expect(segs[0]?.bg).toBe("red");
     expect(segs[segs.length - 1]?.text).toBe("]");
@@ -93,10 +161,7 @@ describe("applyPowerlineLines", () => {
 
   it("renders multi-line independently when autoAlign / continueColors are off", () => {
     const lines = applyPowerlineLines(
-      [
-        [cell({ text: "abc", bg: "red" })],
-        [cell({ text: "z", bg: "blue" })],
-      ],
+      [[cell({ text: "abc", bg: "red" })], [cell({ text: "z", bg: "blue" })]],
       opts,
     );
     expect(lines).toHaveLength(2);
@@ -106,10 +171,7 @@ describe("applyPowerlineLines", () => {
 
   it("autoAlign pads shorter lines on the right with the line's last bg", () => {
     const lines = applyPowerlineLines(
-      [
-        [cell({ text: "abc", bg: "red" })],
-        [cell({ text: "z", bg: "blue" })],
-      ],
+      [[cell({ text: "abc", bg: "red" })], [cell({ text: "z", bg: "blue" })]],
       { ...opts, autoAlign: true },
     );
     const line2 = lines[1];
@@ -123,12 +185,61 @@ describe("applyPowerlineLines", () => {
     expect(w0).toBe(w1);
   });
 
-  it("continueColors threads next line's first bg into the prior end-cap", () => {
+  it("cycles caps.start across lines (3 entries, 3 lines)", () => {
     const lines = applyPowerlineLines(
       [
         [cell({ text: "a", bg: "red" })],
-        [cell({ text: "b", bg: "blue" })],
+        [cell({ text: "b", bg: "red" })],
+        [cell({ text: "c", bg: "red" })],
       ],
+      { ...opts, capStart: ["[", "<", "{"] },
+    );
+    expect(lines[0]?.[0]?.text).toBe("[");
+    expect(lines[1]?.[0]?.text).toBe("<");
+    expect(lines[2]?.[0]?.text).toBe("{");
+  });
+
+  it("cycles caps.start across more lines than entries (4 lines, 2 entries)", () => {
+    const lines = applyPowerlineLines(
+      [
+        [cell({ text: "a", bg: "red" })],
+        [cell({ text: "b", bg: "red" })],
+        [cell({ text: "c", bg: "red" })],
+        [cell({ text: "d", bg: "red" })],
+      ],
+      { ...opts, capStart: ["A", "B"] },
+    );
+    expect(lines[0]?.[0]?.text).toBe("A");
+    expect(lines[1]?.[0]?.text).toBe("B");
+    expect(lines[2]?.[0]?.text).toBe("A");
+    expect(lines[3]?.[0]?.text).toBe("B");
+  });
+
+  it("cycles caps.end the same way as caps.start", () => {
+    const lines = applyPowerlineLines(
+      [[cell({ text: "a", bg: "red" })], [cell({ text: "b", bg: "red" })]],
+      { ...opts, capEnd: ["X", "Y"] },
+    );
+    const tail0 = lines[0]?.at(-1);
+    const tail1 = lines[1]?.at(-1);
+    expect(tail0?.text).toBe("X");
+    expect(tail1?.text).toBe("Y");
+  });
+
+  it("single-string caps still work with multi-line input (regression)", () => {
+    const lines = applyPowerlineLines(
+      [[cell({ text: "a", bg: "red" })], [cell({ text: "b", bg: "red" })]],
+      { ...opts, capStart: "[", capEnd: "]" },
+    );
+    expect(lines[0]?.[0]?.text).toBe("[");
+    expect(lines[1]?.[0]?.text).toBe("[");
+    expect(lines[0]?.at(-1)?.text).toBe("]");
+    expect(lines[1]?.at(-1)?.text).toBe("]");
+  });
+
+  it("continueColors threads next line's first bg into the prior end-cap", () => {
+    const lines = applyPowerlineLines(
+      [[cell({ text: "a", bg: "red" })], [cell({ text: "b", bg: "blue" })]],
       { ...opts, continueColors: true, capEnd: ">" },
     );
     const line0 = lines[0];

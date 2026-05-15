@@ -8,7 +8,7 @@
  * render tick) — no widget shells out from `render()` itself.
  */
 
-import type { WidgetDef } from "../widget.js";
+import { eraseWidget, type WidgetDef } from "../widget.js";
 import type { WidgetRegistry } from "../registry.js";
 
 import { gitAheadBehindWidget, gitConflictsWidget } from "./ahead-behind.js";
@@ -32,18 +32,18 @@ export { gitShaWidget, gitWorktreeWidget } from "./sha.js";
 export { gitStagedWidget, gitUnstagedWidget, gitUntrackedWidget } from "./status.js";
 
 export const GIT_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
-  gitBranchWidget as WidgetDef<unknown>,
-  gitShaWidget as WidgetDef<unknown>,
-  gitWorktreeWidget as WidgetDef<unknown>,
-  gitChangesWidget as WidgetDef<unknown>,
-  gitStagedWidget as WidgetDef<unknown>,
-  gitUnstagedWidget as WidgetDef<unknown>,
-  gitUntrackedWidget as WidgetDef<unknown>,
-  gitConflictsWidget as WidgetDef<unknown>,
-  gitAheadBehindWidget as WidgetDef<unknown>,
-  gitUpstreamWidget as WidgetDef<unknown>,
-  gitOriginRepoWidget as WidgetDef<unknown>,
-  gitPrWidget as WidgetDef<unknown>,
+  eraseWidget(gitBranchWidget),
+  eraseWidget(gitShaWidget),
+  eraseWidget(gitWorktreeWidget),
+  eraseWidget(gitChangesWidget),
+  eraseWidget(gitStagedWidget),
+  eraseWidget(gitUnstagedWidget),
+  eraseWidget(gitUntrackedWidget),
+  eraseWidget(gitConflictsWidget),
+  eraseWidget(gitAheadBehindWidget),
+  eraseWidget(gitUpstreamWidget),
+  eraseWidget(gitOriginRepoWidget),
+  eraseWidget(gitPrWidget),
 ]);
 
 export function registerGitWidgets(registry: WidgetRegistry): void {

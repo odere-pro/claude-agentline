@@ -19,11 +19,11 @@
  * and the TUI shows a fixed set of rows.
  */
 
-import { atomicWriteJson } from "./atomic.js";
 import { loadConfig } from "./load.js";
 import { resolveConfigPaths } from "./paths.js";
 import type { AgentlineConfig, LineConfig, WidgetConfig } from "./types.js";
 import { validateConfig } from "./validate.js";
+import { writeJsonIdempotent } from "../lib/atomic-write.js";
 import { resolveEnv } from "../lib/env.js";
 import { WIDGET_CATALOG } from "../widgets/catalog.js";
 
@@ -207,7 +207,7 @@ async function persist(
   const { config } = await loadConfig({ env });
   const next = mutate(config);
   validateConfig(next);
-  await atomicWriteJson(resolveConfigPaths(env).userConfig, next);
+  await writeJsonIdempotent(resolveConfigPaths(env).userConfig, next);
   return next;
 }
 
