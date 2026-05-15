@@ -15,7 +15,7 @@
  *     live here.
  */
 
-import { pickString } from "../lib/object.js";
+import { isPlainObject, pickString } from "../lib/object.js";
 
 const MAX_PAYLOAD_BYTES = 256 * 1024;
 
@@ -100,10 +100,10 @@ export async function readStdinPayload(stream: NodeJS.ReadableStream): Promise<S
   } catch (err) {
     throw new StdinParseError("invalid stdin JSON", err);
   }
-  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+  if (!isPlainObject(parsed)) {
     throw new StdinParseError("stdin payload must be a JSON object");
   }
-  return adaptStatuslinePayload(parsed as Record<string, unknown>, {
+  return adaptStatuslinePayload(parsed, {
     truncated: buf.byteLength === MAX_PAYLOAD_BYTES,
   });
 }

@@ -17,6 +17,8 @@ import { readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve, sep } from "node:path";
 
+import { isPlainObject } from "../lib/object.js";
+
 export interface TranscriptEvent {
   readonly timestamp: number;
   readonly model?: string;
@@ -113,16 +115,17 @@ function parseFile(path: string): readonly TranscriptEvent[] {
 }
 
 function toEvent(obj: unknown): TranscriptEvent | null {
-  if (typeof obj !== "object" || obj === null) return null;
-  const o = obj as Record<string, unknown>;
-  const ts = parseTimestamp(o["timestamp"]);
+  if (!isPlainObject(obj)) return null;
+  const ts = parseTimestamp(obj["timestamp"]);
   if (ts === null) return null;
-  const compaction = o["type"] === "compaction" || o["compaction"] === true;
-  const usage = extractUsage(o);
+  const compaction = obj["type"] === "compaction" || obj["compaction"] === true;
+  const usage = extractUsage(obj);
+  const model = obj["model"];
+  const effort = obj["thinkingEffort"];
   return {
     timestamp: ts,
-    model: typeof o["model"] === "string" ? (o["model"] as string) : undefined,
-    effort: typeof o["thinkingEffort"] === "string" ? (o["thinkingEffort"] as string) : undefined,
+    model: typeof model === "string" ? model : undefined,
+    effort: typeof effort === "string" ? effort : undefined,
     inputTokens: usage.input,
     outputTokens: usage.output,
     cachedTokens: usage.cached,
@@ -147,16 +150,12 @@ interface UsageTotals {
 
 function extractUsage(o: Record<string, unknown>): UsageTotals {
   const message = o["message"];
-  if (typeof message === "object" && message !== null) {
-    const usage = (message as Record<string, unknown>)["usage"];
-    if (typeof usage === "object" && usage !== null) {
-      return readUsage(usage as Record<string, unknown>);
-    }
+  if (isPlainObject(message)) {
+    const usage = message["usage"];
+    if (isPlainObject(usage)) return readUsage(usage);
   }
   const usage = o["usage"];
-  if (typeof usage === "object" && usage !== null) {
-    return readUsage(usage as Record<string, unknown>);
-  }
+  if (isPlainObject(usage)) return readUsage(usage);
   return { input: 0, output: 0, cached: 0 };
 }
 

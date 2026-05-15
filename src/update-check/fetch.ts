@@ -15,6 +15,8 @@
  *     can't stall an `install` / `doctor` / `edit` invocation.
  */
 
+import { isPlainObject } from "../lib/object.js";
+
 const NPM_REGISTRY_URL = "https://registry.npmjs.org/@agentline/cli/latest";
 const FETCH_TIMEOUT_MS = 3000;
 
@@ -41,8 +43,8 @@ export async function fetchLatestVersion(
     });
     if (!response.ok) return null;
     const payload: unknown = await response.json();
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
-    const version = (payload as Record<string, unknown>).version;
+    if (!isPlainObject(payload)) return null;
+    const version = payload.version;
     if (typeof version !== "string" || version.trim().length === 0) return null;
     return version.trim();
   } catch {

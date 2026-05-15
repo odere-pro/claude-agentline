@@ -8,7 +8,7 @@
  * `render()` (§1.2 N3 budget).
  */
 
-import { pickString, pickStringArray } from "../lib/object.js";
+import { isPlainObject, pickString, pickStringArray } from "../lib/object.js";
 import type { StdinPayload } from "../stdin/index.js";
 import { readAuthFile, type AuthLookupSource, type AuthSnapshot } from "./auth-file.js";
 
@@ -30,15 +30,13 @@ export interface ResolvedSessionFields {
 
 function readUserBlock(payload: StdinPayload): Record<string, unknown> | undefined {
   const value = payload.raw["user"];
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
-  return value as Record<string, unknown>;
+  return isPlainObject(value) ? value : undefined;
 }
 
 function readOrgBlock(user: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
   if (!user) return undefined;
   const value = user["org"];
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
-  return value as Record<string, unknown>;
+  return isPlainObject(value) ? value : undefined;
 }
 
 export function resolveSessionFields(

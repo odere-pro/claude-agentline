@@ -30,6 +30,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { atomicWriteJson } from "../config/atomic.js";
+import { isPlainObject } from "../lib/object.js";
 
 export const VERSION_CHECK_CACHE_VERSION = 1 as const;
 
@@ -102,16 +103,15 @@ export function readVersionCheckSync(
   } catch {
     return null;
   }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-  const o = parsed as Record<string, unknown>;
-  if (o.version !== VERSION_CHECK_CACHE_VERSION) return null;
-  if (typeof o.savedAt !== "string") return null;
-  if (typeof o.current !== "string") return null;
-  if (o.latest !== null && typeof o.latest !== "string") return null;
+  if (!isPlainObject(parsed)) return null;
+  if (parsed.version !== VERSION_CHECK_CACHE_VERSION) return null;
+  if (typeof parsed.savedAt !== "string") return null;
+  if (typeof parsed.current !== "string") return null;
+  if (parsed.latest !== null && typeof parsed.latest !== "string") return null;
   return {
     version: VERSION_CHECK_CACHE_VERSION,
-    savedAt: o.savedAt,
-    current: o.current,
-    latest: o.latest,
+    savedAt: parsed.savedAt,
+    current: parsed.current,
+    latest: parsed.latest,
   };
 }
