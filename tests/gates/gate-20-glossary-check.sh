@@ -100,10 +100,9 @@ check_banned '\bagentline\.dev\b'      "agentline.dev placeholder domain"
 
 # ── 4. "category" not used as the user-facing family term in docs/agents ─────
 #
-# The TypeScript code may still spell this `WidgetCategory` (a separate
-# refactor); the user-facing term is "family". docs/GLOSSARY.md documents
-# the retired alias and is exempted, as is CLAUDE.md if it explicitly
-# describes the rename history.
+# Source comments are covered by gate-21-comment-glossary.sh.
+# docs/GLOSSARY.md documents the retired alias and is exempted, as is
+# CLAUDE.md if it explicitly describes the rename history.
 
 for path in "${REPO_ROOT}/docs" "${REPO_ROOT}/agents"; do
   [ -e "${path}" ] || continue
