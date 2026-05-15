@@ -27,6 +27,8 @@ export function registerCustomWidgets(registry: WidgetRegistry): void {
   }
 }
 
-// Re-export so consumers can import either name; the cycle list
-// itself stays a single source of truth in `separator.ts`.
+/*
+ * Re-export so consumers can import either name; the cycle list
+ * itself stays a single source of truth in `separator.ts`.
+ */
 export { SEPARATOR_CYCLE as separatorCycle };

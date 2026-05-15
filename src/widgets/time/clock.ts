@@ -71,8 +71,10 @@ function pad2(n: number): string {
 }
 
 function applyTokens(format: string, parts: DateParts): string {
-  // Tokens longest-first to avoid partial replacement
-  // (e.g. `HH` before `H`).
+  /*
+   * Tokens longest-first to avoid partial replacement
+   * (e.g. `HH` before `H`).
+   */
   const tokens: ReadonlyArray<readonly [string, string]> = [
     ["HH", pad2(parts.hours24)],
     ["mm", pad2(parts.minutes)],
@@ -107,9 +109,10 @@ function applyTokens(format: string, parts: DateParts): string {
 }
 
 export const clockWidget = defineWidget<Options>("clock", (ctx, settings): Cell => {
-  const format = typeof settings.options.format === "string" && settings.options.format.length > 0
-    ? settings.options.format
-    : DEFAULT_FORMAT;
+  const format =
+    typeof settings.options.format === "string" && settings.options.format.length > 0
+      ? settings.options.format
+      : DEFAULT_FORMAT;
   const text = formatClock(ctx.clock, format, settings.options.tz);
   const label = settings.rawValue ? "" : (settings.options.label ?? "");
   return { text: `${label}${text}` };

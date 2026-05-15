@@ -71,8 +71,10 @@ export const gitPrWidget = defineWidget<Options>("git-pr", (ctx, settings): Cell
   const body = renderVariant(variant, snap.pr);
   if (!body) return { text: "", hidden: true };
   const label = settings.rawValue ? "" : (settings.options.label ?? "");
-  // Same colour family as `git-branch` on a clean tree — PR identity
-  // tracks the branch identity rather than the dirty-status palette.
+  /*
+   * Same colour family as `git-branch` on a clean tree — PR identity
+   * tracks the branch identity rather than the dirty-status palette.
+   */
   const fg = resolveRole(ctx.theme, "git-clean");
   return { text: `${label}${body}`, fg };
 });
