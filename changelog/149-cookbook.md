@@ -1,0 +1,1 @@
+- Document the tech-agnostic cookbook: add `docs/cookbook/` so the goal, architecture, patterns, contracts, components, testing strategy, and release model can be rebuilt in any stack independent of the TypeScript-locked SPEC.
