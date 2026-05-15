@@ -15,6 +15,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { writeJsonIdempotent } from "./atomic-write.js";
+import { isPlainObject } from "./object.js";
 
 const EXEC_TIMEOUTS = {
   fcList: 2500,
@@ -83,17 +84,18 @@ export async function writeNerdFontStatus(
  * "Nerd Font assumed present" so a user who skipped install isn't punished.
  */
 export function readNerdFontStatus(stateDir: string): NerdFontStatus | null {
+  let parsed: unknown;
   try {
-    const raw = readFileSync(join(stateDir, NERD_FONT_SENTINEL), "utf8");
-    const parsed = JSON.parse(raw) as Partial<NerdFontStatus>;
-    if (typeof parsed.available !== "boolean") return null;
-    return {
-      available: parsed.available,
-      checkedAt: typeof parsed.checkedAt === "string" ? parsed.checkedAt : "",
-    };
+    parsed = JSON.parse(readFileSync(join(stateDir, NERD_FONT_SENTINEL), "utf8"));
   } catch {
     return null;
   }
+  if (!isPlainObject(parsed)) return null;
+  if (typeof parsed.available !== "boolean") return null;
+  return {
+    available: parsed.available,
+    checkedAt: typeof parsed.checkedAt === "string" ? parsed.checkedAt : "",
+  };
 }
 
 /**
