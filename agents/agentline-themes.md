@@ -10,66 +10,68 @@ Use this skill when the user wants to pick, preview, or author a theme for their
 
 ## Browse and inspect
 
-```bash
-agentline config theme                          # swatch table: name + 13 palette colour blocks
-agentline config theme --show vscode-dark       # inspect one theme's full palette
-```
-
 To preview a theme live, set it in the config and restart the Claude Code session:
 
 ```jsonc
 // ~/.config/agentline/config.json
-{ "theme": "vscode-dark" }
+{ "theme": "claude-code-dark" }
+```
+
+Or open the TUI editor to switch themes interactively:
+
+```bash
+agentline edit
 ```
 
 ---
 
 ## Shipped themes
 
-| Name                | Base            |
-| ------------------- | --------------- |
-| `claude-code-dark`  | dark warm brown |
-| `claude-code-light` | warm beige      |
-| `vscode-dark`       | dark grey       |
-| `vscode-light`      | light grey      |
+| Name               | Base            |
+| ------------------ | --------------- |
+| `claude-code-dark` | dark warm brown |
 
-Set in config:
-
-```json
-{ "theme": "vscode-dark" }
-```
+Additional community themes can be dropped into
+`${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/themes/<name>.json`
+and referenced by name in your config.
 
 ---
 
 ## Palette roles
 
-| Role                | Used by                               |
-| ------------------- | ------------------------------------- |
-| `accent`            | session widgets (model, version, org) |
-| `info`              | context, tokens at low usage          |
-| `warning`           | context / tokens approaching cap      |
-| `danger`            | rate-limit hit, error states          |
-| `muted`             | separators, labels in minimalist mode |
-| `git.clean`         | git widgets when worktree is clean    |
-| `git.dirty`         | git widgets when worktree has changes |
-| `cost.low/mid/high` | cost widget tiers                     |
+Required (every theme must supply all 13):
+
+| Role          | Used by                                  |
+| ------------- | ---------------------------------------- |
+| `accent`      | session widgets (model, version, …)      |
+| `info`        | context, tokens (low usage)              |
+| `success`     | git clean state indicators               |
+| `warning`     | context / tokens approaching their cap   |
+| `danger`      | rate-limit hit, error states             |
+| `muted`       | separators, labels in `minimalist` mode  |
+| `git-clean`   | `git-changes` when the worktree is clean |
+| `git-dirty`   | `git-changes` when the worktree is dirty |
+| `tokens-low`  | token widgets (low usage)                |
+| `tokens-mid`  | token widgets (medium usage)             |
+| `tokens-high` | token widgets (high usage)               |
+| `bg-section`  | section background areas                 |
+| `bg-emphasis` | emphasis / highlight background areas    |
 
 ---
 
 ## Author a custom theme
 
 ```bash
-# 1. copy the closest preset to your user themes dir
-cp themes/vscode-dark.json \
+# 1. copy the shipped theme into your user themes dir
+cp themes/claude-code-dark.json \
   "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/themes/my-theme.json"
 
 # 2. edit — rename the "name" field to match the filename
 # 3. activate: set "theme": "my-theme" in ~/.config/agentline/config.json
-#    (or open the TUI editor: `agentline config`)
+#    (or open the TUI editor: `agentline edit`)
 
 # 4. verify
 agentline doctor
-agentline config theme --show my-theme
 ```
 
 Minimal theme file shape:
