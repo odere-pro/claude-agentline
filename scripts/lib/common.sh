@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # scripts/lib/common.sh
-# Shared helpers for `scripts/{install,init,doctor,uninstall}.sh`.
+# Shared helpers for `scripts/{install,doctor,uninstall}.sh`.
 # Bash 3.2 compatible (macOS default; the spec also requires support under
 # Bash 5+ and Git Bash on Windows). No associative arrays, no `mapfile`.
 #

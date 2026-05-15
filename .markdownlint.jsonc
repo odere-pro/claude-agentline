@@ -1,6 +1,6 @@
 {
-  // Markdown linting for the agentline plugin.
-  // Only the rules we deliberately diverge from upstream defaults are listed.
+  /* Markdown linting for the agentline repo.
+     Only the rules we deliberately diverge from upstream defaults are listed. */
   "default": true,
   "MD003": { "style": "atx" },
   "MD004": { "style": "dash" },
@@ -15,5 +15,5 @@
   "MD041": false,
   "MD046": { "style": "fenced" },
   "MD048": { "style": "backtick" },
-  "MD060": false
+  "MD060": false,
 }
