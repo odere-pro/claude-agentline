@@ -2,9 +2,8 @@
  * Editor-chrome glyphs: small visual flourishes used only inside the
  * `agentline config` TUI (the selection brackets, the active-row marker,
  * the "+ add widget" cell, the gutter, family icons in the picker).
- *
- * Statusline-widget glyphs (Nerd Font icons on the rendered statusline)
- * are a separate concern — see the opt-in `config.glyphs` layer.
+ * These are decorative editor UI only — they never reach the rendered
+ * statusline.
  *
  * Pure data + a selector. Lives under `src/tui/` so it never enters
  * `dist/cli.mjs` (§1.2 N3).

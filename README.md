@@ -20,11 +20,11 @@ A fast, themeable statusline for Claude Code. Reads the stdin payload Claude Cod
 
 - **42 widgets** across 7 families — `session` · `tokens` · `context` · `rate-limits` · `git` · `time` · `custom`
 - **Powerline-ready** rendering with arrayed chevrons & caps that cycle per line
-- **Theme engine** — truecolor / 256-colour / 16-colour graceful degradation, optional Nerd Font glyph layer
+- **Theme engine** — truecolor / 256-colour / 16-colour graceful degradation
 - **Configure in-session** — five skills wired into Claude Code let you say _"add a context widget"_ and the agent edits your config
 - **TUI editor** with live preview and widget picker (`agentline edit`)
 - **Scriptable layout** — `agentline config widget <add|remove|move|replace|set-option|list|catalog>`
-- **`agentline doctor --fix`** — auto-repairs settings wiring and installs JetBrainsMono Nerd Font
+- **`agentline doctor --fix`** — auto-repairs settings wiring, config defaults, and missing themes
 - **Reversible** — `install` backs up your prior `statusLine`; `uninstall` restores it byte-for-byte
 - **Zero render-time I/O** — pricing table, themes, and widget registry are all embedded
 
@@ -74,7 +74,7 @@ agentline uninstall --purge  # also wipe user config + custom themes
 
 ```bash
 agentline doctor             # report wiring problems
-agentline doctor --fix       # auto-repair (incl. Nerd Font install)
+agentline doctor --fix       # auto-repair settings + config wiring
 ```
 
 ---
@@ -136,14 +136,14 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for branch/commit conventions, the 5-st
 
 Core modules follow [`docs/plan/SPEC-v0.1.0.md §2`](./docs/plan/SPEC-v0.1.0.md). Top-level `src/` directories beyond the spec table:
 
-| Directory        | Purpose                                                              |
-| ---------------- | -------------------------------------------------------------------- |
-| `src/cli/`       | CLI help-string utilities                                            |
-| `src/lib/`       | Shared pure utilities (env, fs, nerd-font detection, object, result) |
-| `src/install/`   | `agentline install` command                                          |
-| `src/uninstall/` | `agentline uninstall` command                                        |
-| `src/start/`     | `agentline start` — preview from last cached stdin                   |
-| `src/state/`     | Stdin payload cache, render output cache, config backup              |
+| Directory        | Purpose                                                 |
+| ---------------- | ------------------------------------------------------- |
+| `src/cli/`       | CLI help-string utilities                               |
+| `src/lib/`       | Shared pure utilities (env, fs, object, result)         |
+| `src/install/`   | `agentline install` command                             |
+| `src/uninstall/` | `agentline uninstall` command                           |
+| `src/start/`     | `agentline start` — preview from last cached stdin      |
+| `src/state/`     | Stdin payload cache, render output cache, config backup |
 
 ---
 

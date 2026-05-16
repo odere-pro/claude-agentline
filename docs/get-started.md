@@ -45,7 +45,7 @@ Restart your Claude Code session. The statusline appears at the bottom of the pr
 If it doesn't render:
 
 ```bash
-agentline doctor          # full health report (D01–D10)
+agentline doctor          # full health report (D01–D09)
 agentline doctor --fix    # auto-repair D01–D04
 ```
 

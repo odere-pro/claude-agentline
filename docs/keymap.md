@@ -44,7 +44,6 @@ per-widget options sheet.
 | <kbd>r</kbd>                | edit   | replace the selected widget (opens the picker)                   |
 | <kbd>u</kbd>                | edit   | update — pick a different variant of the selected widget         |
 | <kbd>d</kbd>                | edit   | delete the selected widget                                       |
-| <kbd>g</kbd>                | edit   | toggle Nerd Font glyphs on / off (top-level `config.glyphs`)     |
 | <kbd>S</kbd>                | edit   | save (Ctrl+S also works)                                         |
 | _(type)_                    | picker | filter widgets by name or type (step 2)                          |
 | <kbd>↑</kbd> <kbd>↓</kbd>   | picker | highlight a row                                                  |

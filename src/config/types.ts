@@ -75,24 +75,10 @@ export interface TerminalWidthConfig {
   compactThreshold: number;
 }
 
-/**
- * Top-level glyph mode (§7.1 add-on).
- *
- *   - `off`        — render-path widgets emit text only (default; goldens
- *                    rely on this).
- *   - `nerd-font`  — when a widget has a `glyph` declared in the catalogue,
- *                    `renderWidget` prepends `<glyph><thin space>` to the
- *                    cell text. Requires a Nerd Font installed in the
- *                    user's terminal; falls back to a missing-glyph box
- *                    in plain fonts (which is exactly why it's opt-in).
- */
-export type GlyphMode = "off" | "nerd-font";
-
 export interface AgentlineConfig {
   $schema?: string;
   version: number;
   theme: string | null;
-  glyphs: GlyphMode;
   lines: LineConfig[];
   global: GlobalConfig;
   powerline: PowerlineConfig;
@@ -104,7 +90,6 @@ export type PartialAgentlineConfig = Partial<{
   $schema: string;
   version: number;
   theme: string | null;
-  glyphs: GlyphMode;
   lines: LineConfig[];
   global: Partial<GlobalConfig>;
   powerline: Partial<PowerlineConfig> & { caps?: Partial<PowerlineCaps>; glyphs?: PowerlineGlyphs };

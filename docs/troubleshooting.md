@@ -7,7 +7,7 @@ agentline doctor          # full report
 agentline doctor --fix    # auto-repair D01–D04
 ```
 
-See [doctor.md](./doctor.md) for the complete check list (D01–D10).
+See [doctor.md](./doctor.md) for the complete check list (D01–D09).
 
 ---
 
@@ -71,19 +71,22 @@ agentline: config error at /lines/0/widgets/2/type: must be a known widget type
 
 ---
 
-## Stale pricing / D07 warning
+## Stale pricing / D06 warning
 
 ```bash
 npm install -g @agentline/cli@latest
 ```
 
-The embedded pricing table is refreshed monthly. Upgrade when D07 fires.
+The embedded pricing table is refreshed monthly. Upgrade when D06 fires.
 
 ---
 
 ## Powerline chevrons show as `>` / `<`
 
-Nerd Font missing. D05 prints the platform-specific install command when it fires.
+No Nerd Font is installed, so Powerline degrades to ASCII chevrons.
+Install a Nerd Font (e.g. JetBrainsMono, FiraCode, Hack) from
+<https://www.nerdfonts.com>, or set `AGENTLINE_GLYPHS=nerd` to force
+the Nerd Font chevrons once a font is present.
 
 ---
 

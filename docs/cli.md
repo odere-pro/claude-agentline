@@ -20,7 +20,7 @@ The top-level surface is intentionally small: **`install` · `uninstall` · `doc
 | [`version`](#version)     | Print binary version                                | no             |
 | [`help`](#help)           | Print the top-level command list                    | no             |
 
-The `render` subcommand is retained for the golden-snapshot harness and doctor's D10 check but is not listed in `agentline --help`; see [`render` (hidden)](#render-hidden) below.
+The `render` subcommand is retained for the golden-snapshot harness and doctor's D09 check but is not listed in `agentline --help`; see [`render` (hidden)](#render-hidden) below.
 
 ---
 
@@ -123,7 +123,7 @@ agentline uninstall --dry-run    # preview actions
 agentline doctor [options]
 ```
 
-Runs ten health checks (D01–D10) against the host configuration. With `--fix`, auto-repairs D01–D04.
+Runs nine health checks (D01–D09) against the host configuration. With `--fix`, auto-repairs D01–D04.
 
 | Flag            | Type | Default | Description                                                                |
 | --------------- | ---- | ------- | -------------------------------------------------------------------------- |
@@ -140,11 +140,11 @@ Runs ten health checks (D01–D10) against the host configuration. With `--fix`,
 | D02 | `statusLine` wired to agentline  | yes          |
 | D03 | User/project config valid schema | yes (seed)   |
 | D04 | Theme files present              | yes (copy)   |
-| D05 | Nerd Font available (Powerline)  | no           |
-| D06 | `git` on PATH                    | no           |
-| D07 | Pricing table age ≤ 90 days      | no           |
-| D08 | `CLAUDE_CONFIG_DIR` writable     | no           |
-| D10 | Render snapshot matches golden   | no           |
+| D05 | `git` on PATH                    | no           |
+| D06 | Pricing table age ≤ 90 days      | no           |
+| D07 | `CLAUDE_CONFIG_DIR` writable     | no           |
+| D08 | Update-check cache (read-only)   | no           |
+| D09 | Render snapshot matches golden   | no           |
 
 **Glyphs in output:** `[ok]` passed · `[!!]` warning · `[XX]` failed · `[fx]` fixed · `[--]` skipped
 
@@ -189,7 +189,7 @@ agentline install
 agentline render [options]
 ```
 
-Re-renders a recorded stdin payload from a file (instead of live stdin). Used by the golden-snapshot harness, doctor's D10 check, and CI pipelines. Produces byte-identical output to the default invocation given the same payload.
+Re-renders a recorded stdin payload from a file (instead of live stdin). Used by the golden-snapshot harness, doctor's D09 check, and CI pipelines. Produces byte-identical output to the default invocation given the same payload.
 
 Not listed in `agentline --help` — call it directly when you need fixture replay.
 

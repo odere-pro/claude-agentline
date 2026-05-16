@@ -11,9 +11,8 @@
  *   - `SaveTracker` is the shared mutable container the editor's
  *     `onSave` and the SIGTERM handler both read.
  *   - `mountEditor` is the entry the host (`runConfigCommand`) drives.
- *   - `resolveStartingConfig` + `resolveNerdFontAvailable` +
- *     `pruneStaleWidgets` are the small input-resolution helpers that
- *     decide what config to hand `App`.
+ *   - `resolveStartingConfig` + `pruneStaleWidgets` are the small
+ *     input-resolution helpers that decide what config to hand `App`.
  */
 
 import { render } from "ink";
@@ -24,7 +23,6 @@ import { loadConfig } from "../config/load.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import type { AgentlineConfig } from "../config/types.js";
 import { resolveEnv } from "../lib/env.js";
-import { readNerdFontStatus, stateDir as nerdFontStateDir } from "../lib/nerd-font.js";
 import type { Theme } from "../theme/index.js";
 import { widgetMeta } from "../widgets/catalog.js";
 
@@ -207,8 +205,6 @@ export interface MountEditorOptions {
   readonly path: string;
   readonly previewTheme: Theme | null;
   readonly glyphs: EditorGlyphs;
-  /** `false` when the install probe didn't find a Nerd Font; locks the `g` toggle to "off". */
-  readonly nerdFontAvailable: boolean;
 }
 
 export function mountEditor(opts: MountEditorOptions): {
@@ -227,7 +223,6 @@ export function mountEditor(opts: MountEditorOptions): {
       path: opts.path,
       previewTheme: opts.previewTheme,
       glyphs: opts.glyphs,
-      nerdFontAvailable: opts.nerdFontAvailable,
       onSaved: (saved) => {
         savedRef.value = saved;
       },
@@ -261,19 +256,6 @@ export async function resolveStartingConfig(
   } catch {
     return { config: DEFAULT_CONFIG, path: paths.userConfig };
   }
-}
-
-/**
- * Read the install-time Nerd Font sentinel. When the sentinel is missing
- * (user skipped `agentline install`, or installed an older version) we
- * assume a font is available rather than locking the toggle — a missed
- * disable is recoverable, a false lock is annoying.
- */
-export function resolveNerdFontAvailable(env: NodeJS.ProcessEnv): boolean {
-  const home = env.HOME ?? "";
-  if (!home) return true;
-  const status = readNerdFontStatus(nerdFontStateDir(env, home));
-  return status === null ? true : status.available;
 }
 
 /**

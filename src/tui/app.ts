@@ -52,8 +52,6 @@ export interface AppProps {
   readonly path: string;
   readonly previewTheme: Theme | null;
   readonly glyphs: EditorGlyphs;
-  /** `false` when the install probe didn't find a Nerd Font; locks the `g` toggle to "off". */
-  readonly nerdFontAvailable: boolean;
   readonly onSaved: (saved: boolean) => void;
   /**
    * Shared in-flight save tracker. The signal handler in `enterAltScreen`
@@ -81,12 +79,11 @@ export function App({
   path,
   previewTheme,
   glyphs,
-  nerdFontAvailable,
   onSaved,
   saveTracker,
 }: AppProps): React.ReactElement {
   const [state, dispatch] = useReducer(reduce, initialConfig, (cfg) =>
-    initialState(cfg.lines, nerdFontAvailable ? cfg.glyphs : "off"),
+    initialState(cfg.lines),
   );
   const [statusMessage, setStatusMessage] = useState<string>("");
   const bindings = useMemo(
@@ -134,7 +131,6 @@ export function App({
           path,
           base: initialConfig,
           lines: state.lines,
-          glyphs: state.glyphs,
         });
         dispatch({ type: "mark-clean" });
         setStatusMessage(
@@ -150,7 +146,7 @@ export function App({
       if (saveTracker.inFlight === promise) saveTracker.inFlight = null;
     });
     return promise;
-  }, [initialConfig, onSaved, path, state.lines, state.glyphs, saveTracker]);
+  }, [initialConfig, onSaved, path, state.lines, saveTracker]);
 
   const { stepQuery, stepHighlight } = useEditorInput({
     state,
@@ -158,7 +154,6 @@ export function App({
     saveTracker,
     onSave,
     onSaved,
-    nerdFontAvailable,
     setStatusMessage,
     widgetEntries,
     usedTypes,
@@ -178,12 +173,7 @@ export function App({
       Box,
       { marginTop: 1 },
       React.createElement(Preview, {
-        /*
-         * Synthesize an effective base that reflects the editor's live
-         * glyph mode so toggling `g` is visible immediately. Everything
-         * else — theme, global, powerline — comes from the loaded config.
-         */
-        base: { ...initialConfig, glyphs: state.glyphs },
+        base: initialConfig,
         lines: state.lines,
         cursor: state.cursor,
         theme: previewTheme,

@@ -35,7 +35,7 @@ import { resolveConfiguredTheme } from "../theme/resolve.js";
 
 import type { RunConfigInput, RunConfigResult } from "./app.js";
 import { pickGlyphs } from "./glyphs.js";
-import { mountEditor, resolveNerdFontAvailable, resolveStartingConfig } from "./mount.js";
+import { mountEditor, resolveStartingConfig } from "./mount.js";
 
 export type { RunConfigInput, RunConfigResult } from "./app.js";
 
@@ -58,13 +58,11 @@ export async function runConfigCommand(input: RunConfigInput = {}): Promise<RunC
   const env = resolveEnv(input);
   const previewTheme = await resolveConfiguredTheme(config.theme, { env });
   const glyphs = pickGlyphs({ env });
-  const nerdFontAvailable = resolveNerdFontAvailable(env);
   const { waitUntilExit, unmount, savedRef } = mountEditor({
     config,
     path,
     previewTheme,
     glyphs,
-    nerdFontAvailable,
   });
   await waitUntilExit;
   unmount();

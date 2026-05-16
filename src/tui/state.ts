@@ -48,7 +48,7 @@
  */
 
 import { MAX_LINES } from "../config/mutate.js";
-import type { GlyphMode, LineConfig, WidgetConfig } from "../config/types.js";
+import type { LineConfig, WidgetConfig } from "../config/types.js";
 import type { WidgetFamily } from "../widgets/catalog.js";
 
 import { deleteWidget, moveCursor, moveWidget, setOption } from "./state-mutations.js";
@@ -91,16 +91,8 @@ interface EditorStateBase {
   readonly cursor: EditorCursor;
   readonly dirty: boolean;
   /**
-   * Live mirror of `config.glyphs`. The `g` keybinding toggles between
-   * `"off"` and `"nerd-font"`; the editor preview reads this value (not
-   * the loaded config's snapshot) so flipping the mode is reflected
-   * immediately. `saveEditedConfig` writes it back so the disk config
-   * tracks the editor.
-   */
-  readonly glyphs: GlyphMode;
-  /**
-   * Memento — snapshot of `lines` + `glyphs` at the last save (or at
-   * initial load). `revert` restores from this snapshot, discarding any
+   * Memento — snapshot of `lines` at the last save (or at initial
+   * load). `revert` restores from this snapshot, discarding any
    * unsaved edits. `mark-clean` refreshes it on successful save.
    */
   readonly lastSaved: EditorSnapshot;
@@ -120,7 +112,6 @@ export type EditorState = EditorEditState | EditorPickerState;
 
 export interface EditorSnapshot {
   readonly lines: readonly LineConfig[];
-  readonly glyphs: GlyphMode;
 }
 
 export type EditorAction =
@@ -131,8 +122,6 @@ export type EditorAction =
   | { readonly type: "delete" }
   // ── widget option mutators (CLI / programmatic only) ─────────────────────
   | { readonly type: "set-option"; readonly key: string; readonly value: unknown }
-  // ── top-level config toggles ─────────────────────────────────────────────
-  | { readonly type: "toggle-glyphs" }
   // ── picker drill-down (add / replace) ────────────────────────────────────
   | { readonly type: "open-picker"; readonly intent: "add" | "replace" }
   | { readonly type: "pick-family"; readonly family: WidgetFamily }
@@ -153,18 +142,14 @@ export function padToMaxLines(lines: readonly LineConfig[]): readonly LineConfig
   return trimmed;
 }
 
-export function initialState(
-  lines: readonly LineConfig[],
-  glyphs: GlyphMode = "off",
-): EditorEditState {
+export function initialState(lines: readonly LineConfig[]): EditorEditState {
   const padded = padToMaxLines(lines);
   return Object.freeze<EditorEditState>({
     lines: padded,
     cursor: { line: 0, widget: 0 },
     mode: "edit",
     dirty: false,
-    glyphs,
-    lastSaved: { lines: padded, glyphs },
+    lastSaved: { lines: padded },
   });
 }
 
@@ -178,12 +163,6 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
       return deleteWidget(state);
     case "set-option":
       return setOption(state, action.key, action.value);
-    case "toggle-glyphs":
-      return {
-        ...state,
-        glyphs: state.glyphs === "nerd-font" ? "off" : "nerd-font",
-        dirty: true,
-      };
     case "open-picker":
       return openPicker(state, action.intent);
     case "pick-family":
@@ -204,7 +183,7 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
       return {
         ...state,
         dirty: false,
-        lastSaved: { lines: state.lines, glyphs: state.glyphs },
+        lastSaved: { lines: state.lines },
       };
     case "mark-dirty":
       return state.dirty ? state : { ...state, dirty: true };
@@ -213,7 +192,6 @@ export function reduce(state: EditorState, action: EditorAction): EditorState {
       return {
         ...state,
         lines: state.lastSaved.lines,
-        glyphs: state.lastSaved.glyphs,
         dirty: false,
         /*
          * Pull cursor back into bounds in case the discarded edits had

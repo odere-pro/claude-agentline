@@ -9,18 +9,12 @@
 
 import { writeJsonIdempotent } from "../lib/atomic-write.js";
 import { validateConfig } from "../config/validate.js";
-import type { AgentlineConfig, GlyphMode, LineConfig } from "../config/types.js";
+import type { AgentlineConfig, LineConfig } from "../config/types.js";
 
 export interface SaveInput {
   readonly path: string;
   readonly base: AgentlineConfig;
   readonly lines: readonly LineConfig[];
-  /**
-   * When supplied, overrides `base.glyphs` so the editor's `g` toggle
-   * lands on disk. Omit to preserve whatever the loaded config already
-   * declared.
-   */
-  readonly glyphs?: GlyphMode;
 }
 
 export async function saveEditedConfig(input: SaveInput): Promise<AgentlineConfig> {
@@ -29,7 +23,6 @@ export async function saveEditedConfig(input: SaveInput): Promise<AgentlineConfi
     lines: trimTrailingEmpty(
       input.lines.map((line) => ({ widgets: line.widgets.map((w) => ({ ...w })) })),
     ),
-    ...(input.glyphs !== undefined ? { glyphs: input.glyphs } : {}),
   };
   validateConfig(next);
   await writeJsonIdempotent(input.path, next);

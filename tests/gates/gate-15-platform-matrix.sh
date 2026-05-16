@@ -73,10 +73,9 @@ log_info "smoke-rendering installed bin: ${bin}"
 # `gate-15` is not a known model id, so the `model` widget falls
 # back to rendering the raw id as-is. The rest of the default
 # config widgets hide (no transcript, no git repo, etc.) so the
-# expected line is the default-config Nerd Font glyph (U+F544, the
-# `model` widget's `nf-md-robot`) + a single space + the raw model id.
+# expected line is just the raw model id.
 fixture_in='{"model":"gate-15","cwd":"/agentline/gate-15"}'
-expected=$'\xef\x95\x84 gate-15'
+expected='gate-15'
 
 # Isolate config: point `CLAUDE_CONFIG_DIR` at an empty dir so the live
 # render falls back to `DEFAULT_CONFIG` (model-only) rather than reading

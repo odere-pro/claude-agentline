@@ -50,7 +50,6 @@ export interface EditHandlerDeps extends PickerHandlerDeps {
   readonly onSave: () => Promise<void>;
   readonly onSaved: (saved: boolean) => void;
   readonly saveTracker: SaveTracker;
-  readonly nerdFontAvailable: boolean;
   readonly setStatusMessage: (message: string) => void;
 }
 
@@ -191,18 +190,9 @@ export function handlePickerVariantKey(
   }
 }
 
-/** Edit mode: layout-shaping keys plus save / exit / glyph-toggle. */
+/** Edit mode: layout-shaping keys plus save / exit. */
 export function handleEditKey(input: string, key: KeyEvent, deps: EditHandlerDeps): void {
-  const {
-    state,
-    dispatch,
-    exit,
-    onSave,
-    onSaved,
-    saveTracker,
-    nerdFontAvailable,
-    setStatusMessage,
-  } = deps;
+  const { state, dispatch, exit, onSave, onSaved, saveTracker, setStatusMessage } = deps;
 
   if (key.escape || input === "q") {
     onSaved(false);
@@ -256,20 +246,5 @@ export function handleEditKey(input: string, key: KeyEvent, deps: EditHandlerDep
   if (input === "d" || input === "x" || key.delete || key.backspace) {
     dispatch({ type: "delete" });
     return;
-  }
-  if (input === "g") {
-    const next = state.glyphs === "nerd-font" ? "off" : "nerd-font";
-    /*
-     * When `agentline install` couldn't find a Nerd Font, lock the toggle
-     * to "off" — enabling glyphs would only paint tofu boxes onto the
-     * rendered statusline. Toggling *off* is still allowed so a user who
-     * edited the file by hand can recover via the UI.
-     */
-    if (!nerdFontAvailable && next === "nerd-font") {
-      setStatusMessage("glyphs: disabled — install a Nerd Font, then re-run `agentline install`");
-      return;
-    }
-    dispatch({ type: "toggle-glyphs" });
-    setStatusMessage(`glyphs: ${next}`);
   }
 }

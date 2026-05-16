@@ -71,7 +71,7 @@ A doc is a contract with its reader. Length envelopes prevent docs from rotting 
 
 - **Reader.** A user whose statusline isn't working and is running `doctor`.
 - **Length.** ≤ 250 lines.
-- **MUST contain.** Each check D01–D10 with cause, impact, and remedy (whether `--fix` will repair it); how to interpret a JSON doctor report.
+- **MUST contain.** Each check D01–D09 with cause, impact, and remedy (whether `--fix` will repair it); how to interpret a JSON doctor report.
 
 ---
 

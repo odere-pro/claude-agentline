@@ -131,20 +131,19 @@ The CLI surface is intentionally flat — there is no nested dispatcher. The def
 
 ## Doctor checks
 
-Ordered D01 → D10. Each: probe, outcome, repair (with `--fix`).
+Ordered D01 → D09. Each: probe, outcome, repair (with `--fix`).
 
-| ID  | Probe                                                              | Repair                                                          |
-| --- | ------------------------------------------------------------------ | --------------------------------------------------------------- |
-| D01 | Host settings file exists at the canonical path.                   | Create with default skeleton.                                   |
-| D02 | `statusLine.command` resolves to a working invocation of this bin. | Rewrite to the canonical invocation.                            |
-| D03 | User config exists and matches the schema.                         | Migrate, or write defaults if missing.                          |
-| D04 | All themes referenced by config are installed.                     | Copy from the package's embedded theme set.                     |
-| D05 | A Nerd Font is available (when Powerline enabled).                 | Print platform-specific install instructions (or auto-install). |
-| D06 | `git` binary is on PATH (when any git widget is enabled).          | None — report only.                                             |
-| D07 | Embedded pricing table is fresher than `now − 90 days`.            | None — report only.                                             |
-| D08 | Host config dir env var (if set) points to a writable directory.   | None — report only.                                             |
-| D09 | Custom-command widgets resolve their `cmd` to an executable.       | None — report only.                                             |
-| D10 | Render dry-run on an embedded fixture matches a stored snapshot.   | None — report only.                                             |
+| ID  | Probe                                                              | Repair                                      |
+| --- | ------------------------------------------------------------------ | ------------------------------------------- |
+| D01 | Host settings file exists at the canonical path.                   | Create with default skeleton.               |
+| D02 | `statusLine.command` resolves to a working invocation of this bin. | Rewrite to the canonical invocation.        |
+| D03 | User config exists and matches the schema.                         | Migrate, or write defaults if missing.      |
+| D04 | All themes referenced by config are installed.                     | Copy from the package's embedded theme set. |
+| D05 | `git` binary is on PATH (when any git widget is enabled).          | None — report only.                         |
+| D06 | Embedded pricing table is fresher than `now − 90 days`.            | None — report only.                         |
+| D07 | Host config dir env var (if set) points to a writable directory.   | None — report only.                         |
+| D08 | Custom-command widgets resolve their `cmd` to an executable.       | None — report only.                         |
+| D09 | Render dry-run on an embedded fixture matches a stored snapshot.   | None — report only.                         |
 
 ---
 

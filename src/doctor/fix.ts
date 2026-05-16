@@ -1,5 +1,5 @@
 /**
- * Auto-fix routines for D01–D05. Anything outside that range is reported
+ * Auto-fix routines for D01–D04. Anything outside that range is reported
  * but never auto-repaired (per spec).
  *
  * Each fix is idempotent: re-running `agentline doctor --fix` on an
@@ -7,23 +7,16 @@
  */
 
 import { promises as fs } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import { writeJsonIdempotent } from "../lib/atomic-write.js";
 import { DEFAULT_CONFIG, type AgentlineConfig } from "../config/index.js";
-import { installNerdFont, resolveFontDir } from "../lib/font-install.js";
 import { pathExists } from "../lib/fs.js";
-import { detectNerdFontSync, stateDir, writeNerdFontStatus } from "../lib/nerd-font.js";
 import { saveStatusLineBackup } from "../state/backup.js";
 import type { CheckResult } from "./types.js";
 
 interface FixCtx {
   home: string;
   env: NodeJS.ProcessEnv;
-  /** Test seam — defaults to the real font installer. */
-  fontInstaller?: typeof installNerdFont;
-  /** Test seam — defaults to the real Nerd Font detection. */
-  detectNerdFont?: typeof detectNerdFontSync;
 }
 
 export async function applyFixes(results: CheckResult[], ctx: FixCtx): Promise<CheckResult[]> {
@@ -47,10 +40,6 @@ export async function applyFixes(results: CheckResult[], ctx: FixCtx): Promise<C
     }
     if (r.id === "D04") {
       out.push(await fixD04(r, ctx));
-      continue;
-    }
-    if (r.id === "D05") {
-      out.push(await fixD05(r, ctx));
       continue;
     }
     out.push(r);
@@ -131,64 +120,5 @@ async function fixD04(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
     status: "warn",
     message: `${r.message} (auto-copy needs the bundled themes/ directory)`,
     hint: "run `scripts/install.sh` once it lands to seed themes/",
-  };
-}
-
-async function fixD05(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
-  const detect = ctx.detectNerdFont ?? detectNerdFontSync;
-  const install = ctx.fontInstaller ?? installNerdFont;
-  const sentinelDir = stateDir(ctx.env, ctx.home);
-  const manualHint =
-    "download manually from https://www.nerdfonts.com" +
-    " · macOS: brew install --cask font-jetbrains-mono-nerd-font" +
-    ' · or set glyphs="off" in your config to disable';
-
-  /*
-   * Idempotency: if detection now succeeds, refresh the sentinel and
-   * short-circuit. Mirrors `fixD02`'s "read state, modify if needed"
-   * shape so re-running --fix on a healthy host mutates no bytes
-   * beyond the timestamp inside the sentinel.
-   */
-  if (detect()) {
-    await writeNerdFontStatus(sentinelDir, true).catch(() => undefined);
-    return {
-      ...r,
-      status: "fixed",
-      message: "Nerd Font already installed",
-      fixed: true,
-      hint: undefined,
-    };
-  }
-
-  const fontDir = resolveFontDir({
-    env: ctx.env,
-    home: ctx.home || homedir(),
-    platform: process.platform,
-  });
-  const result = await install({ fontDir });
-  if ("error" in result) {
-    return {
-      ...r,
-      status: "warn",
-      message: `auto-install failed: ${result.error}`,
-      hint: manualHint,
-    };
-  }
-  const present = detect();
-  await writeNerdFontStatus(sentinelDir, present).catch(() => undefined);
-  if (!present) {
-    return {
-      ...r,
-      status: "warn",
-      message: `installed ${result.installed.length} font file(s) into ${fontDir} but detection still reports absent — terminal may need restart`,
-      hint: manualHint,
-    };
-  }
-  return {
-    ...r,
-    status: "fixed",
-    message: `installed JetBrainsMono Nerd Font (${result.installed.length} file(s)) into ${fontDir}`,
-    fixed: true,
-    hint: undefined,
   };
 }

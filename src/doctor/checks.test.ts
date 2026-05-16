@@ -20,7 +20,7 @@ describe("runChecks", () => {
     await fs.rm(cfgDir, { recursive: true, force: true });
   });
 
-  it("D07 reports a pass-or-warn verdict referencing the embedded pricing version", async () => {
+  it("D06 reports a pass-or-warn verdict referencing the embedded pricing version", async () => {
     const results = await runChecks({
       fix: false,
       json: false,
@@ -29,13 +29,13 @@ describe("runChecks", () => {
       env: { CLAUDE_CONFIG_DIR: cfgDir },
       cwd: cfgDir,
     });
-    const d07 = results.find((r) => r.id === "D07");
-    expect(d07).toBeDefined();
-    expect(["pass", "warn"]).toContain(d07?.status);
-    expect(d07?.message).toContain(PRICING_TABLE_VERSION);
+    const d06 = results.find((r) => r.id === "D06");
+    expect(d06).toBeDefined();
+    expect(["pass", "warn"]).toContain(d06?.status);
+    expect(d06?.message).toContain(PRICING_TABLE_VERSION);
   });
 
-  it("D08 returns pass with message containing 'not set' when CLAUDE_CONFIG_DIR is absent", async () => {
+  it("D07 returns pass with message containing 'not set' when CLAUDE_CONFIG_DIR is absent", async () => {
     const results = await runChecks({
       fix: false,
       json: false,
@@ -44,12 +44,12 @@ describe("runChecks", () => {
       env: {},
       cwd: cfgDir,
     });
-    const d08 = results.find((r) => r.id === "D08");
-    expect(d08?.status).toBe("pass");
-    expect(d08?.message).toMatch(/not set/);
+    const d07 = results.find((r) => r.id === "D07");
+    expect(d07?.status).toBe("pass");
+    expect(d07?.message).toMatch(/not set/);
   });
 
-  it("D09 returns pass with `no cached check yet` when the cache is missing", async () => {
+  it("D08 returns pass with `no cached check yet` when the cache is missing", async () => {
     const results = await runChecks({
       fix: false,
       json: false,
@@ -58,13 +58,13 @@ describe("runChecks", () => {
       env: { CLAUDE_CONFIG_DIR: cfgDir },
       cwd: cfgDir,
     });
-    const d09 = results.find((r) => r.id === "D09");
-    expect(d09?.status).toBe("pass");
-    expect(d09?.message).toMatch(/no cached check yet/);
-    expect(d09?.hint).toMatch(/agentline install/);
+    const d08 = results.find((r) => r.id === "D08");
+    expect(d08?.status).toBe("pass");
+    expect(d08?.message).toMatch(/no cached check yet/);
+    expect(d08?.hint).toMatch(/agentline install/);
   });
 
-  it("D09 reports `update available` when the cache says a newer version exists", async () => {
+  it("D08 reports `update available` when the cache says a newer version exists", async () => {
     await fs.mkdir(join(cfgDir, "state"), { recursive: true });
     await fs.writeFile(
       join(cfgDir, "state", "version-check.json"),
@@ -83,14 +83,14 @@ describe("runChecks", () => {
       env: { CLAUDE_CONFIG_DIR: cfgDir },
       cwd: cfgDir,
     });
-    const d09 = results.find((r) => r.id === "D09");
-    expect(d09?.status).toBe("pass");
-    expect(d09?.message).toMatch(/update available/);
-    expect(d09?.message).toContain("9.9.9");
-    expect(d09?.hint).toMatch(/npm i -g @agentline\/cli/);
+    const d08 = results.find((r) => r.id === "D08");
+    expect(d08?.status).toBe("pass");
+    expect(d08?.message).toMatch(/update available/);
+    expect(d08?.message).toContain("9.9.9");
+    expect(d08?.hint).toMatch(/npm i -g @agentline\/cli/);
   });
 
-  it("D09 reports `up to date` when the cached latest equals the current build", async () => {
+  it("D08 reports `up to date` when the cached latest equals the current build", async () => {
     const { AGENTLINE_VERSION } = await import("../version.js");
     await fs.mkdir(join(cfgDir, "state"), { recursive: true });
     await fs.writeFile(
@@ -110,12 +110,12 @@ describe("runChecks", () => {
       env: { CLAUDE_CONFIG_DIR: cfgDir },
       cwd: cfgDir,
     });
-    const d09 = results.find((r) => r.id === "D09");
-    expect(d09?.status).toBe("pass");
-    expect(d09?.message).toMatch(/up to date/);
+    const d08 = results.find((r) => r.id === "D08");
+    expect(d08?.status).toBe("pass");
+    expect(d08?.message).toMatch(/up to date/);
   });
 
-  it("D09 reports `last probe failed` when the cache shows latest: null", async () => {
+  it("D08 reports `last probe failed` when the cache shows latest: null", async () => {
     await fs.mkdir(join(cfgDir, "state"), { recursive: true });
     await fs.writeFile(
       join(cfgDir, "state", "version-check.json"),
@@ -134,9 +134,9 @@ describe("runChecks", () => {
       env: { CLAUDE_CONFIG_DIR: cfgDir },
       cwd: cfgDir,
     });
-    const d09 = results.find((r) => r.id === "D09");
-    expect(d09?.status).toBe("pass");
-    expect(d09?.message).toMatch(/last probe failed/);
+    const d08 = results.find((r) => r.id === "D08");
+    expect(d08?.status).toBe("pass");
+    expect(d08?.message).toMatch(/last probe failed/);
   });
 
   it("D02 returns pass when statusLine is a plain string referencing agentline", async () => {

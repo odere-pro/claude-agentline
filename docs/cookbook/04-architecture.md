@@ -29,7 +29,7 @@ host stdin (JSON) ──┼──> parser ──> resolvers ──> widgets ─�
 
 ## The hot-path / cold-path boundary
 
-This is the single most load-bearing invariant in the architecture: **the render hot path MUST NOT import any TUI framework, font installer, or other heavy module.**
+This is the single most load-bearing invariant in the architecture: **the render hot path MUST NOT import any TUI framework or other heavy module.**
 
 - **Render hot path.** Anything reachable from `<bin>` invoked with no args (or `<bin> render`, `<bin> render --fixture`). Synchronous, I/O-frugal, deterministic. Must hit the cold-start budget (`03 · N2`).
 - **Editor cold path.** Anything reachable only from `<bin> edit` (and similar interactive verbs). May import the TUI framework, React-style reconciler, debouncer, watcher. Loaded lazily — never imported transitively from the render path.

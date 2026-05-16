@@ -41,7 +41,7 @@ You do **not** need prior knowledge of the reference implementation. If you find
 
 - Every chapter starts with **Intent:** and **Reads-with:** lines.
 - Chapters are self-contained but cross-link liberally with `[[name]]`-style references.
-- Numeric IDs (F1–F15, D01–D10, gates 01–21) are **stable**: when an ID is retired, the number is **not** reused.
+- Numeric IDs (F1–F15, D01–D09, gates 01–21) are **stable**: when an ID is retired, the number is **not** reused.
 - "MUST", "SHOULD", "MAY" follow RFC 2119.
 - Concrete tool names appear only in `09-tech-stack-choices.md`. Everywhere else, refer to roles ("schema validator", "TUI framework").
 

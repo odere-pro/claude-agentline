@@ -22,7 +22,6 @@ const FOOTER_LABEL: Record<string, string> = {
   replace: "replace",
   delete: "delete",
   save: "save",
-  "toggle-glyphs": "glyphs on/off",
   "picker-filter": "type to filter",
   "picker-navigate": "navigate",
   "picker-confirm": "confirm",

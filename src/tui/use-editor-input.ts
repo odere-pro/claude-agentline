@@ -36,9 +36,7 @@ export interface UseEditorInputOptions {
   readonly onSave: () => Promise<void>;
   /** Notify the host (`runConfigCommand`) that the session exited with `saved=false`. */
   readonly onSaved: (saved: boolean) => void;
-  /** `false` when the install probe didn't find a Nerd Font; locks the `g` toggle to "off". */
-  readonly nerdFontAvailable: boolean;
-  /** Surface a transient banner above the footer (save errors, glyph-toggle confirmations). */
+  /** Surface a transient banner above the footer (e.g. save errors). */
   readonly setStatusMessage: (message: string) => void;
   readonly widgetEntries: readonly WidgetMetaEntry[];
   readonly usedTypes: ReadonlySet<string>;
@@ -58,7 +56,6 @@ export function useEditorInput(opts: UseEditorInputOptions): UseEditorInputResul
     saveTracker,
     onSave,
     onSaved,
-    nerdFontAvailable,
     setStatusMessage,
     widgetEntries,
     usedTypes,
@@ -99,7 +96,6 @@ export function useEditorInput(opts: UseEditorInputOptions): UseEditorInputResul
       onSave,
       onSaved,
       saveTracker,
-      nerdFontAvailable,
       setStatusMessage,
     };
     switch (state.mode) {

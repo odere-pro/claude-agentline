@@ -9,7 +9,7 @@
 #      whose bytes match the shipped set; preserve user-edited.
 #   5. restore the prior `statusLine` from the install-time backup, or strip
 #      it if it still points at agentline and no backup exists.
-# Also cleans up the Nerd Font probe sentinel and the install manifest.
+# Also cleans up the install manifest and any legacy runtime sentinel.
 # Refuses to delete unrelated files. No `rm -rf "$VAR"` without guards
 # (al_safe_rm enforces).
 #
@@ -356,14 +356,16 @@ tidy_user_config
 tidy_skills
 unwire_statusline
 
-# Remove the Nerd Font probe sentinel — purely a runtime artefact, no
-# user data, so it always goes regardless of --purge.
-__nerd_sentinel="${AL_STATE_DIR}/nerd-font.json"
-if [ -f "${__nerd_sentinel}" ]; then
+# Sweep the legacy nerd-font.json sentinel written by pre-removal
+# installs — purely a runtime artefact, no user data, so it always goes
+# regardless of --purge. Keeps the state dir teardown below able to
+# rmdir an otherwise-empty directory on upgrade.
+__legacy_sentinel="${AL_STATE_DIR}/nerd-font.json"
+if [ -f "${__legacy_sentinel}" ]; then
   if [ "${DRY_RUN}" = "1" ]; then
-    al_log_info "would remove Nerd Font sentinel: ${__nerd_sentinel}"
+    al_log_info "would remove legacy sentinel: ${__legacy_sentinel}"
   else
-    rm -f -- "${__nerd_sentinel}"
+    rm -f -- "${__legacy_sentinel}"
   fi
 fi
 

@@ -87,7 +87,7 @@ Similar to tokens, the render-tick resolver runs `git` once and caches the resul
 
 ## Doctor System (`src/doctor/`)
 
-Verification checks (D01–D10) run sequentially and report health status. `--fix` repairs the four safe mutations (settings scaffold, statusLine wiring, config defaults, theme copy). Refusing unsafe mutations (`--force` required for foreign statusLines).
+Verification checks (D01–D09) run sequentially and report health status. `--fix` repairs the four safe mutations (settings scaffold, statusLine wiring, config defaults, theme copy). Refusing unsafe mutations (`--force` required for foreign statusLines).
 
 ## Type Safety
 

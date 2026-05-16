@@ -108,7 +108,7 @@ G10–G14 are **parallel-safe.**
 ## G17 · Doctor + autofix
 
 - **Prereq.** G6, G8.
-- **Produces.** `src/doctor/`, checks D01–D10, repairs for D01–D04.
+- **Produces.** `src/doctor/`, checks D01–D09, repairs for D01–D04.
 - **Exit.** Gate 01 (doctor exits 0 on a healthy host) passes for real.
 
 ## G18 · Full CLI surface

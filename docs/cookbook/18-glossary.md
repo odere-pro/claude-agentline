@@ -36,7 +36,7 @@ Wall-clock time from process start to the first byte on stdout. Subject to budge
 
 ### `cold path`
 
-The set of modules reachable only from non-render verbs (the editor, the font installer, the watcher mode init). MUST NOT be imported transitively from the render path.
+The set of modules reachable only from non-render verbs (the editor, the watcher mode init). MUST NOT be imported transitively from the render path.
 
 ### `hot path`
 

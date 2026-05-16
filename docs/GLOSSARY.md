@@ -96,20 +96,10 @@ user-facing term **family**.
 
 ---
 
-### `widget glyph`
-
-> The per-type Nerd Font codepoint stored in the widget catalog.
-> Prepended to the widget's text when `config.glyphs` is `"nerd-font"`.
-
-**Used in:** `WidgetMeta.glyph`, `WIDGET_GLYPHS`, `src/lib/nerd-font.ts`.  
-**Distinct from:** "glyph mode" (the on/off toggle).
-
----
-
 ### `widget catalog`
 
 > The static metadata table `WIDGET_CATALOG` keyed by widget type.
-> Contains: human name, description, family, glyph, and variants.
+> Contains: human name, description, family, and variants.
 
 **Used in:** `src/widgets/catalog.ts`, the TUI picker, `agentline config widget catalog`.  
 **Distinct from:** "widget registry" (runtime render-function map).
@@ -260,14 +250,6 @@ All types are kebab-case strings. Source of truth: `src/widgets/catalog.ts`.
 
 ---
 
-### `glyph mode`
-
-> Top-level `config.glyphs` toggle: `"off"` (default, no icons) or
-> `"nerd-font"` (prepend per-widget Nerd Font codepoints).
-
-**Used in:** `GlyphMode`, `AgentlineConfig.glyphs`, config docs.  
-**Distinct from:** "widget glyph" (the per-type codepoint itself).
-
 ---
 
 ### `powerline`
@@ -378,7 +360,6 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 | `PowerlineCaps`          | `src/config/types.ts`          | Start/end cap glyphs                                             |
 | `PowerlineGlyphs`        | `src/config/types.ts`          | Chevron glyph overrides                                          |
 | `TerminalWidthConfig`    | `src/config/types.ts`          | Width detection settings                                         |
-| `GlyphMode`              | `src/config/types.ts`          | `"off" \| "nerd-font"`                                           |
 | `RawColour`              | `src/config/types.ts`          | Pre-validation colour string                                     |
 | `Cell`                   | `src/widgets/types.ts`         | Atomic render unit output                                        |
 | `WidgetContext`          | `src/widgets/types.ts`         | Render-time environment passed to each widget                    |
@@ -474,13 +455,14 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 
 Do not use these in new code, docs, or comments. Update any occurrence you find.
 
-| Retired term                            | Use instead                    | Reason                                                                    |
-| --------------------------------------- | ------------------------------ | ------------------------------------------------------------------------- |
-| "preset" (for init configs)             | "config template"              | Ambiguous with theme preset; init presets were removed                    |
-| "config preset" / "init preset"         | "config template"              | Same as above                                                             |
-| "category" (for widget grouping)        | "family"                       | Replaced everywhere — in docs, agents, and TypeScript                     |
-| "config layer" (implying 3 layers)      | "user config" + "env override" | Project-config layer was removed; only 2 layers remain                    |
-| "options sheet" (TUI)                   | —                              | Removed in editor redesign; nothing replaced it                           |
-| "focus" / "power" (init template names) | —                              | Removed; only the `default` template ships                                |
-| `agentline config theme`                | —                              | Subcommand retired; edit `config.theme` directly or use `agentline edit`  |
-| `agentline init`                        | —                              | Not in current CLI; `agentline install` seeds the config on first install |
+| Retired term                                                  | Use instead                    | Reason                                                                                                                        |
+| ------------------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| "preset" (for init configs)                                   | "config template"              | Ambiguous with theme preset; init presets were removed                                                                        |
+| "config preset" / "init preset"                               | "config template"              | Same as above                                                                                                                 |
+| "category" (for widget grouping)                              | "family"                       | Replaced everywhere — in docs, agents, and TypeScript                                                                         |
+| "config layer" (implying 3 layers)                            | "user config" + "env override" | Project-config layer was removed; only 2 layers remain                                                                        |
+| "options sheet" (TUI)                                         | —                              | Removed in editor redesign; nothing replaced it                                                                               |
+| "focus" / "power" (init template names)                       | —                              | Removed; only the `default` template ships                                                                                    |
+| `agentline config theme`                                      | —                              | Subcommand retired; edit `config.theme` directly or use `agentline edit`                                                      |
+| `agentline init`                                              | —                              | Not in current CLI; `agentline install` seeds the config on first install                                                     |
+| "glyph mode" / `config.glyphs` / "widget glyph" / `GlyphMode` | —                              | Top-level Nerd Font glyph layer removed; it never rendered reliably across terminals. Powerline chevron glyphs are unaffected |

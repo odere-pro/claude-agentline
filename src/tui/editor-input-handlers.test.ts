@@ -232,7 +232,6 @@ describe("handleEditKey", () => {
         onSave,
         onSaved,
         saveTracker,
-        nerdFontAvailable: true,
         setStatusMessage,
         ...over,
       },
@@ -309,20 +308,4 @@ describe("handleEditKey", () => {
     }
   });
 
-  it("g toggles glyphs and emits a status message", () => {
-    const { deps, dispatch, setStatusMessage } = makeEditDeps();
-    handleEditKey("g", key(), deps);
-    expect(dispatch).toHaveBeenCalledWith({ type: "toggle-glyphs" });
-    expect(setStatusMessage).toHaveBeenCalledWith("glyphs: nerd-font");
-  });
-
-  it("g is locked to off when no Nerd Font is available", () => {
-    const { deps, dispatch, setStatusMessage } = makeEditDeps(undefined, {
-      nerdFontAvailable: false,
-    });
-    handleEditKey("g", key(), deps);
-    expect(dispatch).not.toHaveBeenCalled();
-    expect(setStatusMessage).toHaveBeenCalledTimes(1);
-    expect(setStatusMessage.mock.calls[0]?.[0]).toContain("disabled");
-  });
 });

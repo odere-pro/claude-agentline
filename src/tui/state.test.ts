@@ -207,31 +207,6 @@ describe("reduce: dirty bookkeeping", () => {
   });
 });
 
-describe("reduce: toggle-glyphs", () => {
-  it("flips between off and nerd-font and marks dirty", () => {
-    let s: EditorState = initialState([], "off");
-    expect(s.glyphs).toBe("off");
-    expect(s.dirty).toBe(false);
-    s = reduce(s, { type: "toggle-glyphs" });
-    expect(s.glyphs).toBe("nerd-font");
-    expect(s.dirty).toBe(true);
-    s = reduce(s, { type: "toggle-glyphs" });
-    expect(s.glyphs).toBe("off");
-    expect(s.dirty).toBe(true);
-  });
-
-  it("starts in nerd-font when initialState seeds it that way", () => {
-    const s = initialState([{ widgets: [{ type: "a" }] }], "nerd-font");
-    expect(s.glyphs).toBe("nerd-font");
-    expect(reduce(s, { type: "toggle-glyphs" }).glyphs).toBe("off");
-  });
-
-  it("works in any mode (does not require an active widget)", () => {
-    const empty = initialState([], "off");
-    expect(reduce(empty, { type: "toggle-glyphs" }).glyphs).toBe("nerd-font");
-  });
-});
-
 describe("widgetCountAt", () => {
   it("returns the number of real widgets in the given row", () => {
     const s = multiLine([["a", "b"], [], ["c"]]);
@@ -433,7 +408,6 @@ describe("memento — lastSaved snapshot + revert", () => {
   it("initialState captures the loaded lines as the snapshot", () => {
     const s = makeState([{ type: "model" }]);
     expect(s.lastSaved.lines).toEqual(s.lines);
-    expect(s.lastSaved.glyphs).toBe(s.glyphs);
     expect(s.dirty).toBe(false);
   });
 
@@ -446,16 +420,14 @@ describe("memento — lastSaved snapshot + revert", () => {
     expect(s.lastSaved.lines).toEqual(s.lines);
   });
 
-  it("revert restores lines + glyphs from the snapshot and clears dirty", () => {
+  it("revert restores lines from the snapshot and clears dirty", () => {
     let s = makeState([{ type: "a" }]);
     const original = s.lines;
     s = reduce(s, { type: "set-option", key: "k", value: "v" });
-    s = reduce(s, { type: "toggle-glyphs" });
     expect(s.dirty).toBe(true);
     s = reduce(s, { type: "revert" });
     expect(s.dirty).toBe(false);
     expect(s.lines).toBe(original);
-    expect(s.glyphs).toBe("off");
   });
 
   it("revert is a no-op when the editor is already clean", () => {

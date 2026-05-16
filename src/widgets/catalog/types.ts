@@ -77,14 +77,6 @@ export interface WidgetMeta {
    * of the picker and as the targets of the `u` (update) verb.
    */
   readonly variants?: readonly WidgetVariant[];
-  /**
-   * Single grapheme prepended to the widget's text when
-   * `config.glyphs === "nerd-font"`. Codepoints come from the Nerd Font
-   * Private Use Area (PUA) — they only render correctly with a Nerd Font
-   * installed in the user's terminal, which is why glyph mode is opt-in.
-   * Widgets without a glyph are unaffected by the mode toggle.
-   */
-  readonly glyph?: string;
 }
 
 /** A catalogue entry paired with the `type` it describes. */

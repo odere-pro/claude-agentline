@@ -81,7 +81,7 @@ function buildRow(line: number, row: LineConfig, base: AgentlineConfig): Preview
       const join = computeJoin(widget, base);
       if (join.length > 0) slots.push({ kind: "join", text: join });
     }
-    slots.push(renderSlot(widget, i, base.glyphs));
+    slots.push(renderSlot(widget, i));
   }
   slots.push({ kind: "add", column: row.widgets.length });
   return { line, slots, widgetCount: row.widgets.length };
@@ -102,11 +102,7 @@ function buildRow(line: number, row: LineConfig, base: AgentlineConfig): Preview
  * the catalogue (custom registrations) fall back to the cell's own
  * theme-resolved colour.
  */
-function renderSlot(
-  widget: WidgetConfig,
-  idx: number,
-  glyphs: AgentlineConfig["glyphs"],
-): PreviewSlot {
+function renderSlot(widget: WidgetConfig, idx: number): PreviewSlot {
   if (widget.hidden === true) {
     return {
       kind: "widget",
@@ -115,7 +111,7 @@ function renderSlot(
       hidden: true,
     };
   }
-  const cell: Cell = previewWidget(widget.type, widget.options, { glyphs });
+  const cell: Cell = previewWidget(widget.type, widget.options);
   /*
    * `previewWidget` returns HIDDEN_CELL (`text: "", hidden: true`) when the
    * widget self-hides (data absent). Fall back to the widget's type name

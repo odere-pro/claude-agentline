@@ -193,7 +193,7 @@ the rendered statusline picks them up on the next prompt (no restart).
 
 ## Previewing a config offline
 
-For deterministic offline replay (golden-snapshot harness, doctor's D10 check, CI), use the fixture path:
+For deterministic offline replay (golden-snapshot harness, doctor's D09 check, CI), use the fixture path:
 
 ```bash
 agentline render --fixture <path-to-stdin.json>            # replay a recorded payload

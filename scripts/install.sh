@@ -8,8 +8,6 @@
 #   4. copy agents/agentline*.md skill files to $HOME/.claude/agents/
 #   5. wire `statusLine` into $HOME/.claude/settings.json (always global)
 #   6. write install manifest to state dir
-#   7. probe the host for a Nerd Font and write the sentinel read by the
-#      TUI editor's glyph toggle
 # All filesystem writes go through atomic write-temp + rename.
 #
 # Spec: §10. Bash 3.2 friendly; no associative arrays / mapfile / Bash-4 features.
@@ -466,55 +464,6 @@ JS
   al_log_info "wrote manifest: ${manifest_file}"
 }
 
-# Step 7: probe the host for a Nerd Font. If absent, write the sentinel so
-# the TUI editor disables the glyph toggle, and force `glyphs: "off"` in
-# the user config so the rendered statusline doesn't ship tofu boxes.
-probe_nerd_font() {
-  if [ "${DRY_RUN}" = "1" ]; then
-    al_log_info "would probe host for a Nerd Font (skipped in --dry-run)"
-    return 0
-  fi
-  AL_STATE_DIR="${AL_STATE_DIR}" \
-  al_node - <<'JS'
-const fs = require('node:fs');
-const path = require('node:path');
-const { execFileSync } = require('node:child_process');
-
-function detect() {
-  try {
-    if (process.platform === 'linux') {
-      const out = execFileSync('fc-list', [], { timeout: 2500, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-      return /nerd font/i.test(out);
-    }
-    if (process.platform === 'darwin') {
-      const out = execFileSync('system_profiler', ['SPFontsDataType'], { timeout: 5000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-      return /nerd font/i.test(out);
-    }
-  } catch { /* fall through */ }
-  return false;
-}
-
-const stateDir = process.env.AL_STATE_DIR;
-const available = detect();
-
-// Sentinel — read by the TUI editor to clamp glyphs="off" on startup
-// and refuse the `g` toggle so a user can't paint tofu boxes onto a
-// statusline rendered by a host that has no Nerd Font installed.
-fs.mkdirSync(stateDir, { recursive: true, mode: 0o700 });
-const sentinel = path.join(stateDir, 'nerd-font.json');
-const tmp = sentinel + '.tmp.' + process.pid;
-fs.writeFileSync(tmp, JSON.stringify({ available, checkedAt: new Date().toISOString() }, null, 2) + '\n', { mode: 0o600 });
-fs.renameSync(tmp, sentinel);
-
-if (!available) {
-  process.stderr.write('[agentline] no Nerd Font detected — TUI editor will lock glyphs to "off"\n');
-  process.stderr.write('[agentline] install a Nerd Font (https://www.nerdfonts.com) and re-run `agentline install` to re-enable\n');
-} else {
-  process.stderr.write('[agentline] Nerd Font detected — glyph toggle remains available\n');
-}
-JS
-}
-
 # ---------------- run ----------------
 
 install_or_link_package
@@ -523,6 +472,5 @@ seed_themes
 seed_skills
 wire_statusline "${settings_file}" "${settings_backup}"
 write_manifest
-probe_nerd_font
 
 al_log_info "install complete"

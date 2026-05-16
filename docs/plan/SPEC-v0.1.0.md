@@ -40,7 +40,7 @@ Homebrew tap, GitHub Releases native binaries, and curl-installer are explicitly
 - **F8.** Git widgets read the working tree implied by the stdin `cwd` field; they MUST NOT shell out to anything other than `git`, and MUST tolerate non-git directories with a hidden render.
 - **F9.** Session info widgets read every field the Claude Code stdin contract exposes (§7.2) and fall back to local auth files where the field is unavailable (§7.2.1).
 - **F10.** A TUI editor (`agentline edit`) lets users add, reorder, recolour, and toggle widgets with live preview; configuration changes persist atomically (write-temp-then-rename).
-- **F11.** A doctor command (`agentline doctor [--fix]`) inspects host prerequisites, the wired settings entry, the merged config, and the Nerd Font availability; `--fix` repairs documented misconfigurations.
+- **F11.** A doctor command (`agentline doctor [--fix]`) inspects host prerequisites, the wired settings entry, and the merged config; `--fix` repairs documented misconfigurations.
 - **F12.** A render dry-run (`agentline render --fixture <path>`) reproduces a line from a recorded stdin fixture; output is byte-identical to a real render under the same config.
 - **F13.** _(retired)_ The editor's keymap is surfaced in the TUI footer; there is no CLI surface for enumerating bindings.
 - **F14.** A schema command (`agentline config schema [--write]`) prints (or writes to disk) the JSON Schema for the configuration.
@@ -326,7 +326,7 @@ When `enabled` is `true`:
 
 - Inter-widget `separator` and `padding` are ignored; chevrons are inserted instead.
 - Adjoining colours are computed: `glyph.fg = prev.bg`, `glyph.bg = next.bg`.
-- Without a Nerd Font installed, Doctor (§9.2) emits a warning and the bin falls back to ASCII chevrons (`>`, `<`).
+- Without a Nerd Font installed, the bin falls back to ASCII chevrons (`>`, `<`); set `AGENTLINE_GLYPHS=ascii` to force this regardless of the host font.
 
 ### 5.2 Widget merging
 
@@ -372,7 +372,6 @@ The TUI editor (`agentline edit`) renders a two-line footer showing every bindin
 | `r`      | edit   | replace the selected widget (opens the picker)                   |
 | `u`      | edit   | update — pick a different variant of the selected widget         |
 | `d`      | edit   | delete the selected widget                                       |
-| `g`      | edit   | toggle Nerd Font glyphs on / off (top-level `config.glyphs`)     |
 | `S`      | edit   | save (Ctrl+S also works)                                         |
 | `(type)` | picker | type to filter widgets by name or type (step 2)                  |
 | `↑ ↓`    | picker | highlight a row                                                  |
@@ -592,12 +591,11 @@ Doctor runs every check in order and prints a structured report. `--fix` attempt
 | D02 | `statusLine.command` resolves to a working `agentline` invocation | Rewrite to `npx -y @agentline/cli` or absolute global bin path |
 | D03 | User config exists and matches schema                             | Migrate or write defaults                                      |
 | D04 | All themes referenced by config are installed                     | Copy from package's embedded theme set                         |
-| D05 | Nerd Font is installed (when Powerline enabled)                   | Print platform-specific install command                        |
-| D06 | Git binary on PATH (when any git widget is enabled)               | None; report only                                              |
-| D07 | Pricing table is fresher than `now − 90 days`                     | None; report only                                              |
-| D08 | `CLAUDE_CONFIG_DIR` (if set) points to a writable directory       | None; report only                                              |
-| D09 | Custom-command widgets resolve their `cmd` to an executable       | None; report only                                              |
-| D10 | Render dry-run on an embedded fixture matches a stored snapshot   | None; report only                                              |
+| D05 | Git binary on PATH (when any git widget is enabled)               | None; report only                                              |
+| D06 | Pricing table is fresher than `now − 90 days`                     | None; report only                                              |
+| D07 | `CLAUDE_CONFIG_DIR` (if set) points to a writable directory       | None; report only                                              |
+| D08 | Custom-command widgets resolve their `cmd` to an executable       | None; report only                                              |
+| D09 | Render dry-run on an embedded fixture matches a stored snapshot   | None; report only                                              |
 
 ### 9.3 Exit codes
 

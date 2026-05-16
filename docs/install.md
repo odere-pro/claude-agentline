@@ -193,7 +193,7 @@ against the pre-install state.
   to a user-writable directory, use a Node version manager (`nvm`,
   `fnm`, `volta`), or rerun the install under `sudo`.
 - **statusline shows nothing** — run `agentline doctor`. Each check has
-  a numeric ID (D01–D10); the report tells you what to fix.
+  a numeric ID (D01–D09); the report tells you what to fix.
 - **statusline shows a fallback line** — the renderer is intentionally
   permissive: even if your config fails to validate, it prints a
   one-line ASCII fallback so your shell prompt is never blank. Run

@@ -15,7 +15,7 @@ agentline doctor          # full report
 agentline doctor --fix    # auto-repair D01–D04
 ```
 
-Read the output. Each line has a check ID (D01–D10) and a glyph:
+Read the output. Each line has a check ID (D01–D09) and a glyph:
 
 | Glyph  | Meaning            |
 | ------ | ------------------ |
@@ -35,12 +35,11 @@ Read the output. Each line has a check ID (D01–D10) and a glyph:
 | D02   | `statusLine` not wired to agentline   | `agentline doctor --fix` or `agentline install` |
 | D03   | user config missing or invalid schema | `agentline doctor --fix` or `agentline install` |
 | D04   | theme file missing                    | `agentline doctor --fix`                        |
-| D05   | Nerd Font absent (Powerline only)     | install font; doctor prints the command         |
-| D06   | `git` not on PATH                     | install git                                     |
-| D07   | pricing table older than 90 days      | `npm install -g @agentline/cli@latest`          |
-| D08   | `CLAUDE_CONFIG_DIR` not writable      | fix directory permissions                       |
-| D09   | `command` widget `cmd` not found      | check the command is on PATH                    |
-| D10   | render snapshot mismatch              | file a bug; capture `agentline doctor` output   |
+| D05   | `git` not on PATH                     | install git                                     |
+| D06   | pricing table older than 90 days      | `npm install -g @agentline/cli@latest`          |
+| D07   | `CLAUDE_CONFIG_DIR` not writable      | fix directory permissions                       |
+| D08   | update-check cache reports newer      | `npm install -g @agentline/cli@latest`          |
+| D09   | render snapshot mismatch              | file a bug; capture `agentline doctor` output   |
 
 ---
 

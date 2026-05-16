@@ -25,7 +25,7 @@
  */
 
 import { DEFAULT_CONFIG } from "../config/defaults.js";
-import type { AgentlineConfig, WidgetConfig } from "../config/types.js";
+import type { WidgetConfig } from "../config/types.js";
 import type { GitState } from "../git/index.js";
 import { buildWidgetContext, loadLiveSnapshots } from "../render/context.js";
 import type { ResolvedSessionFields } from "../session/index.js";
@@ -53,17 +53,11 @@ export interface PreviewOptions {
   /** Resolved theme; defaults to `null` (uncoloured). */
   readonly theme?: Theme | null;
   /**
-   * Env used for colour-depth + glyph detection. Defaults to `{}` so
-   * tests stay deterministic; the editor passes `process.env` for
-   * accurate colour resolution.
+   * Env used for colour-depth detection. Defaults to `{}` so tests
+   * stay deterministic; the editor passes `process.env` for accurate
+   * colour resolution.
    */
   readonly env?: NodeJS.ProcessEnv;
-  /**
-   * Override `config.glyphs` for the preview without mutating the
-   * loaded config. The editor passes its live mode here so toggling
-   * `g` is visible immediately.
-   */
-  readonly glyphs?: AgentlineConfig["glyphs"];
 }
 
 let cachedMode: PreviewMode | undefined;
@@ -130,13 +124,11 @@ export function previewWidget(
   const config: WidgetConfig = options !== undefined ? { type, options } : { type };
   const mode = getPreviewMode(opts.env);
   if (mode.kind === "label") {
-    return renderWidgetLabel(config, opts.glyphs ? { glyphs: opts.glyphs } : {});
+    return renderWidgetLabel(config);
   }
-  const effectiveConfig: AgentlineConfig =
-    opts.glyphs !== undefined ? { ...DEFAULT_CONFIG, glyphs: opts.glyphs } : DEFAULT_CONFIG;
   const ctx = buildWidgetContext({
     payload: mode.payload,
-    config: effectiveConfig,
+    config: DEFAULT_CONFIG,
     theme: opts.theme ?? null,
     clock: realClock,
     env: opts.env ?? {},

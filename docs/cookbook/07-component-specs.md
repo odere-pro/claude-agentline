@@ -146,7 +146,7 @@ Each component entry has: **Responsibility**, **Public surface**, **Inputs**, **
 
 ## Doctor
 
-- **Responsibility.** Run checks D01–D10 in order; report; optionally apply documented repairs.
+- **Responsibility.** Run checks D01–D09 in order; report; optionally apply documented repairs.
 - **Public surface.** `<bin> doctor [--fix] [--json] [--strict]`.
 - **Checks.** See `08-feature-catalogue` and `14-gates-catalogue · gate-01-doctor`.
 - **Repairs (with `--fix`).** Settings scaffold (D01), settings wiring (D02), config defaults (D03), theme directory population (D04). Other findings are reported only.

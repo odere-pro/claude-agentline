@@ -55,12 +55,6 @@ export const DEFAULT_KEY_BINDINGS: readonly KeyBinding[] = Object.freeze([
     description: "replace the selected widget (opens the picker)",
   },
   { key: "d", action: "delete", scope: "edit", description: "delete the selected widget" },
-  {
-    key: "g",
-    action: "toggle-glyphs",
-    scope: "edit",
-    description: "toggle Nerd Font glyphs on / off (top-level config.glyphs)",
-  },
   { key: "s", action: "save", scope: "edit", description: "save (S and Ctrl+S also work)" },
   // ── picker (the three-step widget chooser overlay) ───────────────────────
   {

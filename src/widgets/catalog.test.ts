@@ -132,34 +132,6 @@ describe("WIDGET_CATALOG — variants", () => {
   });
 });
 
-describe("WIDGET_CATALOG — glyphs", () => {
-  it("every glyph (when present) is a non-empty single grapheme", () => {
-    for (const [type, meta] of Object.entries(WIDGET_CATALOG)) {
-      const glyph = meta.glyph;
-      if (glyph === undefined) continue;
-      expect(glyph.length, `${type}: empty glyph`).toBeGreaterThan(0);
-      /*
-       * Iterator splits surrogate pairs at code-point boundaries; we
-       * require exactly one user-perceived character per slot.
-       */
-      expect([...glyph], `${type}: multi-grapheme glyph ${JSON.stringify(glyph)}`).toHaveLength(1);
-    }
-  });
-
-  it("populates glyphs for the most-shipped widget types so default lines benefit immediately", () => {
-    expect(widgetMeta("model")?.glyph).toBeTruthy();
-    expect(widgetMeta("git-branch")?.glyph).toBeTruthy();
-    expect(widgetMeta("clock")?.glyph).toBeTruthy();
-    expect(widgetMeta("tokens-total")?.glyph).toBeTruthy();
-    expect(widgetMeta("git-pr")?.glyph).toBeTruthy();
-    expect(widgetMeta("session-usage")?.glyph).toBeTruthy();
-  });
-
-  it("layout-only widgets carry no glyph (separator)", () => {
-    expect(widgetMeta("separator")?.glyph).toBeUndefined();
-  });
-});
-
 describe("activeVariantId", () => {
   it("recognises the active variant from a widget's options", () => {
     expect(activeVariantId("skills", { variant: "list" })).toBe("list");

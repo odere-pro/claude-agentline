@@ -15,7 +15,6 @@
  */
 
 import type { WidgetConfig } from "../config/types.js";
-import { widgetGlyph } from "./catalog.js";
 import type { Cell, MergeMode } from "./cell.js";
 import { HIDDEN_CELL } from "./cell.js";
 import type { WidgetContext } from "./context.js";
@@ -34,33 +33,10 @@ export interface RenderWidgetOptions {
   readonly strict?: boolean;
 }
 
-/**
- * Plain space (U+0020) between glyph and value. The earlier thin
- * space (U+2009) rendered fractional-width in monospace terminals and
- * collided with the width-2 Nerd-Font PUA glyphs, leaving the cell
- * looking kerned. A regular space lines up cleanly with the value.
- */
-const GLYPH_SEPARATOR = " ";
-
-function applyGlyph(text: string, type: string, ctx: WidgetContext): string {
-  if (ctx.config.glyphs !== "nerd-font") return text;
-  if (text.length === 0) return text;
-  const glyph = widgetGlyph(type);
-  if (!glyph) return text;
-  return `${glyph}${GLYPH_SEPARATOR}${text}`;
-}
-
-function applyOverrides(cell: Cell, config: WidgetConfig, ctx: WidgetContext): Cell {
+function applyOverrides(cell: Cell, config: WidgetConfig): Cell {
   const merged: MergeMode = config.merged ?? cell.merged ?? "off";
-  /*
-   * Glyph mode prepends the catalogue glyph + GLYPH_SEPARATOR (a plain
-   * space, see the constant above) when `config.glyphs === "nerd-font"`.
-   * Skipped on flex separators (their text is the fill character, not a
-   * label) and empty cells.
-   */
-  const text = cell.flex === true ? cell.text : applyGlyph(cell.text, config.type, ctx);
   const next: Cell = {
-    text,
+    text: cell.text,
     merged,
     ...(config.fg !== undefined && config.fg !== null
       ? { fg: config.fg }
@@ -106,7 +82,7 @@ export function renderWidget(
     rawValue: config.rawValue ?? false,
   });
   if (cell.hidden) return HIDDEN_CELL;
-  return applyOverrides(cell, config, ctx);
+  return applyOverrides(cell, config);
 }
 
 /**
@@ -118,15 +94,10 @@ export function renderWidget(
  * choices land. `hidden: true` widgets short-circuit, matching
  * `renderWidget`.
  */
-export function renderWidgetLabel(
-  config: WidgetConfig,
-  opts: { readonly glyphs?: "off" | "nerd-font" } = {},
-): Cell {
+export function renderWidgetLabel(config: WidgetConfig): Cell {
   if (config.hidden === true) return HIDDEN_CELL;
-  const glyph = opts.glyphs === "nerd-font" ? widgetGlyph(config.type) : undefined;
-  const text = glyph ? `${glyph}${GLYPH_SEPARATOR}${config.type}` : config.type;
   const next: Cell = {
-    text,
+    text: config.type,
     merged: config.merged ?? "off",
     ...(config.fg !== undefined && config.fg !== null ? { fg: config.fg } : {}),
     ...(config.bg !== undefined && config.bg !== null ? { bg: config.bg } : {}),
