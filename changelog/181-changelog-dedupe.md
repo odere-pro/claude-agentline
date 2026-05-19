@@ -1,0 +1,1 @@
+- Renumber the duplicate `178` changelog fragment (`session-weekly-usage` → `180`) so the glossary gate's no-duplicate-fragment-number invariant holds again on a clean tree.
