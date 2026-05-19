@@ -1,6 +1,6 @@
 # Doctor
 
-`agentline doctor` is the host-health check. It runs every check in
+`agentline doctor` is the host-health check. It runs all nine checks in
 order, prints an aligned status table, and exits 0 when nothing needs
 your attention.
 
@@ -25,18 +25,19 @@ wrapper around the bin is read-only by construction — it never passes
 
 ## Checks
 
-| ID  | Check                                                             | Auto-fix                                                           |
-| --- | ----------------------------------------------------------------- | ------------------------------------------------------------------ |
-| D01 | `~/.claude/settings.json` exists                                  | create with default skeleton                                       |
-| D02 | `statusLine.command` resolves to a working `agentline` invocation | rewrite to `npx -y @agentline/cli` or the absolute global bin path |
-| D03 | user config exists and matches schema                             | migrate or write defaults                                          |
-| D04 | every theme referenced by config is installed                     | copy from the package's embedded theme set                         |
-| D05 | git binary on PATH when any git widget is enabled                 | none; reports                                                      |
-| D06 | the resolved global config directory is writable (or creatable)   | none; reports                                                      |
-| D07 | update-check cache (read-only) reports a newer release            | none; reports                                                      |
-| D08 | render dry-run on an embedded fixture matches the stored snapshot | none; reports                                                      |
+| ID  | Check                                                                                           | Auto-fix                                                           |
+| --- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| D01 | `~/.claude/settings.json` exists                                                                | create with default skeleton                                       |
+| D02 | `statusLine.command` resolves to a working `agentline` invocation                               | rewrite to `npx -y @agentline/cli` or the absolute global bin path |
+| D03 | user config exists and matches schema                                                           | migrate or write defaults                                          |
+| D04 | every theme referenced by config is installed                                                   | copy from the package's embedded theme set                         |
+| D05 | git binary on PATH when any git widget is enabled                                               | none; reports                                                      |
+| D06 | the resolved global config directory is writable (or creatable)                                 | none; reports                                                      |
+| D07 | update-check cache (read-only) reports a newer release                                          | none; reports                                                      |
+| D08 | render dry-run on an embedded fixture matches the stored snapshot                               | none; reports                                                      |
+| D09 | `~/.claude/settings.json` `statusLine.refreshInterval` matches the configured `refreshInterval` | re-sync from config                                                |
 
-`--fix` only touches D01–D04. Everything else is reported and left
+`--fix` touches D01–D04 and D09. Everything else is reported and left
 to you, on the principle that doctor never acts on host state it does
 not own.
 
@@ -124,6 +125,17 @@ unreachable cache is reported as `pass`. No fix.
 Runs the renderer against an embedded fixture and compares the output
 against a stored snapshot. Detects regressions in the render hot path
 without depending on a live Claude Code session. No fix.
+
+### D09 — refresh interval
+
+Compares `~/.claude/settings.json` `statusLine.refreshInterval` against
+agentline's configured `refreshInterval` (default `5` seconds; see
+[config.md](./config.md)). Passes when the configured value is `0` and
+the settings field is absent, or when the field is present and equal.
+Warns on a mismatch, or when the field is missing while a non-zero
+interval is configured. With `--fix`, re-syncs the settings field from
+config — writing the interval through, or removing the field when the
+configured value is `0`.
 
 ## Output formats
 

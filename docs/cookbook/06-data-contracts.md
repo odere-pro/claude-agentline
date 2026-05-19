@@ -45,16 +45,17 @@ Each contract: **name**, **purpose**, **version key**, **top-level keys**, **str
 
 **Top-level keys.**
 
-| Key             | Type   | Default     | Notes                                                              |
-| --------------- | ------ | ----------- | ------------------------------------------------------------------ |
-| `$schema`       | string | URL         | Schema URL for editor tooling                                      |
-| `version`       | int    | `1`         | Schema version                                                     |
-| `theme`         | string | `null`      | Named theme from the theme registry                                |
-| `lines`         | array  | one default | Ordered list of `{ widgets: Widget[] }`                            |
-| `global`        | object | defaults    | Render options: `padding`, `separator`, `inheritColors`, etc.      |
-| `powerline`     | object | defaults    | Powerline options (see `02-functional-requirements · F5`)          |
-| `terminalWidth` | object | defaults    | Width-detection mode: `full`, `full-minus-N`, `full-until-compact` |
-| `keymap`        | object | `{}`        | Editor keymap overrides                                            |
+| Key               | Type   | Default     | Notes                                                                                                    |
+| ----------------- | ------ | ----------- | -------------------------------------------------------------------------------------------------------- |
+| `$schema`         | string | URL         | Schema URL for editor tooling                                                                            |
+| `version`         | int    | `1`         | Schema version                                                                                           |
+| `theme`           | string | `null`      | Named theme from the theme registry                                                                      |
+| `lines`           | array  | one default | Ordered list of `{ widgets: Widget[] }`                                                                  |
+| `global`          | object | defaults    | Render options: `padding`, `separator`, `inheritColors`, etc.                                            |
+| `powerline`       | object | defaults    | Powerline options (see `02-functional-requirements · F5`)                                                |
+| `terminalWidth`   | object | defaults    | Width-detection mode: `full`, `full-minus-N`, `full-until-compact`                                       |
+| `keymap`          | object | `{}`        | Editor keymap overrides                                                                                  |
+| `refreshInterval` | int    | `5`         | Statusline re-run period in seconds; `>= 0`. `0` disables, syncing the host so it re-runs on events only |
 
 **Strictness.** Root object: `additionalProperties: false`. `widgets[].options` and `palette` are extensible (`additionalProperties: true`); the reserved-key strip applies there to close the prototype-pollution gap.
 

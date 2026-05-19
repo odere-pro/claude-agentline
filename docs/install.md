@@ -71,7 +71,9 @@ What it does, in order:
    `themes/` subfolder.
 5. Writes a `statusLine` entry into `~/.claude/settings.json` if and
    only if the key is currently unset. To overwrite a foreign value,
-   pass `--force`.
+   pass `--force`. The entry's `refreshInterval` is set from the
+   `refreshInterval` config key (default `5` seconds); a configured `0`
+   omits the field so Claude Code stays event-driven only.
 
 Every filesystem write is atomic (write-temp, `fsync`, `rename`). Re-running
 `install.sh` on a tree it already installed is a byte-for-byte no-op.

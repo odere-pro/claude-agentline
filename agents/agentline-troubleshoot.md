@@ -12,7 +12,7 @@ Use this skill when the statusline is broken, not showing, or behaving unexpecte
 
 ```bash
 agentline doctor          # full report
-agentline doctor --fix    # auto-repair D01–D04
+agentline doctor --fix    # auto-repair D01–D04 and D09
 ```
 
 Read the output. Each line has a check ID (D01–D09) and a glyph:
@@ -29,17 +29,17 @@ Read the output. Each line has a check ID (D01–D09) and a glyph:
 
 ## Step 2 — match the failing check
 
-| Check | Problem                               | Fix                                           |
-| ----- | ------------------------------------- | --------------------------------------------- |
-| D01   | `~/.claude/settings.json` missing     | `agentline doctor --fix`                      |
-| D02   | `statusLine` not wired to agentline   | `agentline doctor --fix` or `agentline reset` |
-| D03   | user config missing or invalid schema | `agentline doctor --fix` or `agentline reset` |
-| D04   | theme file missing                    | `agentline doctor --fix`                      |
-| D05   | `git` not on PATH                     | install git                                   |
-| D06   | pricing table older than 90 days      | `npm install -g @agentline/cli@latest`        |
-| D07   | `CLAUDE_CONFIG_DIR` not writable      | fix directory permissions                     |
-| D08   | update-check cache reports newer      | `npm install -g @agentline/cli@latest`        |
-| D09   | render snapshot mismatch              | file a bug; capture `agentline doctor` output |
+| Check | Problem                                                    | Fix                                                              |
+| ----- | ---------------------------------------------------------- | ---------------------------------------------------------------- |
+| D01   | `~/.claude/settings.json` missing                          | `agentline doctor --fix`                                         |
+| D02   | `statusLine` not wired to agentline                        | `agentline doctor --fix` or `agentline reset`                    |
+| D03   | user config missing or invalid schema                      | `agentline doctor --fix` or `agentline reset`                    |
+| D04   | theme file missing                                         | `agentline doctor --fix`                                         |
+| D05   | `git` not on PATH                                          | install git                                                      |
+| D06   | resolved global config directory not writable              | fix directory permissions                                        |
+| D07   | update-check cache reports a newer release                 | `npm install -g @agentline/cli@latest`                           |
+| D08   | render dry-run does not match the stored snapshot          | `npm install -g @agentline/cli@latest`                           |
+| D09   | `statusLine.refreshInterval` mismatch (WARN, auto-fixable) | `agentline doctor --fix` or `agentline config refresh <seconds>` |
 
 ---
 
@@ -68,6 +68,23 @@ If the issue is theme-related, try a simpler palette by editing the config:
 ```
 
 Or disable colour entirely with `NO_COLOR=1` in your shell env, then restart Claude Code.
+
+---
+
+## Statusline frozen while idle
+
+Time-varying widgets (session duration, rate-limit countdown, git state
+from background subagents, token totals) stay frozen until the next
+prompt. The refresh timer is disabled — `refreshInterval` is `0`, so
+`statusLine.refreshInterval` is absent from `~/.claude/settings.json`
+and Claude Code only re-runs the command on events. Doctor flags this
+as D09 (WARN).
+
+```bash
+agentline config refresh 5    # re-run every 5 seconds (the default)
+agentline doctor --fix        # or repair D09 from the configured value
+# restart Claude Code so the new statusLine setting is picked up
+```
 
 ---
 

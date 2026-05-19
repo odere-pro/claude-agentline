@@ -7,7 +7,7 @@ agentline doctor          # full report
 agentline doctor --fix    # auto-repair D01–D04
 ```
 
-See [doctor.md](./doctor.md) for the complete check list (D01–D08).
+See [doctor.md](./doctor.md) for the complete check list (D01–D09).
 
 ---
 
@@ -61,6 +61,31 @@ node dist/cli.mjs install --from-source
 
 Both paths produce identical runtime state — see
 [install.md](./install.md#install-paths-are-equivalent).
+
+---
+
+## Statusline frozen / time widgets not advancing while idle
+
+Symptom: the layout is correct, but time-varying widgets (session
+duration, rate-limit countdown, git state from background subagents,
+token totals) stay frozen while the session sits idle. They only jump
+forward when you send the next prompt.
+
+Cause: the statusline refresh interval is disabled (`refreshInterval`
+is `0`, so `statusLine.refreshInterval` is absent from
+`~/.claude/settings.json` and Claude Code only re-runs the command on
+events).
+
+Fix: set a non-zero interval and re-sync the host wiring:
+
+```bash
+agentline config refresh 5    # re-run every 5 seconds (the default)
+agentline doctor --fix        # or repair D09 from the configured value
+```
+
+`agentline config refresh` with no argument prints the current value.
+Restart Claude Code after wiring so the new `statusLine` setting is
+picked up.
 
 ---
 

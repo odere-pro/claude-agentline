@@ -15,7 +15,8 @@ The top-level surface is intentionally small: **`reset` · `uninstall` · `docto
 | _(default)_               | Read stdin JSON, render statusline, write to stdout | no             |
 | [`reset`](#reset)         | Restore defaults: reseed config + rewire statusLine | **yes**        |
 | [`uninstall`](#uninstall) | Undo install; restore pre-install state             | **yes**        |
-| [`doctor`](#doctor)       | Diagnose host wiring; `--fix` repairs D01–D04       | with `--fix`   |
+| [`config`](#config)       | Inspect/set scalar config keys (`refresh`)          | with `<value>` |
+| [`doctor`](#doctor)       | Diagnose host wiring; `--fix` repairs D01–D04, D09  | with `--fix`   |
 | [`edit`](#edit)           | Open the interactive TUI editor                     | with save      |
 | [`version`](#version)     | Print binary version                                | no             |
 | [`help`](#help)           | Print the top-level command list                    | no             |
@@ -146,33 +147,76 @@ agentline uninstall --dry-run    # preview actions
 
 ---
 
+## config
+
+```bash
+agentline config refresh [<seconds>]
+```
+
+Inspects or sets scalar top-level config keys. Today the only subject is
+the statusline refresh interval.
+
+**`agentline config refresh`** (no argument) prints the current effective
+`refreshInterval` — just the integer, followed by a newline.
+
+**`agentline config refresh <seconds>`** validates `<seconds>` as an
+integer `>= 0`, persists it to agentline's own config at
+`${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`, and re-syncs
+`~/.claude/settings.json`. `0` disables the timer: agentline omits
+`statusLine.refreshInterval` from `settings.json` so Claude Code reverts
+to event-driven updates only. `1`+ is written through to
+`statusLine.refreshInterval`, which re-runs the statusline command every
+N seconds in addition to event-driven updates. Default is `5`.
+
+If agentline's `statusLine` is not currently wired, the config value is
+still updated but no partial `statusLine` is created — the command prints
+a hint to run `agentline install`.
+
+| Argument    | Type | Default | Description                                                         |
+| ----------- | ---- | ------- | ------------------------------------------------------------------- |
+| `<seconds>` | int  | —       | Refresh interval in seconds; `>= 0`. `0` disables. Omit to read it. |
+
+**Exit codes:** `0` success · non-zero on an argument or validation
+error, with an `agentline config refresh: …` message.
+
+**Examples:**
+
+```bash
+agentline config refresh           # print the current value (e.g. 5)
+agentline config refresh 10        # refresh every 10 seconds
+agentline config refresh 0         # disable; event-driven updates only
+```
+
+---
+
 ## doctor
 
 ```bash
 agentline doctor [options]
 ```
 
-Runs eight health checks (D01–D08) against the host configuration. With `--fix`, auto-repairs D01–D04.
+Runs nine health checks (D01–D09) against the host configuration. With `--fix`, auto-repairs D01–D04 and D09.
 
-| Flag            | Type | Default | Description                                                                |
-| --------------- | ---- | ------- | -------------------------------------------------------------------------- |
-| `--fix`         | flag | off     | Attempt to repair D01–D04 (settings file, statusLine, user config, themes) |
-| `--json`        | flag | off     | Machine-readable JSON output; suppresses the human formatter               |
-| `--strict`      | flag | off     | Promote unresolved warnings/failures to non-zero exit (for CI gates)       |
-| `-h` / `--help` | flag | —       | Show command help                                                          |
+| Flag            | Type | Default | Description                                                                                           |
+| --------------- | ---- | ------- | ----------------------------------------------------------------------------------------------------- |
+| `--fix`         | flag | off     | Attempt to repair D01–D04 (settings file, statusLine, user config, themes) and D09 (refresh interval) |
+| `--json`        | flag | off     | Machine-readable JSON output; suppresses the human formatter                                          |
+| `--strict`      | flag | off     | Promote unresolved warnings/failures to non-zero exit (for CI gates)                                  |
+| `-h` / `--help` | flag | —       | Show command help                                                                                     |
 
 **Checks:**
 
-| ID  | What it checks                   | Auto-fixable |
-| --- | -------------------------------- | ------------ |
-| D01 | `~/.claude/settings.json` exists | yes          |
-| D02 | `statusLine` wired to agentline  | yes          |
-| D03 | User/project config valid schema | yes (seed)   |
-| D04 | Theme files present              | yes (copy)   |
-| D05 | `git` on PATH                    | no           |
-| D06 | Config directory writable        | no           |
-| D07 | Update-check cache (read-only)   | no           |
-| D08 | Render snapshot matches golden   | no           |
+| ID  | What it checks                              | Auto-fixable |
+| --- | ------------------------------------------- | ------------ |
+| D01 | `~/.claude/settings.json` exists            | yes          |
+| D02 | `statusLine` wired to agentline             | yes          |
+| D03 | User/project config valid schema            | yes (seed)   |
+| D04 | Theme files present                         | yes (copy)   |
+| D05 | `git` on PATH                               | no           |
+| D06 | Config directory writable                   | no           |
+| D07 | Update-check cache (read-only)              | no           |
+| D08 | Render snapshot matches golden              | no           |
+| D09 | `statusLine.refreshInterval` matches config | yes          |
 
 **Glyphs in output:** `[ok]` passed · `[!!]` warning · `[XX]` failed · `[fx]` fixed · `[--]` skipped
 
@@ -185,7 +229,7 @@ Runs eight health checks (D01–D08) against the host configuration. With `--fix
 
 ```bash
 agentline doctor                  # full health report
-agentline doctor --fix            # repair D01–D04
+agentline doctor --fix            # repair D01–D04 and D09
 agentline doctor --strict         # non-zero on any issue (CI)
 agentline doctor --json | jq .    # machine-readable
 ```
