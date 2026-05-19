@@ -1,10 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { registerAllBuiltins } from "./index.js";
 import { defineWidget } from "./widget.js";
 import {
   WidgetRegistry,
   WidgetTypeAlreadyRegistered,
   WidgetTypeNotRegistered,
+  defaultRegistry,
+  resetDefaultRegistry,
 } from "./registry.js";
 
 const noop = defineWidget("noop", () => ({ text: "noop" }));
@@ -46,6 +49,36 @@ describe("WidgetRegistry", () => {
     const r = new WidgetRegistry();
     r.registerAll([second, noop]);
     expect(r.list()).toEqual(["noop", "second"]);
+  });
+});
+
+describe("defaultRegistry / resetDefaultRegistry", () => {
+  beforeEach(() => {
+    resetDefaultRegistry();
+  });
+
+  afterEach(() => {
+    resetDefaultRegistry();
+  });
+
+  it("returns the same lazily-created singleton across calls", () => {
+    expect(defaultRegistry()).toBe(defaultRegistry());
+  });
+
+  it("resetDefaultRegistry forces a fresh instance on next call", () => {
+    const first = defaultRegistry();
+    resetDefaultRegistry();
+    expect(defaultRegistry()).not.toBe(first);
+  });
+
+  it("grows from empty after registerAllBuiltins and stays size-consistent", () => {
+    const registry = defaultRegistry();
+    const before = registry.size();
+    registerAllBuiltins(registry);
+    const after = registry.size();
+
+    expect(after).toBeGreaterThan(before);
+    expect(after).toBe(registry.list().length);
   });
 });
 

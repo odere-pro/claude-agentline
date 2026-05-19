@@ -41,5 +41,6 @@ describe("frozenClock", () => {
 
   it("rejects invalid input", () => {
     expect(() => frozenClock("not a date")).toThrow(/invalid date/);
+    expect(() => frozenClock(NaN)).toThrow(/invalid date/);
   });
 });
