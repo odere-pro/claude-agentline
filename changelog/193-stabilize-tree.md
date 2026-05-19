@@ -1,0 +1,1 @@
+- Stabilise main after the value-separator and refresh-interval commits: regenerate drifted golden fixtures, fix doctor --fix idempotency, and clear the gate-02/gate-06 violations.

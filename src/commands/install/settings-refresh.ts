@@ -1,6 +1,6 @@
 /**
  * Propagate the configured `refreshInterval` into Claude Code's
- * `~/.claude/settings.json` `statusLine.refreshInterval`.
+ * settings.json `statusLine.refreshInterval`.
  *
  * agentline's own config is the source of truth; this is the one place
  * the value crosses over into Claude Code's settings. Shared by the
