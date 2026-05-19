@@ -18,7 +18,7 @@ import {
   replaceLine,
   widgetCountAt,
   type EditorState,
-} from "./state.js";
+} from "./state-core.js";
 
 export function moveCursor(state: EditorState, dx: number, dy: number): EditorState {
   if (state.mode !== "edit") return state;

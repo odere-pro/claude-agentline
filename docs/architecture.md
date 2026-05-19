@@ -58,15 +58,16 @@ The registry holds built-in implementations; tests can inject isolated instances
 
 ## Config System
 
-Configuration is **layered and immutable**:
+Configuration is **layered, global-only, and immutable**:
 
 1. Built-in defaults (`src/config/defaults.ts`)
-2. User file (`~/.config/agentline/config.json`)
-3. Project file (`.agentline.json` — currently ignored per §13)
-4. Environment variables (`AGENTLINE_*`)
-5. CLI flags (`--theme`, `--width`, etc.)
+2. User file at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`
+   — the single source of truth (§13: no project layer; any
+   `.agentline.json` in cwd is silently ignored)
+3. Environment variables (`AGENTLINE_*`)
+4. CLI flags (`--theme`, `--width`, etc.)
 
-Each layer is validated against the JSON Schema before merge. Writes go through atomic file operations (write-temp + fsync + rename).
+Each layer is validated against the JSON Schema before merge. Writes go through atomic file operations (write-temp + fsync + rename). See [`docs/install.md`](./install.md#how-agentline-syncs-with-claude-code) for the end-to-end stdin → render → stdout chain.
 
 ## Token/Transcript System (`src/tokens/`)
 
@@ -87,7 +88,7 @@ Similar to tokens, the render-tick resolver runs `git` once and caches the resul
 
 ## Doctor System (`src/doctor/`)
 
-Verification checks (D01–D10) run sequentially and report health status. `--fix` repairs the four safe mutations (settings scaffold, statusLine wiring, config defaults, theme copy). Refusing unsafe mutations (`--force` required for foreign statusLines).
+Verification checks (D01–D08) run sequentially and report health status. `--fix` repairs the four safe mutations (settings scaffold, statusLine wiring, config defaults, theme copy). Refusing unsafe mutations (`--force` required for foreign statusLines).
 
 ## Type Safety
 

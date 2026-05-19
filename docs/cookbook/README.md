@@ -41,7 +41,7 @@ You do **not** need prior knowledge of the reference implementation. If you find
 
 - Every chapter starts with **Intent:** and **Reads-with:** lines.
 - Chapters are self-contained but cross-link liberally with `[[name]]`-style references.
-- Numeric IDs (F1–F15, D01–D10, gates 01–21) are **stable**: when an ID is retired, the number is **not** reused.
+- Numeric IDs (F1–F15, D01–D08, gates 01–22) are **stable**: when an ID is retired, the number is **not** reused. _One-time pre-1.0 exception:_ doctor `D06` (embedded-pricing-table freshness) was retired — no widget consumes pricing at runtime, so freshness moved to a unit test plus `gate-22-pricing-freshness` — and the remaining doctor checks were renumbered to a contiguous `D01–D08`. There was no external contract on these IDs before 1.0; the no-reuse rule applies from here forward.
 - "MUST", "SHOULD", "MAY" follow RFC 2119.
 - Concrete tool names appear only in `09-tech-stack-choices.md`. Everywhere else, refer to roles ("schema validator", "TUI framework").
 

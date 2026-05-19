@@ -2,15 +2,10 @@
  * Per-mode keypress handlers for the TUI editor.
  *
  * Each `handle*Key(input, key, deps)` is a plain function lifted out of
- * `use-editor-input.ts` (formerly four `useCallback` closures over half
- * the editor state). The hook now builds one `deps` bag and forwards
+ * `use-editor-input.ts`. The hook builds one `deps` bag and forwards
  * `useInput` to the right handler; every side effect flows through a
  * callback in `deps`, so the handlers are trivially testable without
  * mounting Ink.
- *
- * Smell-report 2026-05-15 H-code-1 follow-up: the `useInput` body was
- * thinned in PR #109; this module finishes that lift by moving the
- * handler bodies (62 / 47 / 34 / 66 LOC) out of the hook.
  */
 
 import type { Key as KeyEvent } from "ink";
@@ -21,11 +16,11 @@ import type { WidgetMetaEntry } from "../widgets/index.js";
 
 import {
   familiesWithWidgets,
-  clampIndex,
   filterWidgets,
   selectedAt,
   variantRows,
   widgetsInFamily,
+  wrapIndex,
 } from "./picker.js";
 import type { SaveTracker } from "./mount.js";
 import { isAddCell, type EditorAction, type EditorState } from "./state.js";
@@ -50,25 +45,113 @@ export interface EditHandlerDeps extends PickerHandlerDeps {
   readonly onSave: () => Promise<void>;
   readonly onSaved: (saved: boolean) => void;
   readonly saveTracker: SaveTracker;
-  readonly nerdFontAvailable: boolean;
   readonly setStatusMessage: (message: string) => void;
 }
 
 /**
- * Picker step 1: pick a family or type to filter into a flat list.
+ * Strip control characters (C0 range + DEL) from typed or pasted input,
+ * returning `""` when nothing printable remains. Ink delivers a paste as a
+ * single multi-character `useInput` chunk, so the text-entry handlers route
+ * `input` through here instead of gating on `input.length === 1`: a pasted
+ * URL arrives intact, and any embedded newline / tab collapses out so the
+ * single-line fields stay single-line.
+ */
+export function sanitizeTypedInput(input: string): string {
+  let out = "";
+  for (const ch of input) {
+    const code = ch.codePointAt(0)!;
+    if (code >= 0x20 && code !== 0x7f) out += ch;
+  }
+  return out;
+}
+
+/**
+ * Picker step 1a: family browser (the default view).
  *
- *   - empty query  → ↑↓/↵ navigate and select a family;
- *   - typed query  → the group view collapses into a flat global
- *                    widget list filtered by substring; ↑↓/↵ act on
- *                    that list and Enter commits the widget directly.
- *                    Backspace through the query returns to the
- *                    group view.
+ *   - ↑↓/↵ navigate and select a family; Enter dispatches `pick-family`.
+ *   - `/` switches into flat-search mode (`picker-search`).
+ *   - Esc returns to edit mode.
  */
 export function handlePickerGroupKey(input: string, key: KeyEvent, deps: PickerHandlerDeps): void {
-  const { dispatch, widgetEntries, usedTypes, stepQuery, stepHighlight } = deps;
-  const searching = stepQuery.length > 0;
+  const { dispatch, widgetEntries, usedTypes, stepHighlight } = deps;
 
-  if (key.escape) {
+  if (key.escape || key.leftArrow) {
+    dispatch({ type: "picker-back" });
+    return;
+  }
+  if (input === "/") {
+    dispatch({ type: "open-search" });
+    return;
+  }
+  const cats = familiesWithWidgets(widgetEntries, usedTypes);
+  if (key.return || key.rightArrow) {
+    const cat = selectedAt(cats, stepHighlight);
+    if (cat) dispatch({ type: "pick-family", family: cat });
+    return;
+  }
+  if (key.upArrow) {
+    deps.setStepHighlight((h) => wrapIndex(h - 1, cats.length));
+    return;
+  }
+  if (key.downArrow) {
+    deps.setStepHighlight((h) => wrapIndex(h + 1, cats.length));
+  }
+}
+
+/** Picker step 1b: narrow to a widget within the chosen family. */
+export function handlePickerWidgetKey(input: string, key: KeyEvent, deps: PickerHandlerDeps): void {
+  const { state, dispatch, widgetEntries, usedTypes, stepQuery, stepHighlight } = deps;
+  if (state.mode === "edit") return; // TS narrowing; the dispatcher only routes here in picker-widget mode.
+  const family = state.pickerDraft.family;
+  if (!family) {
+    dispatch({ type: "picker-back" });
+    return;
+  }
+  if (key.escape || key.leftArrow) {
+    dispatch({ type: "picker-back" });
+    return;
+  }
+  const matches = widgetsInFamily(widgetEntries, family, stepQuery, usedTypes);
+  if (key.return || key.rightArrow) {
+    const picked = selectedAt(matches, stepHighlight);
+    if (picked) dispatch({ type: "pick-widget", widgetType: picked.type });
+    return;
+  }
+  if (key.upArrow) {
+    deps.setStepHighlight((h) => wrapIndex(h - 1, matches.length));
+    return;
+  }
+  if (key.downArrow) {
+    deps.setStepHighlight((h) => wrapIndex(h + 1, matches.length));
+    return;
+  }
+  if (key.backspace || key.delete) {
+    if (stepQuery.length === 0) return;
+    deps.setStepQuery((q) => q.slice(0, -1));
+    deps.setStepHighlight(0);
+    return;
+  }
+  if (!key.ctrl && !key.meta) {
+    const typed = sanitizeTypedInput(input);
+    if (typed) {
+      deps.setStepQuery((q) => q + typed);
+      deps.setStepHighlight(0);
+    }
+  }
+}
+
+/**
+ * Picker step 1c: flat search across every catalogued widget.
+ *
+ * Entered from the group view via `/`. Printable keys extend the query;
+ * Enter commits the highlighted widget; Esc returns to the group view
+ * (not edit mode — back-stepping out of search lands the user where
+ * they came from).
+ */
+export function handlePickerSearchKey(input: string, key: KeyEvent, deps: PickerHandlerDeps): void {
+  const { dispatch, widgetEntries, usedTypes, stepQuery, stepHighlight } = deps;
+
+  if (key.escape || key.leftArrow) {
     dispatch({ type: "picker-back" });
     return;
   }
@@ -78,84 +161,26 @@ export function handlePickerGroupKey(input: string, key: KeyEvent, deps: PickerH
     deps.setStepHighlight(0);
     return;
   }
-  if (searching) {
-    const matches = filterWidgets(widgetEntries, stepQuery, usedTypes);
-    if (key.return) {
-      const picked = selectedAt(matches, stepHighlight);
-      if (picked) dispatch({ type: "pick-widget", widgetType: picked.type });
-      return;
-    }
-    if (key.upArrow) {
-      deps.setStepHighlight((h) => clampIndex(h - 1, matches.length));
-      return;
-    }
-    if (key.downArrow) {
-      deps.setStepHighlight((h) => clampIndex(h + 1, matches.length));
-      return;
-    }
-  } else {
-    const cats = familiesWithWidgets(widgetEntries, usedTypes);
-    if (key.return) {
-      const cat = selectedAt(cats, stepHighlight);
-      if (cat) dispatch({ type: "pick-family", family: cat });
-      return;
-    }
-    if (key.upArrow) {
-      deps.setStepHighlight((h) => clampIndex(h - 1, cats.length));
-      return;
-    }
-    if (key.downArrow) {
-      deps.setStepHighlight((h) => clampIndex(h + 1, cats.length));
-      return;
-    }
-  }
-  /*
-   * Any printable key extends the search query and flips the view to
-   * flat results on the next render.
-   */
-  if (input.length === 1 && input >= " " && !key.ctrl && !key.meta) {
-    deps.setStepQuery((q) => q + input);
-    deps.setStepHighlight(0);
-  }
-}
-
-/** Picker step 2: narrow to a widget within the chosen family. */
-export function handlePickerWidgetKey(input: string, key: KeyEvent, deps: PickerHandlerDeps): void {
-  const { state, dispatch, widgetEntries, usedTypes, stepQuery, stepHighlight } = deps;
-  if (state.mode === "edit") return; // TS narrowing; the dispatcher only routes here in picker-widget mode.
-  const family = state.pickerDraft.family;
-  if (!family) {
-    dispatch({ type: "picker-back" });
-    return;
-  }
-  if (key.escape) {
-    dispatch({ type: "picker-back" });
-    return;
-  }
-  if (key.return) {
-    const matches = widgetsInFamily(widgetEntries, family, stepQuery, usedTypes);
+  const matches = filterWidgets(widgetEntries, stepQuery, usedTypes);
+  if (key.return || key.rightArrow) {
     const picked = selectedAt(matches, stepHighlight);
     if (picked) dispatch({ type: "pick-widget", widgetType: picked.type });
     return;
   }
   if (key.upArrow) {
-    const matches = widgetsInFamily(widgetEntries, family, stepQuery, usedTypes);
-    deps.setStepHighlight((h) => clampIndex(h - 1, matches.length));
+    deps.setStepHighlight((h) => wrapIndex(h - 1, matches.length));
     return;
   }
   if (key.downArrow) {
-    const matches = widgetsInFamily(widgetEntries, family, stepQuery, usedTypes);
-    deps.setStepHighlight((h) => clampIndex(h + 1, matches.length));
+    deps.setStepHighlight((h) => wrapIndex(h + 1, matches.length));
     return;
   }
-  if (key.backspace || key.delete) {
-    deps.setStepQuery((q) => q.slice(0, -1));
-    deps.setStepHighlight(0);
-    return;
-  }
-  if (input.length === 1 && input >= " " && !key.ctrl && !key.meta) {
-    deps.setStepQuery((q) => q + input);
-    deps.setStepHighlight(0);
+  if (!key.ctrl && !key.meta) {
+    const typed = sanitizeTypedInput(input);
+    if (typed) {
+      deps.setStepQuery((q) => q + typed);
+      deps.setStepHighlight(0);
+    }
   }
 }
 
@@ -173,36 +198,27 @@ export function handlePickerVariantKey(
     return;
   }
   const rows = variantRows(widgetType, "fresh");
-  if (key.escape) {
+  if (key.escape || key.leftArrow) {
     dispatch({ type: "picker-back" });
     return;
   }
-  if (key.return) {
+  if (key.return || key.rightArrow) {
     const row = selectedAt(rows, stepHighlight);
     if (row) dispatch({ type: "pick-variant", variantId: row.id });
     return;
   }
   if (key.upArrow) {
-    deps.setStepHighlight((h) => clampIndex(h - 1, rows.length));
+    deps.setStepHighlight((h) => wrapIndex(h - 1, rows.length));
     return;
   }
   if (key.downArrow) {
-    deps.setStepHighlight((h) => clampIndex(h + 1, rows.length));
+    deps.setStepHighlight((h) => wrapIndex(h + 1, rows.length));
   }
 }
 
-/** Edit mode: layout-shaping keys plus save / exit / glyph-toggle. */
+/** Edit mode: layout-shaping keys plus save / exit. */
 export function handleEditKey(input: string, key: KeyEvent, deps: EditHandlerDeps): void {
-  const {
-    state,
-    dispatch,
-    exit,
-    onSave,
-    onSaved,
-    saveTracker,
-    nerdFontAvailable,
-    setStatusMessage,
-  } = deps;
+  const { state, dispatch, exit, onSave, onSaved, saveTracker, setStatusMessage } = deps;
 
   if (key.escape || input === "q") {
     onSaved(false);
@@ -226,6 +242,11 @@ export function handleEditKey(input: string, key: KeyEvent, deps: EditHandlerDep
     return;
   }
   if (key.rightArrow) {
+    if (!key.shift && isAddCell(state)) {
+      // → on the +add cell enters the picker, mirroring ↵.
+      dispatch({ type: "open-picker", intent: "add" });
+      return;
+    }
     dispatch(key.shift ? { type: "move-widget", dx: 1 } : { type: "move-cursor", dx: 1 });
     return;
   }
@@ -256,20 +277,5 @@ export function handleEditKey(input: string, key: KeyEvent, deps: EditHandlerDep
   if (input === "d" || input === "x" || key.delete || key.backspace) {
     dispatch({ type: "delete" });
     return;
-  }
-  if (input === "g") {
-    const next = state.glyphs === "nerd-font" ? "off" : "nerd-font";
-    /*
-     * When `agentline install` couldn't find a Nerd Font, lock the toggle
-     * to "off" — enabling glyphs would only paint tofu boxes onto the
-     * rendered statusline. Toggling *off* is still allowed so a user who
-     * edited the file by hand can recover via the UI.
-     */
-    if (!nerdFontAvailable && next === "nerd-font") {
-      setStatusMessage("glyphs: disabled — install a Nerd Font, then re-run `agentline install`");
-      return;
-    }
-    dispatch({ type: "toggle-glyphs" });
-    setStatusMessage(`glyphs: ${next}`);
   }
 }

@@ -49,8 +49,8 @@ For mechanical edits without the TUI, hand-edit the JSON file directly; the bin 
       "widgets": [
         { "type": "model" },
         { "type": "git-branch" },
-        { "type": "tokens-total", "options": { "reset": "block" } },
-        { "type": "clock" },
+        { "type": "tokens", "options": { "reset": "block" } },
+        { "type": "version" },
       ],
     },
   ],
@@ -84,11 +84,10 @@ Dot-path in `UPPER_SNAKE_CASE`, prefixed `AGENTLINE_`.
 
 ## Reset
 
-There is no dedicated reset command. Delete the user config and re-run `agentline install` — the installer reseeds the default template when no existing config is present:
+`agentline reset` restores the default config. It overwrites the user config with the shipped default template (the bare installer would preserve an existing config), re-seeds themes and skills, and ensures `statusLine` is wired:
 
 ```bash
-rm "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json"
-agentline install
+agentline reset
 ```
 
 Full reference → [config.md](../docs/config.md)

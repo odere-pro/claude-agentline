@@ -10,8 +10,10 @@
  */
 
 import type { AgentlineConfig } from "../config/types.js";
+import type { Translator } from "../i18n/index.js";
 import type { GitState } from "../git/index.js";
 import type { ResolvedSessionFields } from "../session/index.js";
+import type { PlanSnapshot } from "../session/plan.js";
 import type { StdinPayload } from "../stdin/index.js";
 import type { Theme } from "../theme/index.js";
 import type { TokensSnapshot } from "../tokens/index.js";
@@ -37,6 +39,15 @@ export interface Cell {
    * set this flag.
    */
   readonly flex?: boolean;
+  /**
+   * State-signal marker. A widget sets `signal: true` when its `fg`
+   * encodes meaning (git clean/dirty, token/context threshold, effort
+   * level) rather than being a generic accent. `renderWidget` keeps a
+   * signal cell's own `fg` instead of substituting the family accent,
+   * so the state stays readable. Consumed internally only — never
+   * copied onto the emitted cell / segment / ANSI.
+   */
+  readonly signal?: boolean;
   /**
    * OSC 8 hyperlink target. When set and the colour depth is not
    * `"none"`, the encoder wraps `text` in `ESC]8;;URL\\ESC\\` /
@@ -66,6 +77,14 @@ export interface WidgetContext {
   readonly clock: Clock;
   readonly env: NodeJS.ProcessEnv;
   /**
+   * Resolves a widget's user-facing strings by id against the configured
+   * language. Built once per render tick by `buildWidgetContext`, so the
+   * live render and the editor preview translate identically. Optional:
+   * ad-hoc contexts (tests) omit it and widgets fall back to English via
+   * `identityTranslator`.
+   */
+  readonly t?: Translator;
+  /**
    * Identity fields resolved from `stdin.user.*` with auth-file fallback
    * (§7.2.1). Resolved once per render tick by `loadSessionFields`;
    * widgets MUST NOT do filesystem I/O during `render()`.
@@ -84,6 +103,12 @@ export interface WidgetContext {
    * inside a git repo and every git widget hides.
    */
   readonly git?: GitState;
+  /**
+   * Active-plan snapshot (§7.2). Resolved once per render tick by
+   * `loadPlanSnapshot`; widgets MUST NOT list the plans directory
+   * during `render()`. Absent when there is no active plan.
+   */
+  readonly plan?: PlanSnapshot;
 }
 
 // ─── Widget contract ────────────────────────────────────────────────────────

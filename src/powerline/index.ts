@@ -18,10 +18,5 @@ export {
   applyPowerlineLines,
   type PowerlineTransformOptions,
 } from "./transform.js";
-export {
-  ASCII_GLYPHS,
-  NERD_FONT_GLYPHS,
-  resolveGlyphs,
-  type PowerlineGlyphSet,
-} from "./glyphs.js";
+export { ASCII_GLYPHS, NERD_FONT_GLYPHS, resolveGlyphs, type PowerlineGlyphSet } from "./glyphs.js";
 export { detectGlyphSupport, type GlyphSupport } from "./detect.js";

@@ -1,5 +1,5 @@
 /**
- * In-process render replay used by the doctor's D10 check, the CLI's
+ * In-process render replay used by the doctor's D08 check, the CLI's
  * `agentline render --fixture` flag, and the golden tests harness
  * (§11.3).
  *
@@ -26,6 +26,7 @@ import { renderFromInputs } from "./pipeline.js";
 import type { TokensSnapshot } from "../tokens/index.js";
 import type { GitState } from "../git/index.js";
 import type { ResolvedSessionFields } from "../session/index.js";
+import type { PlanSnapshot } from "../session/plan.js";
 
 export interface RenderForFixtureOptions {
   readonly config?: AgentlineConfig;
@@ -44,6 +45,7 @@ export interface RenderForFixtureOptions {
   readonly tokens?: TokensSnapshot;
   readonly git?: GitState;
   readonly session?: ResolvedSessionFields;
+  readonly plan?: PlanSnapshot;
   /** Override the bundled themes directory; primarily used by tests. */
   readonly builtinThemesDir?: string;
 }
@@ -80,6 +82,7 @@ export async function renderForFixture(
     ...(options.tokens !== undefined ? { tokens: options.tokens } : {}),
     ...(options.git !== undefined ? { git: options.git } : {}),
     ...(options.session !== undefined ? { session: options.session } : {}),
+    ...(options.plan !== undefined ? { plan: options.plan } : {}),
   });
 }
 

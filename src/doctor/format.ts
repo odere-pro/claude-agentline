@@ -45,7 +45,9 @@ export function formatText(report: RunReport, options: FormatTextOptions = {}): 
   const widestTitle = report.results.reduce((n, r) => Math.max(n, r.title.length), 0);
   const lines: string[] = [];
   for (const r of report.results) {
-    const glyph = useColour ? `${GLYPH_COLOUR[r.status]}${GLYPHS[r.status]}${SGR_RESET}` : GLYPHS[r.status];
+    const glyph = useColour
+      ? `${GLYPH_COLOUR[r.status]}${GLYPHS[r.status]}${SGR_RESET}`
+      : GLYPHS[r.status];
     const title = r.title.padEnd(widestTitle, " ");
     lines.push(`${glyph} ${r.id}  ${title}  ${r.message}`);
     if (r.hint) lines.push(`         ↳ ${r.hint}`);

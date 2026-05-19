@@ -6,7 +6,7 @@
  *
  *   - `agentline render` (default + `--fixture`)
  *   - golden fixtures harness (PR 21)
- *   - doctor's D10 embedded fixture check
+ *   - doctor's D08 embedded fixture check
  *
  * Inputs are explicit so callers can drive the pipeline with a
  * frozen clock, an injected env, or an arbitrary stdin payload —
@@ -21,7 +21,7 @@
  */
 
 import { detectColourDepth } from "./colour-depth.js";
-import { detectTerminalWidth, applyWidthMode } from "./width.js";
+import { detectTerminalWidthInfo, applyWidthMode, NO_WRAP_WIDTH } from "./width.js";
 import { applyAccessibility, effectiveDepth, honourNoColorEnv } from "./accessibility.js";
 import { encodeSegments, SGR_RESET } from "./ansi.js";
 import { composeLines } from "./compose.js";
@@ -63,7 +63,18 @@ export function renderFromInputs(inputs: RenderInputs): string {
   const env = resolveEnv(inputs);
   const flags = honourNoColorEnv(inputs.flags ?? { noColor: false, noUnicode: false }, env);
   const clock: Clock = inputs.clock ?? realClock;
-  const width = inputs.width ?? resolveWidth(inputs.config, env);
+  /*
+   * An explicit `inputs.width` (--width flag, golden fixture) is an
+   * authoritative width — wrap against it. Otherwise resolve from the
+   * environment; when nothing real is detected `noWrap` is set so the
+   * composer emits one row per configured line instead of wrapping
+   * against a guessed fallback.
+   */
+  const resolved =
+    inputs.width !== undefined
+      ? { width: inputs.width, noWrap: false }
+      : resolveWidth(inputs.config, env);
+  const width = resolved.width;
   const ctx = buildWidgetContext({
     payload: inputs.payload,
     config: inputs.config,
@@ -73,6 +84,7 @@ export function renderFromInputs(inputs: RenderInputs): string {
     tokens: inputs.tokens,
     git: inputs.git,
     session: inputs.session,
+    plan: inputs.plan,
   });
 
   const registry = defaultRegistry();
@@ -91,6 +103,7 @@ export function renderFromInputs(inputs: RenderInputs): string {
     powerline: inputs.config.powerline,
     theme: inputs.theme,
     width,
+    noWrap: resolved.noWrap,
     glyphSupport: detectGlyphSupport(env),
   });
 
@@ -144,10 +157,25 @@ function hasStyle(
   return false;
 }
 
-function resolveWidth(config: AgentlineConfig, env: NodeJS.ProcessEnv): number {
-  const detected = detectTerminalWidth({ env });
-  return applyWidthMode(detected, {
-    mode: config.terminalWidth.mode,
-    compactThreshold: config.terminalWidth.compactThreshold,
-  }).effectiveWidth;
+function resolveWidth(
+  config: AgentlineConfig,
+  env: NodeJS.ProcessEnv,
+): { width: number; noWrap: boolean } {
+  const detected = detectTerminalWidthInfo({ env });
+  if (!detected.detected) {
+    /*
+     * No real width signal (the live host case: piped stdout, no
+     * COLUMNS, no width on stdin). Don't apply `full-minus-40` to a
+     * guessed 80 — that yields 40 columns and wraps/drops lines. Emit
+     * one row per configured line and let the host clip horizontally.
+     */
+    return { width: NO_WRAP_WIDTH, noWrap: true };
+  }
+  return {
+    width: applyWidthMode(detected.width, {
+      mode: config.terminalWidth.mode,
+      compactThreshold: config.terminalWidth.compactThreshold,
+    }).effectiveWidth,
+    noWrap: false,
+  };
 }

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG } from "../config/defaults.js";
 import type { LineConfig } from "../config/types.js";
 import type { GitState } from "../git/index.js";
+import { DEFAULT_PALETTE, type Theme } from "../theme/index.js";
 import { resetPreviewModeCache, setPreviewModeForTesting } from "./preview-fixture.js";
 import { PRICING_TABLE_VERSION, contextWindowFor, type TokensSnapshot } from "../tokens/index.js";
 
@@ -47,7 +48,7 @@ const realTokens: TokensSnapshot = Object.freeze({
  */
 beforeEach(() => {
   setPreviewModeForTesting({
-    kind: "real",
+    source: "cache",
     payload: {
       raw: {},
       truncated: false,
@@ -67,6 +68,14 @@ afterEach(() => {
 function rowSlots(row: PreviewRow): string[] {
   return row.slots.map((s) => (s.kind === "add" ? "+" : s.text));
 }
+
+/*
+ * Colours are pre-resolved through the bin's colour model at the
+ * env-detected depth (preview-model.ts `toHex`). Tests that assert a
+ * concrete chip colour pass a truecolor env so the resolved RGB is the
+ * colour's exact swatch; an empty env detects "none" (no colour).
+ */
+const TRUECOLOR: NodeJS.ProcessEnv = { COLORTERM: "truecolor" };
 
 describe("buildPreview", () => {
   it("emits one row per supplied line", () => {
@@ -137,7 +146,7 @@ describe("buildPreview", () => {
           widgets: [
             { type: "model" },
             { type: "git-branch", merged: "merge" },
-            { type: "clock", merged: "merge-no-padding" },
+            { type: "version", merged: "merge-no-padding" },
           ],
         },
       ],
@@ -157,19 +166,24 @@ describe("buildPreview", () => {
     expect(widget?.kind === "widget" && widget.text).toBe("model");
   });
 
-  it("surfaces a self-hiding widget (no data right now) with the widget's type name as fallback", () => {
+  it("surfaces a self-hiding widget (no data right now) as a family-branded dim stub", () => {
     /*
-     * `git-worktree` hides cleanly when `inWorktree === false` — the
-     * demo session is a plain checkout, so its preview falls back to
-     * the widget's type name (dimmed) instead of a decorative chip.
+     * `git-worktree` hides cleanly when `inWorktree === false`. The stub
+     * now carries the family glyph prefix and family accent colour so the
+     * user can still identify which widget is there while it remains dimmed.
      */
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
+      env: TRUECOLOR,
       lines: [{ widgets: [{ type: "git-worktree" }] }],
     });
-    const widget = rows[0]?.slots.find((s) => s.kind === "widget");
-    expect(widget?.kind === "widget" && widget.text).toBe("git-worktree");
-    expect(widget?.kind === "widget" && widget.hidden).toBe(true);
+    const w = rows[0]?.slots.find((s) => s.kind === "widget");
+    expect(w?.kind === "widget" && w.hidden).toBe(true);
+    // text carries the family glyph prefix — "git-worktree" appears as suffix
+    expect(w?.kind === "widget" && w.text).toContain("git-worktree");
+    // family accent is forwarded to the slot, resolved to the git
+    // family's green swatch (#0dbc79)
+    expect(w?.kind === "widget" && w.fg).toBe("#0dbc79");
   });
 
   it("does not mutate the supplied lines", () => {
@@ -179,39 +193,109 @@ describe("buildPreview", () => {
     expect(JSON.stringify(lines)).toBe(snapshot);
   });
 
-  it("widget slots default to the family accent so chips match the picker", () => {
+  it("a non-signal chip uses its family accent, theme-independent, matching the live render", () => {
+    /*
+     * `model` is a non-signal widget: family colour is the single
+     * source of truth for its accent, so it shows the `session`
+     * family colour ("blue") regardless of theme — exactly what the
+     * live render now prints (preview == render).
+     */
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
-      lines: [{ widgets: [{ type: "model" }, { type: "git-branch" }, { type: "clock" }] }],
+      env: TRUECOLOR,
+      lines: [{ widgets: [{ type: "model" }] }],
     });
-    const widgets = rows[0]?.slots.filter((s) => s.kind === "widget") ?? [];
-    // `model` ∈ session → blue, `git-branch` ∈ git → green, `clock` ∈ time → cyan.
-    if (widgets[0]?.kind === "widget") expect(widgets[0].fg).toBe("blue");
-    if (widgets[1]?.kind === "widget") expect(widgets[1].fg).toBe("green");
-    if (widgets[2]?.kind === "widget") expect(widgets[2].fg).toBe("cyan");
+    const widget = rows[0]?.slots.find((s) => s.kind === "widget");
+    // session family "blue" resolved through the bin's palette
+    expect(widget?.kind === "widget" && widget.fg).toBe("#2472c8");
   });
 
-  it("widget overrides win over the family accent", () => {
+  it("a signal widget reflects the configured theme role, exactly as the live render", () => {
+    /*
+     * `git-branch` is a state-signal widget (clean/dirty). The demo
+     * git snapshot is clean, so it resolves the theme's `git-clean`
+     * role — the family accent does NOT override a signal colour, and
+     * the preview matches the live render byte-for-byte.
+     */
+    const theme: Theme = {
+      name: "test-theme",
+      palette: { ...DEFAULT_PALETTE, "git-clean": "#cc785c" },
+      powerline: { capsStart: "", capsEnd: "" },
+      source: "file",
+    };
     const rows = buildPreview({
       base: DEFAULT_CONFIG,
+      theme,
+      env: TRUECOLOR,
+      lines: [{ widgets: [{ type: "git-branch" }] }],
+    });
+    const widget = rows[0]?.slots.find((s) => s.kind === "widget");
+    expect(widget?.kind === "widget" && widget.fg).toBe("#cc785c");
+  });
+
+  it("widget overrides win over the theme colour", () => {
+    const rows = buildPreview({
+      base: DEFAULT_CONFIG,
+      env: TRUECOLOR,
       lines: [{ widgets: [{ type: "model", fg: "#ff0080" }] }],
     });
     const widget = rows[0]?.slots.find((s) => s.kind === "widget");
     expect(widget?.kind === "widget" && widget.fg).toBe("#ff0080");
   });
+
+  it("pre-resolves the chip colour at the env-detected depth (preview == live)", () => {
+    /*
+     * `model`'s accent is the session family colour "blue". The bin maps
+     * named colours through its own fixed palette, so a 16-colour
+     * terminal still shows the bin's blue swatch — not the terminal's
+     * own — and `NO_COLOR` / no TERM yields an uncoloured chip exactly
+     * as the live render would.
+     */
+    const at = (env: NodeJS.ProcessEnv): string | undefined => {
+      const rows = buildPreview({
+        base: DEFAULT_CONFIG,
+        env,
+        lines: [{ widgets: [{ type: "model" }] }],
+      });
+      const w = rows[0]?.slots.find((s) => s.kind === "widget");
+      return w?.kind === "widget" ? w.fg : undefined;
+    };
+    expect(at({ COLORTERM: "truecolor" })).toBe("#2472c8");
+    expect(at({ TERM: "xterm-256color" })).toBe("#2472c8");
+    expect(at({ TERM: "xterm" })).toBe("#2472c8");
+    expect(at({})).toBeUndefined(); // no TERM → "none"
+    expect(at({ COLORTERM: "truecolor", NO_COLOR: "1" })).toBeUndefined();
+  });
 });
 
-describe("buildPreview — label-only fallback (no stdin cache)", () => {
-  it("renders every widget as its type name when no cached stdin is available", () => {
-    setPreviewModeForTesting({ kind: "label" });
+describe("buildPreview — self-hide fallback (no data for the widget)", () => {
+  it("keeps data-less widgets as dim family-glyph + type-name chips", () => {
+    /*
+     * Real context, but nothing this session can populate `model` or
+     * `git-branch` with. They must still appear (hidden:true → dimmed by
+     * the renderer) carrying the family glyph + type name, never vanish.
+     */
+    setPreviewModeForTesting({
+      source: "cache",
+      payload: { raw: {}, truncated: false },
+      session: {},
+      tokens: realTokens,
+      git: { available: false },
+    });
     const rows = buildPreview({
-      base: { ...DEFAULT_CONFIG, glyphs: "off" },
+      base: DEFAULT_CONFIG,
       lines: [{ widgets: [{ type: "model" }, { type: "git-branch" }] }],
     });
     const widgets = rows[0]?.slots.filter((s) => s.kind === "widget") ?? [];
     expect(widgets).toHaveLength(2);
-    if (widgets[0]?.kind === "widget") expect(widgets[0].text).toBe("model");
-    if (widgets[1]?.kind === "widget") expect(widgets[1].text).toBe("git-branch");
+    if (widgets[0]?.kind === "widget") {
+      expect(widgets[0].text).toBe("⌂ model");
+      expect(widgets[0].hidden).toBe(true);
+    }
+    if (widgets[1]?.kind === "widget") {
+      expect(widgets[1].text).toBe("⎇ git-branch");
+      expect(widgets[1].hidden).toBe(true);
+    }
   });
 });
 

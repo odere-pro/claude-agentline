@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { aggregate, aggregateCost, blockEnd, blockStart, dayStart, weekStart } from "./aggregate.js";
+import {
+  aggregate,
+  aggregateCost,
+  blockEnd,
+  blockStart,
+  dayStart,
+  weekStart,
+} from "./aggregate.js";
 
 const FIXED_NOW = new Date("2026-04-28T12:00:00Z").getTime();
 import type { TranscriptEvent } from "./transcript.js";
@@ -16,10 +23,7 @@ const ev = (overrides: Partial<TranscriptEvent>): TranscriptEvent => ({
 
 describe("aggregate", () => {
   it("sums everything for axis=session when sessionStart undefined", () => {
-    const events = [
-      ev({ inputTokens: 10, outputTokens: 20 }),
-      ev({ cachedTokens: 5 }),
-    ];
+    const events = [ev({ inputTokens: 10, outputTokens: 20 }), ev({ cachedTokens: 5 })];
     const totals = aggregate({ events, axis: "session", now: 1000 });
     expect(totals).toEqual({ input: 10, output: 20, cached: 5, total: 35 });
   });
@@ -41,7 +45,10 @@ describe("aggregate", () => {
   it("axis=day filters by local midnight", () => {
     const now = FIXED_NOW;
     const oneDayAgo = now - 25 * 60 * 60 * 1000;
-    const events = [ev({ timestamp: oneDayAgo, inputTokens: 99 }), ev({ timestamp: now, inputTokens: 5 })];
+    const events = [
+      ev({ timestamp: oneDayAgo, inputTokens: 99 }),
+      ev({ timestamp: now, inputTokens: 5 }),
+    ];
     const totals = aggregate({ events, axis: "day", now });
     expect(totals.input).toBe(5);
   });
@@ -114,5 +121,38 @@ describe("axis helpers", () => {
     const d = new Date(start);
     expect(d.getDay()).toBe(1);
     expect(d.getHours()).toBe(0);
+  });
+
+  it("weekStart honours a configured weekday + hour anchor", () => {
+    const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
+    for (const weekday of [0, 3, 4, 6]) {
+      for (const hour of [0, 9, 12, 23]) {
+        const start = weekStart(FIXED_NOW, { weekday, hour });
+        const d = new Date(start);
+        expect(d.getDay()).toBe(weekday);
+        expect(d.getHours()).toBe(hour);
+        expect(d.getMinutes()).toBe(0);
+        // Most recent anchor that has actually passed.
+        expect(start).toBeLessThanOrEqual(FIXED_NOW);
+        expect(start).toBeGreaterThan(FIXED_NOW - ONE_WEEK);
+      }
+    }
+  });
+
+  it("week axis aggregation filters on the configured reset boundary", () => {
+    const now = FIXED_NOW;
+    const reset = { weekday: 4, hour: 9 }; // Thursday 09:00
+    const anchor = weekStart(now, reset);
+    const outside = ev({ timestamp: anchor - 1, inputTokens: 7 });
+    const inside = ev({ timestamp: anchor + 1, inputTokens: 3 });
+    const events = [outside, inside];
+
+    const totals = aggregate({ events, axis: "week", now, weekReset: reset });
+    expect(totals.total).toBe(3);
+
+    // Without weekReset the default Monday anchor applies — a different
+    // boundary, proving the option is actually threaded through.
+    const defaultAnchor = weekStart(now);
+    expect(anchor).not.toBe(defaultAnchor);
   });
 });

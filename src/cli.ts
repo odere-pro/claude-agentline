@@ -5,8 +5,10 @@
  * (`src/doctor`, `src/render`, `src/tui`, …); this file is
  * dispatch-only.
  *
- * Top-level surface: render (default) / edit / install /
- * uninstall / doctor / start / config / help / version.
+ * Top-level surface: render (default) / edit / reset /
+ * uninstall / doctor / config / help / version.
+ * `install` is still dispatched but hidden from help — `reset`
+ * is the user/agent-facing way to (re)apply defaults.
  *
  * The default invocation (no subcommand) runs the render path:
  * read stdin, render the merged statusline, write to stdout.
@@ -20,9 +22,11 @@ import { AGENTLINE_VERSION } from "./version.js";
 import { HelpRequestedError, isHelpFlag, requestHelp } from "./cli/help.js";
 import { parseDoctorArgs, runDoctorCommand } from "./doctor/command.js";
 import { parseInstallArgs, runInstallCommand } from "./install/command.js";
+import { parseResetArgs, runResetCommand } from "./reset/command.js";
 import { parseUninstallArgs, runUninstallCommand } from "./uninstall/command.js";
 import { parseRenderArgs, runRenderCommand } from "./render/fixture-command.js";
-import { parseStartArgs, runStartCommand } from "./start/command.js";
+import { detectColourDepth } from "./render/colour-depth.js";
+import { effectiveDepth, honourNoColorEnv } from "./render/accessibility.js";
 import { runWidgetSubgroup } from "./config/widget-command.js";
 
 type ParsedArgs = {
@@ -97,16 +101,15 @@ function runHelp(): number {
       "The default form is what Claude Code reads. Use the commands below to set it up.",
       "",
       "Commands:",
-      "  install              wire agentline into Claude Code's statusline",
+      "  reset                reset agentline to defaults (reseed config + rewire)",
       "  uninstall            remove agentline + restore prior statusLine",
       "  doctor [--fix]       diagnose + repair host wiring",
       "  edit                 open the TUI editor",
       "  config widget <sub>  inspect or edit the statusline layout (scriptable)",
-      "  start                preview the statusline using the last cached stdin",
       "  version              print version (alias: -v, --version)",
       "  help                 print this message (alias: -h, --help)",
       "",
-      "Pass -h/--help to any command for details. Start with `agentline install`.",
+      "Pass -h/--help to any command for details. Start with `agentline reset`.",
       "",
     ].join("\n"),
   );
@@ -141,6 +144,24 @@ async function runConfig(rest: readonly string[]): Promise<number> {
 }
 
 async function runEditor(): Promise<number> {
+  /*
+   * The editor preview pre-resolves every widget colour to the exact
+   * swatch the render bin would print at the detected colour depth
+   * (see preview-model.ts `toHex`). Pin chalk to truecolor *before* the
+   * TUI bundle — and its transitive chalk, whose level is fixed at
+   * import — loads, so Ink emits that pre-resolved swatch verbatim
+   * instead of re-downsampling it through chalk's own palette (which is
+   * what made the preview look "milder" than the live bar). Skipped when
+   * colour is disabled (NO_COLOR / dumb term) and never overrides an
+   * explicit FORCE_COLOR the user set themselves.
+   */
+  const depth = effectiveDepth(
+    detectColourDepth({ env: process.env }),
+    honourNoColorEnv({ noColor: false, noUnicode: false }, process.env),
+  );
+  if (depth !== "none" && process.env["FORCE_COLOR"] === undefined) {
+    process.env["FORCE_COLOR"] = "3";
+  }
   /*
    * Lazy-import the TUI bundle. tsup builds it as a separate
    * `dist/tui.mjs` so Ink + React never hit cli.mjs's parse path
@@ -181,6 +202,12 @@ async function dispatch(exec: () => Promise<number>, errorPrefix?: string): Prom
  * `render` stays in the table so `agentline render --fixture …` keeps
  * working for ops/debug, but it is intentionally absent from the help
  * screen — the default no-arg path is the canonical surface.
+ *
+ * `install` is likewise kept but hidden: npm/postinstall flows, the
+ * `--from-source` dev path, and existing scripts/docs still invoke it.
+ * `reset` is the user/agent-facing entry point (install steps plus a
+ * forced config reseed); plain re-install would silently preserve a
+ * stale config, which is the confusion this split removes.
  */
 type Subcommand = (rest: readonly string[]) => Promise<number>;
 
@@ -194,10 +221,11 @@ export const COMMANDS: Readonly<Record<string, Subcommand>> = Object.freeze({
   "-h": async () => runHelp(),
   doctor: (rest) => dispatch(() => runDoctorCommand(parseDoctorArgs([...rest]))),
   edit: () => dispatch(runEditor, "agentline edit"),
+  reset: (rest) => dispatch(() => runResetCommand(parseResetArgs(rest)), "agentline reset"),
+  // Hidden from `runHelp()` but still dispatched (see table JSDoc above).
   install: (rest) => dispatch(() => runInstallCommand(parseInstallArgs(rest)), "agentline install"),
   uninstall: (rest) =>
     dispatch(() => runUninstallCommand(parseUninstallArgs(rest)), "agentline uninstall"),
-  start: (rest) => dispatch(() => runStartCommand(parseStartArgs(rest)), "agentline start"),
   config: (rest) => dispatch(() => runConfig(rest), "agentline config"),
 });
 

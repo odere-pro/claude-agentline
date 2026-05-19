@@ -26,7 +26,7 @@ For deeper tasks, invoke the focused sub-skill:
 ## Diagnose
 
 ```bash
-agentline doctor          # full health report (D01–D10)
+agentline doctor          # full health report (D01–D09)
 agentline doctor --fix    # auto-repair D01–D04
 ```
 
@@ -50,11 +50,10 @@ Full reference → [config.md](../docs/config.md)
 
 ## Reset
 
-Delete the user config and re-run `agentline install`:
+Run `agentline reset` — it overwrites the user config with the default template, re-seeds themes/skills, and ensures `statusLine` is wired:
 
 ```bash
-rm "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json"
-agentline install
+agentline reset
 ```
 
 ---
@@ -87,7 +86,7 @@ Full reference → [install.md](../docs/install.md)
 | Statusline not showing       | `agentline doctor --fix` then restart Claude Code                                        |
 | Blank/garbled output         | Reset config (see above), run `agentline doctor`                                         |
 | Config ignored               | Check path is `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` (no project layer) |
-| Stale pricing (D07)          | `npm install -g @agentline/cli@latest`                                                   |
-| Powerline `>` instead of `❯` | D05: install a Nerd Font                                                                 |
+| Stale pricing (D06)          | `npm install -g @agentline/cli@latest`                                                   |
+| Powerline `>` instead of `❯` | Install a Nerd Font, or set `AGENTLINE_GLYPHS=nerd`                                      |
 
 More → [troubleshooting.md](../docs/troubleshooting.md) · Full CLI reference → [cli.md](../docs/cli.md)

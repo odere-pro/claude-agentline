@@ -8,9 +8,4 @@
  */
 
 export { fetchLatestVersion, type FetchLatestVersionOptions } from "./fetch.js";
-export {
-  maybeRefresh,
-  isNewer,
-  type MaybeRefreshOptions,
-  type RefreshOutcome,
-} from "./refresh.js";
+export { maybeRefresh, isNewer, type MaybeRefreshOptions, type RefreshOutcome } from "./refresh.js";

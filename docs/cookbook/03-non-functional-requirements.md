@@ -82,10 +82,6 @@ The implementer picks. The choice MUST satisfy:
 
 ≤ 4 ms p95 for a 32 KB stdin payload. Payloads above 256 KB are truncated and a `truncated` marker is emitted on stderr.
 
-### O2 — External command timeout
-
-The custom `command` widget defaults to a 250 ms timeout, per-widget overridable up to 2 000 ms. Timeout renders the widget's `onError` placeholder. The shell is never spawned with user input concatenated into the command line — the widget command is a fixed string from config and is invoked argv-style.
-
 ### O3 — Transcript cache
 
 Keyed by `(transcript_path, mtime, size)`. Entries evicted after 5 hours or 32 MB total, whichever first. Per-file reads capped at 16 MB; oversize files render dependent widgets as hidden. `transcript_path` MUST resolve under an allowlisted root (the host's config directory or an env-overridable test root); reads outside that root are refused so a malformed stdin payload cannot become an arbitrary-file-read primitive.

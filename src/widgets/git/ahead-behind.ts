@@ -62,6 +62,6 @@ export const gitConflictsWidget = defineWidget<ConflictsOptions>(
     const glyph = settings.options.glyph ?? DEFAULT_CONFLICT;
     const label = settings.rawValue ? "" : (settings.options.label ?? "");
     const fg = resolveRole(ctx.theme, "danger");
-    return { text: `${label}${glyph}${s.status.conflicts}`, fg };
+    return { text: `${label}${glyph}${s.status.conflicts}`, fg, signal: true };
   },
 );

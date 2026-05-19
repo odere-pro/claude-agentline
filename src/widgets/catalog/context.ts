@@ -1,6 +1,7 @@
 /**
  * Context-window metrics — `context-length`, `context-percentage`,
- * `context-percentage-usable`, `context-bar`.
+ * `context-bar`. Each renders the current model's context-window size
+ * as a postfix (e.g. `200k`, `1M`).
  */
 
 import { entry, type WidgetMeta } from "./types.js";
@@ -9,12 +10,7 @@ export const CONTEXT_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.free
   "context-length": entry("Context length", "Tokens currently in the context window", "context"),
   "context-percentage": entry(
     "Context %",
-    "Percentage of the model's context window in use",
-    "context",
-  ),
-  "context-percentage-usable": entry(
-    "Context % (usable)",
-    "Percentage of usable context in use (excludes output budget)",
+    "Percentage of the model's context window used",
     "context",
   ),
   "context-bar": entry("Context bar", "Tiny inline bar approximating context fill", "context"),

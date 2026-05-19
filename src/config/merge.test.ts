@@ -14,7 +14,7 @@ describe("deepMerge", () => {
 
   it("replaces arrays wholesale", () => {
     const base = { lines: [{ widgets: [{ type: "model" }] }] };
-    const ov = { lines: [{ widgets: [{ type: "clock" }, { type: "git-branch" }] }] };
+    const ov = { lines: [{ widgets: [{ type: "version" }, { type: "git-branch" }] }] };
     expect(deepMerge(base, ov)).toEqual(ov);
   });
 
@@ -27,12 +27,7 @@ describe("deepMerge", () => {
   });
 
   it("mergeAll applies layers left to right", () => {
-    const merged = mergeAll(
-      { a: 1, b: 2, c: 3 },
-      { b: 20 },
-      { c: 30 },
-      { a: 100 },
-    );
+    const merged = mergeAll({ a: 1, b: 2, c: 3 }, { b: 20 }, { c: 30 }, { a: 100 });
     expect(merged).toEqual({ a: 100, b: 20, c: 30 });
   });
 
@@ -43,7 +38,9 @@ describe("deepMerge", () => {
   });
 
   it("drops constructor and prototype keys during merge", () => {
-    const malicious = JSON.parse('{"constructor":{"prototype":{"polluted":"yes"}},"prototype":{"polluted":"yes"}}');
+    const malicious = JSON.parse(
+      '{"constructor":{"prototype":{"polluted":"yes"}},"prototype":{"polluted":"yes"}}',
+    );
     const out = deepMerge<Record<string, unknown>>({}, malicious);
     expect(out.constructor).toBe(Object);
     expect(out.prototype).toBeUndefined();

@@ -10,10 +10,17 @@
  * — it doesn't try to replicate `renderFromInputs`'s flex/Powerline byte
  * output. It does honour:
  *
- *   - per-family accent colours (`FAMILY_COLOR`) so every widget chip
- *     visually matches the group it belongs to in the picker; the user's
- *     explicit `widget.fg` override still wins. The real statusline path
- *     (`pipeline.ts`) is unaffected and keeps using the theme palette;
+ *   - the **configured theme's** colours, resolved through the exact same
+ *     widget render path the real statusline uses (`previewWidget` with the
+ *     resolved `Theme`) and then through the bin's own colour model
+ *     (`resolveColourRgb`) at the colour depth the bin would detect for
+ *     this terminal. A chip's colour therefore matches what the bin
+ *     prints at the palette level — including the downsampled swatch at
+ *     256/16-colour — instead of Ink/chalk re-resolving a name through
+ *     the terminal's palette. The user's explicit `widget.fg` override
+ *     still wins. (The picker keeps its own decorative
+ *     `FAMILY_COLOR` group accents — that is a list-grouping device, not a
+ *     preview of rendered output.);
  *   - the same separator + padding the plain-mode composer uses
  *     (`config.global.separator`, `global.padding`, per-cell `merged`);
  *   - hidden widgets, which still appear as a dim navigable chip so a user
@@ -22,9 +29,44 @@
  */
 
 import type { AgentlineConfig, LineConfig, WidgetConfig } from "../config/types.js";
+import { honourNoColorEnv, effectiveDepth } from "../render/accessibility.js";
+import { detectColourDepth, type ColourDepth } from "../render/colour-depth.js";
+import { resolveColourRgb } from "../render/ansi.js";
+import type { Theme } from "../theme/index.js";
+import type { Colour } from "../theme/colours.js";
 import { previewWidget } from "./preview-fixture.js";
-import { FAMILY_COLOR, widgetMeta } from "../widgets/catalog.js";
 import type { Cell } from "../widgets/cell.js";
+
+/**
+ * Resolve a widget {@link Colour} to the exact `#rrggbb` the render bin
+ * would put on screen at `depth`, via the bin's own colour model
+ * ({@link resolveColourRgb}). Returns `undefined` when the colour is
+ * absent or colour is disabled (`depth === "none"`), so the slot omits it.
+ *
+ * This is why the preview matches the live statusline: Ink/chalk would
+ * otherwise re-resolve a name like `"magenta"` through the terminal's
+ * palette (washed out) and cannot render the `colour:NNN` form at all.
+ */
+function toHex(c: Colour | undefined, depth: ColourDepth): string | undefined {
+  if (c === undefined) return undefined;
+  const rgb = resolveColourRgb(c, depth);
+  if (rgb === null) return undefined;
+  const h = (n: number): string => n.toString(16).padStart(2, "0");
+  return `#${h(rgb.r)}${h(rgb.g)}${h(rgb.b)}`;
+}
+
+/**
+ * The colour depth the live bin would detect for this environment, with
+ * the `NO_COLOR` convention applied — the same inputs `renderFromInputs`
+ * uses (`src/render/pipeline.ts`). Pre-resolving slot colours to this
+ * depth is what makes the preview a faithful "what prints" view.
+ */
+function resolveDepth(env: NodeJS.ProcessEnv): ColourDepth {
+  return effectiveDepth(
+    detectColourDepth({ env }),
+    honourNoColorEnv({ noColor: false, noUnicode: false }, env),
+  );
+}
 
 /** A single drawable in a preview row. */
 export type PreviewSlot =
@@ -62,6 +104,19 @@ export interface PreviewModelProps {
   readonly base: AgentlineConfig;
   /** The editor's current (mutable) line list. */
   readonly lines: readonly LineConfig[];
+  /**
+   * Resolved theme — the configured `config.theme` loaded to a `Theme`.
+   * Threaded into `previewWidget` so every chip's colour comes from the
+   * same palette the real statusline renders with. `null`/omitted falls
+   * back to the compiled default palette (matching a render with no theme).
+   */
+  readonly theme?: Theme | null;
+  /**
+   * Resolved process env. Forwarded to `previewWidget` so family-glyph
+   * degradation resolves through the same inputs the live render uses.
+   * Omitted falls back to `{}` (deterministic for tests).
+   */
+  readonly env?: NodeJS.ProcessEnv;
 }
 
 /**
@@ -69,10 +124,21 @@ export interface PreviewModelProps {
  * row 1:1 to a horizontal Ink box.
  */
 export function buildPreview(props: PreviewModelProps): readonly PreviewRow[] {
-  return props.lines.map((line, idx) => buildRow(idx, line, props.base));
+  const env = props.env ?? {};
+  const depth = resolveDepth(env);
+  return props.lines.map((line, idx) =>
+    buildRow(idx, line, props.base, props.theme ?? null, env, depth),
+  );
 }
 
-function buildRow(line: number, row: LineConfig, base: AgentlineConfig): PreviewRow {
+function buildRow(
+  line: number,
+  row: LineConfig,
+  base: AgentlineConfig,
+  theme: Theme | null,
+  env: NodeJS.ProcessEnv,
+  depth: ColourDepth,
+): PreviewRow {
   const slots: PreviewSlot[] = [];
   for (let i = 0; i < row.widgets.length; i += 1) {
     const widget = row.widgets[i];
@@ -81,7 +147,7 @@ function buildRow(line: number, row: LineConfig, base: AgentlineConfig): Preview
       const join = computeJoin(widget, base);
       if (join.length > 0) slots.push({ kind: "join", text: join });
     }
-    slots.push(renderSlot(widget, i, base.glyphs));
+    slots.push(renderSlot(widget, i, base, theme, env, depth));
   }
   slots.push({ kind: "add", column: row.widgets.length });
   return { line, slots, widgetCount: row.widgets.length };
@@ -95,17 +161,20 @@ function buildRow(line: number, row: LineConfig, base: AgentlineConfig): Preview
  * those cases as their own demo string, which is not a real demonstration
  * of what the widget renders.
  *
- * The slot's foreground colour is the widget's family accent
- * (`FAMILY_COLOR`) by default, so every chip in the preview matches
- * the group it belongs to in the picker. User overrides on the widget
- * itself (`widget.fg`) still win; widgets whose `type` is unknown to
- * the catalogue (custom registrations) fall back to the cell's own
- * theme-resolved colour.
+ * The slot's foreground colour is the widget's own theme-resolved colour
+ * — `previewWidget` is given the configured `Theme`, the user's `config`
+ * (family identity / per-widget overrides) and `env`, so the chip shows
+ * the exact colour and glyph the real statusline prints (e.g. `model`
+ * resolves the theme's `accent` role). User overrides on the widget
+ * itself (`widget.fg`) still win.
  */
 function renderSlot(
   widget: WidgetConfig,
   idx: number,
-  glyphs: AgentlineConfig["glyphs"],
+  base: AgentlineConfig,
+  theme: Theme | null,
+  env: NodeJS.ProcessEnv,
+  depth: ColourDepth,
 ): PreviewSlot {
   if (widget.hidden === true) {
     return {
@@ -115,29 +184,31 @@ function renderSlot(
       hidden: true,
     };
   }
-  const cell: Cell = previewWidget(widget.type, widget.options, { glyphs });
+  const cell: Cell = previewWidget(widget.type, widget.options, { theme, config: base, env });
   /*
-   * `previewWidget` returns HIDDEN_CELL (`text: "", hidden: true`) when the
-   * widget self-hides (data absent). Fall back to the widget's type name
-   * so the user still sees *what* widget is there, dimmed.
+   * `previewWidget` returns a label cell with `hidden: true` when the widget
+   * self-hides (data absent). Carry the cell's text (family glyph + type name)
+   * and fg (family accent) through so the dim stub is visually identifiable.
+   * Fall back to the bare type name only when the cell text is also empty.
    */
   if (cell.hidden || cell.text === "") {
+    const fg = toHex(cell.fg, depth);
     return {
       kind: "widget",
       widgetIndex: idx,
-      text: widget.type,
+      text: cell.text.length > 0 ? cell.text : widget.type,
+      ...(fg ? { fg } : {}),
       hidden: true,
     };
   }
-  const meta = widgetMeta(widget.type);
-  const accent = meta ? FAMILY_COLOR[meta.family] : undefined;
-  const resolvedFg = widget.fg ?? accent ?? cell.fg;
+  const fg = toHex(widget.fg ?? cell.fg, depth);
+  const bg = toHex(widget.bg ?? cell.bg, depth);
   return {
     kind: "widget",
     widgetIndex: idx,
     text: cell.text,
-    ...(resolvedFg ? { fg: resolvedFg } : {}),
-    ...(widget.bg ? { bg: widget.bg } : cell.bg ? { bg: cell.bg } : {}),
+    ...(fg ? { fg } : {}),
+    ...(bg ? { bg } : {}),
     ...((widget.bold ?? cell.bold) ? { bold: true } : {}),
     ...((widget.italic ?? cell.italic) ? { italic: true } : {}),
     hidden: false,

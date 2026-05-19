@@ -1,16 +1,28 @@
 /**
- * Editor-chrome glyphs: small visual flourishes used only inside the
- * `agentline config` TUI (the selection brackets, the active-row marker,
- * the "+ add widget" cell, the gutter, family icons in the picker).
- *
- * Statusline-widget glyphs (Nerd Font icons on the rendered statusline)
- * are a separate concern — see the opt-in `config.glyphs` layer.
+ * Editor-chrome glyphs: the selection brackets, active-row marker,
+ * "+ add widget" cell and gutter — decorative editor UI that never
+ * reaches the rendered statusline. The per-family icons are *not* local
+ * data: they are projected from the single family-identity source of
+ * truth (`src/widgets/family-identity.ts`) so the picker shows exactly
+ * the glyph the widget carries everywhere else.
  *
  * Pure data + a selector. Lives under `src/tui/` so it never enters
  * `dist/cli.mjs` (§1.2 N3).
  */
 
+import { unicodeCapable } from "../lib/unicode-env.js";
+import { DEFAULT_FAMILY_IDENTITY } from "../widgets/family-identity.js";
 import type { WidgetFamily } from "../widgets/catalog.js";
+
+const familyGlyphs = (key: "glyph" | "glyphAscii"): Readonly<Record<WidgetFamily, string>> =>
+  Object.freeze(
+    Object.fromEntries(
+      (Object.keys(DEFAULT_FAMILY_IDENTITY) as WidgetFamily[]).map((family) => [
+        family,
+        DEFAULT_FAMILY_IDENTITY[family][key],
+      ]),
+    ) as Record<WidgetFamily, string>,
+  );
 
 export interface EditorGlyphs {
   /** Wraps the selected widget in the preview. */
@@ -22,7 +34,7 @@ export interface EditorGlyphs {
   readonly gutter: string;
   /** Body of the "+ add widget" cell. */
   readonly addCell: string;
-  /** Family icons shown in the group picker (Phase 3 wires this in). */
+  /** Family icons shown in the group picker (from family-identity). */
   readonly family: Readonly<Record<WidgetFamily, string>>;
 }
 
@@ -32,15 +44,7 @@ const UNICODE: EditorGlyphs = Object.freeze({
   activeRow: "▸",
   gutter: "│",
   addCell: "＋ add widget",
-  family: Object.freeze({
-    session: "⌂",
-    tokens: "◇",
-    context: "▤",
-    "rate-limits": "◔",
-    git: "⎇",
-    time: "◷",
-    custom: "⚙",
-  }) as Readonly<Record<WidgetFamily, string>>,
+  family: familyGlyphs("glyph"),
 });
 
 const ASCII: EditorGlyphs = Object.freeze({
@@ -49,15 +53,7 @@ const ASCII: EditorGlyphs = Object.freeze({
   activeRow: ">",
   gutter: "|",
   addCell: "+ add widget",
-  family: Object.freeze({
-    session: "[s]",
-    tokens: "[t]",
-    context: "[c]",
-    "rate-limits": "[r]",
-    git: "[g]",
-    time: "[T]",
-    custom: "[x]",
-  }) as Readonly<Record<WidgetFamily, string>>,
+  family: familyGlyphs("glyphAscii"),
 });
 
 export interface GlyphPickOptions {
@@ -68,21 +64,11 @@ export interface GlyphPickOptions {
 }
 
 /**
- * Pick the glyph set. Defaults to Unicode; degrades to ASCII when
- * `NO_UNICODE` is set or the locale doesn't look Unicode-capable. The
- * editor honours the same hints the render path does so a host that
- * can't render Unicode boxes / glyphs cleanly stays legible.
+ * Pick the glyph set. Defaults to Unicode; degrades to ASCII when the
+ * host doesn't look Unicode-capable. The editor honours the same
+ * `unicodeCapable` heuristic the render path does so a host that can't
+ * render Unicode boxes / glyphs cleanly stays legible on both surfaces.
  */
 export function pickGlyphs(opts: GlyphPickOptions = {}): EditorGlyphs {
-  if (opts.unicode === true) return UNICODE;
-  if (opts.unicode === false) return ASCII;
-  const env = opts.env ?? process.env;
-  if (env.NO_UNICODE === "1" || env.AGENTLINE_GLYPHS === "ascii") return ASCII;
-  /*
-   * Heuristic: most macOS/Linux terminals support Unicode by default; only
-   * back off when LANG/LC_ALL clearly aren't UTF.
-   */
-  const locale = env.LC_ALL ?? env.LC_CTYPE ?? env.LANG ?? "";
-  if (locale && !/utf-?8/i.test(locale)) return ASCII;
-  return UNICODE;
+  return unicodeCapable(opts) ? UNICODE : ASCII;
 }

@@ -47,7 +47,7 @@ describe("runWidgetMoveCommand", () => {
       userCfg,
       JSON.stringify({
         version: 1,
-        lines: [{ widgets: [{ type: "model" }, { type: "git-branch" }, { type: "clock" }] }],
+        lines: [{ widgets: [{ type: "model" }, { type: "git-branch" }, { type: "version" }] }],
       }),
     );
   });
@@ -66,7 +66,7 @@ describe("runWidgetMoveCommand", () => {
     expect(code).toBe(0);
     expect(String(stdout.mock.calls[0]?.[0] ?? "")).toMatch(/moved the widget/);
     const onDisk = JSON.parse(await fs.readFile(userCfg, "utf8")) as AgentlineConfig;
-    expect(onDisk.lines[0]?.widgets.map((w) => w.type)).toEqual(["clock", "model", "git-branch"]);
+    expect(onDisk.lines[0]?.widgets.map((w) => w.type)).toEqual(["version", "model", "git-branch"]);
   });
 
   it("moves a widget to a padded line", async () => {

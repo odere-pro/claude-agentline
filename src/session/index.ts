@@ -10,9 +10,20 @@
 
 import { isPlainObject, pickString, pickStringArray } from "../lib/object.js";
 import type { StdinPayload } from "../stdin/index.js";
-import { readAuthFile, type AuthLookupSource, type AuthSnapshot } from "./auth-file.js";
+import {
+  readAuthFile,
+  readClaudeAccountFile,
+  type AuthLookupSource,
+  type AuthSnapshot,
+} from "./auth-file.js";
 
-export { type AuthSnapshot, readAuthFile, resolveAuthFilePath } from "./auth-file.js";
+export {
+  type AuthSnapshot,
+  readAuthFile,
+  readClaudeAccountFile,
+  resolveAuthFilePath,
+  resolveClaudeAccountFilePath,
+} from "./auth-file.js";
 
 export interface ResolvedSessionFields {
   readonly model?: string;
@@ -33,7 +44,9 @@ function readUserBlock(payload: StdinPayload): Record<string, unknown> | undefin
   return isPlainObject(value) ? value : undefined;
 }
 
-function readOrgBlock(user: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+function readOrgBlock(
+  user: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
   if (!user) return undefined;
   const value = user["org"];
   return isPlainObject(value) ? value : undefined;
@@ -75,5 +88,28 @@ export function loadSessionFields(
   const fromStdin = resolveSessionFields(payload, null);
   const needsAuth = !fromStdin.accountEmail || !fromStdin.loginMethod || !fromStdin.orgSlug;
   if (!needsAuth) return fromStdin;
-  return resolveSessionFields(payload, readAuthFile(source));
+  /*
+   * Layer the identity fallbacks: legacy `auth.json` wins per-field
+   * (back-compat) and the host's `~/.claude.json` `oauthAccount`
+   * fills the rest — the latter is the only source on current
+   * installs, where `auth.json` no longer exists.
+   */
+  const auth = mergeAuth(readAuthFile(source), readClaudeAccountFile(source));
+  return resolveSessionFields(payload, auth);
+}
+
+function mergeAuth(
+  primary: AuthSnapshot | null,
+  secondary: AuthSnapshot | null,
+): AuthSnapshot | null {
+  if (!primary) return secondary;
+  if (!secondary) return primary;
+  const email = primary.email ?? secondary.email;
+  const authMethod = primary.authMethod ?? secondary.authMethod;
+  const orgSlug = primary.orgSlug ?? secondary.orgSlug;
+  return {
+    ...(email !== undefined ? { email } : {}),
+    ...(authMethod !== undefined ? { authMethod } : {}),
+    ...(orgSlug !== undefined ? { orgSlug } : {}),
+  };
 }

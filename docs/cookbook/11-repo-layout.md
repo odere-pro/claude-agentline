@@ -73,10 +73,9 @@
 │   ├── keys/                         Keymap registry
 │   ├── install/                      install verb
 │   ├── uninstall/                    uninstall verb
-│   ├── start/                        Preview from cached stdin
 │   ├── update-check/                 Out-of-render version-check verb
 │   ├── state/                        Stdin cache, render cache, config backup
-│   └── lib/                          Pure utilities (env, fs, atomic-write, nerd-font detect, object helpers, result types)
+│   └── lib/                          Pure utilities (env, fs, atomic-write, object helpers, result types)
 ├── dist/                             Built artefacts (gitignored)
 ├── CHANGELOG                         Promoted at release time from changelog/
 ├── CLAUDE                            Optional: agent-entry-point briefing for repos using the host
@@ -116,12 +115,11 @@
 | `src/widgets/`       | One file per widget family; registry; cell helpers; widget types.                     |
 | `src/render/`        | Composer; width; truncation; ANSI encoder; fixture runner.                            |
 | `src/powerline/`     | Chevron transform; glyph fallback; adjoining colour math.                             |
-| `src/doctor/`        | D01–D10 checks; documented repairs.                                                   |
+| `src/doctor/`        | D01–D08 checks; documented repairs.                                                   |
 | `src/tui/`           | Editor app; lazy-imported only on `edit` verb.                                        |
 | `src/keys/`          | Keymap registry; gate scans this for coverage.                                        |
 | `src/install/`       | Wires `statusLine`; seeds config; copies themes; writes backup.                       |
 | `src/uninstall/`     | Restores backup; removes seeded files; verifies checksum.                             |
-| `src/start/`         | Preview from `state/stdin-cache`.                                                     |
 | `src/update-check/`  | Out-of-render version check.                                                          |
 | `src/state/`         | On-disk caches and backup metadata.                                                   |
 | `src/lib/`           | Pure utilities; no business logic.                                                    |

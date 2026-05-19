@@ -2,31 +2,30 @@
  * The TUI editor's input-handling hook.
  *
  * Owns per-step transient state (`stepQuery`, `stepHighlight`) and forwards
- * `useInput` to one of four pure handlers in `editor-input-handlers.ts`.
+ * `useInput` to one of five pure handlers in `editor-input-handlers.ts`.
  * Returns the transient state so the editor's JSX can render the picker
  * overlays with the same `query`/`highlight` values the handlers are
  * operating on.
  *
  * Decoupled from the JSX tree so `App` becomes a thin composition shell
- * of state init, `onSave`, the hook call, and the render tree. The four
- * handler bodies used to live inline as `useCallback` closures over half
- * the editor state; PR #126 lifted them out per smell-report H-code-1.
+ * of state init, `onSave`, the hook call, and the render tree.
  */
 
 import { useApp, useInput } from "ink";
-import { useEffect, useState, type Dispatch } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
 import type { WidgetMetaEntry } from "../widgets/index.js";
 
 import {
   handleEditKey,
   handlePickerGroupKey,
+  handlePickerSearchKey,
   handlePickerVariantKey,
   handlePickerWidgetKey,
   type EditHandlerDeps,
 } from "./editor-input-handlers.js";
 import type { SaveTracker } from "./mount.js";
-import type { EditorAction, EditorState } from "./state.js";
+import type { EditorAction, EditorMode, EditorState } from "./state.js";
 
 export interface UseEditorInputOptions {
   readonly state: EditorState;
@@ -36,9 +35,7 @@ export interface UseEditorInputOptions {
   readonly onSave: () => Promise<void>;
   /** Notify the host (`runConfigCommand`) that the session exited with `saved=false`. */
   readonly onSaved: (saved: boolean) => void;
-  /** `false` when the install probe didn't find a Nerd Font; locks the `g` toggle to "off". */
-  readonly nerdFontAvailable: boolean;
-  /** Surface a transient banner above the footer (save errors, glyph-toggle confirmations). */
+  /** Surface a transient banner above the footer (e.g. save errors). */
   readonly setStatusMessage: (message: string) => void;
   readonly widgetEntries: readonly WidgetMetaEntry[];
   readonly usedTypes: ReadonlySet<string>;
@@ -58,7 +55,6 @@ export function useEditorInput(opts: UseEditorInputOptions): UseEditorInputResul
     saveTracker,
     onSave,
     onSaved,
-    nerdFontAvailable,
     setStatusMessage,
     widgetEntries,
     usedTypes,
@@ -66,11 +62,28 @@ export function useEditorInput(opts: UseEditorInputOptions): UseEditorInputResul
   const { exit } = useApp();
 
   /*
-   * Per-step transient UI state — reset on every mode change so each
-   * step starts with a clean filter and the highlight at row 0.
+   * Per-step transient UI state. The `stepQuery` is shared across the
+   * picker steps (search field on top); the highlight is stored *per
+   * mode* so backing out of a sub-step (Esc from `picker-widget` →
+   * `picker-group`) restores the previously focused row instead of
+   * snapping back to index 0.
    */
   const [stepQuery, setStepQuery] = useState("");
-  const [stepHighlight, setStepHighlight] = useState(0);
+  const [highlights, setHighlights] = useState<Record<EditorMode, number>>({
+    edit: 0,
+    "picker-group": 0,
+    "picker-widget": 0,
+    "picker-search": 0,
+    "picker-variant": 0,
+  });
+  const stepHighlight = highlights[state.mode] ?? 0;
+  const setStepHighlight: Dispatch<SetStateAction<number>> = (next) => {
+    setHighlights((h) => {
+      const prev = h[state.mode] ?? 0;
+      const value = typeof next === "function" ? (next as (p: number) => number)(prev) : next;
+      return { ...h, [state.mode]: value };
+    });
+  };
 
   /*
    * `pickerDraft` exists only on the picker branch of the discriminated
@@ -80,12 +93,67 @@ export function useEditorInput(opts: UseEditorInputOptions): UseEditorInputResul
   const pickerFamily = state.mode === "edit" ? undefined : state.pickerDraft.family;
   const pickerWidgetType = state.mode === "edit" ? undefined : state.pickerDraft.widgetType;
 
+  /*
+   * Reset on *forward* transitions only. Going `picker-group` →
+   * `picker-widget` (a new sub-list under a different family) or
+   * `picker-widget` → `picker-variant` re-starts the highlight at the
+   * top of the new list. Backing out (`picker-widget` → `picker-group`)
+   * keeps each step's stored highlight so the user returns to where
+   * they were. Closing the picker (`* → edit`) clears everything so the
+   * next reopen starts cleanly.
+   */
+  const prevMode = useRef<EditorMode>(state.mode);
+  useEffect(() => {
+    const was = prevMode.current;
+    const is = state.mode;
+    if (was === is) return;
+    const forward =
+      (was === "picker-group" &&
+        (is === "picker-widget" || is === "picker-search" || is === "picker-variant")) ||
+      (was === "picker-widget" && is === "picker-variant") ||
+      (was === "picker-search" && is === "picker-variant") ||
+      (was === "edit" && is !== "edit");
+    if (is === "edit") {
+      setStepQuery("");
+      setHighlights({
+        edit: 0,
+        "picker-group": 0,
+        "picker-widget": 0,
+        "picker-search": 0,
+        "picker-variant": 0,
+      });
+    } else if (forward) {
+      setStepQuery("");
+      setHighlights((h) => ({ ...h, [is]: 0 }));
+    }
+    prevMode.current = is;
+  }, [state.mode]);
+
+  /*
+   * When the active family or widget type changes underneath the user
+   * (they pick a different family from the flat-search list, or replace
+   * the widget mid-flow), the list contents change too — start at the
+   * top of the new list.
+   */
   useEffect(() => {
     setStepQuery("");
-    setStepHighlight(0);
-  }, [state.mode, pickerFamily, pickerWidgetType]);
+    setHighlights((h) => ({ ...h, "picker-widget": 0 }));
+  }, [pickerFamily]);
+  useEffect(() => {
+    setStepQuery("");
+    setHighlights((h) => ({ ...h, "picker-variant": 0 }));
+  }, [pickerWidgetType]);
 
   useInput((input, key) => {
+    /*
+     * Clear the transient status banner on every keystroke — the "saved
+     * → …" / "save failed: …" / "glyphs: …" lines are short-lived
+     * notifications, and leaving them on screen while the user navigates
+     * or reopens the picker looks like stale config grift. Handlers that
+     * set a fresh banner during this same callback (glyph toggle, save
+     * failure) overwrite the empty string before the next render.
+     */
+    setStatusMessage("");
     const deps: EditHandlerDeps = {
       state,
       dispatch,
@@ -99,7 +167,6 @@ export function useEditorInput(opts: UseEditorInputOptions): UseEditorInputResul
       onSave,
       onSaved,
       saveTracker,
-      nerdFontAvailable,
       setStatusMessage,
     };
     switch (state.mode) {
@@ -108,6 +175,9 @@ export function useEditorInput(opts: UseEditorInputOptions): UseEditorInputResul
         return;
       case "picker-widget":
         handlePickerWidgetKey(input, key, deps);
+        return;
+      case "picker-search":
+        handlePickerSearchKey(input, key, deps);
         return;
       case "picker-variant":
         handlePickerVariantKey(input, key, deps);

@@ -21,7 +21,6 @@
  * PR for the branch, `gh` not installed.
  */
 
-import { resolveRole } from "../../theme/index.js";
 import type { Cell } from "../cell.js";
 import { defineWidget } from "../widget.js";
 
@@ -71,10 +70,8 @@ export const gitPrWidget = defineWidget<Options>("git-pr", (ctx, settings): Cell
   const body = renderVariant(variant, snap.pr);
   if (!body) return { text: "", hidden: true };
   const label = settings.rawValue ? "" : (settings.options.label ?? "");
-  /*
-   * Same colour family as `git-branch` on a clean tree — PR identity
-   * tracks the branch identity rather than the dirty-status palette.
-   */
-  const fg = resolveRole(ctx.theme, "git-clean");
-  return { text: `${label}${body}`, fg };
+  // The PR url is the natural click target for every variant — clicking
+  // the rendered `#42` / title opens the pull request in the browser.
+  const href = snap.pr.url;
+  return { text: `${label}${body}`, ...(href ? { href } : {}) };
 });

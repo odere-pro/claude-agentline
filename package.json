@@ -24,8 +24,10 @@
     "powerline"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=20",
+    "pnpm": ">=9.15"
   },
+  "packageManager": "pnpm@10.33.4",
   "type": "module",
   "bin": {
     "agentline": "dist/cli.mjs"
@@ -65,7 +67,12 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,json,md}\"",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "pnpm run build"
+  },
+  "pnpm": {
+    "overrides": {
+      "ws@>=8.0.0 <8.20.1": ">=8.20.1"
+    }
   },
   "publishConfig": {
     "access": "public",

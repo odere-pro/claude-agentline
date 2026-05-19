@@ -33,9 +33,10 @@ describe("parseAccessibilityArgs", () => {
 
 describe("honourNoColorEnv", () => {
   it("forces noColor when NO_COLOR is non-empty", () => {
-    expect(
-      honourNoColorEnv({ noColor: false, noUnicode: false }, { NO_COLOR: "1" }),
-    ).toEqual({ noColor: true, noUnicode: false });
+    expect(honourNoColorEnv({ noColor: false, noUnicode: false }, { NO_COLOR: "1" })).toEqual({
+      noColor: true,
+      noUnicode: false,
+    });
   });
 
   it("ignores empty NO_COLOR per the spec at no-color.org", () => {

@@ -127,9 +127,9 @@ Each pattern entry has: **name**, **intent**, **where it appears**, **why this o
 
 ## Lazy import (cold path isolation)
 
-**Intent.** Heavy modules — TUI framework, font installer, schema validator JIT, watcher — are imported only inside the function of the verb that needs them. The render-path import graph stays tiny.
+**Intent.** Heavy modules — TUI framework, schema validator JIT, watcher — are imported only inside the function of the verb that needs them. The render-path import graph stays tiny.
 
-**Where.** Editor verb, font-install autofix in doctor, watcher mode.
+**Where.** Editor verb, watcher mode.
 
 **Why.** On any runtime where import resolution costs are non-trivial (interpreted languages, JIT runtimes), a top-level `import ink` adds 30–80 ms to cold start. The lazy-import discipline keeps that cost on the cold-path verbs where it doesn't matter.
 

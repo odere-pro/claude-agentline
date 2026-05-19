@@ -11,9 +11,8 @@
  *   - `SaveTracker` is the shared mutable container the editor's
  *     `onSave` and the SIGTERM handler both read.
  *   - `mountEditor` is the entry the host (`runConfigCommand`) drives.
- *   - `resolveStartingConfig` + `resolveNerdFontAvailable` +
- *     `pruneStaleWidgets` are the small input-resolution helpers that
- *     decide what config to hand `App`.
+ *   - `resolveStartingConfig` + `pruneStaleWidgets` are the small
+ *     input-resolution helpers that decide what config to hand `App`.
  */
 
 import { render } from "ink";
@@ -24,7 +23,6 @@ import { loadConfig } from "../config/load.js";
 import { resolveConfigPaths } from "../config/paths.js";
 import type { AgentlineConfig } from "../config/types.js";
 import { resolveEnv } from "../lib/env.js";
-import { readNerdFontStatus, stateDir as nerdFontStateDir } from "../lib/nerd-font.js";
 import type { Theme } from "../theme/index.js";
 import { widgetMeta } from "../widgets/catalog.js";
 
@@ -69,7 +67,7 @@ export function createSaveTracker(): SaveTracker {
 const FULLSCREEN_RESET = "\x1b[2J\x1b[3J\x1b[H";
 
 /**
- * Wrap a TTY stream so every `.write()` call is preceded by a
+ * Wrap a TTY stream so every Ink *frame* write is preceded by a
  * cursor-home + clear-screen sequence. Ink's default log-update pipeline
  * tracks the cursor between frames and issues cursor-up / erase-line
  * sequences to redraw in place. That breaks down whenever the previous
@@ -78,6 +76,19 @@ const FULLSCREEN_RESET = "\x1b[2J\x1b[3J\x1b[H";
  * frame). Forcing each frame to start at (1,1) on a cleared buffer
  * eliminates the stacked-frame artefact users see when the editor
  * preview wraps onto extra rows.
+ *
+ * The prefix is gated on a trailing newline. log-update emits every
+ * frame as `eraseLines(N) + output + '\n'`, so frame writes always end
+ * in `\n`. Ink also issues short ANSI control writes through the same
+ * stream — `cliCursor.hide()` writes `\x1b[?25l` from `App`'s
+ * `componentDidMount`, `log.clear()` writes `eraseLines(N)`, and
+ * `cliCursor.show()` writes `\x1b[?25h` on unmount. Those control
+ * writes carry no newline, and prepending `FULLSCREEN_RESET` to them
+ * wipes the just-rendered frame: React's commit order is
+ * `resetAfterCommit` (which paints the first frame) before
+ * `commitLayoutEffects` (which fires `componentDidMount` and the
+ * cursor-hide), so without this gate the user sees a blank screen
+ * until the next stdin event triggers a fresh frame.
  *
  * Non-TTY streams (CI, redirected output, vitest) are returned
  * unchanged so test transcripts and recorded output stay clean.
@@ -89,14 +100,13 @@ export function fullscreenStream(target: NodeJS.WriteStream): NodeJS.WriteStream
       if (prop === "write") {
         return (chunk: string | Uint8Array, ...rest: unknown[]): boolean => {
           const data = typeof chunk === "string" ? chunk : Buffer.from(chunk).toString();
+          const isFrame = data.endsWith("\n");
+          const payload = isFrame ? `${FULLSCREEN_RESET}${data}` : data;
           /*
            * Use Reflect.apply so the underlying stream's `this` is the
            * real WriteStream — the EventEmitter machinery relies on it.
            */
-          return Reflect.apply(t.write as (...args: unknown[]) => boolean, t, [
-            `${FULLSCREEN_RESET}${data}`,
-            ...rest,
-          ]);
+          return Reflect.apply(t.write as (...args: unknown[]) => boolean, t, [payload, ...rest]);
         };
       }
       const value = Reflect.get(t, prop, receiver);
@@ -150,6 +160,15 @@ export function enterAltScreen(
   const ENTER = "\x1b[?1049h";
   const LEAVE = "\x1b[?1049l";
   stream.write(ENTER);
+  /*
+   * Paint a clean canvas immediately so the editor's first frame lands
+   * on a blank, cursor-home buffer even on terminals where `?1049h` is
+   * a no-op (Warp, tmux without `alternate-screen on`, some Apple
+   * Terminal configurations). Without this, the first Ink frame can
+   * sit invisible until a stdin event nudges Ink to redraw — users see
+   * the editor only after their first keystroke.
+   */
+  stream.write(FULLSCREEN_RESET);
   let restored = false;
   const restore = (): void => {
     if (restored) return;
@@ -207,8 +226,12 @@ export interface MountEditorOptions {
   readonly path: string;
   readonly previewTheme: Theme | null;
   readonly glyphs: EditorGlyphs;
-  /** `false` when the install probe didn't find a Nerd Font; locks the `g` toggle to "off". */
-  readonly nerdFontAvailable: boolean;
+  /**
+   * Resolved process env. Threaded into the preview/picker so family
+   * identity (glyph degradation) resolves through the same inputs as the
+   * live statusline render.
+   */
+  readonly env: NodeJS.ProcessEnv;
 }
 
 export function mountEditor(opts: MountEditorOptions): {
@@ -221,24 +244,22 @@ export function mountEditor(opts: MountEditorOptions): {
   const leaveAltScreen = enterAltScreen(process.stdout, {
     awaitBeforeExit: () => saveTracker.inFlight,
   });
-  const inst = render(
-    React.createElement(App, {
-      initialConfig: opts.config,
-      path: opts.path,
-      previewTheme: opts.previewTheme,
-      glyphs: opts.glyphs,
-      nerdFontAvailable: opts.nerdFontAvailable,
-      onSaved: (saved) => {
-        savedRef.value = saved;
-      },
-      saveTracker,
-    }),
-    {
-      stdout: fullscreenStream(process.stdout),
-      patchConsole: false,
-      exitOnCtrlC: true,
+  const element = React.createElement(App, {
+    initialConfig: opts.config,
+    path: opts.path,
+    previewTheme: opts.previewTheme,
+    glyphs: opts.glyphs,
+    env: opts.env,
+    onSaved: (saved) => {
+      savedRef.value = saved;
     },
-  );
+    saveTracker,
+  });
+  const inst = render(element, {
+    stdout: fullscreenStream(process.stdout),
+    patchConsole: false,
+    exitOnCtrlC: true,
+  });
   // Restore the alt-screen on every exit path — save, q, Esc, exception.
   const waitUntilExit = inst.waitUntilExit().finally(leaveAltScreen);
   return { waitUntilExit, unmount: inst.unmount, savedRef };
@@ -261,19 +282,6 @@ export async function resolveStartingConfig(
   } catch {
     return { config: DEFAULT_CONFIG, path: paths.userConfig };
   }
-}
-
-/**
- * Read the install-time Nerd Font sentinel. When the sentinel is missing
- * (user skipped `agentline install`, or installed an older version) we
- * assume a font is available rather than locking the toggle — a missed
- * disable is recoverable, a false lock is annoying.
- */
-export function resolveNerdFontAvailable(env: NodeJS.ProcessEnv): boolean {
-  const home = env.HOME ?? "";
-  if (!home) return true;
-  const status = readNerdFontStatus(nerdFontStateDir(env, home));
-  return status === null ? true : status.available;
 }
 
 /**

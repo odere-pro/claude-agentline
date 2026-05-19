@@ -18,6 +18,18 @@ export { DEFAULT_COMPACT_THRESHOLD };
 
 export const FALLBACK_WIDTH = 80;
 
+/**
+ * Sentinel "width" used when the terminal width cannot be detected
+ * (no `COLUMNS`, no tty `stream.columns`). The host spawns the
+ * statusline with a pipe for stdout and sends no width on stdin, so
+ * this is the common live case. Composing against this value disables
+ * width-based wrapping entirely — each configured line stays on one
+ * row and the host handles horizontal overflow, rather than wrapping
+ * against a guessed fallback (§8.2 step 1). Large enough that no real
+ * line can exceed it; small enough to never overflow arithmetic.
+ */
+export const NO_WRAP_WIDTH = 1_000_000;
+
 export type WidthMode = "full" | "full-minus-40" | "full-until-compact";
 
 export interface WidthSource {
@@ -36,15 +48,35 @@ export interface AppliedWidth {
   readonly detectedWidth: number;
 }
 
-export function detectTerminalWidth(source: WidthSource): number {
+export interface DetectedWidth {
+  /** The resolved width — a real value when `detected`, else `FALLBACK_WIDTH`. */
+  readonly width: number;
+  /**
+   * True only when the width came from a real signal (`COLUMNS` env or
+   * a tty `stream.columns`). False means we fell back — callers should
+   * not wrap or width-trim against a guessed value.
+   */
+  readonly detected: boolean;
+}
+
+/**
+ * Resolve the terminal width and report whether it was actually
+ * detected. Precedence (§8.2 step 1): `COLUMNS` env → tty
+ * `stream.columns` → fallback (`detected: false`).
+ */
+export function detectTerminalWidthInfo(source: WidthSource): DetectedWidth {
   const fromEnv = parsePositiveInt(source.env["COLUMNS"]);
-  if (fromEnv !== null) return fromEnv;
+  if (fromEnv !== null) return { width: fromEnv, detected: true };
   const fromStream =
     source.stream && typeof source.stream.columns === "number" ? source.stream.columns : null;
   if (fromStream !== null && Number.isInteger(fromStream) && fromStream > 0) {
-    return fromStream;
+    return { width: fromStream, detected: true };
   }
-  return FALLBACK_WIDTH;
+  return { width: FALLBACK_WIDTH, detected: false };
+}
+
+export function detectTerminalWidth(source: WidthSource): number {
+  return detectTerminalWidthInfo(source).width;
 }
 
 export interface WidthModeOptions {

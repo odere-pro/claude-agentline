@@ -80,10 +80,62 @@ describe("composeLines (plain mode, overflow)", () => {
     expect(lineText(out[0])).toBe("xxxxxxxxxxxxxxxx");
   });
 
-  it("caps total output lines at MAX_LINES even with extreme overflow", () => {
+  it("emits all wrapped rows of a single configured line (no physical-row cap)", () => {
+    /*
+     * MAX_LINES bounds *configured* lines, not physical rows. One
+     * configured line that wraps into many rows must emit them all —
+     * the old behaviour capped at 3 physical rows and silently lost
+     * the tail.
+     */
     const cells = Array.from({ length: 30 }, (_, i) => cell(`w${String(i).padStart(2, "0")}`));
     const out = composeLines([cells], baseOptions({ width: 4 }));
-    expect(out.length).toBeLessThanOrEqual(3);
+    expect(out.length).toBeGreaterThan(3);
+    const joined = out.map(lineText).join("");
+    expect(joined).toContain("w00");
+    expect(joined).toContain("w29");
+  });
+
+  it("caps the number of configured lines at MAX_LINES, not physical rows", () => {
+    const lines = Array.from({ length: 6 }, (_, i) => [cell(`line${i}`)]);
+    const out = composeLines(lines, baseOptions({ width: 40 }));
+    expect(out).toHaveLength(3);
+    const joined = out.map(lineText).join("\n");
+    expect(joined).toContain("line0");
+    expect(joined).toContain("line2");
+    expect(joined).not.toContain("line3");
+  });
+
+  it("a wrapping configured line does not starve later configured lines", () => {
+    /*
+     * Regression: a long line 2 used to consume the physical-row
+     * budget and delete line 3 entirely (the reported git-line bug).
+     */
+    const wrapping = Array.from({ length: 8 }, (_, i) => cell(`big${i}`));
+    const tail = [cell("git-branch")];
+    const out = composeLines([wrapping, tail], baseOptions({ width: 8 }));
+    const joined = out.map(lineText).join("\n");
+    expect(joined).toContain("git-branch");
+  });
+
+  it("noWrap keeps a configured line on a single row regardless of width", () => {
+    const cells = Array.from({ length: 12 }, (_, i) => cell(`cell${i}`));
+    const out = composeLines([cells], baseOptions({ width: 4, noWrap: true }));
+    expect(out).toHaveLength(1);
+    const joined = lineText(out[0]);
+    expect(joined).toContain("cell0");
+    expect(joined).toContain("cell11");
+  });
+
+  it("noWrap collapses flex slots instead of filling to the sentinel width", () => {
+    const cells = [cell("left"), cell("~", { flex: true }), cell("right")];
+    const out = composeLines([cells], baseOptions({ width: 1_000_000, noWrap: true }));
+    expect(out).toHaveLength(1);
+    const joined = lineText(out[0]);
+    // No million-char fill run: the flex slot collapses to its single char.
+    expect(joined.length).toBeLessThan(50);
+    expect(joined).toContain("left");
+    expect(joined).toContain("right");
+    expect(joined).not.toMatch(/~~~~/);
   });
 
   it("does not wrap when only the first cell exceeds width (no second cell to bump)", () => {

@@ -73,6 +73,11 @@ function narrowColours(cfg: AgentlineConfig): void {
   if (cfg.global.overrideBg !== null && !isColour(cfg.global.overrideBg)) {
     errors.push(colourError("/global/overrideBg", cfg.global.overrideBg));
   }
+  for (const [family, id] of Object.entries(cfg.families ?? {})) {
+    if (id?.colour !== undefined && !isColour(id.colour)) {
+      errors.push(colourError(`/families/${family}/colour`, id.colour));
+    }
+  }
   if (errors.length > 0) throw new ConfigValidationError(errors);
 }
 

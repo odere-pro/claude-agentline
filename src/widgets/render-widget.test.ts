@@ -9,7 +9,6 @@ import type { WidgetContext } from "./context.js";
 import { WidgetRegistry } from "./registry.js";
 import { renderWidget, WidgetTypeMissingError } from "./render-widget.js";
 import { defineWidget, type WidgetSettings } from "./widget.js";
-import { widgetGlyph } from "./catalog.js";
 
 const stdin: StdinPayload = { raw: {}, truncated: false };
 
@@ -24,10 +23,14 @@ function makeCtx(overrides: Partial<WidgetContext> = {}): WidgetContext {
   };
 }
 
+// `signal: true` so the fg-precedence cases below stay about config vs
+// widget fg, independent of the family accent (which would otherwise
+// override a non-signal widget's colour). `echo` is an uncatalogued
+// type, so it carries no family glyph or accent.
 const echo = defineWidget<{ text?: string; label?: string }>("echo", (_ctx, s) => {
   const text = s.options.text ?? "echo";
   const label = s.rawValue ? "" : (s.options.label ?? "");
-  return { text: `${label}${text}`, fg: "red" };
+  return { text: `${label}${text}`, fg: "red", signal: true };
 });
 
 describe("renderWidget", () => {
@@ -65,6 +68,7 @@ describe("renderWidget", () => {
       { type: "echo", rawValue: true, options: { text: "hi", label: "L:" } },
       makeCtx(),
     );
+    // rawValue strips the label; an uncatalogued type carries no glyph.
     expect(raw.text).toBe("hi");
   });
 
@@ -117,58 +121,6 @@ describe("renderWidget", () => {
   });
 });
 
-describe("glyph layer", () => {
-  function ctxWithGlyphs(mode: "off" | "nerd-font"): WidgetContext {
-    return makeCtx({ config: { ...DEFAULT_CONFIG, glyphs: mode } });
-  }
-
-  it("does not prepend a glyph when config.glyphs is 'off' (default)", () => {
-    const r = new WidgetRegistry();
-    r.register(echo);
-    const cell = renderWidget(r, { type: "echo", options: { text: "hi" } }, makeCtx());
-    expect(cell.text).toBe("hi");
-  });
-
-  it("prepends the catalogued glyph + plain space when config.glyphs is 'nerd-font'", () => {
-    const r = new WidgetRegistry();
-    /*
-     * `echo` is a fixture type with no catalogue glyph, so we register a
-     * widget under a real catalogue type to exercise the lookup.
-     */
-    r.register(defineWidget("git-branch", () => ({ text: "main" })));
-    const glyph = widgetGlyph("git-branch");
-    expect(glyph).toBeTruthy();
-    const cell = renderWidget(r, { type: "git-branch" }, ctxWithGlyphs("nerd-font"));
-    expect(cell.text).toBe(`${glyph} main`);
-  });
-
-  it("leaves widgets without a catalogue glyph unchanged in nerd-font mode", () => {
-    const r = new WidgetRegistry();
-    r.register(echo);
-    const cell = renderWidget(
-      r,
-      { type: "echo", options: { text: "hi" } },
-      ctxWithGlyphs("nerd-font"),
-    );
-    expect(cell.text).toBe("hi");
-  });
-
-  it("leaves flex cells alone (their text is the fill character)", () => {
-    const r = new WidgetRegistry();
-    r.register(defineWidget("test-flex", () => ({ text: " ", flex: true })));
-    const cell = renderWidget(r, { type: "test-flex" }, ctxWithGlyphs("nerd-font"));
-    expect(cell.text).toBe(" ");
-    expect(cell.flex).toBe(true);
-  });
-
-  it("leaves empty cells unchanged", () => {
-    const r = new WidgetRegistry();
-    r.register(defineWidget("git-branch", () => ({ text: "" })));
-    const cell = renderWidget(r, { type: "git-branch" }, ctxWithGlyphs("nerd-font"));
-    expect(cell.text).toBe("");
-  });
-});
-
 describe("renderWidget — href passthrough", () => {
   it("preserves cell.href so OSC 8 widgets reach the encoder", () => {
     const r = new WidgetRegistry();
@@ -207,5 +159,62 @@ describe("widget contract integration", () => {
     r.register(widget);
     expect(renderWidget(r, { type: "typed" }, makeCtx()).text).toBe("default");
     expect(renderWidget(r, { type: "typed", options: { a: "ok" } }, makeCtx()).text).toBe("ok");
+  });
+});
+
+describe("renderWidget — family identity", () => {
+  // `version` is a catalogued widget in the `session` family
+  // (glyph "⌂" / ASCII "[s]", accent "blue"); a local stand-in
+  // registered under that type resolves the same family identity.
+  const versioned = defineWidget("version", () => ({ text: "x", fg: "red" }));
+  const plain = defineWidget("plain", () => ({ text: "x", fg: "red" }));
+
+  it("a catalogued non-signal widget takes the family accent over its own fg", () => {
+    const r = new WidgetRegistry();
+    r.register(versioned);
+    // session family accent "blue" wins; the cell's own "red" is dropped.
+    expect(renderWidget(r, { type: "version" }, makeCtx()).fg).toBe("blue");
+  });
+
+  it("an uncatalogued widget has no family accent and keeps its own fg", () => {
+    const r = new WidgetRegistry();
+    r.register(plain);
+    expect(renderWidget(r, { type: "plain" }, makeCtx()).fg).toBe("red");
+  });
+
+  it("a signal widget keeps its own state colour", () => {
+    const r = new WidgetRegistry();
+    r.register(echo);
+    expect(renderWidget(r, { type: "echo" }, makeCtx()).fg).toBe("red");
+  });
+
+  it("explicit config.fg beats the family accent", () => {
+    const r = new WidgetRegistry();
+    r.register(versioned);
+    expect(renderWidget(r, { type: "version", fg: "#abcdef" }, makeCtx()).fg).toBe("#abcdef");
+  });
+
+  it("an uncatalogued widget gets no glyph prefix", () => {
+    const r = new WidgetRegistry();
+    r.register(plain);
+    expect(renderWidget(r, { type: "plain" }, makeCtx()).text).toBe("x");
+  });
+
+  it("config.families overrides the glyph and colour", () => {
+    const r = new WidgetRegistry();
+    r.register(versioned);
+    const ctx = makeCtx({
+      config: { ...DEFAULT_CONFIG, families: { session: { glyph: "★", colour: "#123456" } } },
+    });
+    const cell = renderWidget(r, { type: "version" }, ctx);
+    expect(cell.text).toBe("★ x");
+    expect(cell.fg).toBe("#123456");
+  });
+
+  it("degrades the glyph to ASCII when the host can't do Unicode", () => {
+    const r = new WidgetRegistry();
+    r.register(versioned);
+    const cell = renderWidget(r, { type: "version" }, makeCtx({ env: { NO_UNICODE: "1" } }));
+    expect(cell.text).toBe("[s] x");
   });
 });

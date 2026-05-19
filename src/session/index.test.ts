@@ -1,7 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import os from "node:os";
+
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { StdinPayload } from "../stdin/index.js";
-import { resolveSessionFields, type AuthSnapshot } from "./index.js";
+import { resolveSessionFields, loadSessionFields, type AuthSnapshot } from "./index.js";
 
 function payload(raw: Record<string, unknown> = {}): StdinPayload {
   return { raw, truncated: false, ...convenience(raw) };
@@ -69,5 +73,57 @@ describe("resolveSessionFields", () => {
     const r = resolveSessionFields(stdin, null);
     expect(r.model).toBe("claude-opus-4-7");
     expect(r.thinkingEffort).toBe("high");
+  });
+});
+
+describe("loadSessionFields — identity fallbacks", () => {
+  let tmp: string;
+
+  beforeEach(() => {
+    tmp = mkdtempSync(path.join(os.tmpdir(), "agentline-session-"));
+  });
+
+  afterEach(() => {
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it("populates accountEmail from ~/.claude.json oauthAccount when stdin and auth.json are absent", () => {
+    writeFileSync(
+      path.join(tmp, ".claude.json"),
+      JSON.stringify({ oauthAccount: { emailAddress: "me@example.com", organizationName: "Org" } }),
+    );
+    const fields = loadSessionFields(payload(), { env: { CLAUDE_CONFIG_DIR: tmp } });
+    expect(fields.accountEmail).toBe("me@example.com");
+    expect(fields.loginMethod).toBe("oauth");
+    expect(fields.orgSlug).toBe("Org");
+  });
+
+  it("prefers legacy auth.json over oauthAccount per field (back-compat)", () => {
+    writeFileSync(
+      path.join(tmp, "auth.json"),
+      JSON.stringify({ email: "legacy@example.com", authMethod: "enterprise" }),
+    );
+    writeFileSync(
+      path.join(tmp, ".claude.json"),
+      JSON.stringify({ oauthAccount: { emailAddress: "oauth@example.com", organizationName: "Org" } }),
+    );
+    const fields = loadSessionFields(payload(), { env: { CLAUDE_CONFIG_DIR: tmp } });
+    // auth.json wins on the fields it carries; oauthAccount fills the gap (org).
+    expect(fields.accountEmail).toBe("legacy@example.com");
+    expect(fields.loginMethod).toBe("enterprise");
+    expect(fields.orgSlug).toBe("Org");
+  });
+
+  it("returns complete stdin identity without consulting the fallback files", () => {
+    const stdin = payload({
+      user: { email: "s@example.com", authMethod: "oauth", org: { slug: "s-org" } },
+    });
+    // No files written under tmp; a complete stdin identity must not need them.
+    const fields = loadSessionFields(stdin, { env: { CLAUDE_CONFIG_DIR: tmp } });
+    expect(fields).toMatchObject({
+      accountEmail: "s@example.com",
+      loginMethod: "oauth",
+      orgSlug: "s-org",
+    });
   });
 });

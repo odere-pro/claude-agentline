@@ -53,18 +53,15 @@ describe("saveLastStdin + readLastStdinSync", () => {
   it("returns null when the cache JSON is malformed", () => {
     const { cacheFile, stateDir } = resolveCachePaths(env);
     // Pre-create the directory so the malformed JSON write succeeds.
-    require("node:fs").mkdirSync(stateDir, { recursive: true });
+    mkdirSync(stateDir, { recursive: true });
     writeFileSync(cacheFile, "{not json");
     expect(readLastStdinSync(env)).toBeNull();
   });
 
   it("returns null when the cache version is unknown", () => {
     const { cacheFile, stateDir } = resolveCachePaths(env);
-    require("node:fs").mkdirSync(stateDir, { recursive: true });
-    writeFileSync(
-      cacheFile,
-      JSON.stringify({ version: 99, savedAt: "x", payload: samplePayload }),
-    );
+    mkdirSync(stateDir, { recursive: true });
+    writeFileSync(cacheFile, JSON.stringify({ version: 99, savedAt: "x", payload: samplePayload }));
     expect(readLastStdinSync(env)).toBeNull();
   });
 

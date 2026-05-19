@@ -59,8 +59,6 @@ describe("runDoctor", () => {
   it("--fix repairs D01 by creating the Claude Code settings file (and chains into D02)", async () => {
     const { report } = await runDoctor({
       fix: true,
-      // Short-circuit D05 — these tests don't exercise font install.
-      detectNerdFont: () => true,
       json: false,
       strict: false,
       home,
@@ -83,8 +81,6 @@ describe("runDoctor", () => {
   it("--fix is idempotent on a healthy host", async () => {
     await runDoctor({
       fix: true,
-      // Short-circuit D05 — these tests don't exercise font install.
-      detectNerdFont: () => true,
       json: false,
       strict: false,
       home,
@@ -96,8 +92,6 @@ describe("runDoctor", () => {
 
     const second = await runDoctor({
       fix: true,
-      // Short-circuit D05 — these tests don't exercise font install.
-      detectNerdFont: () => true,
       json: false,
       strict: false,
       home,
@@ -119,8 +113,6 @@ describe("runDoctor", () => {
     await fs.writeFile(join(home, ".claude", "settings.json"), "{}");
     const { report } = await runDoctor({
       fix: true,
-      // Short-circuit D05 — these tests don't exercise font install.
-      detectNerdFont: () => true,
       json: false,
       strict: false,
       home,
@@ -141,8 +133,6 @@ describe("runDoctor", () => {
     );
     const { report } = await runDoctor({
       fix: true,
-      // Short-circuit D05 — these tests don't exercise font install.
-      detectNerdFont: () => true,
       json: false,
       strict: false,
       home,
@@ -170,8 +160,6 @@ describe("runDoctor", () => {
     // First run: backs up starship.
     await runDoctor({
       fix: true,
-      // Short-circuit D05 — these tests don't exercise font install.
-      detectNerdFont: () => true,
       json: false,
       strict: false,
       home,
@@ -184,8 +172,6 @@ describe("runDoctor", () => {
      */
     await runDoctor({
       fix: true,
-      // Short-circuit D05 — these tests don't exercise font install.
-      detectNerdFont: () => true,
       json: false,
       strict: false,
       home,
@@ -198,7 +184,7 @@ describe("runDoctor", () => {
     expect(backup.previousStatusLine).toEqual({ command: "starship init bash" });
   });
 
-  it("D10 render fixture passes against the embedded snapshot", async () => {
+  it("D08 render fixture passes against the embedded snapshot", async () => {
     const { report } = await runDoctor({
       fix: false,
       json: false,
@@ -207,7 +193,7 @@ describe("runDoctor", () => {
       env: { CLAUDE_CONFIG_DIR: cfgDir },
       cwd: cfgDir,
     });
-    const d10 = report.results.find((r) => r.id === "D10");
-    expect(d10?.status).toBe("pass");
+    const d08 = report.results.find((r) => r.id === "D08");
+    expect(d08?.status).toBe("pass");
   });
 });

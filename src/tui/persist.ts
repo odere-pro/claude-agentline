@@ -9,18 +9,16 @@
 
 import { writeJsonIdempotent } from "../lib/atomic-write.js";
 import { validateConfig } from "../config/validate.js";
-import type { AgentlineConfig, GlyphMode, LineConfig } from "../config/types.js";
+import type { AgentlineConfig, LineConfig } from "../config/types.js";
+import { readLastStdinSync } from "../state/stdin-cache.js";
+import { saveLastRender } from "../state/render-cache.js";
+import { renderForFixture } from "../render/fixture-runner.js";
+import { loadLiveSnapshots } from "../render/context.js";
 
 export interface SaveInput {
   readonly path: string;
   readonly base: AgentlineConfig;
   readonly lines: readonly LineConfig[];
-  /**
-   * When supplied, overrides `base.glyphs` so the editor's `g` toggle
-   * lands on disk. Omit to preserve whatever the loaded config already
-   * declared.
-   */
-  readonly glyphs?: GlyphMode;
 }
 
 export async function saveEditedConfig(input: SaveInput): Promise<AgentlineConfig> {
@@ -29,11 +27,39 @@ export async function saveEditedConfig(input: SaveInput): Promise<AgentlineConfi
     lines: trimTrailingEmpty(
       input.lines.map((line) => ({ widgets: line.widgets.map((w) => ({ ...w })) })),
     ),
-    ...(input.glyphs !== undefined ? { glyphs: input.glyphs } : {}),
   };
   validateConfig(next);
   await writeJsonIdempotent(input.path, next);
   return next;
+}
+
+/**
+ * Fire-and-forget render pass that refreshes `last-render.json` using the
+ * most recently cached stdin payload and the freshly saved config. Called
+ * after a successful `saveEditedConfig` so the cached render stays in sync
+ * with the new config without waiting for the next Claude Code prompt.
+ *
+ * Best-effort: any failure is swallowed so the save result is unaffected.
+ */
+export async function triggerBackgroundRerender(
+  savedConfig: AgentlineConfig,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<void> {
+  try {
+    const cached = readLastStdinSync(env);
+    if (!cached) return;
+    const snapshots = loadLiveSnapshots(cached.payload, { env });
+    const rendered = await renderForFixture(JSON.stringify(cached.payload), {
+      config: savedConfig,
+      git: snapshots.git,
+      tokens: snapshots.tokens,
+      session: snapshots.session,
+      env,
+    });
+    await saveLastRender(rendered, { env });
+  } catch {
+    // best-effort
+  }
 }
 
 /**

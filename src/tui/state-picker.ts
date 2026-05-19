@@ -24,7 +24,7 @@ import {
   type EditorPickerState,
   type EditorState,
   type PickerTargetKind,
-} from "./state.js";
+} from "./state-core.js";
 
 export function openPicker(
   state: EditorState,
@@ -54,6 +54,20 @@ export function openPicker(
   };
 }
 
+/**
+ * Switch the group browser (`picker-group`) into flat-search mode
+ * (`picker-search`). The widgetType draft is left alone so the variant
+ * step can route back here if the search-path commits a widget.
+ */
+export function openSearch(state: EditorState): EditorState {
+  if (state.mode !== "picker-group") return state;
+  return {
+    ...state,
+    mode: "picker-search",
+    pickerDraft: { ...state.pickerDraft, family: undefined },
+  };
+}
+
 export function pickFamily(state: EditorState, family: WidgetFamily): EditorState {
   if (state.mode !== "picker-group") return state;
   return {
@@ -65,12 +79,11 @@ export function pickFamily(state: EditorState, family: WidgetFamily): EditorStat
 
 export function pickWidget(state: EditorState, widgetType: string): EditorState {
   /*
-   * Allow `pickWidget` from either step — `picker-widget` is the in-family
-   * path; `picker-group` is the flat-search path (App-side: typing in step 1
-   * turns the group list into a global filtered list, and Enter commits the
-   * highlighted result without an intermediate family step).
+   * Allow `pickWidget` from either the in-family list or the flat search;
+   * other modes are inert. `picker-group` is intentionally excluded — the
+   * group view never commits a widget directly.
    */
-  if (state.mode !== "picker-widget" && state.mode !== "picker-group") return state;
+  if (state.mode !== "picker-widget" && state.mode !== "picker-search") return state;
   if (!widgetType) return backToEdit(state);
   const variants = widgetVariants(widgetType);
   if (variants.length === 0) {
@@ -103,11 +116,11 @@ export function pickVariant(state: EditorState, variantId: string | null): Edito
 export function pickerBack(state: EditorState): EditorState {
   if (state.mode === "picker-variant") {
     /*
-     * Route back to the step the user came from: `picker-widget` if they
-     * drilled in via a family, `picker-group` if they picked from the
-     * flat-search list (no family in the draft).
+     * Route back to the step the user came from: `picker-widget` when the
+     * commit-path went through a family, `picker-search` when it came
+     * from the flat-search overlay (no family in the draft).
      */
-    const back: EditorMode = state.pickerDraft.family ? "picker-widget" : "picker-group";
+    const back: EditorMode = state.pickerDraft.family ? "picker-widget" : "picker-search";
     return {
       ...state,
       mode: back,
@@ -115,11 +128,20 @@ export function pickerBack(state: EditorState): EditorState {
     };
   }
   if (state.mode === "picker-widget") {
-    return {
-      ...state,
-      mode: "picker-group",
-      pickerDraft: { ...state.pickerDraft, family: undefined },
-    };
+    /*
+     * Keep `pickerDraft.family` set so the picker-group step can restore
+     * the user's previous highlight on Esc. The next forward action
+     * (`pick-family` from a fresh selection, or `close-picker`) replaces
+     * or clears it.
+     */
+    return { ...state, mode: "picker-group" };
+  }
+  if (state.mode === "picker-search") {
+    /*
+     * Esc out of the flat-search overlay returns to the group browser
+     * so the user can pick a family without re-opening the picker.
+     */
+    return { ...state, mode: "picker-group" };
   }
   if (state.mode === "picker-group") {
     return backToEdit(state);

@@ -36,23 +36,17 @@ export interface LoadPullRequestOptions {
  * call times out, or the response can't be parsed. Errors are swallowed
  * silently — the widget hides on a `null` snapshot.
  */
-export function loadPullRequest(
-  options: LoadPullRequestOptions,
-): GitPullRequestInfo | null {
+export function loadPullRequest(options: LoadPullRequestOptions): GitPullRequestInfo | null {
   try {
-    const stdout = execFileSync(
-      "gh",
-      ["pr", "view", "--json", "number,url,title"],
-      {
-        cwd: options.cwd,
-        encoding: "utf8",
-        maxBuffer: DEFAULT_BUFFER,
-        timeout: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-        stdio: ["ignore", "pipe", "ignore"],
-        env: options.env,
-        windowsHide: true,
-      },
-    );
+    const stdout = execFileSync("gh", ["pr", "view", "--json", "number,url,title"], {
+      cwd: options.cwd,
+      encoding: "utf8",
+      maxBuffer: DEFAULT_BUFFER,
+      timeout: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      stdio: ["ignore", "pipe", "ignore"],
+      env: options.env,
+      windowsHide: true,
+    });
     return parsePullRequestJson(stdout);
   } catch {
     return null;

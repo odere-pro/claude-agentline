@@ -1,0 +1,1 @@
+- Rate-limit widgets: countdown timers now read `reset in <dur>` with a day-aware `compact` default (`2d 1h` weekly, `2h` / `30m` block) and absolute resets read `reset at HH:MM` (24-hour, identical for block and weekly); the `short` / `long` / `clock` formats stay selectable and the labels resolve through the translator so locales can override them.

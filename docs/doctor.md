@@ -31,11 +31,10 @@ wrapper around the bin is read-only by construction — it never passes
 | D02 | `statusLine.command` resolves to a working `agentline` invocation | rewrite to `npx -y @agentline/cli` or the absolute global bin path |
 | D03 | user config exists and matches schema                             | migrate or write defaults                                          |
 | D04 | every theme referenced by config is installed                     | copy from the package's embedded theme set                         |
-| D05 | a Nerd Font is installed when Powerline is enabled                | none; reports the platform-specific install command                |
-| D06 | git binary on PATH when any git widget is enabled                 | none; reports                                                      |
-| D07 | the embedded pricing table is fresher than `now − 90 days`        | none; reports                                                      |
-| D08 | `CLAUDE_CONFIG_DIR` (when set) points at a writable directory     | none; reports                                                      |
-| D10 | render dry-run on an embedded fixture matches the stored snapshot | none; reports                                                      |
+| D05 | git binary on PATH when any git widget is enabled                 | none; reports                                                      |
+| D06 | the resolved global config directory is writable (or creatable)   | none; reports                                                      |
+| D07 | update-check cache (read-only) reports a newer release            | none; reports                                                      |
+| D08 | render dry-run on an embedded fixture matches the stored snapshot | none; reports                                                      |
 
 `--fix` only touches D01–D04. Everything else is reported and left
 to you, on the principle that doctor never acts on host state it does
@@ -55,7 +54,12 @@ so that D02 can populate the `statusLine` entry on the next run.
 ### D02 — statusLine wiring
 
 Verifies `settings.json` contains a `statusLine` entry whose `command`
-resolves to an `agentline` binary at run time. With `--fix`, writes:
+resolves to an `agentline` binary **that still exists and is
+executable** at run time. This catches the orphaned-bin failure mode
+where a user removed the global package (`npm uninstall -g
+@agentline/cli`, `npm unlink`, prefix change) without running
+`agentline uninstall` — Claude Code keeps painting the last cached
+render until the wiring is repaired. With `--fix`, writes:
 
 ```json
 {
@@ -91,32 +95,31 @@ the user themes directory. With `--fix`, copies the missing themes
 from the package's bundled set; user-edited themes are never
 overwritten.
 
-### D05 — Nerd Font
-
-Triggered only when `powerline.enabled` is `true`. Reports the
-platform-specific install command (Homebrew, apt, the Nerd Fonts
-release tarball link) and a `ascii-fallback` flag that tells you the
-binary will degrade chevrons to `>` / `<` until you install one.
-
-### D06 — git binary
+### D05 — git binary
 
 Triggered only when at least one `git-*` widget is enabled. Reports
 whether `git` is on PATH and whether the working directory is a
 checkout. No fix.
 
-### D07 — pricing table
+### D06 — config directory writable
 
-A token-pricing table is embedded in the binary at build time for
-future cost-aware widgets. The `pricing-skew.yml` workflow refreshes
-that table on a monthly schedule. D07 reports `warn` when the table
-is older than 90 days so you can upgrade `@agentline/cli`. No fix.
+agentline is configured globally only; the single write target is
+`${CLAUDE_CONFIG_DIR:-~/.config}/agentline`. D06 always probes that
+resolved directory — there is no skipped path, because the bin always
+has a config home regardless of whether `CLAUDE_CONFIG_DIR` is set. If
+the directory already exists it must be a writable directory; if it
+does not exist yet (fresh install) the nearest existing ancestor must
+be writable so config and themes can be created. Reports `warn` when
+the target is not writable or not creatable. No fix.
 
-### D08 — config-dir writability
+### D07 — update check
 
-Triggered only when `CLAUDE_CONFIG_DIR` is set. Reports whether the
-directory exists, is a directory, and is writable. No fix.
+Reads the cached npm-registry probe (refreshed by `agentline install`
+and `agentline edit`). Surfaces a hint when a newer `@agentline/cli`
+is available. Never fetches from inside the check; a missing or
+unreachable cache is reported as `pass`. No fix.
 
-### D10 — render snapshot
+### D08 — render snapshot
 
 Runs the renderer against an embedded fixture and compares the output
 against a stored snapshot. Detects regressions in the render hot path
@@ -129,11 +132,9 @@ without depending on a live Claude Code session. No fix.
 ```text
 [ok] D01 settings.json present — at /home/u/.claude/settings.json
 [ok] D02 statusLine wired — command resolves to /usr/local/bin/agentline
-[!!] D05 Nerd Font missing — install JetBrainsMono Nerd Font
-     ↳ brew tap homebrew/cask-fonts && brew install --cask font-jetbrains-mono-nerd-font
-[--] D06 git widget not in use — skipped
+[--] D05 git widget not in use — skipped
 
-summary: 8 ok, 1 warn, 1 skip
+summary: 7 ok, 1 skip
 ```
 
 Glyphs:
@@ -165,13 +166,13 @@ top-level `worst` field summarising the worst status seen.
 | `3`  | a check failed and `--strict` is set                                              |
 
 `--strict` is the right flag for CI: it flips warnings into non-zero
-so a stale pricing table or missing Nerd Font surfaces in the build
-log instead of silently shipping.
+so an unresolved warning surfaces in the build log instead of
+silently shipping.
 
 ## When to run
 
 - After `scripts/install.sh` — sanity check the wiring.
-- After upgrading `@agentline/cli` — verify migrations and pricing.
+- After upgrading `@agentline/cli` — verify migrations.
 - When the statusline shows the fallback line — the failing check
   tells you which layer to look at.
 - In CI, with `--strict`, against a representative config.

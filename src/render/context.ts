@@ -19,7 +19,9 @@
  */
 
 import { loadGitSnapshot, type GitState } from "../git/snapshot.js";
+import { createTranslator } from "../i18n/index.js";
 import { loadSessionFields, type ResolvedSessionFields } from "../session/index.js";
+import { loadPlanSnapshot, type PlanSnapshot } from "../session/plan.js";
 import type { StdinPayload } from "../stdin/index.js";
 import { loadTokensSnapshot, type TokensSnapshot } from "../tokens/index.js";
 import type { Clock } from "../widgets/clock.js";
@@ -31,6 +33,8 @@ export interface LiveSnapshots {
   readonly session: ResolvedSessionFields;
   readonly tokens: TokensSnapshot;
   readonly git: GitState;
+  /** Omitted when there is no active plan (keeps the bag key-absent). */
+  readonly plan?: PlanSnapshot;
 }
 
 export interface LoadLiveSnapshotsOptions {
@@ -57,11 +61,14 @@ export function loadLiveSnapshots(
     now: options.now ?? Date.now(),
   });
   const git = loadGitSnapshot({ cwd: payload.cwd, env });
-  return { session, tokens, git };
+  const plan = loadPlanSnapshot({ env });
+  return { session, tokens, git, ...(plan !== null ? { plan } : {}) };
 }
 
-export interface BuildWidgetContextInput
-  extends Pick<RenderInputs, "config" | "theme" | "tokens" | "git" | "session"> {
+export interface BuildWidgetContextInput extends Pick<
+  RenderInputs,
+  "config" | "theme" | "tokens" | "git" | "session" | "plan"
+> {
   readonly payload: StdinPayload;
   readonly clock: Clock;
   readonly env: NodeJS.ProcessEnv;
@@ -81,8 +88,10 @@ export function buildWidgetContext(input: BuildWidgetContextInput): WidgetContex
     theme: input.theme,
     clock: input.clock,
     env: input.env,
+    t: createTranslator(input.config),
     ...(input.tokens !== undefined ? { tokens: input.tokens } : {}),
     ...(input.git !== undefined ? { git: input.git } : {}),
     ...(input.session !== undefined ? { session: input.session } : {}),
+    ...(input.plan !== undefined ? { plan: input.plan } : {}),
   };
 }

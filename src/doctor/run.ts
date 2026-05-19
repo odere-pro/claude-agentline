@@ -15,7 +15,9 @@ import { formatText, formatJson, summariseWorst } from "./format.js";
 import type { RunOptions, RunReport, CheckResult } from "./types.js";
 import { resolveEnv } from "../lib/env.js";
 
-export async function runDoctor(opts: RunOptions): Promise<{ report: RunReport; exitCode: number }> {
+export async function runDoctor(
+  opts: RunOptions,
+): Promise<{ report: RunReport; exitCode: number }> {
   const ctx = {
     home: opts.home ?? homedir(),
     env: resolveEnv(opts),
@@ -26,8 +28,6 @@ export async function runDoctor(opts: RunOptions): Promise<{ report: RunReport; 
     results = await applyFixes(results, {
       home: ctx.home,
       env: ctx.env,
-      ...(opts.fontInstaller ? { fontInstaller: opts.fontInstaller } : {}),
-      ...(opts.detectNerdFont ? { detectNerdFont: opts.detectNerdFont } : {}),
     });
   }
   const worst = summariseWorst(results);
@@ -40,7 +40,7 @@ export function renderReport(report: RunReport, json: boolean): string {
   return json ? formatJson(report) : formatText(report);
 }
 
-function decideExit(opts: RunOptions, results: CheckResult[], worst: string): number {
+function decideExit(opts: RunOptions, _results: CheckResult[], worst: string): number {
   if (!opts.strict) return 0;
   return worst === "pass" || worst === "skip" || worst === "fixed" ? 0 : 3;
 }

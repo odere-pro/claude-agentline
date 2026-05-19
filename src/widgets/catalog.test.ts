@@ -28,9 +28,9 @@ describe("WIDGET_CATALOG", () => {
     expect({ missing, extra }).toEqual({ missing: [], extra: [] });
   });
 
-  it("covers all 42 shipped widgets", () => {
-    expect(Object.keys(WIDGET_CATALOG)).toHaveLength(42);
-    expect(builtinRegistry().size()).toBe(42);
+  it("covers all 27 shipped widgets", () => {
+    expect(Object.keys(WIDGET_CATALOG)).toHaveLength(27);
+    expect(builtinRegistry().size()).toBe(27);
   });
 
   it("every entry has a non-empty description of at most 80 chars", () => {
@@ -72,47 +72,37 @@ describe("widgetMeta", () => {
 });
 
 describe("WIDGET_CATALOG — variants", () => {
-  it("declares variants for widgets that branch on an option (skills/usage/clock/timers/uptime/account-email)", () => {
-    expect(widgetVariants("skills").map((v) => v.id)).toEqual(["count", "list", "last"]);
-    expect(widgetVariants("session-usage").map((v) => v.id)).toEqual([
-      "percent",
-      "bar",
-      "short-bar",
-    ]);
+  it("declares variants for widgets that branch on an option (timers/account-email)", () => {
     expect(widgetVariants("account-email").map((v) => v.id)).toEqual([
       "full",
       "domain",
       "localpart",
     ]);
-    expect(widgetVariants("block-reset-timer").map((v) => v.id)).toEqual([
+    expect(widgetVariants("current-session-reset-timer").map((v) => v.id)).toEqual([
       "short",
       "long",
       "clock",
     ]);
-    expect(widgetVariants("block-reset-at").map((v) => v.id)).toEqual([
+    expect(widgetVariants("current-session-reset-at").map((v) => v.id)).toEqual([
       "time-24h",
       "time-12h",
       "seconds",
     ]);
-    expect(widgetVariants("weekly-reset-timer").map((v) => v.id)).toEqual([
-      "short",
-      "long",
-      "clock",
-    ]);
+    expect(widgetVariants("week-limit-timer").map((v) => v.id)).toEqual(["short", "long", "clock"]);
     expect(widgetVariants("weekly-reset-at").map((v) => v.id)).toEqual([
+      "day-time",
+      "day-only",
       "time-24h",
       "time-12h",
-      "seconds",
     ]);
-    expect(widgetVariants("uptime-session").map((v) => v.id)).toEqual(["short", "long", "clock"]);
-    expect(widgetVariants("uptime-block").map((v) => v.id)).toEqual(["short", "long", "clock"]);
-    expect(widgetVariants("clock").length).toBeGreaterThanOrEqual(2);
   });
 
   it("widgets without distinct rendering modes carry no variants", () => {
     expect(widgetVariants("git-branch")).toEqual([]);
     expect(widgetVariants("model")).toEqual([]);
+    expect(widgetVariants("plan")).toEqual([]);
     expect(widgetVariants("context-length")).toEqual([]);
+    expect(widgetVariants("session-weekly-usage")).toEqual([]);
     expect(widgetVariants("does-not-exist")).toEqual([]);
   });
 
@@ -132,50 +122,23 @@ describe("WIDGET_CATALOG — variants", () => {
   });
 });
 
-describe("WIDGET_CATALOG — glyphs", () => {
-  it("every glyph (when present) is a non-empty single grapheme", () => {
-    for (const [type, meta] of Object.entries(WIDGET_CATALOG)) {
-      const glyph = meta.glyph;
-      if (glyph === undefined) continue;
-      expect(glyph.length, `${type}: empty glyph`).toBeGreaterThan(0);
-      /*
-       * Iterator splits surrogate pairs at code-point boundaries; we
-       * require exactly one user-perceived character per slot.
-       */
-      expect([...glyph], `${type}: multi-grapheme glyph ${JSON.stringify(glyph)}`).toHaveLength(1);
-    }
-  });
-
-  it("populates glyphs for the most-shipped widget types so default lines benefit immediately", () => {
-    expect(widgetMeta("model")?.glyph).toBeTruthy();
-    expect(widgetMeta("git-branch")?.glyph).toBeTruthy();
-    expect(widgetMeta("clock")?.glyph).toBeTruthy();
-    expect(widgetMeta("tokens-total")?.glyph).toBeTruthy();
-    expect(widgetMeta("git-pr")?.glyph).toBeTruthy();
-    expect(widgetMeta("session-usage")?.glyph).toBeTruthy();
-  });
-
-  it("layout-only widgets carry no glyph (separator)", () => {
-    expect(widgetMeta("separator")?.glyph).toBeUndefined();
-  });
-});
-
 describe("activeVariantId", () => {
   it("recognises the active variant from a widget's options", () => {
-    expect(activeVariantId("skills", { variant: "list" })).toBe("list");
-    expect(activeVariantId("skills", { variant: "count" })).toBe("count");
-    expect(activeVariantId("session-usage", { display: "bar" })).toBe("bar");
-    expect(activeVariantId("block-reset-timer", { format: "long" })).toBe("long");
-    expect(activeVariantId("clock", { format: "%H:%M" })).toBe("time-24h");
+    expect(activeVariantId("account-email", { mask: "domain" })).toBe("domain");
+    expect(activeVariantId("account-email", { mask: "none" })).toBe("full");
+    expect(activeVariantId("current-session-reset-at", { format: "h:mma" })).toBe("time-12h");
+    expect(activeVariantId("current-session-reset-timer", { format: "long" })).toBe("long");
   });
 
   it("ignores extra keys when matching (variant only constrains the keys it declares)", () => {
-    expect(activeVariantId("session-usage", { display: "bar", barWidth: 8 })).toBe("bar");
+    expect(activeVariantId("current-session-reset-timer", { format: "clock", pad: 2 })).toBe(
+      "clock",
+    );
   });
 
   it("returns null when no variant matches", () => {
-    expect(activeVariantId("skills", { variant: "weird" })).toBeNull();
-    expect(activeVariantId("skills", undefined)).toBeNull(); // no variant key set
+    expect(activeVariantId("account-email", { mask: "weird" })).toBeNull();
+    expect(activeVariantId("account-email", undefined)).toBeNull(); // no variant key set
     expect(activeVariantId("git-branch", {})).toBeNull(); // no variants defined
   });
 });

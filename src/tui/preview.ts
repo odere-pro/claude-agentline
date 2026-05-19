@@ -10,12 +10,15 @@
  * in `./preview-model.ts` — so the layout is unit-testable without Ink.
  * This file is the thin Ink projection on top.
  *
- * Wrapping is computed in user-space rather than via Yoga's `flexWrap`:
- * the outer Box has no defined width, so Yoga would let the row grow
- * past the terminal edge instead of wrapping cells. Here we pre-pack
- * each row's slots into visual sub-lines against `process.stdout.columns`
- * and emit one Box per sub-line, indenting continuation lines so wrapped
- * widgets stay aligned with the gutter.
+ * The outer Box is given an explicit `width` (the resolved terminal
+ * columns) so the rounded border spans the full screen instead of
+ * collapsing to the widest row. Wrapping, however, is still computed in
+ * user-space rather than via Yoga's `flexWrap`: the row cells are
+ * `flexShrink: 0`, so Yoga would clip an over-long row at the border
+ * rather than cell-wrap it. Here we pre-pack each row's slots into visual
+ * sub-lines against `process.stdout.columns` and emit one Box per
+ * sub-line, indenting continuation lines so wrapped widgets stay aligned
+ * with the gutter.
  */
 
 import { Box, Text } from "ink";
@@ -28,6 +31,16 @@ import type { Theme } from "../theme/index.js";
 import type { EditorGlyphs } from "./glyphs.js";
 import { buildPreview, type PreviewRow, type PreviewSlot } from "./preview-model.js";
 
+/**
+ * Visible-content width per row = terminal columns − {@link PREVIEW_CHROME_COLS} − gutter.
+ * The chrome figure is 2 cols for the round border + 2 cols for `paddingX: 1`.
+ * If the border style changes, update this constant.
+ */
+const PREVIEW_CHROME_COLS = 4;
+
+/** Minimum content width below which wrapping degenerates into single-character columns. */
+const MIN_PREVIEW_CONTENT_COLS = 20;
+
 export interface PreviewProps {
   /** The full loaded config — everything except `lines` is taken from here. */
   readonly base: AgentlineConfig;
@@ -39,12 +52,19 @@ export interface PreviewProps {
    * the row's `widgetCount`, the add-cell is highlighted instead.
    */
   readonly cursor: { readonly line: number; readonly widget: number };
-  /** Resolved theme — not used by the editor preview directly (slot colours
-   * are baked in by `buildPreview` via `previewWidget` against the cached
-   * stdin context — or the label-only fallback when no cache exists). */
+  /** Resolved theme — threaded into `buildPreview` so slot colours come
+   * from the configured palette via `previewWidget`, matching what the
+   * real statusline prints (or the label-only fallback when no stdin
+   * cache exists). */
   readonly theme?: Theme | null;
   /** Editor glyph set (Unicode/ASCII) for the gutter, add-cell, etc. */
   readonly glyphs: EditorGlyphs;
+  /**
+   * Resolved process env. Forwarded to `buildPreview` → `previewWidget`
+   * so family-glyph degradation matches the live render. Test hook;
+   * defaults to `{}`.
+   */
+  readonly env?: NodeJS.ProcessEnv;
   /**
    * Override the terminal width used for wrap calculations. Defaults to
    * `process.stdout.columns` (or `FALLBACK_WIDTH` if unavailable). Primarily
@@ -62,19 +82,25 @@ interface PackedSlot {
 }
 
 export function Preview(props: PreviewProps): React.ReactElement {
-  const rows = buildPreview({ base: props.base, lines: props.lines });
+  const rows = buildPreview({
+    base: props.base,
+    lines: props.lines,
+    theme: props.theme ?? null,
+    env: props.env ?? {},
+  });
   const cols = resolveColumns(props.columns);
   const gutterWidth = computeGutterWidth(rows, props.glyphs);
   /*
-   * Reserve: 2 for the round border, 2 for `paddingX: 1`, plus the gutter
-   * width. Clamp to a minimum so wrap doesn't degenerate when the terminal
-   * is unusually narrow.
+   * Reserve PREVIEW_CHROME_COLS for the round border + paddingX, plus the
+   * gutter width. Clamp to MIN_PREVIEW_CONTENT_COLS so wrap doesn't
+   * degenerate when the terminal is unusually narrow.
    */
-  const available = Math.max(20, cols - 4 - gutterWidth);
+  const available = Math.max(MIN_PREVIEW_CONTENT_COLS, cols - PREVIEW_CHROME_COLS - gutterWidth);
   return React.createElement(
     Box,
     {
       flexDirection: "column",
+      width: cols,
       borderStyle: "round",
       borderColor: "gray",
       paddingX: 1,
@@ -93,9 +119,10 @@ function computeGutterWidth(rows: readonly PreviewRow[], glyphs: EditorGlyphs): 
   /*
    * The first-line gutter is `{marker} {line#} {gutter} ` — marker is 1
    * glyph, line# takes `digits` columns, gutter is 1 glyph, plus three
-   * single-space separators.
+   * single-space separators. Line numbers are 1-based in the display
+   * (`row.line + 1`), so we count digits against the max displayed value.
    */
-  const maxLine = rows.reduce((m, r) => Math.max(m, r.line), 0);
+  const maxLine = rows.reduce((m, r) => Math.max(m, r.line), 0) + 1;
   const digits = String(maxLine).length;
   return 1 + 1 + digits + 1 + codePointLength(glyphs.gutter) + 1;
 }
@@ -112,7 +139,7 @@ function renderRow(
   return lines.map((slots, lineIdx) => {
     const prefix =
       lineIdx === 0
-        ? `${onRow ? glyphs.activeRow : " "} ${row.line} ${glyphs.gutter} `
+        ? `${onRow ? glyphs.activeRow : " "} ${row.line + 1} ${glyphs.gutter} `
         : " ".repeat(gutterWidth);
     return React.createElement(
       Box,

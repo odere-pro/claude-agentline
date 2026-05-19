@@ -3,17 +3,17 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG } from "../../config/index.js";
 import type { StdinPayload } from "../../stdin/index.js";
 import type { TokensSnapshot, TranscriptEvent } from "../../tokens/index.js";
-import { DEFAULT_PALETTE } from "../../theme/index.js";
 
 import { frozenClock } from "../clock.js";
 import type { WidgetContext } from "../context.js";
 
-import {
-  contextPercentageUsableWidget,
-  contextPercentageWidget,
-} from "./percentage.js";
+import { contextPercentageWidget } from "./percentage.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
+
+function stdinWithContext(contextWindow: NonNullable<StdinPayload["contextWindow"]>): StdinPayload {
+  return { raw: {}, truncated: false, contextWindow };
+}
 
 const ev = (overrides: Partial<TranscriptEvent>): TranscriptEvent => ({
   timestamp: 0,
@@ -64,10 +64,10 @@ describe("context-percentage widget", () => {
     expect(cell.hidden).toBe(true);
   });
 
-  it("renders 0% when no tokens used", () => {
+  it("renders 0% when no tokens used, plus the window postfix", () => {
     const ctx = makeCtx(makeSnapshot([ev({ timestamp: 0 })], { contextWindow: 200_000 }));
     const cell = contextPercentageWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.text).toBe("0%");
+    expect(cell.text).toBe("0% · 200k");
   });
 
   it("renders correct percentage", () => {
@@ -75,7 +75,7 @@ describe("context-percentage widget", () => {
       makeSnapshot([ev({ timestamp: 0, inputTokens: 100_000 })], { contextWindow: 200_000 }),
     );
     const cell = contextPercentageWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.text).toBe("50%");
+    expect(cell.text).toBe("50% · 200k");
   });
 
   it("renders 100% at full capacity", () => {
@@ -83,31 +83,16 @@ describe("context-percentage widget", () => {
       makeSnapshot([ev({ timestamp: 0, inputTokens: 200_000 })], { contextWindow: 200_000 }),
     );
     const cell = contextPercentageWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.text).toBe("100%");
+    expect(cell.text).toBe("100% · 200k");
   });
 
-  it("uses tokens-low colour below 60%", () => {
-    const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 0, inputTokens: 50_000 })], { contextWindow: 200_000 }),
-    );
-    const cell = contextPercentageWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.fg).toBe(DEFAULT_PALETTE["tokens-low"]);
-  });
-
-  it("uses tokens-mid colour between 60% and 80%", () => {
-    const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 0, inputTokens: 140_000 })], { contextWindow: 200_000 }),
-    );
-    const cell = contextPercentageWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.fg).toBe(DEFAULT_PALETTE["tokens-mid"]);
-  });
-
-  it("uses tokens-high colour above 80%", () => {
+  it("emits no state-signal colour so the context family accent applies", () => {
     const ctx = makeCtx(
       makeSnapshot([ev({ timestamp: 0, inputTokens: 180_000 })], { contextWindow: 200_000 }),
     );
     const cell = contextPercentageWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.fg).toBe(DEFAULT_PALETTE["tokens-high"]);
+    expect(cell.fg).toBeUndefined();
+    expect(cell.signal).toBeUndefined();
   });
 
   it("suppresses label when rawValue: true", () => {
@@ -122,53 +107,65 @@ describe("context-percentage widget", () => {
       options: { label: "ctx:" },
       rawValue: true,
     });
-    expect(withLabel.text).toBe("ctx:50%");
-    expect(noLabel.text).toBe("50%");
+    expect(withLabel.text).toBe("ctx:50% · 200k");
+    expect(noLabel.text).toBe("50% · 200k");
   });
 });
 
-describe("context-percentage-usable widget", () => {
-  it("hides when ctx.tokens is absent", () => {
-    const cell = contextPercentageUsableWidget.render(makeCtx(undefined), {
-      options: {},
-      rawValue: false,
+describe("context-percentage — stdin priority branches", () => {
+  it("prefers stdin.contextWindow.usedTokens over the local aggregate", () => {
+    const ctx = makeCtx(
+      // Aggregate would give 90% but stdin reports the current turn.
+      makeSnapshot([ev({ timestamp: 0, inputTokens: 180_000 })], { contextWindow: 200_000 }),
+      {
+        stdin: stdinWithContext({ usedTokens: 50_000, windowSize: 200_000 }),
+      },
+    );
+    const cell = contextPercentageWidget.render(ctx, { options: {}, rawValue: false });
+    expect(cell.text).toBe("25% · 200k");
+  });
+
+  it("falls back to ctx.tokens.contextWindow when stdin omits windowSize", () => {
+    const ctx = makeCtx(makeSnapshot([ev({ timestamp: 0 })], { contextWindow: 200_000 }), {
+      stdin: stdinWithContext({ usedTokens: 50_000 }),
     });
+    const cell = contextPercentageWidget.render(ctx, { options: {}, rawValue: false });
+    expect(cell.text).toBe("25% · 200k");
+  });
+
+  it("synthesises usage from usedPercentage when usedTokens is missing", () => {
+    const ctx = makeCtx(makeSnapshot([ev({ timestamp: 0 })], { contextWindow: 200_000 }), {
+      stdin: stdinWithContext({ usedPercentage: 37, windowSize: 200_000 }),
+    });
+    const cell = contextPercentageWidget.render(ctx, { options: {}, rawValue: false });
+    expect(cell.text).toBe("37% · 200k");
+  });
+
+  it("falls through to the legacy aggregate when neither usedTokens nor usedPercentage is set", () => {
+    const ctx = makeCtx(
+      makeSnapshot([ev({ timestamp: 0, inputTokens: 100_000 })], { contextWindow: 200_000 }),
+      // Empty contextWindow block — adapter would normally return undefined,
+      // but a stdin payload could still arrive shaped this way via a raw pass-through.
+      { stdin: { raw: {}, truncated: false } },
+    );
+    const cell = contextPercentageWidget.render(ctx, { options: {}, rawValue: false });
+    expect(cell.text).toBe("50% · 200k");
+  });
+
+  it("hides when both stdin and ctx.tokens lack any usage data", () => {
+    const ctx = makeCtx(undefined, { stdin: { raw: {}, truncated: false } });
+    const cell = contextPercentageWidget.render(ctx, { options: {}, rawValue: false });
     expect(cell.hidden).toBe(true);
   });
 
-  it("uses 80% of the window as the denominator", () => {
-    // 80_000 tokens used / (200_000 * 0.8 usable) = 50%
-    const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 0, inputTokens: 80_000 })], { contextWindow: 200_000 }),
-    );
-    const cell = contextPercentageUsableWidget.render(ctx, { options: {}, rawValue: false });
+  it("omits the window postfix when both window sources are absent (synthetic window)", () => {
+    // No ctx.tokens snapshot, no windowSize on stdin: the synthetic
+    // window keeps the divisor meaningful for the percentage, but it's
+    // below MIN_WINDOW_FOR_POSTFIX so the size postfix is dropped.
+    const ctx = makeCtx(undefined, {
+      stdin: stdinWithContext({ usedPercentage: 50 }),
+    });
+    const cell = contextPercentageWidget.render(ctx, { options: {}, rawValue: false });
     expect(cell.text).toBe("50%");
-  });
-
-  it("renders higher percentages than context-percentage for the same usage", () => {
-    const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 0, inputTokens: 100_000 })], { contextWindow: 200_000 }),
-    );
-    const percentCell = contextPercentageWidget.render(ctx, { options: {}, rawValue: false });
-    const usableCell = contextPercentageUsableWidget.render(ctx, { options: {}, rawValue: false });
-    const pct = parseInt(percentCell.text.replace("%", ""), 10);
-    const usable = parseInt(usableCell.text.replace("%", ""), 10);
-    expect(usable).toBeGreaterThan(pct);
-  });
-
-  it("suppresses label when rawValue: true", () => {
-    const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 0, inputTokens: 80_000 })], { contextWindow: 200_000 }),
-    );
-    const withLabel = contextPercentageUsableWidget.render(ctx, {
-      options: { label: "usable:" },
-      rawValue: false,
-    });
-    const noLabel = contextPercentageUsableWidget.render(ctx, {
-      options: { label: "usable:" },
-      rawValue: true,
-    });
-    expect(withLabel.text).toBe("usable:50%");
-    expect(noLabel.text).toBe("50%");
   });
 });

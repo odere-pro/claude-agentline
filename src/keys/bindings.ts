@@ -46,7 +46,12 @@ export const DEFAULT_KEY_BINDINGS: readonly KeyBinding[] = Object.freeze([
     scope: "edit",
     description: "move the selected widget to the adjacent row",
   },
-  { key: "↵", action: "edit-widget", scope: "edit", description: "+add cell → open the picker" },
+  {
+    key: "↵ →",
+    action: "edit-widget",
+    scope: "edit",
+    description: "+add cell → open the picker",
+  },
   { key: "a", action: "add", scope: "edit", description: "add a widget (opens the picker)" },
   {
     key: "r",
@@ -55,32 +60,32 @@ export const DEFAULT_KEY_BINDINGS: readonly KeyBinding[] = Object.freeze([
     description: "replace the selected widget (opens the picker)",
   },
   { key: "d", action: "delete", scope: "edit", description: "delete the selected widget" },
-  {
-    key: "g",
-    action: "toggle-glyphs",
-    scope: "edit",
-    description: "toggle Nerd Font glyphs on / off (top-level config.glyphs)",
-  },
   { key: "s", action: "save", scope: "edit", description: "save (S and Ctrl+S also work)" },
-  // ── picker (the three-step widget chooser overlay) ───────────────────────
+  // ── picker (the widget chooser overlay) ──────────────────────────────────
   {
     key: "(type)",
     action: "picker-filter",
     scope: "picker",
-    description: "type to filter widgets by name or type (step 2)",
+    description: "type to filter widgets by name or type",
+  },
+  {
+    key: "/",
+    action: "picker-search",
+    scope: "picker",
+    description: "open the flat search overlay from the group browser",
   },
   { key: "↑ ↓", action: "picker-navigate", scope: "picker", description: "highlight a row" },
   {
-    key: "↵",
+    key: "↵ →",
     action: "picker-confirm",
     scope: "picker",
     description: "confirm the highlighted row and advance / commit",
   },
   {
-    key: "Esc",
+    key: "Esc ←",
     action: "picker-back",
     scope: "picker",
-    description: "step back one level (cancels at step 1)",
+    description: "step back one level (cancels at the group view)",
   },
   // ── any mode ─────────────────────────────────────────────────────────────
   {

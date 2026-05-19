@@ -32,10 +32,6 @@ export interface RunOptions {
   env?: NodeJS.ProcessEnv;
   /** Override cwd (tests). */
   cwd?: string;
-  /** Override the D05 font installer (tests). */
-  fontInstaller?: typeof import("../lib/font-install.js").installNerdFont;
-  /** Override Nerd Font detection (tests). */
-  detectNerdFont?: () => boolean;
 }
 
 export interface RunReport {

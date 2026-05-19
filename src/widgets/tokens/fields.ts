@@ -1,50 +1,69 @@
 /**
- * Per-field token-count widgets (§7.3): `tokens-input`, `tokens-output`,
- * `tokens-cached`, and `tokens-total`.
+ * Token-count widgets (§7.3): the merged `tokens` widget and the
+ * standalone `tokens-cached` subtotal.
  *
- * Every widget here shares the same render pipeline — aggregate along the
- * configured reset axis, then format one field of the resulting totals.
- * The four widgets used to live in four files differing only by the
- * field selector; a single factory removes the duplication.
+ * `tokens` renders the input and output subtotals together as
+ * `↓<input> ↑<output>` (arrow before value, single-space separator),
+ * mirroring the `git-ahead-behind` convention. `tokens-cached` keeps
+ * the single-field factory since it formats one field unchanged.
+ * Both aggregate along the configured reset axis (§7.3 requires
+ * token widgets declare a reset axis).
  */
 
-import { aggregate } from "../../tokens/index.js";
+import { aggregate, type TokenTotals, type TokensSnapshot } from "../../tokens/index.js";
+import type { WidgetContext } from "../types.js";
 import { defineWidget } from "../widget.js";
 import type { WidgetDef } from "../widget.js";
 
 import { formatCount } from "./format.js";
-import { resolveResetAxis } from "./options.js";
+import { resolveGlyphs, resolveResetAxis } from "./options.js";
 
-type TotalsField = "input" | "output" | "cached" | "total";
+type TotalsField = "input" | "output" | "cached";
 
 interface Options {
   readonly label?: string;
   readonly reset?: string;
 }
 
-function defineTokensFieldWidget(
-  type: string,
-  field: TotalsField,
-): WidgetDef<Options> {
+interface TokensOptions extends Options {
+  readonly inputGlyph?: string;
+  readonly outputGlyph?: string;
+}
+
+function aggregateFor(
+  snapshot: TokensSnapshot,
+  ctx: WidgetContext,
+  reset: string | undefined,
+): TokenTotals {
+  return aggregate({
+    events: snapshot.events,
+    axis: resolveResetAxis(reset),
+    now: snapshot.now,
+    sessionStart: snapshot.sessionStart,
+    blockAnchor: snapshot.blockAnchor,
+    model: ctx.stdin.model,
+    effort: ctx.stdin.thinkingEffort,
+  });
+}
+
+function defineTokensFieldWidget(type: string, field: TotalsField): WidgetDef<Options> {
   return defineWidget<Options>(type, (ctx, settings) => {
     const snapshot = ctx.tokens;
     if (!snapshot) return { text: "", hidden: true };
-    const axis = resolveResetAxis(settings.options.reset);
-    const totals = aggregate({
-      events: snapshot.events,
-      axis,
-      now: snapshot.now,
-      sessionStart: snapshot.sessionStart,
-      blockAnchor: snapshot.blockAnchor,
-      model: ctx.stdin.model,
-      effort: ctx.stdin.thinkingEffort,
-    });
+    const totals = aggregateFor(snapshot, ctx, settings.options.reset);
     const label = settings.rawValue ? "" : (settings.options.label ?? "");
     return { text: `${label}${formatCount(totals[field])}` };
   });
 }
 
-export const tokensInputWidget = defineTokensFieldWidget("tokens-input", "input");
-export const tokensOutputWidget = defineTokensFieldWidget("tokens-output", "output");
 export const tokensCachedWidget = defineTokensFieldWidget("tokens-cached", "cached");
-export const tokensTotalWidget = defineTokensFieldWidget("tokens-total", "total");
+
+export const tokensWidget = defineWidget<TokensOptions>("tokens", (ctx, settings) => {
+  const snapshot = ctx.tokens;
+  if (!snapshot) return { text: "", hidden: true };
+  const totals = aggregateFor(snapshot, ctx, settings.options.reset);
+  const { inGlyph, outGlyph } = resolveGlyphs(settings.options);
+  const body = `${inGlyph}${formatCount(totals.input)} ${outGlyph}${formatCount(totals.output)}`;
+  const label = settings.rawValue ? "" : (settings.options.label ?? "");
+  return { text: `${label}${body}` };
+});

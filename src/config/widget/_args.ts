@@ -61,9 +61,7 @@ export function readOptionsFlag(
   try {
     parsed = JSON.parse(raw);
   } catch (err) {
-    throw new Error(
-      `${prefix}: --options is not valid JSON (${(err as Error).message})`,
-    );
+    throw new Error(`${prefix}: --options is not valid JSON (${(err as Error).message})`);
   }
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new Error(`${prefix}: --options must be a JSON object`);

@@ -1,0 +1,1 @@
+- Family identity: introduce one render-safe source of truth for each widget family's inline glyph and accent colour, and fix the context group's broken picker icon (`▤` rendered as a solid tofu block on common terminal fonts → `◰`).

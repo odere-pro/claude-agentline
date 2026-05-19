@@ -91,9 +91,7 @@ describe("runRenderCommand", () => {
   });
 
   it("falls back to stdin when no fixture is supplied", async () => {
-    const stdin = Readable.from([
-      Buffer.from(JSON.stringify({ model: "claude-haiku-4-5" })),
-    ]);
+    const stdin = Readable.from([Buffer.from(JSON.stringify({ model: "claude-haiku-4-5" }))]);
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const code = await runRenderCommand({
       args: { accessibility: { noColor: true, noUnicode: false } },

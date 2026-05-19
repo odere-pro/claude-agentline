@@ -4,6 +4,7 @@ import { formatDuration, resolveDurationFormat } from "./duration.js";
 
 const HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
 
 describe("formatDuration", () => {
   it("returns '0m' for zero milliseconds in short format", () => {
@@ -53,6 +54,28 @@ describe("formatDuration", () => {
   it("defaults to short format when format arg is omitted", () => {
     expect(formatDuration(30 * MINUTE_MS)).toBe("30m");
   });
+
+  it("compact format renders days + hours + minutes", () => {
+    expect(formatDuration(2 * DAY_MS + 1 * HOUR_MS + 59 * MINUTE_MS, "compact")).toBe("2d 1h 59m");
+  });
+
+  it("compact format keeps minutes alongside hours below a day", () => {
+    expect(formatDuration(2 * HOUR_MS + 12 * MINUTE_MS, "compact")).toBe("2h 12m");
+    expect(formatDuration(23 * HOUR_MS, "compact")).toBe("23h 0m");
+  });
+
+  it("compact format drops to minutes below an hour", () => {
+    expect(formatDuration(30 * MINUTE_MS, "compact")).toBe("30m");
+    expect(formatDuration(0, "compact")).toBe("0m");
+  });
+
+  it("compact format keeps a zero-hour day as '1d 0h 30m'", () => {
+    expect(formatDuration(DAY_MS + 30 * MINUTE_MS, "compact")).toBe("1d 0h 30m");
+  });
+
+  it("clamps negative inputs to zero (compact)", () => {
+    expect(formatDuration(-1_000, "compact")).toBe("0m");
+  });
 });
 
 describe("resolveDurationFormat", () => {
@@ -66,6 +89,10 @@ describe("resolveDurationFormat", () => {
 
   it("accepts 'clock'", () => {
     expect(resolveDurationFormat("clock")).toBe("clock");
+  });
+
+  it("accepts 'compact'", () => {
+    expect(resolveDurationFormat("compact")).toBe("compact");
   });
 
   it("falls back to 'short' for unrecognised strings", () => {

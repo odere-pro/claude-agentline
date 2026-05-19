@@ -23,10 +23,7 @@ export interface GitInvokeOptions {
   readonly env?: NodeJS.ProcessEnv;
 }
 
-export function gitRun(
-  args: readonly string[],
-  options: GitInvokeOptions,
-): string | null {
+export function gitRun(args: readonly string[], options: GitInvokeOptions): string | null {
   const argv = ["-C", options.cwd, ...args];
   try {
     const out = execFileSync("git", argv, {

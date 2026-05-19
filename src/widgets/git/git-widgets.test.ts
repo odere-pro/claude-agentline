@@ -14,11 +14,7 @@ import { gitBranchWidget } from "./branch.js";
 import { gitChangesWidget } from "./changes.js";
 import { gitOriginRepoWidget, gitUpstreamWidget } from "./remote.js";
 import { gitShaWidget, gitWorktreeWidget } from "./sha.js";
-import {
-  gitStagedWidget,
-  gitUnstagedWidget,
-  gitUntrackedWidget,
-} from "./status.js";
+import { gitUntrackedWidget } from "./status.js";
 import { GIT_WIDGETS, registerGitWidgets } from "./index.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
@@ -58,10 +54,10 @@ function makeCtx(git: GitState | undefined, overrides: Partial<WidgetContext> = 
 }
 
 describe("registerGitWidgets", () => {
-  it("ships exactly 12 widgets in sorted order", () => {
+  it("ships exactly 10 widgets in sorted order", () => {
     const r = new WidgetRegistry();
     registerGitWidgets(r);
-    expect(r.size()).toBe(12);
+    expect(r.size()).toBe(10);
     expect(r.list()).toEqual([
       "git-ahead-behind",
       "git-branch",
@@ -70,14 +66,12 @@ describe("registerGitWidgets", () => {
       "git-origin-repo",
       "git-pr",
       "git-sha",
-      "git-staged",
-      "git-unstaged",
       "git-untracked",
       "git-upstream",
       "git-worktree",
     ]);
     expect(Object.isFrozen(GIT_WIDGETS)).toBe(true);
-    expect(GIT_WIDGETS).toHaveLength(12);
+    expect(GIT_WIDGETS).toHaveLength(10);
   });
 
   it("hides every widget when ctx.git is missing", () => {
@@ -109,7 +103,11 @@ describe("git-branch widget", () => {
 
   it("uses the dirty role when there are staged changes", () => {
     const cell = gitBranchWidget.render(
-      makeCtx(makeSnapshot({ status: { staged: 1, unstaged: 0, untracked: 0, conflicts: 0, modified: 0, added: 1 } })),
+      makeCtx(
+        makeSnapshot({
+          status: { staged: 1, unstaged: 0, untracked: 0, conflicts: 0, modified: 0, added: 1 },
+        }),
+      ),
       { options: {}, rawValue: false },
     );
     expect(cell.fg).toBe(DEFAULT_PALETTE["git-dirty"]);
@@ -117,7 +115,11 @@ describe("git-branch widget", () => {
 
   it("uses the dirty role when there are unstaged changes", () => {
     const cell = gitBranchWidget.render(
-      makeCtx(makeSnapshot({ status: { staged: 0, unstaged: 2, untracked: 0, conflicts: 0, modified: 2, added: 0 } })),
+      makeCtx(
+        makeSnapshot({
+          status: { staged: 0, unstaged: 2, untracked: 0, conflicts: 0, modified: 2, added: 0 },
+        }),
+      ),
       { options: {}, rawValue: false },
     );
     expect(cell.fg).toBe(DEFAULT_PALETTE["git-dirty"]);
@@ -125,7 +127,11 @@ describe("git-branch widget", () => {
 
   it("uses the dirty role when there are untracked files", () => {
     const cell = gitBranchWidget.render(
-      makeCtx(makeSnapshot({ status: { staged: 0, unstaged: 0, untracked: 3, conflicts: 0, modified: 0, added: 0 } })),
+      makeCtx(
+        makeSnapshot({
+          status: { staged: 0, unstaged: 0, untracked: 3, conflicts: 0, modified: 0, added: 0 },
+        }),
+      ),
       { options: {}, rawValue: false },
     );
     expect(cell.fg).toBe(DEFAULT_PALETTE["git-dirty"]);
@@ -192,26 +198,20 @@ describe("git-changes widget", () => {
   });
 });
 
-describe("git-staged / -unstaged / -untracked widgets", () => {
+describe("git-untracked widget", () => {
   const dirty = makeSnapshot({
     status: { staged: 2, unstaged: 1, untracked: 3, conflicts: 0, modified: 1, added: 1 },
   });
 
-  it("count widgets render their number", () => {
-    expect(
-      gitStagedWidget.render(makeCtx(dirty), { options: {}, rawValue: false }).text,
-    ).toBe("2");
-    expect(
-      gitUnstagedWidget.render(makeCtx(dirty), { options: {}, rawValue: false }).text,
-    ).toBe("1");
-    expect(
-      gitUntrackedWidget.render(makeCtx(dirty), { options: {}, rawValue: false }).text,
-    ).toBe("3");
+  it("count widget renders its number", () => {
+    expect(gitUntrackedWidget.render(makeCtx(dirty), { options: {}, rawValue: false }).text).toBe(
+      "3",
+    );
   });
 
-  it("count widgets hide at zero by default", () => {
+  it("count widget hides at zero by default", () => {
     expect(
-      gitStagedWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false }).hidden,
+      gitUntrackedWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false }).hidden,
     ).toBe(true);
   });
 });
@@ -219,17 +219,16 @@ describe("git-staged / -unstaged / -untracked widgets", () => {
 describe("git-ahead-behind widget", () => {
   it("hides without an upstream ref", () => {
     expect(
-      gitAheadBehindWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false })
-        .hidden,
+      gitAheadBehindWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false }).hidden,
     ).toBe(true);
   });
 
   it("hides when ahead and behind are both zero (default)", () => {
     expect(
-      gitAheadBehindWidget.render(
-        makeCtx(makeSnapshot({ upstream: "origin/main" })),
-        { options: {}, rawValue: false },
-      ).hidden,
+      gitAheadBehindWidget.render(makeCtx(makeSnapshot({ upstream: "origin/main" })), {
+        options: {},
+        rawValue: false,
+      }).hidden,
     ).toBe(true);
   });
 
@@ -250,10 +249,10 @@ describe("git-ahead-behind widget", () => {
   });
 
   it("hideEven=false keeps the widget visible at parity", () => {
-    const cell = gitAheadBehindWidget.render(
-      makeCtx(makeSnapshot({ upstream: "origin/main" })),
-      { options: { hideEven: false }, rawValue: false },
-    );
+    const cell = gitAheadBehindWidget.render(makeCtx(makeSnapshot({ upstream: "origin/main" })), {
+      options: { hideEven: false },
+      rawValue: false,
+    });
     expect(cell.text).toBe("↑0 ↓0");
   });
 });
@@ -267,7 +266,11 @@ describe("git-conflicts widget", () => {
 
   it("renders ⚡N with the danger role", () => {
     const cell = gitConflictsWidget.render(
-      makeCtx(makeSnapshot({ status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 2, modified: 0, added: 0 } })),
+      makeCtx(
+        makeSnapshot({
+          status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 2, modified: 0, added: 0 },
+        }),
+      ),
       { options: {}, rawValue: false },
     );
     expect(cell.text).toBe("⚡2");
@@ -318,18 +321,17 @@ describe("git-origin-repo widget", () => {
 
   it("hides without an origin", () => {
     expect(
-      gitOriginRepoWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false })
-        .hidden,
+      gitOriginRepoWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false }).hidden,
     ).toBe(true);
   });
 });
 
 describe("git-upstream widget", () => {
   it("renders the upstream ref", () => {
-    const cell = gitUpstreamWidget.render(
-      makeCtx(makeSnapshot({ upstream: "origin/main" })),
-      { options: {}, rawValue: false },
-    );
+    const cell = gitUpstreamWidget.render(makeCtx(makeSnapshot({ upstream: "origin/main" })), {
+      options: {},
+      rawValue: false,
+    });
     expect(cell.text).toBe("origin/main");
   });
 

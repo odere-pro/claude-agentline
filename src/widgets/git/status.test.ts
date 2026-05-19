@@ -7,11 +7,7 @@ import type { StdinPayload } from "../../stdin/index.js";
 import { frozenClock } from "../clock.js";
 import type { WidgetContext } from "../context.js";
 
-import {
-  gitStagedWidget,
-  gitUnstagedWidget,
-  gitUntrackedWidget,
-} from "./status.js";
+import { gitUntrackedWidget } from "./status.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
 
@@ -48,57 +44,6 @@ function makeCtx(git: GitState | undefined, overrides: Partial<WidgetContext> = 
     ...overrides,
   };
 }
-
-describe("git-staged widget", () => {
-  it("hides when ctx.git is absent", () => {
-    const cell = gitStagedWidget.render(makeCtx(undefined), { options: {}, rawValue: false });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("hides at zero by default", () => {
-    const cell = gitStagedWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("renders the staged count", () => {
-    const snap = makeSnapshot({
-      status: { staged: 3, unstaged: 0, untracked: 0, conflicts: 0, modified: 0, added: 3 },
-    });
-    const cell = gitStagedWidget.render(makeCtx(snap), { options: {}, rawValue: false });
-    expect(cell.text).toBe("3");
-  });
-
-  it("shows 0 when hideZero=false", () => {
-    const cell = gitStagedWidget.render(makeCtx(makeSnapshot()), {
-      options: { hideZero: false },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("0");
-  });
-});
-
-describe("git-unstaged widget", () => {
-  it("hides when ctx.git is absent", () => {
-    const cell = gitUnstagedWidget.render(makeCtx(undefined), { options: {}, rawValue: false });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("hides at zero by default", () => {
-    const cell = gitUnstagedWidget.render(makeCtx(makeSnapshot()), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("renders the unstaged count", () => {
-    const snap = makeSnapshot({
-      status: { staged: 0, unstaged: 2, untracked: 0, conflicts: 0, modified: 2, added: 0 },
-    });
-    const cell = gitUnstagedWidget.render(makeCtx(snap), { options: {}, rawValue: false });
-    expect(cell.text).toBe("2");
-  });
-});
 
 describe("git-untracked widget", () => {
   it("hides when ctx.git is absent", () => {

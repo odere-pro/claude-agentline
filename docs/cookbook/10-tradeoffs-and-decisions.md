@@ -99,7 +99,7 @@ Each entry: **decision**, **alternatives**, **why this**, **what we give up**.
 
 - **Alternatives.** Fetch pricing at render time; allow per-tenant tables in config.
 - **Why this.** No network at render time (`03 · N5`). A scheduled workflow (`pricing-skew.yml`) flags drift weekly.
-- **What we give up.** Real-time pricing. The pricing table is reported by `<bin> doctor` (D07) and a skew >90 days is a doctor warning.
+- **What we give up.** Real-time pricing. Freshness is enforced off the user-facing path: a unit test plus the `gate-22-pricing-freshness` repo gate fail the build when the embedded table ages past 90 days (the scheduled `pricing-skew.yml` workflow remains the monthly belt-and-suspenders). `agentline doctor` no longer reports pricing — no widget consumes the table at runtime, so it is a maintainer/CI concern only.
 
 ---
 

@@ -121,7 +121,8 @@ export function moveWidget(cfg: AgentlineConfig, spec: MoveWidgetSpec): Agentlin
   const source = requireLine(lines, spec.fromLine, "move");
   requireWidgetIndex(source.widgets.length, spec.fromAt, spec.fromLine);
   const moved = source.widgets.splice(spec.fromAt, 1)[0];
-  if (!moved) throw new ConfigMutationError(`move: no widget at line ${spec.fromLine} index ${spec.fromAt}`);
+  if (!moved)
+    throw new ConfigMutationError(`move: no widget at line ${spec.fromLine} index ${spec.fromAt}`);
   const dest = requireLine(lines, spec.toLine, "move");
   const toAt = spec.toAt ?? dest.widgets.length;
   assertInsertIndex(toAt, dest.widgets.length, spec.toLine);
@@ -130,10 +131,7 @@ export function moveWidget(cfg: AgentlineConfig, spec: MoveWidgetSpec): Agentlin
 }
 
 /** Set `options[key] = value` on the widget at `lines[line][at]`. */
-export function setWidgetOption(
-  cfg: AgentlineConfig,
-  spec: SetWidgetOptionSpec,
-): AgentlineConfig {
+export function setWidgetOption(cfg: AgentlineConfig, spec: SetWidgetOptionSpec): AgentlineConfig {
   if (typeof spec.key !== "string" || spec.key.trim() === "") {
     throw new ConfigMutationError("widget option key must be a non-empty string");
   }
@@ -180,10 +178,7 @@ export function saveReplaceWidget(
   return persist((cfg) => replaceWidget(cfg, spec), opts);
 }
 
-export function saveMoveWidget(
-  spec: MoveWidgetSpec,
-  opts?: SaveOptions,
-): Promise<AgentlineConfig> {
+export function saveMoveWidget(spec: MoveWidgetSpec, opts?: SaveOptions): Promise<AgentlineConfig> {
   return persist((cfg) => moveWidget(cfg, spec), opts);
 }
 

@@ -43,10 +43,7 @@ export function honourNoColorEnv(
   return flags;
 }
 
-export function effectiveDepth(
-  detected: ColourDepth,
-  flags: AccessibilityFlags,
-): ColourDepth {
+export function effectiveDepth(detected: ColourDepth, flags: AccessibilityFlags): ColourDepth {
   return flags.noColor ? "none" : detected;
 }
 

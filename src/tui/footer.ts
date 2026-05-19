@@ -7,6 +7,7 @@
  * layout (`<Box flexDirection="column">…`) lives in `app.tsx`.
  */
 
+import { identityTranslator, type Translator } from "../i18n/index.js";
 import type { KeyBinding, KeyScope } from "../keys/index.js";
 
 import { isPickerMode, type EditorMode } from "./state.js";
@@ -17,18 +18,22 @@ const FOOTER_LABEL: Record<string, string> = {
   "move-cursor-row": "row",
   "move-widget": "move widget",
   "move-widget-row": "widget→row",
-  "edit-widget": "+add",
   add: "add",
   replace: "replace",
   delete: "delete",
   save: "save",
-  "toggle-glyphs": "glyphs on/off",
   "picker-filter": "type to filter",
+  "picker-search": "search",
   "picker-navigate": "navigate",
   "picker-confirm": "confirm",
   "picker-back": "back",
   quit: "quit",
 };
+
+/** Actions intentionally omitted from the footer (functional but redundant
+ *  with another visible binding). `edit-widget` (↵ on the +add cell) duplicates
+ *  the `a` add verb, so only `a add` is advertised. */
+const FOOTER_HIDDEN_ACTIONS: ReadonlySet<string> = new Set(["edit-widget"]);
 
 /** Actions that describe navigation / motion — surfaced on the footer's first line. */
 const MOTION_ACTIONS: ReadonlySet<string> = new Set([
@@ -50,10 +55,14 @@ function modeToScope(mode: EditorMode): KeyScope {
 export function footerLines(
   bindings: readonly KeyBinding[],
   mode: EditorMode,
+  t: Translator = identityTranslator,
 ): { readonly motion: string; readonly actions: string } {
   const scope = modeToScope(mode);
-  const inScope = bindings.filter((b) => b.scope === scope || b.scope === "any");
-  const fmt = (b: KeyBinding) => `${b.key} ${FOOTER_LABEL[b.action] ?? b.description}`;
+  const inScope = bindings.filter(
+    (b) => (b.scope === scope || b.scope === "any") && !FOOTER_HIDDEN_ACTIONS.has(b.action),
+  );
+  const fmt = (b: KeyBinding) =>
+    `${b.key} ${t(`footer.${b.action}`, FOOTER_LABEL[b.action] ?? b.description)}`;
   /*
    * Motion bindings come from the current scope only — `any`-scope bindings
    * (quit, help) belong on the actions line so they sit beside the verbs.

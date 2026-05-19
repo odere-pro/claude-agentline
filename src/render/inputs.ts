@@ -12,6 +12,7 @@
 import type { AgentlineConfig } from "../config/types.js";
 import type { GitState } from "../git/index.js";
 import type { ResolvedSessionFields } from "../session/index.js";
+import type { PlanSnapshot } from "../session/plan.js";
 import type { StdinPayload } from "../stdin/index.js";
 import type { Theme } from "../theme/index.js";
 import type { TokensSnapshot } from "../tokens/index.js";
@@ -30,4 +31,5 @@ export interface RenderInputs {
   readonly tokens?: TokensSnapshot;
   readonly git?: GitState;
   readonly session?: ResolvedSessionFields;
+  readonly plan?: PlanSnapshot;
 }

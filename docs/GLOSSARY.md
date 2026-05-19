@@ -67,7 +67,7 @@ update the other artefact, not this one.
 ### `widget type`
 
 > The kebab-case string identifier for a widget, e.g. `git-branch`,
-> `tokens-total`, `session-usage`.
+> `tokens`, `session-weekly-usage`.
 
 **Used in:** `WidgetConfig.type`, widget catalog keys, `agentline config widget` commands.
 
@@ -75,11 +75,12 @@ update the other artefact, not this one.
 
 ### `widget family`
 
-> One of the seven named groups that organise built-in widgets:
-> `session`, `tokens`, `context`, `rate-limits`, `git`, `time`, `custom`.
+> One of the five named groups that organise built-in widgets:
+> `session`, `tokens`, `context`, `rate-limits`, `git`.
 
 **Used in:** `WidgetMeta.family` (code), `WIDGET_FAMILIES` (constant),
-`src/widgets/<family>/` directories, picker step 1.  
+`src/widgets/<family>/` directories, picker group browser, and the
+per-row family badge in the flat-search overlay.  
 **Note:** Earlier code spelled this as `WidgetCategory` / `WIDGET_CATEGORIES` /
 `CATEGORY_COLOR` / `.category`. The TypeScript surface is now aligned with the
 user-facing term **family**.
@@ -89,27 +90,17 @@ user-facing term **family**.
 ### `variant`
 
 > A named preset of widget `options` that switches a widget's display style.
-> Example: `clock` has variants `time-24h`, `time-12h`, `seconds`, `date`, `datetime`.
+> Example: `current-session-reset-at` has variants `time-24h`, `time-12h`, `seconds`.
 
 **Used in:** `WidgetVariant`, picker step 3, `agentline config widget` update verb.  
 **Distinct from:** `widget type` (what the widget is) and `options` (raw config).
 
 ---
 
-### `widget glyph`
-
-> The per-type Nerd Font codepoint stored in the widget catalog.
-> Prepended to the widget's text when `config.glyphs` is `"nerd-font"`.
-
-**Used in:** `WidgetMeta.glyph`, `WIDGET_GLYPHS`, `src/lib/nerd-font.ts`.  
-**Distinct from:** "glyph mode" (the on/off toggle).
-
----
-
 ### `widget catalog`
 
 > The static metadata table `WIDGET_CATALOG` keyed by widget type.
-> Contains: human name, description, family, glyph, and variants.
+> Contains: human name, description, family, and variants.
 
 **Used in:** `src/widgets/catalog.ts`, the TUI picker, `agentline config widget catalog`.  
 **Distinct from:** "widget registry" (runtime render-function map).
@@ -126,54 +117,46 @@ user-facing term **family**.
 
 ---
 
-## Built-in widget types (42 total)
+## Built-in widget types (36 total)
 
 All types are kebab-case strings. Source of truth: `src/widgets/catalog.ts`.
 
 ### Session family (7)
 
-| Type              | Description                                |
-| ----------------- | ------------------------------------------ |
-| `model`           | Active model id (e.g. Sonnet 4.6)          |
-| `version`         | Claude Code version                        |
-| `thinking-effort` | Thinking-effort tier: low, medium, or high |
-| `skills`          | Skills attached to the session             |
-| `session-id`      | Short session id                           |
-| `session-name`    | Session name, or the short id when unset   |
-| `account-email`   | Logged-in account email                    |
+| Type              | Description                                     |
+| ----------------- | ----------------------------------------------- |
+| `model`           | Active model id (e.g. Sonnet 4.6)               |
+| `version`         | Claude Code version                             |
+| `thinking-effort` | Thinking-effort tier: low, medium, or high      |
+| `plan`            | Active plan name (newest file in the plans dir) |
+| `session-id`      | Short session id                                |
+| `account-email`   | Logged-in account email                         |
 
-### Tokens family (7)
+### Tokens family (3)
 
-| Type            | Description                                     |
-| --------------- | ----------------------------------------------- |
-| `tokens-total`  | Running token total for the chosen reset axis   |
-| `tokens-input`  | Input-token subtotal for the chosen reset axis  |
-| `tokens-output` | Output-token subtotal for the chosen reset axis |
-| `tokens-cached` | Cached-token subtotal (prompt-cache hits)       |
-| `input-speed`   | Input tokens per second over the active window  |
-| `output-speed`  | Output tokens per second over the active window |
-| `total-speed`   | Combined token throughput per second            |
+| Type            | Description                                            |
+| --------------- | ------------------------------------------------------ |
+| `tokens`        | Input ↓ + output ↑ subtotals for the chosen reset axis |
+| `tokens-cached` | Cached-token subtotal (prompt-cache hits)              |
+| `token-speed`   | Input ↓ + output ↑ tokens per second (rolling window)  |
 
-### Context family (4)
+### Context family (3)
 
-| Type                        | Description                                                  |
-| --------------------------- | ------------------------------------------------------------ |
-| `context-length`            | Tokens currently in the context window                       |
-| `context-percentage`        | Percentage of the model's context window in use              |
-| `context-percentage-usable` | Percentage of usable context in use (excludes output budget) |
-| `context-bar`               | Tiny inline bar approximating context fill                   |
+| Type                 | Description                                                                   |
+| -------------------- | ----------------------------------------------------------------------------- |
+| `context-length`     | Tokens used, plus the model window (`45.2k / 200k`)                           |
+| `context-percentage` | Percentage of the model's context window used, plus the window (`37% · 200k`) |
+| `context-bar`        | Inline fill bar, plus the model window (`████░░░░ 200k`)                      |
 
-### Rate-limits family (7)
+### Rate-limits family (5)
 
-| Type                  | Description                                  |
-| --------------------- | -------------------------------------------- |
-| `session-usage`       | Percentage of the session quota consumed     |
-| `weekly-sonnet-usage` | Weekly Sonnet model-usage percentage         |
-| `weekly-opus-usage`   | Weekly Opus model-usage percentage           |
-| `block-reset-timer`   | Time remaining until the next block resets   |
-| `block-reset-at`      | Wall-clock time of the next block reset      |
-| `weekly-reset-timer`  | Time remaining until the weekly quota resets |
-| `weekly-reset-at`     | Wall-clock time of the next weekly reset     |
+| Type                          | Description                                     |
+| ----------------------------- | ----------------------------------------------- |
+| `session-weekly-usage`        | Combined session + weekly usage % from the host |
+| `current-session-reset-timer` | Time remaining until the current session resets |
+| `current-session-reset-at`    | Wall-clock time of the next session reset       |
+| `week-limit-timer`            | Time remaining until the weekly limit resets    |
+| `weekly-reset-at`             | Wall-clock time of the next weekly reset        |
 
 ### Git family (12)
 
@@ -183,29 +166,12 @@ All types are kebab-case strings. Source of truth: `src/widgets/catalog.ts`.
 | `git-sha`          | Short commit SHA of HEAD                    |
 | `git-worktree`     | Basename of the current worktree            |
 | `git-changes`      | Staged, unstaged, and untracked file counts |
-| `git-staged`       | Staged-file count                           |
-| `git-unstaged`     | Unstaged-file count                         |
 | `git-untracked`    | Untracked-file count                        |
 | `git-conflicts`    | Merge-conflict file count                   |
 | `git-ahead-behind` | Commits ahead of and behind upstream        |
 | `git-upstream`     | Upstream branch, e.g. `origin/main`         |
 | `git-origin-repo`  | Repo segment of the origin remote URL       |
 | `git-pr`           | PR for HEAD's branch (opt-in network)       |
-
-### Time family (3)
-
-| Type             | Description                                        |
-| ---------------- | -------------------------------------------------- |
-| `clock`          | Wall-clock time; `options.format` accepts strftime |
-| `uptime-session` | Uptime since the Claude Code session started       |
-| `uptime-block`   | Uptime of the active conversation block            |
-
-### Custom family (2)
-
-| Type        | Description                                                  |
-| ----------- | ------------------------------------------------------------ |
-| `separator` | A single user-defined glyph (`options.char`)                 |
-| `osc-link`  | Clickable OSC-8 hyperlink (terminal-supported) wrapping text |
 
 ---
 
@@ -224,7 +190,8 @@ All types are kebab-case strings. Source of truth: `src/widgets/catalog.ts`.
 ### `config template`
 
 > A shipped default config file used by `agentline install` to seed the
-> user config on first install. Currently only `templates/default.config.json`.
+> user config on first install, and rewritten over the user config by
+> `agentline reset`. Currently only `templates/default.config.json`.
 
 **Used in:** `templates/`, install flow.  
 **Distinct from:** "theme preset" (a shipped theme JSON, not a config).  
@@ -259,14 +226,6 @@ All types are kebab-case strings. Source of truth: `src/widgets/catalog.ts`.
 **Used in:** `MergeMode`, `WidgetConfig.merged`, config docs.
 
 ---
-
-### `glyph mode`
-
-> Top-level `config.glyphs` toggle: `"off"` (default, no icons) or
-> `"nerd-font"` (prepend per-widget Nerd Font codepoints).
-
-**Used in:** `GlyphMode`, `AgentlineConfig.glyphs`, config docs.  
-**Distinct from:** "widget glyph" (the per-type codepoint itself).
 
 ---
 
@@ -344,11 +303,10 @@ Required roles (must be present in every theme):
 
 Optional roles (missing roles fall back to the compiled defaults):
 
-| Role    | Used by                                         |
-| ------- | ----------------------------------------------- |
-| `fg`    | default foreground when no widget colour is set |
-| `bg`    | default background                              |
-| `clock` | `clock`, `uptime-session`, `uptime-block`       |
+| Role | Used by                                         |
+| ---- | ----------------------------------------------- |
+| `fg` | default foreground when no widget colour is set |
+| `bg` | default background                              |
 
 **Distinct from:** `fg`/`bg` per-widget overrides in `WidgetConfig`.
 
@@ -378,7 +336,6 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 | `PowerlineCaps`          | `src/config/types.ts`          | Start/end cap glyphs                                             |
 | `PowerlineGlyphs`        | `src/config/types.ts`          | Chevron glyph overrides                                          |
 | `TerminalWidthConfig`    | `src/config/types.ts`          | Width detection settings                                         |
-| `GlyphMode`              | `src/config/types.ts`          | `"off" \| "nerd-font"`                                           |
 | `RawColour`              | `src/config/types.ts`          | Pre-validation colour string                                     |
 | `Cell`                   | `src/widgets/types.ts`         | Atomic render unit output                                        |
 | `WidgetContext`          | `src/widgets/types.ts`         | Render-time environment passed to each widget                    |
@@ -398,7 +355,7 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 | `KeyBinding`             | `src/keys/bindings.ts`         | Single key binding entry                                         |
 | `WidgetMeta`             | `src/widgets/catalog.ts`       | Widget metadata entry in catalog                                 |
 | `WidgetVariant`          | `src/widgets/catalog.ts`       | Named display variant for a widget                               |
-| `WidgetFamily`           | `src/widgets/catalog/types.ts` | Union of the 7 widget family strings                             |
+| `WidgetFamily`           | `src/widgets/catalog/types.ts` | Union of the 5 widget family strings                             |
 | `WidgetMetaEntry`        | `src/widgets/catalog.ts`       | `WidgetMeta` paired with its `type` string                       |
 
 ---
@@ -416,8 +373,11 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 
 ### `picker`
 
-> The 3-step widget-selection overlay inside the editor:
-> step 1 selects a family, step 2 selects a widget type, step 3 selects a variant.
+> The widget-selection overlay inside the editor. Default view is the
+> group browser (pick a family → in-family list). Pressing `/` switches
+> to a flat search across every catalogued widget with a family badge
+> on each row. Widgets with catalogued variants drill into a final
+> variant step.
 
 **Used in:** `src/tui/picker.ts`, `src/tui/state.ts`, keymap docs.
 
@@ -438,7 +398,7 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 ### `fixture`
 
 > A synthetic Claude Code stdin JSON payload used in tests and
-> `agentline start` / `agentline render`.
+> `agentline render`.
 
 **Used in:** `tests/golden/`, `src/render/fixture-runner.ts`, `src/doctor/fixture.ts`.
 
@@ -474,13 +434,14 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 
 Do not use these in new code, docs, or comments. Update any occurrence you find.
 
-| Retired term                            | Use instead                    | Reason                                                                    |
-| --------------------------------------- | ------------------------------ | ------------------------------------------------------------------------- |
-| "preset" (for init configs)             | "config template"              | Ambiguous with theme preset; init presets were removed                    |
-| "config preset" / "init preset"         | "config template"              | Same as above                                                             |
-| "category" (for widget grouping)        | "family"                       | Replaced everywhere — in docs, agents, and TypeScript                     |
-| "config layer" (implying 3 layers)      | "user config" + "env override" | Project-config layer was removed; only 2 layers remain                    |
-| "options sheet" (TUI)                   | —                              | Removed in editor redesign; nothing replaced it                           |
-| "focus" / "power" (init template names) | —                              | Removed; only the `default` template ships                                |
-| `agentline config theme`                | —                              | Subcommand retired; edit `config.theme` directly or use `agentline edit`  |
-| `agentline init`                        | —                              | Not in current CLI; `agentline install` seeds the config on first install |
+| Retired term                                                  | Use instead                    | Reason                                                                                                                        |
+| ------------------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| "preset" (for init configs)                                   | "config template"              | Ambiguous with theme preset; init presets were removed                                                                        |
+| "config preset" / "init preset"                               | "config template"              | Same as above                                                                                                                 |
+| "category" (for widget grouping)                              | "family"                       | Replaced everywhere — in docs, agents, and TypeScript                                                                         |
+| "config layer" (implying 3 layers)                            | "user config" + "env override" | Project-config layer was removed; only 2 layers remain                                                                        |
+| "options sheet" (TUI)                                         | —                              | Removed in editor redesign; nothing replaced it                                                                               |
+| "focus" / "power" (init template names)                       | —                              | Removed; only the `default` template ships                                                                                    |
+| `agentline config theme`                                      | —                              | Subcommand retired; edit `config.theme` directly or use `agentline edit`                                                      |
+| `agentline init`                                              | —                              | Not in current CLI; `agentline install` seeds the config on first install                                                     |
+| "glyph mode" / `config.glyphs` / "widget glyph" / `GlyphMode` | —                              | Top-level Nerd Font glyph layer removed; it never rendered reliably across terminals. Powerline chevron glyphs are unaffected |

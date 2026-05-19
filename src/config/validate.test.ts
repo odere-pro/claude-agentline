@@ -55,14 +55,30 @@ describe("validateConfig", () => {
     expect(() => validateConfig({ ...DEFAULT_CONFIG, lines: [{ widgets: [] }] })).not.toThrow();
   });
 
-  it("accepts the two valid glyph modes", () => {
-    expect(() => validateConfig({ ...DEFAULT_CONFIG, glyphs: "off" })).not.toThrow();
-    expect(() => validateConfig({ ...DEFAULT_CONFIG, glyphs: "nerd-font" })).not.toThrow();
+  it("accepts a partial families override", () => {
+    const cfg = {
+      ...DEFAULT_CONFIG,
+      families: { git: { colour: "#00ff88" }, context: { glyph: "▣" } },
+    };
+    expect(() => validateConfig(cfg)).not.toThrow();
   });
 
-  it("rejects an unknown glyph mode", () => {
-    expect(() => validateConfig({ ...DEFAULT_CONFIG, glyphs: "fancy" })).toThrowError(
-      ConfigValidationError,
-    );
+  it("rejects an invalid family colour", () => {
+    const cfg = { ...DEFAULT_CONFIG, families: { git: { colour: "neon-pink" } } };
+    expect(() => validateConfig(cfg)).toThrowError(ConfigValidationError);
+  });
+
+  it("rejects an unknown family key", () => {
+    const cfg = { ...DEFAULT_CONFIG, families: { bogus: { colour: "red" } } };
+    expect(() => validateConfig(cfg)).toThrowError(ConfigValidationError);
+  });
+
+  it("accepts a translations table", () => {
+    const cfg = {
+      ...DEFAULT_CONFIG,
+      language: "fr",
+      translations: { fr: { "widget.default-label.reset-at": "fin à " } },
+    };
+    expect(() => validateConfig(cfg)).not.toThrow();
   });
 });

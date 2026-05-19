@@ -40,12 +40,12 @@ See [install.md](./install.md) for `--force`, `--dry-run`, and `CLAUDE_CONFIG_DI
 
 ## Step 2 — See the default
 
-Restart your Claude Code session. The statusline appears at the bottom of the prompt with the default layout (model, git-branch, context, tokens, session-usage, block-reset-timer, clock).
+Restart your Claude Code session. The statusline appears at the bottom of the prompt with the default three-line layout (line 1: model, thinking-effort, git-branch, git-changes; line 2: context-percentage, context-bar, tokens; line 3: session-weekly-usage, current-session-reset-timer, week-limit-timer).
 
 If it doesn't render:
 
 ```bash
-agentline doctor          # full health report (D01–D10)
+agentline doctor          # full health report (D01–D08)
 agentline doctor --fix    # auto-repair D01–D04
 ```
 
@@ -59,7 +59,7 @@ The five installed skills give any Claude Code session enough context to drive a
 
 - _"switch the theme to vscode-dark"_
 - _"add a context-percentage widget"_
-- _"remove the session-usage widget"_
+- _"remove the git-changes widget"_
 - _"restore the default layout"_
 
 The agent edits `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` directly. agentline is configured globally only; there is no per-project config. The change shows up on the **next prompt render** — Claude Code re-runs the statusline bin every prompt — so no restart is needed.
@@ -91,7 +91,7 @@ The prior `statusLine` was backed up at install time and is restored from `~/.co
 | ------------------------------------- | ------------------------------------------ |
 | Change widgets or layout              | [config.md](./config.md)                   |
 | Pick or author a theme                | [themes.md](./themes.md)                   |
-| Browse all 42 available widgets       | [widgets.md](./widgets.md)                 |
+| Browse all 37 available widgets       | [widgets.md](./widgets.md)                 |
 | Use the interactive TUI config editor | [keymap.md](./keymap.md)                   |
 | Understand health checks in detail    | [doctor.md](./doctor.md)                   |
 | Something is broken                   | [troubleshooting.md](./troubleshooting.md) |

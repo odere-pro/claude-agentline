@@ -61,7 +61,7 @@ const realTokens: TokensSnapshot = Object.freeze({
 
 beforeEach(() => {
   setPreviewModeForTesting({
-    kind: "real",
+    source: "cache",
     payload: { raw: {}, truncated: false, model: "claude-opus-4-7", cwd: "/agentline" },
     session: { model: "claude-opus-4-7" },
     tokens: realTokens,
@@ -228,10 +228,10 @@ describe("Preview — projection", () => {
             { type: "git-branch" },
             { type: "git-changes" },
             { type: "context-percent" },
-            { type: "tokens-input" },
-            { type: "tokens-output" },
+            { type: "tokens" },
+            { type: "token-speed" },
             { type: "session-time" },
-            { type: "clock" },
+            { type: "version" },
             { type: "account-email" },
             { type: "context-tokens-used" },
           ],
@@ -255,7 +255,7 @@ describe("Preview — projection", () => {
       base: DEFAULT_CONFIG,
       lines: [
         {
-          widgets: [{ type: "model" }, { type: "git-branch" }, { type: "clock" }],
+          widgets: [{ type: "model" }, { type: "git-branch" }, { type: "version" }],
         },
         { widgets: [] },
         { widgets: [] },
@@ -266,5 +266,70 @@ describe("Preview — projection", () => {
     });
     // Exactly one outer-Box child per row (no header element) = 3 children.
     expect(previewChildren(node)).toHaveLength(3);
+  });
+
+  it("sizes the outer bordered box to the resolved terminal width", () => {
+    for (const columns of [40, 120, 200]) {
+      const node = Preview({
+        base: DEFAULT_CONFIG,
+        lines: [{ widgets: [{ type: "model" }] }, { widgets: [] }, { widgets: [] }],
+        cursor: { line: 0, widget: 0 },
+        glyphs: GLYPHS,
+        columns,
+      });
+      // The border must span the full width regardless of how short the rows
+      // are, so the panel never collapses to its content.
+      expect((node.props as { width?: number }).width).toBe(columns);
+    }
+  });
+});
+
+/*
+ * Regression: a configured widget that has no data for this session
+ * (here `account-email` — the pinned cache session carries only model +
+ * git) must stay in the preview as a dim identity chip regardless of
+ * where the cursor sits. Before the fix `filterHiddenSlots` dropped it
+ * unless it was the selected slot, so the line flickered while navigating.
+ */
+describe("Preview — configured-but-empty widgets stay visible", () => {
+  const lines = [
+    { widgets: [{ type: "model" }, { type: "account-email" }, { type: "git-branch" }] },
+    { widgets: [] },
+    { widgets: [] },
+  ];
+
+  function emailVisible(cursor: { line: number; widget: number }): boolean {
+    const node = Preview({ base: DEFAULT_CONFIG, lines, cursor, glyphs: GLYPHS, columns: 200 });
+    return collectTextNodes(node).some((t) => t.text.includes("account-email"));
+  }
+
+  it("shows the account-email chip for every cursor position on the row", () => {
+    // widget 0 = model, 1 = account-email, 2 = git-branch, 3 = add-cell.
+    for (const widget of [0, 1, 2, 3]) {
+      expect(emailVisible({ line: 0, widget }), `cursor widget=${widget}`).toBe(true);
+    }
+  });
+
+  it("shows the account-email chip even when the cursor is on another row", () => {
+    expect(emailVisible({ line: 1, widget: 0 })).toBe(true);
+  });
+
+  it("keeps the row's slot set identical across cursor positions", () => {
+    const textsAt = (widget: number): string[] => {
+      const node = Preview({
+        base: DEFAULT_CONFIG,
+        lines,
+        cursor: { line: 0, widget },
+        glyphs: GLYPHS,
+        columns: 200,
+      });
+      // Strip selection brackets so only the cursor highlight differs.
+      return collectTextNodes(node)
+        .map((t) =>
+          t.text.split(GLYPHS.selectionOpen).join("").split(GLYPHS.selectionClose).join(""),
+        )
+        .filter((s) => s.trim().length > 0);
+    };
+    expect(textsAt(1)).toEqual(textsAt(3));
   });
 });

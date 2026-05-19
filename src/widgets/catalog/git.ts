@@ -10,8 +10,6 @@ export const GIT_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
   "git-sha": entry("Git SHA", "Short commit SHA of HEAD", "git"),
   "git-worktree": entry("Git worktree", "Basename of the current worktree", "git"),
   "git-changes": entry("Git changes", "Staged, unstaged, and untracked file counts", "git"),
-  "git-staged": entry("Git staged", "Staged-file count", "git"),
-  "git-unstaged": entry("Git unstaged", "Unstaged-file count", "git"),
   "git-untracked": entry("Git untracked", "Untracked-file count", "git"),
   "git-conflicts": entry("Git conflicts", "Merge-conflict file count", "git"),
   "git-ahead-behind": entry("Git ahead/behind", "Commits ahead of and behind upstream", "git"),

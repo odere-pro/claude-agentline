@@ -24,40 +24,44 @@ function cfgWith(lines: WidgetConfig[][]): AgentlineConfig {
 }
 
 const baseline = (): AgentlineConfig =>
-  cfgWith([[{ type: "model" }, { type: "git-branch" }, { type: "clock" }]]);
+  cfgWith([[{ type: "model" }, { type: "git-branch" }, { type: "version" }]]);
 
 describe("addWidget", () => {
   it("inserts at the given index", () => {
-    const out = addWidget(baseline(), { line: 0, at: 1, widget: { type: "session-usage" } });
+    const out = addWidget(baseline(), {
+      line: 0,
+      at: 1,
+      widget: { type: "session-weekly-usage" },
+    });
     expect(out.lines[0]?.widgets.map((w) => w.type)).toEqual([
       "model",
-      "session-usage",
+      "session-weekly-usage",
       "git-branch",
-      "clock",
+      "version",
     ]);
   });
 
   it("appends when `at` is omitted", () => {
-    const out = addWidget(baseline(), { line: 0, widget: { type: "separator" } });
+    const out = addWidget(baseline(), { line: 0, widget: { type: "version" } });
     expect(out.lines[0]?.widgets.map((w) => w.type)).toEqual([
       "model",
       "git-branch",
-      "clock",
-      "separator",
+      "version",
+      "version",
     ]);
   });
 
   it("pads with empty lines when targeting a higher line", () => {
-    const out = addWidget(cfgWith([[{ type: "model" }]]), { line: 2, widget: { type: "clock" } });
+    const out = addWidget(cfgWith([[{ type: "model" }]]), { line: 2, widget: { type: "version" } });
     expect(out.lines).toHaveLength(3);
     expect(out.lines[1]?.widgets).toEqual([]);
-    expect(out.lines[2]?.widgets.map((w) => w.type)).toEqual(["clock"]);
+    expect(out.lines[2]?.widgets.map((w) => w.type)).toEqual(["version"]);
   });
 
   it("does not mutate the input config", () => {
     const input = baseline();
     const snapshot = structuredClone(input);
-    addWidget(input, { line: 0, at: 0, widget: { type: "session-usage" } });
+    addWidget(input, { line: 0, at: 0, widget: { type: "session-weekly-usage" } });
     expect(input).toEqual(snapshot);
   });
 
@@ -74,16 +78,16 @@ describe("addWidget", () => {
   });
 
   it("rejects a line index at or beyond the cap", () => {
-    expect(() => addWidget(baseline(), { line: MAX_LINES, widget: { type: "clock" } })).toThrow(
+    expect(() => addWidget(baseline(), { line: MAX_LINES, widget: { type: "version" } })).toThrow(
       /exceeds the 3-line limit/,
     );
-    expect(() => addWidget(baseline(), { line: -1, widget: { type: "clock" } })).toThrow(
+    expect(() => addWidget(baseline(), { line: -1, widget: { type: "version" } })).toThrow(
       ConfigMutationError,
     );
   });
 
   it("rejects an out-of-range insert index", () => {
-    expect(() => addWidget(baseline(), { line: 0, at: 99, widget: { type: "clock" } })).toThrow(
+    expect(() => addWidget(baseline(), { line: 0, at: 99, widget: { type: "version" } })).toThrow(
       /insert index 99 out of range/,
     );
   });
@@ -92,7 +96,7 @@ describe("addWidget", () => {
 describe("removeWidget", () => {
   it("drops the widget at the index", () => {
     const out = removeWidget(baseline(), { line: 0, at: 1 });
-    expect(out.lines[0]?.widgets.map((w) => w.type)).toEqual(["model", "clock"]);
+    expect(out.lines[0]?.widgets.map((w) => w.type)).toEqual(["model", "version"]);
   });
 
   it("keeps an emptied line in place", () => {
@@ -113,35 +117,35 @@ describe("removeWidget", () => {
 describe("replaceWidget", () => {
   it("swaps the widget at the index, preserving siblings", () => {
     const out = replaceWidget(baseline(), { line: 0, at: 0, widget: { type: "version" } });
-    expect(out.lines[0]?.widgets.map((w) => w.type)).toEqual(["version", "git-branch", "clock"]);
+    expect(out.lines[0]?.widgets.map((w) => w.type)).toEqual(["version", "git-branch", "version"]);
   });
 
   it("rejects an unknown replacement type", () => {
-    expect(() =>
-      replaceWidget(baseline(), { line: 0, at: 0, widget: { type: "nope" } }),
-    ).toThrow(/unknown widget type/);
+    expect(() => replaceWidget(baseline(), { line: 0, at: 0, widget: { type: "nope" } })).toThrow(
+      /unknown widget type/,
+    );
   });
 
   it("rejects an out-of-range index", () => {
-    expect(() =>
-      replaceWidget(baseline(), { line: 0, at: 9, widget: { type: "clock" } }),
-    ).toThrow(/no widget at index 9/);
+    expect(() => replaceWidget(baseline(), { line: 0, at: 9, widget: { type: "version" } })).toThrow(
+      /no widget at index 9/,
+    );
   });
 });
 
 describe("moveWidget", () => {
   it("reorders within a line (destination index is post-removal)", () => {
     const out = moveWidget(baseline(), { fromLine: 0, fromAt: 0, toLine: 0, toAt: 2 });
-    expect(out.lines[0]?.widgets.map((w) => w.type)).toEqual(["git-branch", "clock", "model"]);
+    expect(out.lines[0]?.widgets.map((w) => w.type)).toEqual(["git-branch", "version", "model"]);
   });
 
   it("appends to a line when `toAt` is omitted", () => {
     const out = moveWidget(baseline(), { fromLine: 0, fromAt: 1, toLine: 0 });
-    expect(out.lines[0]?.widgets.map((w) => w.type)).toEqual(["model", "clock", "git-branch"]);
+    expect(out.lines[0]?.widgets.map((w) => w.type)).toEqual(["model", "version", "git-branch"]);
   });
 
   it("moves a widget to another (padded) line", () => {
-    const out = moveWidget(cfgWith([[{ type: "model" }, { type: "clock" }]]), {
+    const out = moveWidget(cfgWith([[{ type: "model" }, { type: "version" }]]), {
       fromLine: 0,
       fromAt: 1,
       toLine: 2,
@@ -149,13 +153,13 @@ describe("moveWidget", () => {
     expect(out.lines).toHaveLength(3);
     expect(out.lines[0]?.widgets.map((w) => w.type)).toEqual(["model"]);
     expect(out.lines[1]?.widgets).toEqual([]);
-    expect(out.lines[2]?.widgets.map((w) => w.type)).toEqual(["clock"]);
+    expect(out.lines[2]?.widgets.map((w) => w.type)).toEqual(["version"]);
   });
 
   it("rejects a destination line at the cap", () => {
-    expect(() =>
-      moveWidget(baseline(), { fromLine: 0, fromAt: 0, toLine: MAX_LINES }),
-    ).toThrow(/exceeds the 3-line limit/);
+    expect(() => moveWidget(baseline(), { fromLine: 0, fromAt: 0, toLine: MAX_LINES })).toThrow(
+      /exceeds the 3-line limit/,
+    );
   });
 
   it("rejects an unknown source line or index", () => {
@@ -171,11 +175,11 @@ describe("moveWidget", () => {
 describe("setWidgetOption", () => {
   it("sets a fresh option object", () => {
     const out = setWidgetOption(baseline(), { line: 0, at: 2, key: "format", value: "%H:%M" });
-    expect(out.lines[0]?.widgets[2]).toEqual({ type: "clock", options: { format: "%H:%M" } });
+    expect(out.lines[0]?.widgets[2]).toEqual({ type: "version", options: { format: "%H:%M" } });
   });
 
   it("merges into an existing option object without touching the original", () => {
-    const input = cfgWith([[{ type: "tokens-total", options: { reset: "block" } }]]);
+    const input = cfgWith([[{ type: "tokens", options: { reset: "block" } }]]);
     const out = setWidgetOption(input, { line: 0, at: 0, key: "format", value: "human" });
     expect(out.lines[0]?.widgets[0]?.options).toEqual({ reset: "block", format: "human" });
     expect(input.lines[0]?.widgets[0]?.options).toEqual({ reset: "block" });
@@ -240,20 +244,20 @@ describe("disk wrappers", () => {
 
   it("saveAddWidget loads, mutates, validates, and atomically writes the merged config", async () => {
     const next = await saveAddWidget(
-      { line: 0, widget: { type: "clock" } },
+      { line: 0, widget: { type: "version" } },
       { env: { CLAUDE_CONFIG_DIR: claudeCfgDir } },
     );
-    expect(next.lines[0]?.widgets.map((w) => w.type)).toEqual(["model", "clock"]);
+    expect(next.lines[0]?.widgets.map((w) => w.type)).toEqual(["model", "version"]);
 
     const onDisk = JSON.parse(await fs.readFile(userCfg, "utf8")) as AgentlineConfig;
-    expect(onDisk.lines[0]?.widgets.map((w) => w.type)).toEqual(["model", "clock"]);
+    expect(onDisk.lines[0]?.widgets.map((w) => w.type)).toEqual(["model", "version"]);
     // The full merged tree is materialised, so defaulted keys are present.
     expect(onDisk.global.padding).toBe(DEFAULT_CONFIG.global.padding);
   });
 
   it("saveMoveWidget round-trips through disk", async () => {
     await saveAddWidget(
-      { line: 0, widget: { type: "clock" } },
+      { line: 0, widget: { type: "version" } },
       { env: { CLAUDE_CONFIG_DIR: claudeCfgDir } },
     );
     await saveMoveWidget(
@@ -261,7 +265,7 @@ describe("disk wrappers", () => {
       { env: { CLAUDE_CONFIG_DIR: claudeCfgDir } },
     );
     const onDisk = JSON.parse(await fs.readFile(userCfg, "utf8")) as AgentlineConfig;
-    expect(onDisk.lines[0]?.widgets.map((w) => w.type)).toEqual(["clock", "model"]);
+    expect(onDisk.lines[0]?.widgets.map((w) => w.type)).toEqual(["version", "model"]);
   });
 
   it("propagates a mutation error without writing", async () => {

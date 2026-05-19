@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  parseAheadBehind,
-  parsePorcelain,
-  parseRemoteUrl,
-  parseShortstat,
-} from "./parse.js";
+import { parseAheadBehind, parsePorcelain, parseRemoteUrl, parseShortstat } from "./parse.js";
 
 describe("parsePorcelain", () => {
   it("returns zeros for null / empty input", () => {

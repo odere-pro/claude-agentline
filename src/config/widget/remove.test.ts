@@ -39,7 +39,7 @@ describe("runWidgetRemoveCommand", () => {
     await fs.mkdir(join(claudeCfgDir, "agentline"), { recursive: true });
     await fs.writeFile(
       userCfg,
-      JSON.stringify({ version: 1, lines: [{ widgets: [{ type: "model" }, { type: "clock" }] }] }),
+      JSON.stringify({ version: 1, lines: [{ widgets: [{ type: "model" }, { type: "version" }] }] }),
     );
   });
 
@@ -55,15 +55,20 @@ describe("runWidgetRemoveCommand", () => {
       env: { CLAUDE_CONFIG_DIR: claudeCfgDir },
     });
     expect(code).toBe(0);
-    expect(String(stdout.mock.calls[0]?.[0] ?? "")).toMatch(/removed the widget at line 0, index 0/);
+    expect(String(stdout.mock.calls[0]?.[0] ?? "")).toMatch(
+      /removed the widget at line 0, index 0/,
+    );
     const onDisk = JSON.parse(await fs.readFile(userCfg, "utf8")) as AgentlineConfig;
-    expect(onDisk.lines[0]?.widgets.map((w) => w.type)).toEqual(["clock"]);
+    expect(onDisk.lines[0]?.widgets.map((w) => w.type)).toEqual(["version"]);
   });
 
   it("propagates an out-of-range error and leaves the file untouched", async () => {
     const before = await fs.readFile(userCfg, "utf8");
     await expect(
-      runWidgetRemoveCommand({ args: { line: 0, at: 9 }, env: { CLAUDE_CONFIG_DIR: claudeCfgDir } }),
+      runWidgetRemoveCommand({
+        args: { line: 0, at: 9 },
+        env: { CLAUDE_CONFIG_DIR: claudeCfgDir },
+      }),
     ).rejects.toBeInstanceOf(ConfigMutationError);
     expect(await fs.readFile(userCfg, "utf8")).toBe(before);
   });

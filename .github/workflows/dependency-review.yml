@@ -1,0 +1,40 @@
+# .github/workflows/dependency-review.yml
+# Blocks a PR that introduces a dependency with a known advisory at
+# moderate severity or above — the PR-time complement to gate-23
+# (`pnpm audit` on the resolved tree). Also flags disallowed licenses.
+#
+# Hard invariants (Implementation Plan 3):
+# - Trigger is `pull_request` (NOT `pull_request_target`) — never runs
+#   untrusted PR code with write scope.
+# - `permissions: read-all` at the workflow level; the job adds only
+#   `pull-requests: write` so it can post the summary comment.
+# - Action pinned by full commit SHA.
+# - `fail-on-severity: moderate` mirrors gate-23's threshold.
+
+name: dependency-review
+
+on:
+  pull_request:
+
+permissions: read-all
+
+concurrency:
+  group: dependency-review-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: dependency review
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: moderate
+          comment-summary-in-pr: on-failure

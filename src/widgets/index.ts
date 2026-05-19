@@ -3,9 +3,9 @@
  *
  * Re-exports the contract types (`Cell`, `WidgetDef`, …), the registry, the
  * dispatcher, and the catalogue lookup helpers. `registerAllBuiltins` wires
- * every built-in family (session, tokens, context, rate-limits, git, time,
- * custom) into a given registry; the render pipeline calls it once during
- * boot against `defaultRegistry()`.
+ * every built-in family (session, tokens, context, rate-limits, git) into a
+ * given registry; the render pipeline calls it once during boot against
+ * `defaultRegistry()`.
  */
 
 export { HIDDEN_CELL, isHidden, plainCell, type Cell, type MergeMode } from "./cell.js";
@@ -35,8 +35,6 @@ import { registerTokenWidgets } from "./tokens/index.js";
 import { registerContextWidgets } from "./context/index.js";
 import { registerRateLimitWidgets } from "./rate-limits/index.js";
 import { registerGitWidgets } from "./git/index.js";
-import { registerTimeWidgets } from "./time/index.js";
-import { registerCustomWidgets } from "./custom/index.js";
 
 /** Register every built-in widget family against the given registry. */
 export function registerAllBuiltins(registry: WidgetRegistry): void {
@@ -45,6 +43,4 @@ export function registerAllBuiltins(registry: WidgetRegistry): void {
   registerContextWidgets(registry);
   registerRateLimitWidgets(registry);
   registerGitWidgets(registry);
-  registerTimeWidgets(registry);
-  registerCustomWidgets(registry);
 }

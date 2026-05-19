@@ -1,6 +1,6 @@
 /**
  * Identity + per-session signals — `model`, `version`, `thinking-effort`,
- * `skills`, `session-id`, `session-name`, `account-email`.
+ * `plan`, `session-id`, `account-email`.
  */
 
 import { entry, v, type WidgetMeta } from "./types.js";
@@ -13,13 +13,8 @@ export const SESSION_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.free
     "Thinking-effort tier: low, medium, or high",
     "session",
   ),
-  skills: entry("Skills", "Skills attached to the session", "session", [
-    v("count", "Count (just the number)", { variant: "count" }),
-    v("list", "List (comma-joined)", { variant: "list" }),
-    v("last", "Last (most recent only)", { variant: "last" }),
-  ]),
+  plan: entry("Plan", "Active plan name (newest file in the plans dir)", "session"),
   "session-id": entry("Session id", "Short session id", "session"),
-  "session-name": entry("Session name", "Session name, or the short id when unset", "session"),
   "account-email": entry("Account email", "Logged-in account email", "session", [
     v("full", "Full address", { mask: "none" }),
     v("domain", "Domain only (@example.com)", { mask: "domain" }),

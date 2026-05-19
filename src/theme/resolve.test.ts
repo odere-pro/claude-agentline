@@ -7,11 +7,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { THEME_ROLES } from "./roles.js";
-import {
-  defaultBuiltinThemesDir,
-  resolveConfiguredTheme,
-  themeDirectories,
-} from "./resolve.js";
+import { defaultBuiltinThemesDir, resolveConfiguredTheme, themeDirectories } from "./resolve.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SHIPPED_THEMES_DIR = path.resolve(here, "..", "..", "themes");
@@ -62,9 +58,7 @@ describe("resolveConfiguredTheme", () => {
   });
 
   it("rejects path-shaped names (no traversal escape)", async () => {
-    expect(
-      await resolveConfiguredTheme("../../etc/passwd", { builtinDir: tmp }),
-    ).toBeNull();
+    expect(await resolveConfiguredTheme("../../etc/passwd", { builtinDir: tmp })).toBeNull();
     expect(await resolveConfiguredTheme(".hidden", { builtinDir: tmp })).toBeNull();
     expect(await resolveConfiguredTheme("a/b", { builtinDir: tmp })).toBeNull();
   });

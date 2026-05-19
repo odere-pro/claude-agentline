@@ -1,138 +1,87 @@
 /**
- * Usage widgets (§7.5).
+ * Session + weekly usage widget (§7.5) — the host's `/usage` numbers on
+ * one cell, not a re-derived estimate. Reads the `rate_limits` block off
+ * Claude Code stdin so the percentages match the host's `/usage` screen
+ * — what the user sees in Claude Code:
  *
- *   - `session-usage`       — block-axis total
- *   - `weekly-sonnet-usage` — week-axis total filtered to Sonnet events
- *   - `weekly-opus-usage`   — week-axis total filtered to Opus events
+ *   - current-session — `rate_limits.five_hour.used_percentage`
+ *   - weekly          — `rate_limits.seven_day.used_percentage`
  *
- * Display is cycled by the TUI via `options.display`:
+ * Renders both windows together as `52% / weekly 33%`. Each part is
+ * included only when the host ships a finite percentage for it:
  *
- *   - `percent`    `65%` (default)
- *   - `bar`        `█████░░░░░░░` (default 12 cells)
- *   - `short-bar`  `███░░░` (default 6 cells)
+ *   - both present   `52% / weekly 33%`
+ *   - session only   `52%`
+ *   - weekly only    `weekly 33%`
+ *   - neither         hidden
  *
- * When `options.limit` is unset or non-positive, the widget renders the
- * raw `formatCount(used)` instead — quotas are deployment-specific and
- * the bin never assumes a hard cap.
+ * There is no transcript-derived fallback: it over-counts and would
+ * disagree with the host, so an absent window simply drops its half.
  *
- * Colour grades: ratio < 0.6 → tokens-low, < 0.8 → tokens-mid,
- * else tokens-high (same role mapping as context widgets via
- * `tokenRole`).
+ * An optional plan name is prefixed when present: a future `raw.plan`
+ * string the host may ship, else the configured `options.plan`. Out of
+ * the box there is no prefix, so it renders exactly `52% / weekly 33%`.
+ * `rawValue` strips the label/plan prefix like the other rate-limits
+ * widgets.
  *
- * The per-model weekly widgets compose two filters: events are
- * narrowed to a model family via `eventFilter` (a plain predicate on
- * `TranscriptEvent`) **before** the week-axis aggregator runs. The
- * aggregator stays single-axis — combining axes happens at the call
- * site so the shared aggregator does not learn about model families.
+ * Renders in the rate-limits family accent — no per-widget colour, so
+ * every rate-limits widget reads as one family.
  */
 
-import { resolveRole } from "../../theme/index.js";
-import { aggregate, type ResetAxis } from "../../tokens/index.js";
-import type { TranscriptEvent } from "../../tokens/index.js";
 import type { Cell } from "../cell.js";
 import type { WidgetContext } from "../context.js";
 import type { WidgetSettings } from "../widget.js";
 import { defineWidget } from "../widget.js";
-import { clampWidth, formatCount, tokenRole } from "../tokens/format.js";
-
-export type UsageDisplay = "percent" | "bar" | "short-bar";
 
 interface Options {
   readonly label?: string;
-  readonly limit?: number;
-  readonly display?: string;
-  readonly barWidth?: number;
-  readonly filled?: string;
-  readonly empty?: string;
+  /** Plan-name prefix (e.g. `"Max"`). Rendered as `Max 52% / weekly 33%`. */
+  readonly plan?: string;
 }
 
-const DEFAULT_BAR_WIDTH = 12;
-const DEFAULT_SHORT_BAR_WIDTH = 6;
-const DEFAULT_FILLED = "█";
-const DEFAULT_EMPTY = "░";
+const MAX_PERCENT = 999;
+const SEPARATOR = " / ";
+const WEEKLY_PREFIX = "weekly ";
 
-const VALID_DISPLAY: ReadonlySet<UsageDisplay> = new Set<UsageDisplay>([
-  "percent",
-  "bar",
-  "short-bar",
-]);
-
-function resolveDisplay(value: unknown): UsageDisplay {
-  if (typeof value !== "string") return "percent";
-  return VALID_DISPLAY.has(value as UsageDisplay) ? (value as UsageDisplay) : "percent";
-}
-
-function renderBar(ratio: number, width: number, filled: string, empty: string): string {
-  const filledCount = Math.min(width, Math.max(0, Math.round(ratio * width)));
-  return filled.repeat(filledCount) + empty.repeat(width - filledCount);
-}
-
-function renderUsage(
-  ctx: WidgetContext,
-  settings: WidgetSettings<Options>,
-  axis: ResetAxis,
-  eventFilter?: (ev: TranscriptEvent) => boolean,
-): Cell {
-  const snapshot = ctx.tokens;
-  if (!snapshot) return { text: "", hidden: true };
-  const events = eventFilter ? snapshot.events.filter(eventFilter) : snapshot.events;
-  const totals = aggregate({
-    events,
-    axis,
-    now: snapshot.now,
-    sessionStart: snapshot.sessionStart,
-    blockAnchor: snapshot.blockAnchor,
-    model: ctx.stdin.model,
-    effort: ctx.stdin.thinkingEffort,
-  });
-  const used = totals.total;
-  const limit = typeof settings.options.limit === "number" && settings.options.limit > 0
-    ? settings.options.limit
-    : 0;
-  const label = settings.rawValue ? "" : (settings.options.label ?? "");
-  if (limit === 0) {
-    return { text: `${label}${formatCount(used)}` };
-  }
-  const ratio = used / limit;
-  const display = resolveDisplay(settings.options.display);
-  const fg = resolveRole(ctx.theme, tokenRole(ratio));
-  let body: string;
-  if (display === "percent") {
-    body = `${Math.min(999, Math.round(ratio * 100))}%`;
-  } else {
-    const width = clampWidth(
-      settings.options.barWidth,
-      display === "short-bar" ? DEFAULT_SHORT_BAR_WIDTH : DEFAULT_BAR_WIDTH,
-    );
-    const filled = settings.options.filled ?? DEFAULT_FILLED;
-    const empty = settings.options.empty ?? DEFAULT_EMPTY;
-    body = renderBar(ratio, width, filled, empty);
-  }
-  const cell: Cell = { text: `${label}${body}` };
-  return fg ? { ...cell, fg } : cell;
+/** Round + clamp a host percentage into a `NN%` string, or `null` when absent. */
+function formatPercent(pct: unknown): string | null {
+  if (typeof pct !== "number" || !Number.isFinite(pct)) return null;
+  return `${Math.min(MAX_PERCENT, Math.max(0, Math.round(pct)))}%`;
 }
 
 /**
- * Match a model family by id prefix. Mirrors the classification in
- * `src/tokens/pricing.ts` (`startsWith("claude-sonnet")` etc.) so the
- * usage widgets and pricing always agree on what counts as which
- * family. An event whose `model` is undefined is skipped — we can't
- * attribute usage to a family without a tag.
+ * Plan-name prefix: a future host-provided `raw.plan` string wins, then
+ * the configured `options.plan`, else none. Returns `""` when neither is
+ * a non-empty string so the widget renders bare (matches the host).
  */
-function isModelFamily(ev: TranscriptEvent, family: string): boolean {
-  return typeof ev.model === "string" && ev.model.startsWith(family);
+function resolvePlan(ctx: WidgetContext, options: Options): string {
+  const rawPlan = ctx.stdin.raw["plan"];
+  if (typeof rawPlan === "string" && rawPlan.trim().length > 0) return rawPlan.trim();
+  const opt = options.plan;
+  return typeof opt === "string" && opt.trim().length > 0 ? opt.trim() : "";
 }
 
-export const sessionUsageWidget = defineWidget<Options>("session-usage", (ctx, settings) =>
-  renderUsage(ctx, settings, "block"),
-);
+function renderUsage(ctx: WidgetContext, settings: WidgetSettings<Options>): Cell {
+  const limits = ctx.stdin.rateLimits;
+  const session = formatPercent(limits?.fiveHour?.usedPercentage);
+  const weekly = formatPercent(limits?.sevenDay?.usedPercentage);
+  if (session === null && weekly === null) {
+    return { text: "", hidden: true };
+  }
 
-export const weeklySonnetUsageWidget = defineWidget<Options>(
-  "weekly-sonnet-usage",
-  (ctx, settings) => renderUsage(ctx, settings, "week", (ev) => isModelFamily(ev, "claude-sonnet")),
-);
+  const parts: string[] = [];
+  if (session !== null) parts.push(session);
+  if (weekly !== null) parts.push(`${WEEKLY_PREFIX}${weekly}`);
+  const body = parts.join(SEPARATOR);
 
-export const weeklyOpusUsageWidget = defineWidget<Options>(
-  "weekly-opus-usage",
-  (ctx, settings) => renderUsage(ctx, settings, "week", (ev) => isModelFamily(ev, "claude-opus")),
+  if (settings.rawValue) return { text: body };
+  const label = settings.options.label ?? "";
+  const plan = resolvePlan(ctx, settings.options);
+  const planPart = plan ? `${plan} ` : "";
+  return { text: `${label}${planPart}${body}` };
+}
+
+export const sessionWeeklyUsageWidget = defineWidget<Options>(
+  "session-weekly-usage",
+  (ctx, settings) => renderUsage(ctx, settings),
 );

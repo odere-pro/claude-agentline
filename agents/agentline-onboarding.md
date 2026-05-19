@@ -73,7 +73,7 @@ agentline edit
 Opens a TUI editor with a **live preview** at the top:
 
 - The preview is the editing surface — the cursor moves through the rendered statusline itself, with each row ending in a navigable `+ add widget` cell.
-- If you've used Claude Code in this session, the preview shows real values from the last render — your branch, your token counts. If you haven't yet, every widget renders as its own type name (`tokens-input`, `git-branch`, …) so you can still see the layout.
+- If you've used Claude Code in this session, the preview shows real values from the last render — your branch, your token counts. If you haven't yet, every widget renders as its own type name (`tokens`, `git-branch`, …) so you can still see the layout.
 - Common verbs: `a` add, `r` replace, `u` update variant, `d` delete, `S` save, `q`/`Esc` quit. The two-line footer at the bottom of the editor lists every binding for the current scope.
 
 Save with `S`; the on-disk config updates atomically; the new render fires on Claude Code's next prompt.
@@ -117,11 +117,11 @@ The prior `statusLine` was backed up at install time. Uninstall restores it from
 | See if it's working         | `agentline doctor`                                            |
 | Repair host wiring          | `agentline doctor --fix`                                      |
 | Open the interactive editor | `agentline edit`                                              |
-| Reset config to the default | Delete the user config, then re-run `agentline install`       |
+| Reset config to the default | `agentline reset` (overwrites config, re-seeds, rewires)      |
 | Edit config by hand         | `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`       |
 | Remove agentline            | `agentline uninstall` (add `--purge` to wipe config + themes) |
 
-Top-level CLI surface is intentionally small: `render` (default, fed stdin by Claude Code) · `edit` · `install` · `uninstall` · `doctor`. See `agentline --help`.
+Top-level CLI surface is intentionally small: `render` (default, fed stdin by Claude Code) · `edit` · `reset` · `uninstall` · `doctor`. See `agentline --help`. (`agentline install` still works but is hidden — `reset` is the entry point.)
 
 For deeper tasks, route through the focused sub-skills:
 

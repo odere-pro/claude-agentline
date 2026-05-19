@@ -77,6 +77,8 @@ const ANSI_BRIGHTNESS_MIDPOINT = 128; // perceived-brightness threshold for brig
 // SGR (Select Graphic Rendition) codes for 16-colour mode
 const SGR_BOLD = 1;
 const SGR_ITALIC = 3;
+const SGR_UNDERLINE = 4; // turn underline on
+const SGR_UNDERLINE_OFF = 24; // turn underline off without touching fg/bg/bold
 const SGR_FG_BASE = 30; // foreground colour base (30–37)
 const SGR_FG_BRIGHT = 90; // bright foreground base (90–97)
 const SGR_BG_BASE = 40; // background colour base (40–47)
@@ -275,6 +277,43 @@ function bgEscape(c: Colour, depth: ColourDepth): string {
   }
 }
 
+/**
+ * Resolve a {@link Colour} to the concrete RGB the bin would put on screen
+ * at `depth`, using the encoder's own colour model. This is the single
+ * source of truth for "what colour does agentline render this as":
+ *
+ *   - `truecolor` → the colour's exact RGB (what `ESC[38;2;R;G;Bm` shows).
+ *   - `256`       → the RGB of the 256-palette index the bin selects
+ *                   (`ESC[38;5;Nm` mapped back through the colour cube).
+ *   - `16`        → the RGB of the 16-colour slot the bin selects
+ *                   (basic/bright entry from the named palette).
+ *   - `none`      → `null`; the caller must omit the colour entirely.
+ *
+ * Pure. Lets the editor preview reproduce the live statusline byte-for-byte
+ * at the palette level instead of re-resolving names through Ink/chalk and
+ * the terminal's own palette.
+ */
+export function resolveColourRgb(
+  c: Colour,
+  depth: ColourDepth,
+): { readonly r: number; readonly g: number; readonly b: number } | null {
+  if (depth === "none") return null;
+  const n = normalise(parseColour(c));
+  switch (depth) {
+    case "truecolor":
+      return { r: n.rgb.r, g: n.rgb.g, b: n.rgb.b };
+    case "256": {
+      const rgb = ansi256ToRgb(n.index256);
+      return { r: rgb.r, g: rgb.g, b: rgb.b };
+    }
+    case "16": {
+      const slot = (n.bright ? ANSI_BRIGHT_OFFSET : 0) + n.index16;
+      const rgb = Object.values(NAMED_RGB)[slot] ?? n.rgb;
+      return { r: rgb.r, g: rgb.g, b: rgb.b };
+    }
+  }
+}
+
 function styleKey(seg: Segment): string {
   return `${seg.fg ?? ""}|${seg.bg ?? ""}|${seg.bold ? "B" : ""}|${seg.italic ? "I" : ""}`;
 }
@@ -288,12 +327,18 @@ function isStyled(seg: Segment): boolean {
  * non-empty after sanitisation. OSC 8 is orthogonal to SGR styling —
  * the wrap goes inside the SGR run, so an adjacent same-style segment
  * with a different href doesn't trigger an SGR reset.
+ *
+ * Links are underlined: the visible label is bracketed by underline-on
+ * (`ESC[4m`) and underline-off (`ESC[24m`) so a hyperlink reads as one
+ * the way it does on the web. `ESC[24m` clears only the underline, so
+ * the surrounding fg/bg/bold from the active SGR run survives.
  */
 function wrapHref(text: string, href: string | undefined): string {
   if (!href) return text;
   const safe = sanitiseHref(href);
   if (safe.length === 0) return text;
-  return `${OSC_8_OPEN}${safe}${OSC_8_ST}${text}${OSC_8_CLOSE}`;
+  const underlined = `\x1b[${SGR_UNDERLINE}m${text}\x1b[${SGR_UNDERLINE_OFF}m`;
+  return `${OSC_8_OPEN}${safe}${OSC_8_ST}${underlined}${OSC_8_CLOSE}`;
 }
 
 export function encodeSegments(segments: readonly Segment[], depth: ColourDepth): string {

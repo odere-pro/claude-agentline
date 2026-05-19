@@ -9,9 +9,9 @@
  *
  *   1. It parses as JSON.
  *   2. It validates against the embedded JSON Schema.
- *   3. The first line matches the §7.10 widget set, with
- *      `tokens-total` / `session-usage` declaring `reset: block`
- *      and the theme set to `claude-code-dark`.
+ *   3. The three lines match the shipped default layout, with
+ *      `tokens` declaring `reset: block` and the theme set
+ *      to `claude-code-dark`.
  *
  * Failing here means the template and the schema have drifted apart;
  * fix the offender before shipping.
@@ -42,28 +42,20 @@ describe("shipped config template", () => {
     expect(() => validateConfig(v)).not.toThrow();
   });
 
-  it("default.config.json carries the spec-defined widget order", async () => {
+  it("default.config.json carries the shipped three-line widget layout", async () => {
     const cfg = (await loadTemplate("default.config.json")) as {
       lines: { widgets: { type: string; options?: { reset?: string } }[] }[];
       theme: string;
       powerline: { enabled: boolean };
     };
-    const types = cfg.lines[0]!.widgets.map((w) => w.type);
-    expect(types).toEqual([
-      "model",
-      "thinking-effort",
-      "git-branch",
-      "git-changes",
-      "context-percentage",
-      "tokens-total",
-      "session-usage",
-      "block-reset-timer",
-      "clock",
+    const layout = cfg.lines.map((l) => l.widgets.map((w) => w.type));
+    expect(layout).toEqual([
+      ["model", "thinking-effort", "git-branch", "git-changes"],
+      ["context-percentage", "context-bar", "tokens"],
+      ["session-weekly-usage", "current-session-reset-timer", "week-limit-timer"],
     ]);
-    const tokens = cfg.lines[0]!.widgets.find((w) => w.type === "tokens-total");
-    const session = cfg.lines[0]!.widgets.find((w) => w.type === "session-usage");
+    const tokens = cfg.lines[1]!.widgets.find((w) => w.type === "tokens");
     expect(tokens?.options?.reset).toBe("block");
-    expect(session?.options?.reset).toBe("block");
     expect(cfg.theme).toBe("claude-code-dark");
     expect(cfg.powerline.enabled).toBe(false);
   });

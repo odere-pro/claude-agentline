@@ -15,7 +15,7 @@ agentline doctor          # full report
 agentline doctor --fix    # auto-repair D01–D04
 ```
 
-Read the output. Each line has a check ID (D01–D10) and a glyph:
+Read the output. Each line has a check ID (D01–D09) and a glyph:
 
 | Glyph  | Meaning            |
 | ------ | ------------------ |
@@ -29,18 +29,17 @@ Read the output. Each line has a check ID (D01–D10) and a glyph:
 
 ## Step 2 — match the failing check
 
-| Check | Problem                               | Fix                                             |
-| ----- | ------------------------------------- | ----------------------------------------------- |
-| D01   | `~/.claude/settings.json` missing     | `agentline doctor --fix`                        |
-| D02   | `statusLine` not wired to agentline   | `agentline doctor --fix` or `agentline install` |
-| D03   | user config missing or invalid schema | `agentline doctor --fix` or `agentline install` |
-| D04   | theme file missing                    | `agentline doctor --fix`                        |
-| D05   | Nerd Font absent (Powerline only)     | install font; doctor prints the command         |
-| D06   | `git` not on PATH                     | install git                                     |
-| D07   | pricing table older than 90 days      | `npm install -g @agentline/cli@latest`          |
-| D08   | `CLAUDE_CONFIG_DIR` not writable      | fix directory permissions                       |
-| D09   | `command` widget `cmd` not found      | check the command is on PATH                    |
-| D10   | render snapshot mismatch              | file a bug; capture `agentline doctor` output   |
+| Check | Problem                               | Fix                                           |
+| ----- | ------------------------------------- | --------------------------------------------- |
+| D01   | `~/.claude/settings.json` missing     | `agentline doctor --fix`                      |
+| D02   | `statusLine` not wired to agentline   | `agentline doctor --fix` or `agentline reset` |
+| D03   | user config missing or invalid schema | `agentline doctor --fix` or `agentline reset` |
+| D04   | theme file missing                    | `agentline doctor --fix`                      |
+| D05   | `git` not on PATH                     | install git                                   |
+| D06   | pricing table older than 90 days      | `npm install -g @agentline/cli@latest`        |
+| D07   | `CLAUDE_CONFIG_DIR` not writable      | fix directory permissions                     |
+| D08   | update-check cache reports newer      | `npm install -g @agentline/cli@latest`        |
+| D09   | render snapshot mismatch              | file a bug; capture `agentline doctor` output |
 
 ---
 
@@ -49,7 +48,7 @@ Read the output. Each line has a check ID (D01–D10) and a glyph:
 ```bash
 agentline doctor
 agentline doctor --fix
-agentline install         # re-wire if --fix isn't enough
+agentline reset           # re-wire + reseed defaults if --fix isn't enough
 # restart Claude Code — statusLine is read at startup
 ```
 
@@ -78,8 +77,7 @@ agentline reads a single user config at `${CLAUDE_CONFIG_DIR:-~/.config}/agentli
 
 ```bash
 agentline doctor --strict                                # D03 shows the exact problem
-rm "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json"   # scrap the broken file
-agentline install                                        # reseed the default template
+agentline reset                                          # overwrite config with the default template
 ```
 
 ---
@@ -87,8 +85,8 @@ agentline install                                        # reseed the default te
 ## Reset everything
 
 ```bash
-rm "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json"   # reset just the config
-agentline uninstall --purge && agentline install         # full wipe + reinstall
+agentline reset                                          # reset just the config (+ rewire)
+agentline uninstall --purge && agentline reset           # full wipe + fresh defaults
 ```
 
 Full reference → [troubleshooting.md](../docs/troubleshooting.md) · [doctor.md](../docs/doctor.md)

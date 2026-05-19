@@ -1,0 +1,1 @@
+- Replace the `skills` session widget with a `plan` widget: shows the active plan name (basename of the newest `.md` in the `plans/` directory under `$CLAUDE_CONFIG_DIR`), resolved once per render tick and hidden when there is no active plan.

@@ -108,10 +108,10 @@ describe("git-upstream widget", () => {
   });
 
   it("renders the upstream ref string", () => {
-    const cell = gitUpstreamWidget.render(
-      makeCtx(makeSnapshot({ upstream: "origin/main" })),
-      { options: {}, rawValue: false },
-    );
+    const cell = gitUpstreamWidget.render(makeCtx(makeSnapshot({ upstream: "origin/main" })), {
+      options: {},
+      rawValue: false,
+    });
     expect(cell.text).toBe("origin/main");
   });
 

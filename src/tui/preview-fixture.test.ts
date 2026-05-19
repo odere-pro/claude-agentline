@@ -5,13 +5,27 @@ import type { ResolvedSessionFields } from "../session/index.js";
 import type { StdinPayload } from "../stdin/index.js";
 import type { TokensSnapshot } from "../tokens/index.js";
 import { PRICING_TABLE_VERSION, contextWindowFor } from "../tokens/index.js";
+import { DEFAULT_CONFIG } from "../config/index.js";
+import type { AgentlineConfig } from "../config/types.js";
+import { buildWidgetContext } from "../render/context.js";
+import { realClock } from "../widgets/clock.js";
 import { defaultRegistry, registerAllBuiltins } from "../widgets/index.js";
+import { renderWidget, widgetIdentityFor } from "../widgets/render-widget.js";
 
 import {
   previewWidget,
   resetPreviewModeCache,
   setPreviewModeForTesting,
+  type PreviewMode,
 } from "./preview-fixture.js";
+import { buildMockPreview } from "./preview-mock.js";
+
+/** Expected label-mode text: the family glyph prefix (unless the type is unknown). */
+function expectedLabel(type: string): string {
+  const id = widgetIdentityFor(type, { env: {}, config: DEFAULT_CONFIG });
+  if (!id) return type;
+  return `${id.glyph} ${type}`;
+}
 
 const realPayload: StdinPayload = {
   raw: { model: "claude-opus-4-7", cwd: "/agentline" },
@@ -79,51 +93,61 @@ afterEach(() => {
   resetPreviewModeCache();
 });
 
-describe("previewWidget — label mode (no cache)", () => {
-  it("renders every built-in widget as its own type name", () => {
-    setPreviewModeForTesting({ kind: "label" });
+describe("previewWidget — mock mode (no cache, no transcript)", () => {
+  const mock: PreviewMode = {
+    source: "mock",
+    ...buildMockPreview(Date.parse("2026-05-13T12:00:00.000Z")),
+  };
+
+  it("renders representative values for core widget families", () => {
+    setPreviewModeForTesting(mock);
+    expect(previewWidget("model").text).toContain("Opus 4.7");
+    expect(previewWidget("git-branch").text).toContain("main");
+    expect(previewWidget("account-email").text).toContain("you@example.com");
+  });
+
+  it("never renders a bare type-name placeholder for a known widget", () => {
+    setPreviewModeForTesting(mock);
     const registry = defaultRegistry();
     if (registry.size() === 0) registerAllBuiltins(registry);
     for (const type of registry.list()) {
       const cell = previewWidget(type);
-      expect(cell.text, `cell.text for "${type}"`).toBe(type);
+      // Either real text, or the dim identity chip — but not just `type`.
+      if (cell.hidden) {
+        expect(cell.text, `hidden chip for "${type}"`).toBe(expectedLabel(type));
+      } else {
+        expect(cell.text.length, `text for "${type}"`).toBeGreaterThan(0);
+      }
     }
   });
 
-  it("returns label text even for unknown widget types", () => {
-    setPreviewModeForTesting({ kind: "label" });
-    expect(previewWidget("does-not-exist").text).toBe("does-not-exist");
+  it("returns a hidden cell for an unknown widget type", () => {
+    setPreviewModeForTesting(mock);
+    expect(previewWidget("does-not-exist")).toMatchObject({ hidden: true });
   });
+});
 
-  it("propagates per-widget colour and style overrides", () => {
-    setPreviewModeForTesting({ kind: "label" });
-    /*
-     * The wrapper consults `config.fg`/`bg`/`bold`/`italic`; only `fg`
-     * and `bold` show up on a label cell because `previewWidget` doesn't
-     * accept them — but the renderWidgetLabel branch we exercise *does*
-     * emit those when set on the WidgetConfig. We verify the basic text
-     * path; full override surface is covered in render-widget.test.ts.
-     */
-    const cell = previewWidget("tokens-input");
-    expect(cell.text).toBe("tokens-input");
-  });
+describe("previewWidget — self-hide fallback (real context, no data for widget)", () => {
+  const bare: PreviewMode = {
+    source: "cache",
+    payload: { raw: {}, truncated: false },
+    session: {},
+    tokens: realTokens,
+    git: { available: false },
+  };
 
-  it("hides hidden:true widgets even in label mode (caller responsibility)", () => {
-    /*
-     * `previewWidget` takes (type, options) only — `hidden` flag would
-     * need to be threaded via the WidgetConfig used internally. This
-     * test pins the public contract: a known widget always renders its
-     * label, never `(hidden)`.
-     */
-    setPreviewModeForTesting({ kind: "label" });
-    expect(previewWidget("git-branch").text).toBe("git-branch");
+  it("degrades a data-less widget to a dim family-glyph + type-name chip", () => {
+    setPreviewModeForTesting(bare);
+    const cell = previewWidget("git-branch");
+    expect(cell.hidden).toBe(true);
+    expect(cell.text).toBe(expectedLabel("git-branch"));
   });
 });
 
 describe("previewWidget — real mode (cache hit)", () => {
   it("renders model from cached stdin payload", () => {
     setPreviewModeForTesting({
-      kind: "real",
+      source: "cache",
       payload: realPayload,
       session: realSession,
       tokens: realTokens,
@@ -135,7 +159,7 @@ describe("previewWidget — real mode (cache hit)", () => {
 
   it("renders the cached branch name for git-branch", () => {
     setPreviewModeForTesting({
-      kind: "real",
+      source: "cache",
       payload: realPayload,
       session: realSession,
       tokens: realTokens,
@@ -146,12 +170,71 @@ describe("previewWidget — real mode (cache hit)", () => {
 
   it("returns a hidden cell for an unknown type in real mode", () => {
     setPreviewModeForTesting({
-      kind: "real",
+      source: "cache",
       payload: realPayload,
       session: realSession,
       tokens: realTokens,
       git: realGit,
     });
     expect(previewWidget("does-not-exist")).toMatchObject({ hidden: true });
+  });
+});
+
+describe("previewWidget — renders through the caller's resolved config", () => {
+  /*
+   * The root invariant: a preview is the live render given the same
+   * `{ config, theme, env }`. `tokens` is a non-signal widget, so
+   * its colour and glyph come straight from family identity — the most
+   * direct probe that `config.families` reaches the preview path.
+   * `glyph === glyphAscii` keeps the assertion env-independent.
+   */
+  const customConfig: AgentlineConfig = {
+    ...DEFAULT_CONFIG,
+    families: {
+      ...DEFAULT_CONFIG.families,
+      tokens: { colour: "#abcdef", glyph: "T!", glyphAscii: "T!" },
+    },
+  };
+
+  function pin(): void {
+    setPreviewModeForTesting({
+      source: "cache",
+      payload: realPayload,
+      session: realSession,
+      tokens: realTokens,
+      git: realGit,
+    });
+  }
+
+  it("honours a config.families override (default config keeps the built-in accent)", () => {
+    pin();
+    const fallback = previewWidget("tokens");
+    expect(fallback.fg).toBe(
+      widgetIdentityFor("tokens", { env: {}, config: DEFAULT_CONFIG })?.colour,
+    );
+
+    const cell = previewWidget("tokens", undefined, { config: customConfig });
+    expect(cell.fg).toBe("#abcdef");
+    expect(cell.text.startsWith("T! ")).toBe(true);
+  });
+
+  it("matches renderWidget byte-for-byte given the same basis", () => {
+    pin();
+    const registry = defaultRegistry();
+    if (registry.size() === 0) registerAllBuiltins(registry);
+    const ctx = buildWidgetContext({
+      payload: realPayload,
+      config: customConfig,
+      theme: null,
+      clock: realClock,
+      env: {},
+      tokens: realTokens,
+      git: realGit,
+      session: realSession,
+    });
+    const live = renderWidget(registry, { type: "tokens" }, ctx);
+    const preview = previewWidget("tokens", undefined, { config: customConfig });
+    expect(preview.fg).toBe(live.fg);
+    expect(preview.text).toBe(live.text);
   });
 });

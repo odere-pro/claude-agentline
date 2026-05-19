@@ -1,5 +1,5 @@
 /**
- * Embedded render fixture for D10.
+ * Embedded render fixture for D08.
  *
  * Pins the bin's render path to a known input → output pair so doctor
  * catches accidental drift in the rendering surface even when the
@@ -14,10 +14,12 @@ const FIXTURE_INPUT = JSON.stringify({
   cwd: "/agentline/doctor/fixture",
 });
 /*
- * Default config has `glyphs: "nerd-font"`, so the model widget is rendered
- * with its Nerd Font glyph (`` = nf-md-robot) prepended + a single space.
+ * The default config renders the `model` widget under no-colour mode,
+ * prefixed with its (session) family glyph. The env pins
+ * `AGENTLINE_GLYPHS=ascii` so the glyph is host-independent (`[s]`),
+ * keeping this embedded snapshot deterministic across locales.
  */
-const FIXTURE_EXPECTED = "\u{F544} claude-doctor-fixture\n";
+const FIXTURE_EXPECTED = "[s] claude-doctor-fixture\n";
 
 export interface FixtureOutcome {
   match: boolean;
@@ -28,7 +30,7 @@ export async function runEmbeddedRenderFixture(): Promise<FixtureOutcome> {
   const { renderForFixture } = await import("../render/fixture-runner.js");
   try {
     const actual = await renderForFixture(FIXTURE_INPUT, {
-      env: { ...process.env, NO_COLOR: "1" },
+      env: { ...process.env, NO_COLOR: "1", AGENTLINE_GLYPHS: "ascii" },
       flags: { noColor: true, noUnicode: false },
     });
     if (actual === FIXTURE_EXPECTED) {

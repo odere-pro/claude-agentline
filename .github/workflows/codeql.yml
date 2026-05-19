@@ -1,0 +1,50 @@
+# .github/workflows/codeql.yml
+# CodeQL static analysis (SAST) for the TypeScript sources. Implements the
+# scanning half of cookbook 17 I-11's intent (catch code-level issues, not
+# just advisories) and feeds the GitHub code-scanning dashboard.
+#
+# Hard invariants (Implementation Plan 3):
+# - Actions pinned by full commit SHA (not by tag/branch).
+# - `permissions: read-all` at the workflow level; the job widens only to
+#   `security-events: write` (upload SARIF) + `actions: read`.
+# - PR-only concurrency cancellation; main pushes run to completion.
+# - JS/TS needs no build — `build-mode: none` keeps extraction hermetic.
+
+name: codeql
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Mondays 07:00 UTC — ahead of the broader Monday queue.
+    - cron: "0 7 * * 1"
+
+permissions: read-all
+
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analyze:
+    name: analyze (javascript-typescript)
+    runs-on: ubuntu-24.04
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4.35.5
+        with:
+          languages: javascript-typescript
+          build-mode: none
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4.35.5
+        with:
+          category: "/language:javascript-typescript"

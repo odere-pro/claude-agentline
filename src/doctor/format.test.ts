@@ -14,17 +14,12 @@ describe("summariseWorst", () => {
   it("picks fail over warn over pass", () => {
     expect(summariseWorst(sample)).toBe("warn");
     expect(
-      summariseWorst([
-        ...sample,
-        { id: "D99", title: "x", status: "fail", message: "no" },
-      ]),
+      summariseWorst([...sample, { id: "D99", title: "x", status: "fail", message: "no" }]),
     ).toBe("fail");
   });
 
   it("picks pass when everything passed", () => {
-    expect(
-      summariseWorst([{ id: "D01", title: "x", status: "pass", message: "ok" }]),
-    ).toBe("pass");
+    expect(summariseWorst([{ id: "D01", title: "x", status: "pass", message: "ok" }])).toBe("pass");
   });
 });
 

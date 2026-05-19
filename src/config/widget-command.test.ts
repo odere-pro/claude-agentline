@@ -1,9 +1,19 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import { HelpRequestedError } from "../cli/help.js";
 import { parseWidgetAddArgs, runWidgetAddCommand } from "./widget/add.js";
-import { parseWidgetRemoveArgs } from "./widget/remove.js";
+import type { parseWidgetRemoveArgs } from "./widget/remove.js";
 import { WIDGET_SUBS, defineWidgetSub, runWidgetSubgroup } from "./widget-command.js";
+
+/**
+ * The `run` argument `defineWidgetSub<TArgs>` will accept once `TArgs`
+ * has been inferred from a given `parse` function. Mirrors the real
+ * second-parameter type so the linkage can be asserted at the type
+ * level without casts or `@ts-expect-error`.
+ */
+type RunFor<TParse extends (rest: readonly string[]) => unknown> = (input: {
+  readonly args: ReturnType<TParse>;
+}) => Promise<number>;
 
 const EXPECTED_SUBS = [
   "list",
@@ -33,24 +43,26 @@ describe("WIDGET_SUBS dispatch table", () => {
 });
 
 describe("defineWidgetSub type linkage", () => {
-  it("accepts matched parse/run pairs", () => {
-    /*
-     * Plain runtime assertion that the helper returns a usable shape;
-     * the real value here is the compile-time check in the
-     */
-    // `@ts-expect-error` block below.
+  it("accepts a matched parse/run pair and ties the two to one args type", () => {
     const sub = defineWidgetSub(parseWidgetAddArgs, runWidgetAddCommand);
     expect(sub.parse).toBeTypeOf("function");
     expect(sub.run).toBeTypeOf("function");
+
+    // `run` is valid for the args its own `parse` yields.
+    expectTypeOf(runWidgetAddCommand).toExtend<RunFor<typeof parseWidgetAddArgs>>();
   });
 
   it("rejects a parse/run pair whose args shapes disagree", () => {
-    // @ts-expect-error parseWidgetRemoveArgs returns WidgetRemoveArgs but
     /*
-     * runWidgetAddCommand expects { args: WidgetAddArgs } — TS refuses
-     * the cross-wired pair inside defineWidgetSub.
+     * `defineWidgetSub<TArgs>` infers `TArgs` from `parse` and then
+     * requires `run` to accept `{ args: TArgs }`. A parse fn yielding
+     * WidgetRemoveArgs cannot be paired with runWidgetAddCommand
+     * (WidgetRemoveArgs is missing `type`), so the latter is not a
+     * valid `run` for that parse. Asserting the divergence at the type
+     * level guards the linkage without silencing the compiler — if the
+     * arg shapes ever converge, this assertion fails to type-check.
      */
-    void defineWidgetSub(parseWidgetRemoveArgs, runWidgetAddCommand);
+    expectTypeOf(runWidgetAddCommand).not.toExtend<RunFor<typeof parseWidgetRemoveArgs>>();
   });
 });
 

@@ -46,7 +46,7 @@ describe("initialState", () => {
   });
 
   it("lands the cursor on the row's first widget when one exists", () => {
-    const s = initialState([{ widgets: [{ type: "model" }, { type: "clock" }] }]);
+    const s = initialState([{ widgets: [{ type: "model" }, { type: "version" }] }]);
     expect(s.cursor).toEqual({ line: 0, widget: 0 });
     expect(s.dirty).toBe(false);
   });
@@ -82,6 +82,7 @@ describe("isAddCell / currentWidget / isPickerMode", () => {
   it("isPickerMode covers every picker-* step", () => {
     expect(isPickerMode("picker-group")).toBe(true);
     expect(isPickerMode("picker-widget")).toBe(true);
+    expect(isPickerMode("picker-search")).toBe(true);
     expect(isPickerMode("picker-variant")).toBe(true);
     expect(isPickerMode("edit")).toBe(false);
   });
@@ -207,31 +208,6 @@ describe("reduce: dirty bookkeeping", () => {
   });
 });
 
-describe("reduce: toggle-glyphs", () => {
-  it("flips between off and nerd-font and marks dirty", () => {
-    let s: EditorState = initialState([], "off");
-    expect(s.glyphs).toBe("off");
-    expect(s.dirty).toBe(false);
-    s = reduce(s, { type: "toggle-glyphs" });
-    expect(s.glyphs).toBe("nerd-font");
-    expect(s.dirty).toBe(true);
-    s = reduce(s, { type: "toggle-glyphs" });
-    expect(s.glyphs).toBe("off");
-    expect(s.dirty).toBe(true);
-  });
-
-  it("starts in nerd-font when initialState seeds it that way", () => {
-    const s = initialState([{ widgets: [{ type: "a" }] }], "nerd-font");
-    expect(s.glyphs).toBe("nerd-font");
-    expect(reduce(s, { type: "toggle-glyphs" }).glyphs).toBe("off");
-  });
-
-  it("works in any mode (does not require an active widget)", () => {
-    const empty = initialState([], "off");
-    expect(reduce(empty, { type: "toggle-glyphs" }).glyphs).toBe("nerd-font");
-  });
-});
-
 describe("widgetCountAt", () => {
   it("returns the number of real widgets in the given row", () => {
     const s = multiLine([["a", "b"], [], ["c"]]);
@@ -282,14 +258,14 @@ describe("picker drill-down — pick-family → pick-widget → pick-variant", (
     s = reduce(s, { type: "pick-family", family: "session" });
     expect(s.mode).toBe("picker-widget");
     expect(asPicker(s).pickerDraft.family).toBe("session");
-    s = reduce(s, { type: "pick-widget", widgetType: "skills" });
+    s = reduce(s, { type: "pick-widget", widgetType: "account-email" });
     expect(s.mode).toBe("picker-variant");
-    expect(asPicker(s).pickerDraft.widgetType).toBe("skills");
-    s = reduce(s, { type: "pick-variant", variantId: "list" });
+    expect(asPicker(s).pickerDraft.widgetType).toBe("account-email");
+    s = reduce(s, { type: "pick-variant", variantId: "domain" });
     expect(s.mode).toBe("edit");
     expect(s.lines[0]?.widgets).toEqual([
       { type: "model" },
-      { type: "skills", options: { variant: "list" } },
+      { type: "account-email", options: { mask: "domain" } },
     ]);
     expect(s.cursor).toEqual({ line: 0, widget: 1 });
     expect(s.dirty).toBe(true);
@@ -308,9 +284,67 @@ describe("picker drill-down — pick-family → pick-widget → pick-variant", (
     let s = multiLine([["a"]]);
     s = reduce(s, { type: "open-picker", intent: "add" });
     s = reduce(s, { type: "pick-family", family: "session" });
-    s = reduce(s, { type: "pick-widget", widgetType: "skills" });
+    s = reduce(s, { type: "pick-widget", widgetType: "account-email" });
     s = reduce(s, { type: "pick-variant", variantId: null });
-    expect(s.lines[0]?.widgets[1]).toEqual({ type: "skills" });
+    expect(s.lines[0]?.widgets[1]).toEqual({ type: "account-email" });
+  });
+});
+
+describe("picker drill-down — flat-search path (open-search)", () => {
+  it("open-search switches the group view into picker-search", () => {
+    let s = multiLine([["a"]]);
+    s = reduce(s, { type: "open-picker", intent: "add" });
+    expect(s.mode).toBe("picker-group");
+    s = reduce(s, { type: "open-search" });
+    expect(s.mode).toBe("picker-search");
+    expect(asPicker(s).pickerDraft.family).toBeUndefined();
+  });
+
+  it("pick-widget from picker-search commits without a family", () => {
+    let s = multiLine([["a"]]);
+    s = reduce(s, { type: "open-picker", intent: "add" });
+    s = reduce(s, { type: "open-search" });
+    s = reduce(s, { type: "pick-widget", widgetType: "git-branch" });
+    expect(s.mode).toBe("edit");
+    expect(s.lines[0]?.widgets[1]).toEqual({ type: "git-branch" });
+  });
+
+  it("pick-widget from picker-search routes through picker-variant for variant-bearing widgets", () => {
+    let s = multiLine([["a"]]);
+    s = reduce(s, { type: "open-picker", intent: "add" });
+    s = reduce(s, { type: "open-search" });
+    s = reduce(s, { type: "pick-widget", widgetType: "account-email" });
+    expect(s.mode).toBe("picker-variant");
+    expect(asPicker(s).pickerDraft.family).toBeUndefined();
+    expect(asPicker(s).pickerDraft.widgetType).toBe("account-email");
+  });
+
+  it("picker-back from picker-search returns to picker-group", () => {
+    let s = multiLine([["a"]]);
+    s = reduce(s, { type: "open-picker", intent: "add" });
+    s = reduce(s, { type: "open-search" });
+    s = reduce(s, { type: "picker-back" });
+    expect(s.mode).toBe("picker-group");
+  });
+
+  it("picker-back from picker-variant returns to picker-search when no family was chosen", () => {
+    let s = multiLine([["a"]]);
+    s = reduce(s, { type: "open-picker", intent: "add" });
+    s = reduce(s, { type: "open-search" });
+    s = reduce(s, { type: "pick-widget", widgetType: "account-email" });
+    expect(s.mode).toBe("picker-variant");
+    s = reduce(s, { type: "picker-back" });
+    expect(s.mode).toBe("picker-search");
+    expect(asPicker(s).pickerDraft.widgetType).toBeUndefined();
+  });
+
+  it("open-search is inert outside picker-group (e.g. from picker-widget)", () => {
+    let s = multiLine([["a"]]);
+    s = reduce(s, { type: "open-picker", intent: "add" });
+    s = reduce(s, { type: "pick-family", family: "git" });
+    expect(s.mode).toBe("picker-widget");
+    const after = reduce(s, { type: "open-search" });
+    expect(after).toBe(s);
   });
 });
 
@@ -326,50 +360,26 @@ describe("picker drill-down — replace target", () => {
   });
 });
 
-describe("picker drill-down — flat search from picker-group", () => {
-  it("pick-widget commits directly from picker-group when the widget has no variants", () => {
-    let s = multiLine([["a"]]);
-    s = reduce(s, { type: "open-picker", intent: "add" });
-    expect(s.mode).toBe("picker-group");
-    // Flat-search path: skip pick-family, dispatch pick-widget straight away.
-    s = reduce(s, { type: "pick-widget", widgetType: "git-branch" });
-    expect(s.mode).toBe("edit");
-    expect(s.lines[0]?.widgets[1]).toEqual({ type: "git-branch" });
-  });
-
-  it("pick-widget routes to picker-variant from picker-group without setting a family", () => {
-    let s = multiLine([["a"]]);
-    s = reduce(s, { type: "open-picker", intent: "add" });
-    s = reduce(s, { type: "pick-widget", widgetType: "skills" });
-    expect(s.mode).toBe("picker-variant");
-    expect(asPicker(s).pickerDraft.widgetType).toBe("skills");
-    expect(asPicker(s).pickerDraft.family).toBeUndefined();
-  });
-
-  it("picker-back from picker-variant returns to picker-group when no family was chosen", () => {
-    let s = multiLine([["a"]]);
-    s = reduce(s, { type: "open-picker", intent: "add" });
-    s = reduce(s, { type: "pick-widget", widgetType: "skills" }); // flat-search path
-    expect(s.mode).toBe("picker-variant");
-    s = reduce(s, { type: "picker-back" });
-    expect(s.mode).toBe("picker-group");
-    expect(asPicker(s).pickerDraft.widgetType).toBeUndefined();
-  });
-});
-
 describe("picker drill-down — picker-back and close-picker", () => {
-  it("picker-back from picker-variant returns to picker-widget for add/replace", () => {
+  it("picker-back from picker-variant returns to picker-widget when a family was chosen", () => {
     let s = multiLine([["a"]]);
     s = reduce(s, { type: "open-picker", intent: "add" });
     s = reduce(s, { type: "pick-family", family: "session" });
-    s = reduce(s, { type: "pick-widget", widgetType: "skills" });
+    s = reduce(s, { type: "pick-widget", widgetType: "account-email" });
     expect(s.mode).toBe("picker-variant");
     s = reduce(s, { type: "picker-back" });
     expect(s.mode).toBe("picker-widget");
     expect(asPicker(s).pickerDraft.widgetType).toBeUndefined();
     s = reduce(s, { type: "picker-back" });
     expect(s.mode).toBe("picker-group");
-    expect(asPicker(s).pickerDraft.family).toBeUndefined();
+    /*
+     * `pickerDraft.family` is intentionally preserved across
+     * picker-widget → picker-group so the picker-group step can restore
+     * the user's previous highlight on Esc. The next forward action
+     * (`pick-family` from a fresh selection, or `close-picker`) replaces
+     * or clears it.
+     */
+    expect(asPicker(s).pickerDraft.family).toBe("session");
     s = reduce(s, { type: "picker-back" });
     expect(s.mode).toBe("edit");
   });
@@ -378,7 +388,7 @@ describe("picker drill-down — picker-back and close-picker", () => {
     let s = multiLine([["a"]]);
     s = reduce(s, { type: "open-picker", intent: "add" });
     s = reduce(s, { type: "pick-family", family: "session" });
-    s = reduce(s, { type: "pick-widget", widgetType: "skills" });
+    s = reduce(s, { type: "pick-widget", widgetType: "account-email" });
     s = reduce(s, { type: "close-picker" });
     /*
      * The discriminated union in `EditorState` excludes `pickerDraft` /
@@ -394,7 +404,7 @@ describe("picker — option sanitisation", () => {
     let s = multiLine([["a"]]);
     s = reduce(s, { type: "open-picker", intent: "add" });
     s = reduce(s, { type: "pick-family", family: "session" });
-    s = reduce(s, { type: "pick-widget", widgetType: "skills" });
+    s = reduce(s, { type: "pick-widget", widgetType: "account-email" });
     /*
      * Inject a malicious variantId — never matches a real variant, so commit
      * falls back to "default options" path. Defence-in-depth: sanitise.
@@ -411,7 +421,7 @@ describe("picker — option sanitisation", () => {
   });
 
   it("set-option merges into the widget's options and marks dirty", () => {
-    let s = makeState([{ type: "tokens-total" }]);
+    let s = makeState([{ type: "tokens" }]);
     s = reduce(s, { type: "set-option", key: "reset", value: "block" });
     s = reduce(s, { type: "set-option", key: "format", value: "human" });
     expect(s.lines[0]?.widgets[0]?.options).toEqual({ reset: "block", format: "human" });
@@ -433,7 +443,6 @@ describe("memento — lastSaved snapshot + revert", () => {
   it("initialState captures the loaded lines as the snapshot", () => {
     const s = makeState([{ type: "model" }]);
     expect(s.lastSaved.lines).toEqual(s.lines);
-    expect(s.lastSaved.glyphs).toBe(s.glyphs);
     expect(s.dirty).toBe(false);
   });
 
@@ -446,16 +455,14 @@ describe("memento — lastSaved snapshot + revert", () => {
     expect(s.lastSaved.lines).toEqual(s.lines);
   });
 
-  it("revert restores lines + glyphs from the snapshot and clears dirty", () => {
+  it("revert restores lines from the snapshot and clears dirty", () => {
     let s = makeState([{ type: "a" }]);
     const original = s.lines;
     s = reduce(s, { type: "set-option", key: "k", value: "v" });
-    s = reduce(s, { type: "toggle-glyphs" });
     expect(s.dirty).toBe(true);
     s = reduce(s, { type: "revert" });
     expect(s.dirty).toBe(false);
     expect(s.lines).toBe(original);
-    expect(s.glyphs).toBe("off");
   });
 
   it("revert is a no-op when the editor is already clean", () => {

@@ -12,7 +12,7 @@ Exit contract for every gate: `0` pass, `1` fail, `2` skipped (with a printed re
 ## gate-01 · doctor exits 0 on a healthy host
 
 - **Probes.** `<bin> doctor` on a CI host that has been freshly bootstrapped.
-- **Pass criterion.** Exit `0`; report shows D01–D10 all green or "not applicable".
+- **Pass criterion.** Exit `0`; report shows D01–D08 all green or "not applicable".
 - **Debugging.** Run `<bin> doctor --json` locally and inspect each check's status. Often this fails because the host config dir env var is missing in CI; gate the dependency explicitly.
 
 ## gate-02 · no absolute paths in shipped artefacts
@@ -118,6 +118,12 @@ These gates may be added per-implementation; the IDs are kept stable.
 
 - **Probes.** Glossary terms used inside source comments use the canonical spelling.
 - **Pass criterion.** No mismatches.
+
+## gate-22 · pricing-table freshness
+
+- **Probes.** Regex-parses `PRICING_TABLE_VERSION` (and `PRICING_FRESH_MAX_DAYS`) out of `src/tokens/pricing.ts` and compares the embedded date against the budget.
+- **Pass criterion.** The version literal parses as `YYYY-MM-DD` and is within the freshness budget (90 days by default).
+- **Debugging.** If stale, refresh `src/tokens/pricing.ts` and bump `PRICING_TABLE_VERSION` as part of the next release. This is the local + PR signal that replaced the retired `doctor` D06 pricing check; the scheduled `pricing-skew.yml` workflow remains the monthly belt-and-suspenders.
 
 ---
 

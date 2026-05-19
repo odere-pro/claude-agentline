@@ -1,8 +1,9 @@
 /**
  * Pricing table (§8.5). Versioned, embedded at build time. The bin
  * never fetches prices at runtime; maintainers refresh as part of
- * releases. `agentline doctor` reports `PRICING_TABLE_VERSION` so
- * users can tell at a glance whether the install is current.
+ * releases. Staleness is kept off the user-facing path: a unit test
+ * plus the `gate-22-pricing-freshness` repo gate fail the build when
+ * `PRICING_TABLE_VERSION` ages past the threshold.
  *
  * Prices are USD per million tokens. `cached` is the cache-read rate
  * (cache-write is rolled into the input rate per the upstream
@@ -16,6 +17,49 @@ export interface ModelPrice {
 }
 
 export const PRICING_TABLE_VERSION = "2026-05-03";
+
+/** Embedded pricing is considered stale once it is older than this. */
+export const PRICING_FRESH_MAX_DAYS = 90;
+
+const MS_PER_DAY = 86_400_000;
+
+/** Verdict shape for {@link evaluatePricingFreshness} (no doctor coupling). */
+export interface PricingFreshness {
+  status: "pass" | "warn";
+  message: string;
+  hint?: string;
+}
+
+/**
+ * Decide whether an embedded pricing-table version date is within the
+ * staleness threshold. Pure helper so the unit test and `gate-22` stay
+ * deterministic. Not surfaced by `agentline doctor` — pricing has no
+ * runtime consumer, so freshness is a maintainer/CI concern only.
+ */
+export function evaluatePricingFreshness(version: string, now: Date): PricingFreshness {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(version);
+  const parsed = match ? new Date(`${version}T00:00:00Z`) : null;
+  if (!parsed || Number.isNaN(parsed.getTime())) {
+    return {
+      status: "warn",
+      message: `PRICING_TABLE_VERSION="${version}" is not a valid YYYY-MM-DD date`,
+      hint: "ship a release with a corrected PRICING_TABLE_VERSION in src/tokens/pricing.ts",
+    };
+  }
+  const rawAge = Math.floor((now.getTime() - parsed.getTime()) / MS_PER_DAY);
+  const ageDays = Math.max(0, rawAge);
+  if (ageDays <= PRICING_FRESH_MAX_DAYS) {
+    return {
+      status: "pass",
+      message: `pricing table dated ${version} (${ageDays}d old)`,
+    };
+  }
+  return {
+    status: "warn",
+    message: `pricing table dated ${version} is ${ageDays}d old (threshold ${PRICING_FRESH_MAX_DAYS})`,
+    hint: "refresh src/tokens/pricing.ts and bump PRICING_TABLE_VERSION as part of the next release",
+  };
+}
 
 const TABLE: ReadonlyMap<string, ModelPrice> = new Map([
   ["claude-opus-4-7", { input: 15, output: 75, cached: 1.5 }],

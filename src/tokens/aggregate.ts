@@ -12,6 +12,19 @@ import type { TranscriptEvent } from "./transcript.js";
 
 export type ResetAxis = "session" | "block" | "day" | "week" | "model" | "effort";
 
+/**
+ * Anchor for the weekly window. The host's real weekly reset is
+ * account-specific (e.g. a Thursday-noon reset) and is *not* present in
+ * the Claude Code stdin payload, so the user pins it explicitly. Unset
+ * fields fall back to local Monday 00:00 — the historical default.
+ */
+export interface WeekResetOpts {
+  /** 0 = Sunday … 6 = Saturday (matches `Date.getDay()`). Default 1 (Monday). */
+  readonly weekday?: number;
+  /** Hour of day 0–23; minutes are pinned to 0. Default 0. */
+  readonly hour?: number;
+}
+
 export interface AggregateInput {
   readonly events: readonly TranscriptEvent[];
   readonly axis: ResetAxis;
@@ -25,6 +38,8 @@ export interface AggregateInput {
   readonly model?: string;
   /** Current effort tier; used by axis === `effort`. */
   readonly effort?: string;
+  /** Weekly window anchor; used by axis === `week`. Unset → Monday 00:00. */
+  readonly weekReset?: WeekResetOpts;
 }
 
 export interface TokenTotals {
@@ -65,9 +80,7 @@ export function aggregateCost(input: AggregateInput): number {
   for (const [model, totals] of byModel) {
     const price = priceForModel(model);
     cost +=
-      (totals.input * price.input +
-        totals.output * price.output +
-        totals.cached * price.cached) /
+      (totals.input * price.input + totals.output * price.output + totals.cached * price.cached) /
       1_000_000;
   }
   return cost;
@@ -93,7 +106,7 @@ const AXIS_FILTERS: Readonly<Record<ResetAxis, AxisFilter>> = Object.freeze({
     return ev.timestamp >= input.now - offset;
   },
   day: (ev, input) => ev.timestamp >= startOfLocalDay(input.now),
-  week: (ev, input) => ev.timestamp >= startOfLocalWeek(input.now),
+  week: (ev, input) => ev.timestamp >= startOfLocalWeek(input.now, input.weekReset),
   model: (ev, input) => input.model !== undefined && ev.model === input.model,
   effort: (ev, input) => input.effort !== undefined && ev.effort === input.effort,
 });
@@ -115,12 +128,17 @@ function startOfLocalDay(now: number): number {
   return d.getTime();
 }
 
-function startOfLocalWeek(now: number): number {
+function startOfLocalWeek(now: number, opts?: WeekResetOpts): number {
+  const weekday = opts?.weekday ?? 1;
+  const hour = opts?.hour ?? 0;
   const d = new Date(now);
-  const day = d.getDay();
-  const diff = (day + 6) % 7;
+  const diff = (d.getDay() - weekday + 7) % 7;
   d.setDate(d.getDate() - diff);
-  d.setHours(0, 0, 0, 0);
+  d.setHours(hour, 0, 0, 0);
+  // If the computed anchor lands in the future (target weekday is today
+  // but the reset hour has not arrived yet), step back a full week to the
+  // most recent reset that has actually passed.
+  if (d.getTime() > now) d.setDate(d.getDate() - 7);
   return d.getTime();
 }
 
@@ -138,8 +156,8 @@ export function dayStart(now: number): number {
   return startOfLocalDay(now);
 }
 
-export function weekStart(now: number): number {
-  return startOfLocalWeek(now);
+export function weekStart(now: number, opts?: WeekResetOpts): number {
+  return startOfLocalWeek(now, opts);
 }
 
 export const DAY_MS = ONE_DAY_MS;

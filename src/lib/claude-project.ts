@@ -8,9 +8,9 @@
  * commit `CLAUDE.md` without `.claude/`, and many in-progress
  * checkouts have `.claude/` without `CLAUDE.md`.
  *
- * `projectGate` is the shared pre-flight for `init`, `install`, and
- * `edit`. Inside a Claude project it returns `"proceed"` straight
- * away. Outside one:
+ * `projectGate` is the shared pre-flight for `init`, `install`,
+ * `reset`, and `edit`. Inside a Claude project it returns `"proceed"`
+ * straight away. Outside one:
  *
  *   - if stdin is a TTY, write a one-line `[y/N]` prompt to stderr
  *     and read the user's answer. `y`/`Y` → proceed, anything else
@@ -58,7 +58,7 @@ export interface ProjectGateInput {
   /** Output stream the prompt + skip message are written to. Defaults to `process.stderr`. */
   readonly stderr?: { write(chunk: string): unknown };
   /** Command name surfaced in the prompt copy ("agentline edit: …"). */
-  readonly command: "init" | "install" | "edit";
+  readonly command: "init" | "install" | "reset" | "edit";
 }
 
 /**
@@ -68,9 +68,9 @@ export interface ProjectGateInput {
 export type ProjectGateResult = "proceed" | "skip";
 
 /**
- * Pre-flight gate for `init`/`install`/`edit`. Returns `"proceed"`
- * inside a Claude project unconditionally; outside one, prompts on
- * TTYs (default `N`) and skips silently on non-TTYs.
+ * Pre-flight gate for `init`/`install`/`reset`/`edit`. Returns
+ * `"proceed"` inside a Claude project unconditionally; outside one,
+ * prompts on TTYs (default `N`) and skips silently on non-TTYs.
  */
 export async function projectGate(input: ProjectGateInput): Promise<ProjectGateResult> {
   const cwd = input.cwd ?? process.cwd();

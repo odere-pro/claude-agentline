@@ -1,0 +1,1 @@
+- Lock the preview-fidelity behaviour against regression: add golden render scenarios covering the Claude Code `context_window` resolver paths (live tokens, percentage-only, and the synthetic-window fallback) and a preview↔live parity guard that asserts the editor preview resolves every chip's text and foreground colour to the exact value the live statusline paints.

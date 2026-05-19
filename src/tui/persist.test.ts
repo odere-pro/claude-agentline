@@ -29,7 +29,7 @@ describe("saveEditedConfig", () => {
 
   it("returned config preserves base fields outside of lines", async () => {
     const path = join(dir, "out.json");
-    const lines = [{ widgets: [{ type: "clock" }] }];
+    const lines = [{ widgets: [{ type: "version" }] }];
     const result = await saveEditedConfig({ path, base: DEFAULT_CONFIG, lines });
     expect(result.version).toBe(DEFAULT_CONFIG.version);
   });
@@ -69,7 +69,7 @@ describe("saveEditedConfig", () => {
     const lines = [
       { widgets: [{ type: "model" }] },
       { widgets: [] },
-      { widgets: [{ type: "clock" }] },
+      { widgets: [{ type: "version" }] },
     ];
     const result = await saveEditedConfig({ path, base: DEFAULT_CONFIG, lines });
     expect(result.lines).toHaveLength(3);

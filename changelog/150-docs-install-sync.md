@@ -1,0 +1,1 @@
+- Document the global config sync model, install-path equivalence (`--from-source` ≡ `npm i -g`), and the orphaned-bin/stale-render failure mode: README + `docs/install.md`, `docs/troubleshooting.md`, `docs/doctor.md`, `docs/config.md`, `docs/architecture.md`.

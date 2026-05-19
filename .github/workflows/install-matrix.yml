@@ -58,16 +58,16 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Install npm dependencies
+      - name: Install dependencies (pnpm)
+        # Dev/build deps only. The tarball pack + global install below
+        # deliberately stay on npm — they simulate the consumer receiving
+        # the published artefact (npm is the dominant consumer PM).
         run: |
-          if [ -f package-lock.json ]; then
-            npm ci --no-audit --no-fund
-          else
-            npm install --no-audit --no-fund
-          fi
+          corepack enable
+          pnpm install --frozen-lockfile
 
       - name: Build agentline bin
-        run: npm run build
+        run: pnpm run build
 
       - name: Pack tarball
         id: pack
@@ -108,11 +108,9 @@ jobs:
           mkdir -p "$CLAUDE_CONFIG_DIR"
           # `gate-15` is not a known model id, so the `model` widget
           # falls back to the raw id. The rest of the default config
-          # widgets hide (no transcript, no git repo, etc.). With
-          # DEFAULT_CONFIG.glyphs="nerd-font" the model widget
-          # prepends its Nerd Font glyph (U+F544, nf-md-robot) and a
-          # single space, so the expected line is glyph + " " + id.
-          expected=$'\xef\x95\x84 gate-15'
+          # widgets hide (no transcript, no git repo, etc.), so the
+          # expected line is just the raw model id.
+          expected='gate-15'
           actual="$(printf '%s' '{"model":"gate-15","cwd":"/agentline/gate-15"}' | NO_COLOR=1 "${{ steps.prefix.outputs.bin }}")"
           # Trim a single trailing newline so the byte-comparison is shell-agnostic.
           actual="${actual%$'\n'}"

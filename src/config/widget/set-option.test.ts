@@ -10,7 +10,9 @@ import { parseWidgetSetOptionArgs, runWidgetSetOptionCommand } from "./set-optio
 
 describe("parseWidgetSetOptionArgs", () => {
   it("requires <key> <value> and --at", () => {
-    expect(() => parseWidgetSetOptionArgs(["--at", "0"])).toThrow(/<key> and a <value> are required/);
+    expect(() => parseWidgetSetOptionArgs(["--at", "0"])).toThrow(
+      /<key> and a <value> are required/,
+    );
     expect(() => parseWidgetSetOptionArgs(["k", "v"])).toThrow(/--at <index> is required/);
     expect(() => parseWidgetSetOptionArgs(["k", "v", "extra", "--at", "0"])).toThrow(
       /<key> and a <value> are required/,
@@ -56,7 +58,10 @@ describe("runWidgetSetOptionCommand", () => {
     await fs.mkdir(join(claudeCfgDir, "agentline"), { recursive: true });
     await fs.writeFile(
       userCfg,
-      JSON.stringify({ version: 1, lines: [{ widgets: [{ type: "tokens-total", options: { reset: "block" } }] }] }),
+      JSON.stringify({
+        version: 1,
+        lines: [{ widgets: [{ type: "tokens", options: { reset: "block" } }] }],
+      }),
     );
   });
 

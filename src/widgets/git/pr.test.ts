@@ -86,6 +86,14 @@ describe("gitPrWidget", () => {
     expect(cell.text).toBe("#42");
   });
 
+  it("sets cell.href to the PR url so the rendered PR is clickable", () => {
+    const cell = gitPrWidget.render(makeCtx(makeSnapshot()), {
+      options: { allowNetwork: true },
+      rawValue: false,
+    });
+    expect(cell.href).toBe("https://github.com/owner/repo/pull/42");
+  });
+
   it("renders the URL on the url variant", () => {
     const cell = gitPrWidget.render(makeCtx(makeSnapshot()), {
       options: { allowNetwork: true, variant: "url" },

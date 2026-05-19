@@ -110,10 +110,68 @@ describe("renderFromInputs", () => {
     expect(warningLines).toEqual(sorted);
   });
 
+  it("renders every configured line on its own row when width is undetected", () => {
+    /*
+     * Live host case: no COLUMNS, no tty, no inputs.width. The render
+     * must NOT wrap against a guessed fallback and must keep every
+     * configured line — the reported bug dropped line 3.
+     */
+    const config = {
+      ...DEFAULT_CONFIG,
+      lines: [
+        { widgets: [{ type: "current-session-reset-at" }] },
+        { widgets: [{ type: "current-session-reset-at" }] },
+        { widgets: [{ type: "current-session-reset-at" }] },
+      ],
+    };
+    const result = renderFromInputs({
+      payload: basePayload,
+      config,
+      theme: null,
+      env: { NO_COLOR: "1" },
+      clock: { now: () => new Date("2026-05-17T12:00:00Z") },
+    });
+    const rows = result.split("\n").filter((l) => l.length > 0);
+    expect(rows).toHaveLength(3);
+  });
+
+  it("does not wrap a wide single line when width is undetected", () => {
+    const config = {
+      ...DEFAULT_CONFIG,
+      lines: [{ widgets: [{ type: "current-session-reset-at" }, { type: "current-session-reset-at" }, { type: "current-session-reset-at" }] }],
+    };
+    const result = renderFromInputs({
+      payload: basePayload,
+      config,
+      theme: null,
+      env: { NO_COLOR: "1" },
+      clock: { now: () => new Date("2026-05-17T12:00:00Z") },
+    });
+    const rows = result.split("\n").filter((l) => l.length > 0);
+    expect(rows).toHaveLength(1);
+  });
+
+  it("still wraps when an explicit narrow width is supplied", () => {
+    const config = {
+      ...DEFAULT_CONFIG,
+      lines: [{ widgets: [{ type: "current-session-reset-at" }, { type: "current-session-reset-at" }, { type: "current-session-reset-at" }] }],
+    };
+    const result = renderFromInputs({
+      payload: basePayload,
+      config,
+      theme: null,
+      env: { NO_COLOR: "1" },
+      width: 6,
+      clock: { now: () => new Date("2026-05-17T12:00:00Z") },
+    });
+    const rows = result.split("\n").filter((l) => l.length > 0);
+    expect(rows.length).toBeGreaterThan(1);
+  });
+
   it("emits no warning lines when every widget type is known", () => {
     const config = {
       ...DEFAULT_CONFIG,
-      lines: [{ widgets: [{ type: "clock" }] }],
+      lines: [{ widgets: [{ type: "current-session-reset-at" }] }],
     };
     const result = renderFromInputs({
       payload: basePayload,

@@ -30,5 +30,5 @@ export const gitChangesWidget = defineWidget<Options>("git-changes", (ctx, setti
   if (total === 0 && hideZero) return { text: "", hidden: true };
   const label = settings.rawValue ? "" : (settings.options.label ?? "");
   const fg = resolveRole(ctx.theme, "git-dirty");
-  return { text: `${label}+${d.ins} -${d.del}`, fg };
+  return { text: `${label}+${d.ins} -${d.del}`, fg, signal: true };
 });

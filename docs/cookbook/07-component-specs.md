@@ -137,7 +137,9 @@ Each component entry has: **Responsibility**, **Public surface**, **Inputs**, **
 - **Responsibility.** Interactive editor with live preview. Reads the user config, mutates via a reducer, persists via atomic write.
 - **Public surface.** One verb entry point `<bin> edit`.
 - **Cold-path discipline.** This module imports the TUI framework. It MUST NOT be imported transitively by any render-path entry point.
-- **State.** Editor state machine with two scopes (`edit`, `picker`). Picker is a three-step chooser: family → widget → variant. Widgets without catalogued variants skip step 3.
+- **Preview is a configuration surface.** The preview shows **every configured widget on every row at all times** — it is not a byte-faithful mirror of `render`. A widget with no data for the current session is shown as a dim family-glyph + type-name chip (so it stays selectable and re-orderable), never filtered out. This deliberately diverges from the render path, which drops empty cells before composing.
+- **Preview data resolution.** A strict waterfall, recomputed per render tick: (1) **cache** — the stdin cache, when present; (2) **discovered** — otherwise the newest transcript under `${CLAUDE_CONFIG_DIR:-~/.claude}/projects/`, synthesised into a payload (real cwd → git, real transcript → tokens/cost, identity via the `auth.json` fallback; model id taken from the last `message.model`); (3) **mock** — only when no real source exists, a literal representative session so every widget family still renders. All three resolvers are synchronous (the preview render is synchronous) and TUI-only.
+- **State.** Editor state machine with two scopes (`edit`, `picker`). The picker defaults to a group browser (family → in-family list); pressing `/` opens a flat search overlay across every catalogued widget. Already-placed widgets are hidden in every view, and a family badge appears on each row in search. Widgets with catalogued variants drill into a final variant step; others commit immediately.
 - **Footer.** Two-line footer renders every binding in the active scope.
 - **Persistence.** Atomic write to the user config path. Re-validates the post-edit config; refuses to save an invalid config.
 - **Failure mode.** Schema-invalid edit → block save, show error in footer.
@@ -146,7 +148,7 @@ Each component entry has: **Responsibility**, **Public surface**, **Inputs**, **
 
 ## Doctor
 
-- **Responsibility.** Run checks D01–D10 in order; report; optionally apply documented repairs.
+- **Responsibility.** Run checks D01–D08 in order; report; optionally apply documented repairs.
 - **Public surface.** `<bin> doctor [--fix] [--json] [--strict]`.
 - **Checks.** See `08-feature-catalogue` and `14-gates-catalogue · gate-01-doctor`.
 - **Repairs (with `--fix`).** Settings scaffold (D01), settings wiring (D02), config defaults (D03), theme directory population (D04). Other findings are reported only.

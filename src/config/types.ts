@@ -11,7 +11,25 @@
  * boundary casts needed.
  */
 
+import type { WidgetFamily } from "../widgets/catalog.js";
 import type { Colour } from "../theme/colours.js";
+
+/**
+ * Per-family identity override. Every field is optional — a partial
+ * patch merged over the built-in `DEFAULT_FAMILY_IDENTITY` floor, so a
+ * user can recolour one family without restating its glyphs.
+ */
+export interface FamilyIdentityConfig {
+  glyph?: string;
+  glyphAscii?: string;
+  colour?: Colour;
+}
+
+/** `families` config block: a partial override per widget family. */
+export type FamiliesConfig = Partial<Record<WidgetFamily, FamilyIdentityConfig>>;
+
+/** `translations` config block: locale → (string id → display text). */
+export type TranslationsConfig = Record<string, Record<string, string>>;
 
 /**
  * @deprecated Pre-validation colour alias retained for compatibility
@@ -75,39 +93,30 @@ export interface TerminalWidthConfig {
   compactThreshold: number;
 }
 
-/**
- * Top-level glyph mode (§7.1 add-on).
- *
- *   - `off`        — render-path widgets emit text only (default; goldens
- *                    rely on this).
- *   - `nerd-font`  — when a widget has a `glyph` declared in the catalogue,
- *                    `renderWidget` prepends `<glyph><thin space>` to the
- *                    cell text. Requires a Nerd Font installed in the
- *                    user's terminal; falls back to a missing-glyph box
- *                    in plain fonts (which is exactly why it's opt-in).
- */
-export type GlyphMode = "off" | "nerd-font";
-
 export interface AgentlineConfig {
   $schema?: string;
   version: number;
   theme: string | null;
-  glyphs: GlyphMode;
   lines: LineConfig[];
   global: GlobalConfig;
   powerline: PowerlineConfig;
   terminalWidth: TerminalWidthConfig;
   keymap: Record<string, string>;
+  language: string;
+  families: FamiliesConfig;
+  translations: TranslationsConfig;
 }
 
 export type PartialAgentlineConfig = Partial<{
   $schema: string;
   version: number;
   theme: string | null;
-  glyphs: GlyphMode;
   lines: LineConfig[];
   global: Partial<GlobalConfig>;
   powerline: Partial<PowerlineConfig> & { caps?: Partial<PowerlineCaps>; glyphs?: PowerlineGlyphs };
   terminalWidth: Partial<TerminalWidthConfig>;
   keymap: Record<string, string>;
+  language: string;
+  families: FamiliesConfig;
+  translations: TranslationsConfig;
 }>;

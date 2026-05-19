@@ -34,6 +34,8 @@ interface Sandbox {
   home: string;
   configDir: string;
   binDir: string;
+  /** npm cache + `_logs`, kept OUTSIDE `root` so the tree snapshot is PM-noise-free. */
+  npmCache: string;
   env: NodeJS.ProcessEnv;
 }
 
@@ -44,6 +46,13 @@ async function setupSandbox(): Promise<Sandbox> {
   const binDir = join(root, "bin");
   await fs.mkdir(home, { recursive: true });
   await fs.mkdir(binDir, { recursive: true });
+  /*
+   * npm writes a timestamped debug log per invocation under `<cache>/_logs`.
+   * The shipped scripts probe `npm ls -g`, so without relocating the cache
+   * those non-deterministic logs land in HOME (inside `root`) and break the
+   * idempotency / no-op snapshots. Keep the cache OUTSIDE `root`.
+   */
+  const npmCache = await fs.mkdtemp(join(tmpdir(), "agentline-npmc-"));
   // Drop a no-op `agentline` shim so install.sh skips global npm install.
   const shim = join(binDir, "agentline");
   await fs.writeFile(shim, "#!/usr/bin/env bash\nexit 0\n", { mode: 0o755 });
@@ -52,11 +61,16 @@ async function setupSandbox(): Promise<Sandbox> {
     home,
     configDir,
     binDir,
+    npmCache,
     env: {
       ...process.env,
       HOME: home,
       CLAUDE_CONFIG_DIR: configDir,
       PATH: `${binDir}:${process.env.PATH ?? ""}`,
+      npm_config_cache: npmCache,
+      npm_config_update_notifier: "false",
+      npm_config_fund: "false",
+      npm_config_audit: "false",
     },
   };
 }
@@ -252,6 +266,81 @@ describe("scripts/install.sh", () => {
     await runScript(installSh, ["--dry-run"], sb.env, sb.root);
     const after = await snapshotTree(sb.root);
     expect(after).toEqual(before);
+  });
+});
+
+describe("scripts/install.sh --reset", () => {
+  let sb: Sandbox;
+  beforeEach(async () => {
+    sb = await setupSandbox();
+  });
+  afterEach(async () => {
+    await teardown(sb);
+  });
+
+  it("overwrites a user-edited config with the default template", async () => {
+    await runScript(installSh, [], sb.env, sb.root);
+    const userCfg = join(sb.configDir, "config.json");
+    const template = join(repoRoot, "templates", "default.config.json");
+    await fs.writeFile(
+      userCfg,
+      JSON.stringify({ version: 1, theme: "claude-code-dark", lines: [] }),
+    );
+
+    await runScript(installSh, ["--reset"], sb.env, sb.root);
+
+    const after = await fs.readFile(userCfg, "utf8");
+    const expected = await fs.readFile(template, "utf8");
+    expect(after).toBe(expected);
+  });
+
+  it("--reset --dry-run leaves the edited config untouched", async () => {
+    await runScript(installSh, [], sb.env, sb.root);
+    const userCfg = join(sb.configDir, "config.json");
+    const edited = JSON.stringify({ version: 1, theme: "edited-by-user" });
+    await fs.writeFile(userCfg, edited);
+    const before = await snapshotTree(sb.root);
+
+    await runScript(installSh, ["--reset", "--dry-run"], sb.env, sb.root);
+
+    expect(await snapshotTree(sb.root)).toEqual(before);
+    expect(await fs.readFile(userCfg, "utf8")).toBe(edited);
+  });
+
+  it("does not clobber the pre-install statusLine backup", async () => {
+    await fs.mkdir(join(sb.home, ".claude"), { recursive: true });
+    const settingsPath = join(sb.home, ".claude", "settings.json");
+    await fs.writeFile(
+      settingsPath,
+      JSON.stringify({ statusLine: { command: "starship init bash" } }),
+    );
+    await runScript(installSh, [], sb.env, sb.root); // backs up starship
+    await runScript(installSh, ["--reset"], sb.env, sb.root);
+
+    const backup = (await readJson(join(sb.configDir, "state", "settings-backup.json"))) as {
+      previousStatusLine: { command: string };
+    };
+    expect(backup.previousStatusLine.command).toBe("starship init bash");
+  });
+
+  it("on a clean host seeds config + themes and wires statusLine", async () => {
+    await runScript(installSh, ["--reset"], sb.env, sb.root);
+
+    expect(await exists(join(sb.configDir, "config.json"))).toBe(true);
+    expect(await exists(join(sb.configDir, "themes", "claude-code-dark.json"))).toBe(true);
+    const settings = (await readJson(join(sb.home, ".claude", "settings.json"))) as {
+      statusLine?: { command?: string };
+    };
+    expect(settings.statusLine?.command).toMatch(/agentline/);
+    expect(settings.statusLine?.command).toMatch(/\brender\b/);
+  });
+
+  it("is idempotent — second --reset run yields the same on-disk tree", async () => {
+    await runScript(installSh, ["--reset"], sb.env, sb.root);
+    const tree1 = await snapshotTree(sb.root);
+    await runScript(installSh, ["--reset"], sb.env, sb.root);
+    const tree2 = await snapshotTree(sb.root);
+    expect(tree2).toEqual(tree1);
   });
 });
 

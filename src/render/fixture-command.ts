@@ -11,7 +11,7 @@
  *                    accessibility flags (§1.2 N8); honoured here.
  *
  * The render itself goes through `renderForFixture` so the golden
- * harness, doctor's D10 check, and this CLI surface share one
+ * harness, doctor's D08 check, and this CLI surface share one
  * pipeline.
  */
 
@@ -159,7 +159,7 @@ async function loadLiveConfig() {
  */
 async function loadLiveSnapshotsForRender(
   rawJson: string,
-): Promise<Pick<RenderForFixtureOptions, "session" | "tokens" | "git">> {
+): Promise<Pick<RenderForFixtureOptions, "session" | "tokens" | "git" | "plan">> {
   let parsed;
   try {
     parsed = await readStdinPayload(Readable.from([Buffer.from(rawJson, "utf8")]));
@@ -281,7 +281,7 @@ async function maybeEmitFirstRunHint(): Promise<void> {
   const hasUser = await pathExists(paths.userConfig);
   if (hasUser) return;
   process.stderr.write(
-    "# agentline: using built-in defaults — run `agentline install` to seed a user config (silence with AGENTLINE_QUIET=1)\n",
+    "# agentline: using built-in defaults — run `agentline reset` to seed a user config (silence with AGENTLINE_QUIET=1)\n",
   );
 }
 

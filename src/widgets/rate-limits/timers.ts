@@ -1,56 +1,83 @@
 /**
- * `block-reset-timer` and `weekly-reset-timer` widgets (§7.5).
+ * `current-session-reset-timer` and `week-limit-timer` widgets (§7.5).
  *
- *   - `block-reset-timer`  Time remaining until the active 5-h block
- *                          resets. Default label `"resets "`. Honours
- *                          `options.format` for the duration format.
- *   - `weekly-reset-timer` Time remaining until next local Monday 00:00.
+ *   - `current-session-reset-timer`  Time remaining until the active 5-h
+ *                          session window resets. Default label
+ *                          `"reset in "`, default format `compact`
+ *                          (`1h 30m` / `30m`). Honours `options.format`.
+ *   - `week-limit-timer`   Time remaining until the next weekly reset.
+ *                          The reset anchor defaults to local Monday
+ *                          00:00; `options.resetWeekday` (0=Sun…6=Sat)
+ *                          and `options.resetHour` (0–23) pin it to the
+ *                          account's real reset. `compact` renders the
+ *                          multi-day remainder as `2d 1h 30m`.
  *
- * Both timers are pure functions of `ctx.clock` + `ctx.tokens` (for the
- * block anchor) and `weekStart` from the tokens module (for the weekly
- * boundary). When the snapshot is missing, block timers fall back to
- * "0m" rather than hiding — the renderer is still useful even with no
- * transcript.
+ * Both timers prefer the host's `rate_limits.{five_hour,seven_day}
+ * .resets_at` off Claude Code stdin (epoch seconds → ms), so the
+ * countdown agrees with the host's `/usage` screen. The local
+ * `blockEnd` / `weekStart` derivation is a *fallback only*, used when
+ * the host omits the window (older Claude Code, golden fixtures without
+ * `rate_limits`). `options.resetWeekday` / `options.resetHour` pin only
+ * that weekly fallback — the host's `resets_at` wins when present.
+ *
+ * `formatDuration` clamps negative remaining to zero, so a stale
+ * `resets_at` (or block anchor) renders "0m" rather than a negative
+ * count. Pure functions of `ctx.clock` + `ctx.stdin` (+ `ctx.tokens`
+ * for the fallback block anchor).
  */
 
+import { identityTranslator, widgetLabelId } from "../../i18n/index.js";
 import { blockEnd, weekStart } from "../../tokens/index.js";
 import type { Cell } from "../cell.js";
 import type { WidgetContext } from "../context.js";
 import type { WidgetSettings } from "../widget.js";
 import { defineWidget } from "../widget.js";
 import { formatDuration, resolveDurationFormat } from "./duration.js";
+import { hostResetMs } from "./host-reset.js";
+import { resolveWeekReset } from "./week-reset.js";
 
 interface Options {
   readonly label?: string;
   readonly format?: string;
+  /** 0 = Sunday … 6 = Saturday (matches `Date.getDay()`). Week timer only. */
+  readonly resetWeekday?: number;
+  /** Hour of day 0–23; minutes pinned to 0. Week timer only. */
+  readonly resetHour?: number;
 }
 
 const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 function blockRemainingMs(ctx: WidgetContext): number {
   const now = ctx.clock.now().getTime();
-  const anchor = ctx.tokens?.blockAnchor;
-  return blockEnd({ now, blockAnchor: anchor }) - now;
+  const localEnd = blockEnd({ now, blockAnchor: ctx.tokens?.blockAnchor });
+  return (hostResetMs(ctx, "five-hour") ?? localEnd) - now;
 }
 
-function weeklyRemainingMs(ctx: WidgetContext): number {
+function weeklyRemainingMs(ctx: WidgetContext, options: Options): number {
   const now = ctx.clock.now().getTime();
-  return weekStart(now) + ONE_WEEK_MS - now;
+  const localEnd = weekStart(now, resolveWeekReset(options)) + ONE_WEEK_MS;
+  return (hostResetMs(ctx, "seven-day") ?? localEnd) - now;
 }
 
-function timerCell(remainingMs: number, settings: WidgetSettings<Options>, defaultLabel = ""): Cell {
-  const format = resolveDurationFormat(settings.options.format, "short");
+function timerCell(
+  ctx: WidgetContext,
+  remainingMs: number,
+  settings: WidgetSettings<Options>,
+): Cell {
+  const format = resolveDurationFormat(settings.options.format, "compact");
   const text = formatDuration(remainingMs, format);
-  const label = settings.rawValue ? "" : (settings.options.label ?? defaultLabel);
+  const t = ctx.t ?? identityTranslator;
+  const label = settings.rawValue
+    ? ""
+    : (settings.options.label ?? t(widgetLabelId("reset-in"), "reset in "));
   return { text: `${label}${text}` };
 }
 
-export const blockResetTimerWidget = defineWidget<Options>(
-  "block-reset-timer",
-  (ctx, settings) => timerCell(blockRemainingMs(ctx), settings, "resets "),
+export const currentSessionResetTimerWidget = defineWidget<Options>(
+  "current-session-reset-timer",
+  (ctx, settings) => timerCell(ctx, blockRemainingMs(ctx), settings),
 );
 
-export const weeklyResetTimerWidget = defineWidget<Options>(
-  "weekly-reset-timer",
-  (ctx, settings) => timerCell(weeklyRemainingMs(ctx), settings, "week resets "),
+export const weekLimitTimerWidget = defineWidget<Options>("week-limit-timer", (ctx, settings) =>
+  timerCell(ctx, weeklyRemainingMs(ctx, settings.options), settings),
 );

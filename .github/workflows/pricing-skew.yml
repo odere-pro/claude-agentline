@@ -1,6 +1,6 @@
 # .github/workflows/pricing-skew.yml
 # Scheduled comparison of the embedded pricing table against (a) the
-# §9.2 D07 staleness budget and (b) an optional external reference URL.
+# §9.2 D06 staleness budget and (b) an optional external reference URL.
 # The cost widget reads from `src/tokens/pricing.ts`; this workflow
 # exists so the table never quietly drifts past 90 days.
 #
@@ -23,7 +23,7 @@ name: pricing-skew
 on:
   schedule:
     # First day of every month at 09:00 UTC. A missed monthly run still
-    # surfaces well within the 90-day D07 budget enforced below.
+    # surfaces well within the 90-day D06 budget enforced below.
     - cron: "0 9 1 * *"
   workflow_dispatch:
     inputs:

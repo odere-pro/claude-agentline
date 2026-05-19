@@ -82,11 +82,10 @@ Required roles (every theme must supply all 13):
 
 Optional roles (missing roles fall back to the compiled defaults):
 
-| Role    | Used by                                         |
-| ------- | ----------------------------------------------- |
-| `fg`    | default foreground when no widget colour is set |
-| `bg`    | default background                              |
-| `clock` | `clock`, `uptime-session`, `uptime-block`       |
+| Role | Used by                                         |
+| ---- | ----------------------------------------------- |
+| `fg` | default foreground when no widget colour is set |
+| `bg` | default background                              |
 
 Themes can supply a subset of the role keys; missing roles fall back to
 the in-code defaults so an old theme keeps working when new widgets
@@ -139,8 +138,9 @@ When `enabled` is `true`:
 - Adjoining colours are computed automatically: the chevron's
   foreground is the previous widget's background, and its background
   is the next widget's background.
-- Without a Nerd Font installed, `agentline doctor` emits the D05
-  warning and the binary falls back to ASCII chevrons (`>`, `<`).
+- Without a Nerd Font installed, the binary falls back to ASCII
+  chevrons (`>`, `<`); set `AGENTLINE_GLYPHS=ascii` to force this
+  regardless of the host font.
 
 ## Truecolor and degraded terminals
 

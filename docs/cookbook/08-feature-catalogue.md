@@ -7,7 +7,7 @@
 
 ## Widget families
 
-Seven families, each producing one cell per widget. The exact widget set may evolve; the family structure is stable.
+Five families, each producing one cell per widget. The exact widget set may evolve; the family structure is stable.
 
 ### Session (~7 widgets)
 
@@ -18,49 +18,45 @@ Surface state from the host stdin payload.
 | `model`           | Active model id (mapped to display name).                  |
 | `version`         | Host version.                                              |
 | `session-id`      | Short session id; toggleable hide.                         |
-| `session-name`    | Session name; falls back to short id when empty.           |
 | `account-email`   | Logged-in email; auth-file fallback. Mask modes available. |
 | `thinking-effort` | Effort tier; semantic colour grade.                        |
 | `skills`          | Skills loaded; cycled display (count / list / last).       |
 
-### Tokens (~7 widgets)
+### Tokens (~3 widgets)
 
-Each declares `options.reset` ∈ {`session`, `block`, `day`, `week`, `model`, `effort`}. Mixed-axis aggregation forbidden.
+`tokens` / `tokens-cached` declare `options.reset` ∈ {`session`, `block`, `day`, `week`, `model`, `effort`}; mixed-axis aggregation forbidden. `token-speed` uses `options.windowSec` instead.
 
-| Type            | Renders                                |
-| --------------- | -------------------------------------- |
-| `tokens-total`  | Running total                          |
-| `tokens-input`  | Input subtotal                         |
-| `tokens-output` | Output subtotal                        |
-| `tokens-cached` | Cached subtotal (prompt-cache hits)    |
-| `input-speed`   | Input tokens/sec over a rolling window |
-| `output-speed`  | Output tokens/sec                      |
-| `total-speed`   | Combined throughput                    |
+| Type            | Renders                                             |
+| --------------- | --------------------------------------------------- |
+| `tokens`        | Input ↓ + output ↑ subtotals (`↓<in> ↑<out>`)       |
+| `tokens-cached` | Cached subtotal (prompt-cache hits)                 |
+| `token-speed`   | Input ↓ + output ↑ tokens/sec over a rolling window |
 
-### Context (~4 widgets)
+### Context (3 widgets)
 
-Token usage against the model's context window.
+Token usage against the model's context window. Each widget appends the
+model's context-window size as a postfix (e.g. `200k`, `1M`).
 
-| Type                        | Renders                                        |
-| --------------------------- | ---------------------------------------------- |
-| `context-length`            | Raw token count.                               |
-| `context-percentage`        | Used / window; colour-graded green→yellow→red. |
-| `context-percentage-usable` | Same metric against `0.8 × window`.            |
-| `context-bar`               | Visual bar; configurable width.                |
+| Type                 | Renders                                                                 |
+| -------------------- | ----------------------------------------------------------------------- |
+| `context-length`     | Raw token count + window (`45.2k / 200k`).                              |
+| `context-percentage` | Used / window, colour-graded green→yellow→red, + window (`37% · 200k`). |
+| `context-bar`        | Visual bar in the context family accent + window (`████░░░░ 200k`).     |
 
 ### Rate limits (~5 widgets)
 
-Track the host's session / block / weekly quota.
+Track the host's current-session / weekly quota, mirroring the host's
+usage-limits screen.
 
-| Type                 | Renders                                  |
-| -------------------- | ---------------------------------------- |
-| `session-usage`      | 5 h block; display cycles percent / bar. |
-| `block-reset-timer`  | Countdown to next block reset.           |
-| `block-reset-at`     | Wall-clock of next block reset.          |
-| `weekly-reset-timer` | Countdown to next weekly reset.          |
-| `weekly-reset-at`    | Wall-clock of next weekly reset.         |
+| Type                          | Renders                                  |
+| ----------------------------- | ---------------------------------------- |
+| `session-weekly-usage`        | Session + weekly % — `52% / weekly 33%`. |
+| `current-session-reset-timer` | Countdown to next session reset.         |
+| `current-session-reset-at`    | Wall-clock of next session reset.        |
+| `week-limit-timer`            | Countdown to next weekly reset.          |
+| `weekly-reset-at`             | Wall-clock of next weekly reset.         |
 
-### Git (~12 widgets)
+### Git (~10 widgets)
 
 Read the working tree implied by stdin `cwd`.
 
@@ -68,8 +64,6 @@ Read the working tree implied by stdin `cwd`.
 | ------------------ | ------------------------------------------------ |
 | `git-branch`       | Branch name (detached HEAD shows short SHA).     |
 | `git-changes`      | `+N -M` aggregate.                               |
-| `git-staged`       | Staged file count.                               |
-| `git-unstaged`     | Unstaged file count.                             |
 | `git-untracked`    | Untracked file count.                            |
 | `git-ahead-behind` | `↑N ↓M`; hidden when even.                       |
 | `git-conflicts`    | Conflict count; hidden at zero.                  |
@@ -78,19 +72,6 @@ Read the working tree implied by stdin `cwd`.
 | `git-origin-repo`  | Remote repo identifier.                          |
 | `git-upstream`     | Upstream ref.                                    |
 | `git-pr`           | PR identifier — opt-in only; not on render path. |
-
-### Time (~3 widgets)
-
-| Type             | Renders                          |
-| ---------------- | -------------------------------- |
-| `clock`          | Local time; format configurable. |
-| `uptime-session` | Time since session start.        |
-| `uptime-block`   | Time since current block start.  |
-
-### Custom (~1 widget plus separator)
-
-- `separator` — one-character separator. In the editor, `Space` cycles through a fixed character set.
-- `command` (optional v0.1; sandboxed) — runs an argv-style external command with a tight default timeout; renders stdout. Useful as an escape hatch; not a plugin system.
 
 ---
 
@@ -123,7 +104,6 @@ The CLI surface is intentionally flat — there is no nested dispatcher. The def
 | `edit`          | Open the TUI editor. Cold path; lazy-imports the TUI framework.                       |
 | `config schema` | Print or write the JSON Schema. `--write <dir>`.                                      |
 | `config widget` | Scriptable: `add`, `remove`, `move`, `replace`, `set-option`, `list`, `catalog`.      |
-| `start`         | Preview the statusline using the last cached stdin.                                   |
 | `version`       | Print version and build metadata.                                                     |
 | `update-check`  | Compare local version to registry; gated to its own verb.                             |
 
@@ -131,31 +111,33 @@ The CLI surface is intentionally flat — there is no nested dispatcher. The def
 
 ## Doctor checks
 
-Ordered D01 → D10. Each: probe, outcome, repair (with `--fix`).
+Ordered D01 → D08. Each: probe, outcome, repair (with `--fix`).
 
-| ID  | Probe                                                              | Repair                                                          |
-| --- | ------------------------------------------------------------------ | --------------------------------------------------------------- |
-| D01 | Host settings file exists at the canonical path.                   | Create with default skeleton.                                   |
-| D02 | `statusLine.command` resolves to a working invocation of this bin. | Rewrite to the canonical invocation.                            |
-| D03 | User config exists and matches the schema.                         | Migrate, or write defaults if missing.                          |
-| D04 | All themes referenced by config are installed.                     | Copy from the package's embedded theme set.                     |
-| D05 | A Nerd Font is available (when Powerline enabled).                 | Print platform-specific install instructions (or auto-install). |
-| D06 | `git` binary is on PATH (when any git widget is enabled).          | None — report only.                                             |
-| D07 | Embedded pricing table is fresher than `now − 90 days`.            | None — report only.                                             |
-| D08 | Host config dir env var (if set) points to a writable directory.   | None — report only.                                             |
-| D09 | Custom-command widgets resolve their `cmd` to an executable.       | None — report only.                                             |
-| D10 | Render dry-run on an embedded fixture matches a stored snapshot.   | None — report only.                                             |
+| ID  | Probe                                                              | Repair                                      |
+| --- | ------------------------------------------------------------------ | ------------------------------------------- |
+| D01 | Host settings file exists at the canonical path.                   | Create with default skeleton.               |
+| D02 | `statusLine.command` resolves to a working invocation of this bin. | Rewrite to the canonical invocation.        |
+| D03 | User config exists and matches the schema.                         | Migrate, or write defaults if missing.      |
+| D04 | All themes referenced by config are installed.                     | Copy from the package's embedded theme set. |
+| D05 | `git` binary is on PATH (when any git widget is enabled).          | None — report only.                         |
+| D06 | The resolved global config directory is writable (or creatable).   | None — report only.                         |
+| D07 | Update-check cache (read-only) reports a newer release.            | None — report only.                         |
+| D08 | Render dry-run on an embedded fixture matches a stored snapshot.   | None — report only.                         |
 
 ---
 
 ## Default config widget list
 
-The shipped default config arranges one line of nine widgets:
+The shipped default config arranges three lines, ordered identity →
+capacity → budget:
 
 ```text
-model · thinking-effort · git-branch · git-changes · context-percentage · tokens-total · session-usage · block-reset-timer · clock
+line 1  model · thinking-effort · git-branch · git-changes
+line 2  context-percentage · context-bar · tokens
+line 3  session-weekly-usage · current-session-reset-timer · week-limit-timer
 ```
 
-`tokens-total` and `session-usage` use `reset: block`. The default theme is `claude-code-dark` with Powerline disabled.
-
-A `minimal.config.json` template also ships: `model · git-branch · tokens-total · clock` — for users who want a shorter line.
+`tokens` uses `reset: block`. The default theme is `claude-code-dark`
+with Powerline disabled. No personal data (e.g. `account-email`) ships
+in the default. There is exactly one shipped template
+(`templates/default.config.json`); `agentline reset` restores it.

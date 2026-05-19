@@ -4,10 +4,7 @@
   "theme": null,
   "lines": [
     {
-      "widgets": [
-        { "type": "model" },
-        { "type": "clock", "options": { "format": "HH:mm", "tz": "UTC" } }
-      ]
+      "widgets": [{ "type": "model" }]
     }
   ],
   "global": {

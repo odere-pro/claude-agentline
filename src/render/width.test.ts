@@ -5,8 +5,10 @@
 import { describe, it, expect } from "vitest";
 import {
   detectTerminalWidth,
+  detectTerminalWidthInfo,
   applyWidthMode,
   FALLBACK_WIDTH,
+  NO_WRAP_WIDTH,
   type WidthSource,
   type WidthModeOptions,
 } from "./width.js";
@@ -74,6 +76,40 @@ describe("detectTerminalWidth", () => {
       env: { COLUMNS: "  150  " },
     };
     expect(detectTerminalWidth(source)).toBe(150);
+  });
+});
+
+describe("detectTerminalWidthInfo", () => {
+  it("reports detected:true for COLUMNS", () => {
+    expect(detectTerminalWidthInfo({ env: { COLUMNS: "120" } })).toEqual({
+      width: 120,
+      detected: true,
+    });
+  });
+
+  it("reports detected:true for a tty stream", () => {
+    expect(detectTerminalWidthInfo({ env: {}, stream: { columns: 200 } })).toEqual({
+      width: 200,
+      detected: true,
+    });
+  });
+
+  it("reports detected:false with fallback width when nothing is available", () => {
+    expect(detectTerminalWidthInfo({ env: {} })).toEqual({
+      width: FALLBACK_WIDTH,
+      detected: false,
+    });
+  });
+
+  it("reports detected:false when COLUMNS is unparseable", () => {
+    expect(detectTerminalWidthInfo({ env: { COLUMNS: "abc" } })).toEqual({
+      width: FALLBACK_WIDTH,
+      detected: false,
+    });
+  });
+
+  it("NO_WRAP_WIDTH is large enough that no real line can exceed it", () => {
+    expect(NO_WRAP_WIDTH).toBeGreaterThan(100_000);
   });
 });
 

@@ -2,11 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  writeIdempotent,
-  writeJsonIdempotent,
-  writeOnce,
-} from "./atomic-write.js";
+import { writeIdempotent, writeJsonIdempotent, writeOnce } from "./atomic-write.js";
 
 describe("writeJsonIdempotent", () => {
   let dir: string;

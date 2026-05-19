@@ -70,29 +70,24 @@ Group IDs (Gn) are stable. A group ends when its exit criteria are met; the gate
 ## G10 · Session widgets
 
 - **Prereq.** G9.
-- **Produces.** `model`, `version`, `session-id`, `session-name`, `account-email` (with auth-file fallback), `thinking-effort`, `skills`.
+- **Produces.** `model`, `version`, `session-id`, `account-email` (with auth-file fallback), `thinking-effort`, `skills`.
 
 ## G11 · Tokens and context widgets
 
 - **Prereq.** G9.
-- **Produces.** Transcript reader, axis bucketing, embedded pricing table, `tokens-*`, `input-speed`/`output-speed`/`total-speed`, `context-*`.
+- **Produces.** Transcript reader, axis bucketing, embedded pricing table, `tokens`/`tokens-cached`, `token-speed`, `context-*`.
 
 ## G12 · Rate-limit widgets
 
 - **Prereq.** G11.
-- **Produces.** `session-usage`, `block-reset-timer`, `block-reset-at`, `weekly-reset-timer`, `weekly-reset-at`.
+- **Produces.** `session-weekly-usage`, `current-session-reset-timer`, `current-session-reset-at`, `week-limit-timer`, `weekly-reset-at`.
 
 ## G13 · Git widgets
 
 - **Prereq.** G9.
 - **Produces.** Git resolver, all git widgets, CRLF and Windows path normalisation.
 
-## G14 · Time and custom widgets
-
-- **Prereq.** G9.
-- **Produces.** `clock`, `uptime-session`, `uptime-block`, `separator`, optionally the sandboxed `command` widget.
-
-G10–G14 are **parallel-safe.**
+G10–G13 are **parallel-safe.**
 
 ## G15 · Powerline transform
 
@@ -101,14 +96,14 @@ G10–G14 are **parallel-safe.**
 
 ## G16 · TUI editor (cold path)
 
-- **Prereq.** G9 plus enough widgets to make the preview meaningful (G10–G14).
+- **Prereq.** G9 plus enough widgets to make the preview meaningful (G10–G13).
 - **Produces.** Editor app, live preview, atomic writes, default keymap, two-line footer, three-step picker (family → widget → variant).
 - **Exit.** Editor opens, edits commit atomically, gate `render-no-tui-import` continues to pass (the editor must remain lazy-imported only on the `edit` verb).
 
 ## G17 · Doctor + autofix
 
 - **Prereq.** G6, G8.
-- **Produces.** `src/doctor/`, checks D01–D10, repairs for D01–D04.
+- **Produces.** `src/doctor/`, checks D01–D08, repairs for D01–D04.
 - **Exit.** Gate 01 (doctor exits 0 on a healthy host) passes for real.
 
 ## G18 · Full CLI surface
@@ -189,7 +184,7 @@ The longest sequence is roughly 15 groups; the rest open in parallel.
 
 - After **G3**: open **G4** and **G5** concurrently.
 - After **G6**: open **G7** and **G8** concurrently.
-- After **G9**: open **G10**, **G11**, **G13**, **G14**, **G15** concurrently.
+- After **G9**: open **G10**, **G11**, **G13**, **G15** concurrently.
 - After **G18**: open **G24** and **G25** concurrently.
 - After **G21**: open **G22** and **G23** concurrently.
 

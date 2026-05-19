@@ -15,12 +15,60 @@
  */
 
 import type { WidgetConfig } from "../config/types.js";
-import { widgetGlyph } from "./catalog.js";
+import type { Colour } from "../theme/colours.js";
+import { widgetMeta, type WidgetFamily } from "./catalog.js";
 import type { Cell, MergeMode } from "./cell.js";
 import { HIDDEN_CELL } from "./cell.js";
 import type { WidgetContext } from "./context.js";
+import { resolveFamilyIdentity, type ResolvedFamilyIdentity } from "./family-identity.js";
 import type { WidgetRegistry } from "./registry.js";
 import type { WidgetDef } from "./widget.js";
+
+/**
+ * Family identity (glyph + accent colour) for a widget `type`, with the
+ * user's `config.families` override layered over the built-in defaults
+ * and the glyph degraded for the host. An unregistered type belongs to
+ * no family, so it gets no glyph and no accent — `undefined`.
+ */
+export function widgetIdentityFor(
+  type: string,
+  ctx: Pick<WidgetContext, "env" | "config">,
+): ResolvedFamilyIdentity | undefined {
+  const family: WidgetFamily | undefined = widgetMeta(type)?.family;
+  if (family === undefined) return undefined;
+  return resolveFamilyIdentity(family, { env: ctx.env }, ctx.config?.families?.[family]);
+}
+
+/**
+ * Prefix the family glyph. Every widget carries its family glyph with
+ * no per-type opt-out — skipped only for the unavoidable cases: hidden
+ * / empty cells and types with no family identity (an unregistered
+ * type). Applied before `applyOverrides` so padding, Powerline and
+ * width math all see the glyphed text. Survives `rawValue` — the glyph
+ * is family identity, not the widget's label.
+ */
+function prefixGlyph(cell: Cell, identity: ResolvedFamilyIdentity | undefined): Cell {
+  if (cell.hidden || cell.text.length === 0 || identity === undefined) {
+    return cell;
+  }
+  return { ...cell, text: `${identity.glyph} ${cell.text}` };
+}
+
+/**
+ * Fg precedence: explicit `config.fg` > a state-signal cell's own
+ * `fg` (git clean/dirty, token/context threshold, effort) > the family
+ * accent > whatever `fg` the cell carried. Family colour is the single
+ * source of truth for a non-signal widget's accent.
+ */
+function resolveFg(
+  cell: Cell,
+  config: WidgetConfig,
+  identity: ResolvedFamilyIdentity | undefined,
+): Colour | undefined {
+  if (config.fg !== undefined && config.fg !== null) return config.fg;
+  if (cell.signal) return cell.fg;
+  return identity?.colour ?? cell.fg;
+}
 
 export class WidgetTypeMissingError extends Error {
   constructor(public readonly type: string) {
@@ -34,39 +82,19 @@ export interface RenderWidgetOptions {
   readonly strict?: boolean;
 }
 
-/**
- * Plain space (U+0020) between glyph and value. The earlier thin
- * space (U+2009) rendered fractional-width in monospace terminals and
- * collided with the width-2 Nerd-Font PUA glyphs, leaving the cell
- * looking kerned. A regular space lines up cleanly with the value.
- */
-const GLYPH_SEPARATOR = " ";
-
-function applyGlyph(text: string, type: string, ctx: WidgetContext): string {
-  if (ctx.config.glyphs !== "nerd-font") return text;
-  if (text.length === 0) return text;
-  const glyph = widgetGlyph(type);
-  if (!glyph) return text;
-  return `${glyph}${GLYPH_SEPARATOR}${text}`;
-}
-
-function applyOverrides(cell: Cell, config: WidgetConfig, ctx: WidgetContext): Cell {
+function applyOverrides(cell: Cell, config: WidgetConfig, identity?: ResolvedFamilyIdentity): Cell {
   const merged: MergeMode = config.merged ?? cell.merged ?? "off";
+  const fg = resolveFg(cell, config, identity);
   /*
-   * Glyph mode prepends the catalogue glyph + GLYPH_SEPARATOR (a plain
-   * space, see the constant above) when `config.glyphs === "nerd-font"`.
-   * Skipped on flex separators (their text is the fill character, not a
-   * label) and empty cells.
+   * `cell.signal` is read by `resolveFg` and then dropped — it is an
+   * internal precedence hint, never encoded onto the emitted cell.
+   * The editor preview resolves colour through this same path, so
+   * preview and live render agree.
    */
-  const text = cell.flex === true ? cell.text : applyGlyph(cell.text, config.type, ctx);
   const next: Cell = {
-    text,
+    text: cell.text,
     merged,
-    ...(config.fg !== undefined && config.fg !== null
-      ? { fg: config.fg }
-      : cell.fg !== undefined
-        ? { fg: cell.fg }
-        : {}),
+    ...(fg !== undefined ? { fg } : {}),
     ...(config.bg !== undefined && config.bg !== null
       ? { bg: config.bg }
       : cell.bg !== undefined
@@ -106,29 +134,28 @@ export function renderWidget(
     rawValue: config.rawValue ?? false,
   });
   if (cell.hidden) return HIDDEN_CELL;
-  return applyOverrides(cell, config, ctx);
+  const identity = widgetIdentityFor(config.type, ctx);
+  return applyOverrides(prefixGlyph(cell, identity), config, identity);
 }
 
 /**
  * Label-only render for the `agentline edit` preview when there's no
  * cached stdin to drive a real render. Returns a `Cell` whose text is
- * the widget's `type` — so the preview shows e.g. `tokens-input`,
+ * the widget's `type` — so the preview shows e.g. `tokens`,
  * `git-branch`, … in place of fake demo values. Per-widget colour and
  * style overrides still apply so a user can see how their cosmetic
  * choices land. `hidden: true` widgets short-circuit, matching
  * `renderWidget`.
  */
-export function renderWidgetLabel(
-  config: WidgetConfig,
-  opts: { readonly glyphs?: "off" | "nerd-font" } = {},
-): Cell {
+export function renderWidgetLabel(config: WidgetConfig, identity?: ResolvedFamilyIdentity): Cell {
   if (config.hidden === true) return HIDDEN_CELL;
-  const glyph = opts.glyphs === "nerd-font" ? widgetGlyph(config.type) : undefined;
-  const text = glyph ? `${glyph}${GLYPH_SEPARATOR}${config.type}` : config.type;
+  const labelCell: Cell = { text: config.type };
+  const prefixed = identity ? prefixGlyph(labelCell, identity) : labelCell;
+  const fg = resolveFg(labelCell, config, identity);
   const next: Cell = {
-    text,
+    text: prefixed.text,
     merged: config.merged ?? "off",
-    ...(config.fg !== undefined && config.fg !== null ? { fg: config.fg } : {}),
+    ...(fg !== undefined ? { fg } : {}),
     ...(config.bg !== undefined && config.bg !== null ? { bg: config.bg } : {}),
     ...(config.bold !== undefined ? { bold: config.bold } : {}),
     ...(config.italic !== undefined ? { italic: config.italic } : {}),

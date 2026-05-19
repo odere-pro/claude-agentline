@@ -155,9 +155,11 @@ describe("git-conflicts widget", () => {
 
   it("renders ⚡N with the danger role colour", () => {
     const cell = gitConflictsWidget.render(
-      makeCtx(makeSnapshot({
-        status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 2, modified: 0, added: 0 },
-      })),
+      makeCtx(
+        makeSnapshot({
+          status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 2, modified: 0, added: 0 },
+        }),
+      ),
       { options: {}, rawValue: false },
     );
     expect(cell.text).toBe("⚡2");
@@ -166,9 +168,11 @@ describe("git-conflicts widget", () => {
 
   it("respects custom glyph option", () => {
     const cell = gitConflictsWidget.render(
-      makeCtx(makeSnapshot({
-        status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 1, modified: 0, added: 0 },
-      })),
+      makeCtx(
+        makeSnapshot({
+          status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 1, modified: 0, added: 0 },
+        }),
+      ),
       { options: { glyph: "!" }, rawValue: false },
     );
     expect(cell.text).toBe("!1");
@@ -176,15 +180,19 @@ describe("git-conflicts widget", () => {
 
   it("suppresses label when rawValue: true", () => {
     const withLabel = gitConflictsWidget.render(
-      makeCtx(makeSnapshot({
-        status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 3, modified: 0, added: 0 },
-      })),
+      makeCtx(
+        makeSnapshot({
+          status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 3, modified: 0, added: 0 },
+        }),
+      ),
       { options: { label: "cf:" }, rawValue: false },
     );
     const noLabel = gitConflictsWidget.render(
-      makeCtx(makeSnapshot({
-        status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 3, modified: 0, added: 0 },
-      })),
+      makeCtx(
+        makeSnapshot({
+          status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 3, modified: 0, added: 0 },
+        }),
+      ),
       { options: { label: "cf:" }, rawValue: true },
     );
     expect(withLabel.text).toBe("cf:⚡3");

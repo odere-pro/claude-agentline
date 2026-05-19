@@ -12,7 +12,12 @@ import {
 const sample: readonly WidgetMetaEntry[] = [
   { type: "git-branch", name: "Git branch", description: "Current branch", family: "git" },
   { type: "model", name: "Model", description: "Active model id", family: "session" },
-  { type: "clock", name: "Clock", description: "Wall-clock time", family: "time" },
+  {
+    type: "context-percentage",
+    name: "Context %",
+    description: "Context window used",
+    family: "context",
+  },
 ];
 
 describe("parseWidgetCatalogArgs", () => {
@@ -45,7 +50,12 @@ describe("formatJson", () => {
     expect(parsed.widgets).toEqual([
       { type: "git-branch", name: "Git branch", description: "Current branch", family: "git" },
       { type: "model", name: "Model", description: "Active model id", family: "session" },
-      { type: "clock", name: "Clock", description: "Wall-clock time", family: "time" },
+      {
+    type: "context-percentage",
+    name: "Context %",
+    description: "Context window used",
+    family: "context",
+  },
     ]);
   });
 });
@@ -55,10 +65,11 @@ describe("formatText", () => {
     const text = formatText(sample);
     expect(text).toContain("agentline widgets (3):");
     expect(text).toContain("session (1):");
+    expect(text).toContain("context (1):");
     expect(text).toContain("git (1):");
-    expect(text).toContain("clock");
-    expect(text.indexOf("session (1):")).toBeLessThan(text.indexOf("git (1):"));
-    expect(text.indexOf("git (1):")).toBeLessThan(text.indexOf("time (1):"));
+    expect(text).toContain("context-percentage");
+    expect(text.indexOf("session (1):")).toBeLessThan(text.indexOf("context (1):"));
+    expect(text.indexOf("context (1):")).toBeLessThan(text.indexOf("git (1):"));
   });
 });
 

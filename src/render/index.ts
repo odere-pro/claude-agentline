@@ -11,20 +11,19 @@
 
 export {
   detectTerminalWidth,
+  detectTerminalWidthInfo,
   applyWidthMode,
   FALLBACK_WIDTH,
+  NO_WRAP_WIDTH,
   DEFAULT_COMPACT_THRESHOLD,
   type AppliedWidth,
+  type DetectedWidth,
   type WidthMode,
   type WidthModeOptions,
   type WidthSource,
 } from "./width.js";
 
-export {
-  detectColourDepth,
-  type ColourDepth,
-  type ColourDepthSource,
-} from "./colour-depth.js";
+export { detectColourDepth, type ColourDepth, type ColourDepthSource } from "./colour-depth.js";
 
 export { encodeSegments, SGR_RESET } from "./ansi.js";
 export { plainSegment, type Segment } from "./segment.js";
@@ -43,11 +42,7 @@ export { writeOnce, type WritableLike } from "./write.js";
 export { composeLines, type ComposeOptions } from "./compose.js";
 
 import { encodeSegments } from "./ansi.js";
-import {
-  applyAccessibility,
-  effectiveDepth,
-  type AccessibilityFlags,
-} from "./accessibility.js";
+import { applyAccessibility, effectiveDepth, type AccessibilityFlags } from "./accessibility.js";
 import type { ColourDepth } from "./colour-depth.js";
 import type { Segment } from "./segment.js";
 
@@ -56,10 +51,7 @@ export interface RenderLineOptions {
   readonly flags: AccessibilityFlags;
 }
 
-export function renderLine(
-  segments: readonly Segment[],
-  options: RenderLineOptions,
-): string {
+export function renderLine(segments: readonly Segment[], options: RenderLineOptions): string {
   const accessible = applyAccessibility(segments, options.flags);
   const depth = effectiveDepth(options.depth, options.flags);
   return encodeSegments(accessible, depth);

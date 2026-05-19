@@ -40,15 +40,15 @@ Everything else — configuration, theming, widget arrangement, editor UI, docto
 
 ## What you will end up shipping
 
-| Artefact                  | Purpose                                                                                              |
-| ------------------------- | ---------------------------------------------------------------------------------------------------- |
-| One executable            | The render binary. Also dispatches `install`, `uninstall`, `doctor`, `edit`, `config`, `start`, etc. |
-| One config JSON Schema    | Source of truth for the on-disk config shape. Validates on load. Exported by a CLI verb.             |
-| One theme JSON Schema     | Source of truth for theme files.                                                                     |
-| A small theme set         | Built-in palettes (typically 4: light/dark × neutral/branded).                                       |
-| A default config template | Copied into place by `install` if no user config exists.                                             |
-| Lifecycle scripts         | `install` / `doctor` / `uninstall` wrapping the binary.                                              |
-| Docs                      | See `15-documentation-set`.                                                                          |
+| Artefact                  | Purpose                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------- |
+| One executable            | The render binary. Also dispatches `install`, `uninstall`, `doctor`, `edit`, `config`, etc. |
+| One config JSON Schema    | Source of truth for the on-disk config shape. Validates on load. Exported by a CLI verb.    |
+| One theme JSON Schema     | Source of truth for theme files.                                                            |
+| A small theme set         | Built-in palettes (typically 4: light/dark × neutral/branded).                              |
+| A default config template | Copied into place by `install` if no user config exists.                                    |
+| Lifecycle scripts         | `install` / `doctor` / `uninstall` wrapping the binary.                                     |
+| Docs                      | See `15-documentation-set`.                                                                 |
 
 ## What you will not ship
 

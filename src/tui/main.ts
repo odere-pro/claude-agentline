@@ -15,17 +15,19 @@
  *                              wiring, config resolution helpers
  *   - `footer.ts`           — the two-line keybinding footer
  *
- * Add / replace share a three-step picker drill-down owned by
- * `use-editor-input.ts`:
+ * Add / replace share a picker drill-down owned by
+ * `use-editor-input.ts` with four picker modes:
  *
- *   step 1 (`picker-group`)   — empty search ⇒ pick a family;
- *                                typing flips the view to a flat global
- *                                widget list filtered by substring (across
- *                                every family at once). Picking a result
- *                                from the flat view skips step 2.
- *   step 2 (`picker-widget`)  — pick a widget within the chosen family.
- *   step 3 (`picker-variant`) — pick a variant (skipped for widgets that
- *                                have none in the catalogue).
+ *   step 1a (`picker-group`)   — the default view: family browser.
+ *                                 `/` switches to `picker-search`.
+ *   step 1b (`picker-widget`)  — in-family widget list with a live
+ *                                 filter.
+ *   step 1c (`picker-search`)  — flat, searchable list across every
+ *                                 catalogued widget; family badges on
+ *                                 each row, already-placed widgets
+ *                                 hidden.
+ *   step 2  (`picker-variant`) — pick a variant (skipped for widgets
+ *                                 that have none in the catalogue).
  */
 
 import { projectGate } from "../lib/claude-project.js";
@@ -35,7 +37,7 @@ import { resolveConfiguredTheme } from "../theme/resolve.js";
 
 import type { RunConfigInput, RunConfigResult } from "./app.js";
 import { pickGlyphs } from "./glyphs.js";
-import { mountEditor, resolveNerdFontAvailable, resolveStartingConfig } from "./mount.js";
+import { mountEditor, resolveStartingConfig } from "./mount.js";
 
 export type { RunConfigInput, RunConfigResult } from "./app.js";
 
@@ -58,13 +60,12 @@ export async function runConfigCommand(input: RunConfigInput = {}): Promise<RunC
   const env = resolveEnv(input);
   const previewTheme = await resolveConfiguredTheme(config.theme, { env });
   const glyphs = pickGlyphs({ env });
-  const nerdFontAvailable = resolveNerdFontAvailable(env);
   const { waitUntilExit, unmount, savedRef } = mountEditor({
     config,
     path,
     previewTheme,
     glyphs,
-    nerdFontAvailable,
+    env,
   });
   await waitUntilExit;
   unmount();

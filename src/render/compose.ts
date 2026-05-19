@@ -32,6 +32,14 @@ export interface ComposeOptions {
   readonly powerline: PowerlineConfig;
   readonly theme: Theme | null;
   readonly width: number;
+  /**
+   * When true, `width` is not a real terminal width (it could not be
+   * detected). Each configured line stays on a single row — no
+   * width-based wrapping — and flex slots collapse instead of filling,
+   * since there is no known width to fill to. The host clips
+   * horizontally. See `width.ts · NO_WRAP_WIDTH`.
+   */
+  readonly noWrap?: boolean;
   /** Active glyph set selector for Powerline mode. */
   readonly glyphSupport: GlyphSupport;
 }
@@ -43,12 +51,21 @@ export function composeLines(
   if (options.powerline.enabled) {
     return composePowerline(lines, options);
   }
+  /*
+   * `MAX_LINES` bounds the number of *configured* lines (the editor
+   * caps line count there too), not physical rows. A line that wraps
+   * into several rows must not consume the budget of later configured
+   * lines — otherwise one long line silently deletes the lines after
+   * it. All wrapped rows of an in-budget line are emitted.
+   */
   const out: Segment[][] = [];
+  let lineCount = 0;
   for (const line of lines) {
+    if (lineCount >= MAX_LINES) break;
     for (const composed of composePlainLine(line, options)) {
-      if (out.length >= MAX_LINES) return out;
       out.push(composed);
     }
+    lineCount += 1;
   }
   return out;
 }
@@ -90,6 +107,8 @@ function composePlainLine(cells: readonly Cell[], options: ComposeOptions): Segm
  * `composeOneLine`), so they never trigger wrapping on their own.
  */
 function packIntoLines(visible: readonly Cell[], options: ComposeOptions): Cell[][] {
+  // Width unknown — never wrap; the host clips the row horizontally.
+  if (options.noWrap === true) return [[...visible]];
   const out: Cell[][] = [];
   let current: Cell[] = [];
   let used = 0;
@@ -146,6 +165,19 @@ function composeOneLine(cells: readonly Cell[], options: ComposeOptions): Segmen
     .filter((entry) => entry.s.flex === true)
     .map((entry) => entry.idx);
   if (flexIndices.length === 0) {
+    return segments.map(toSegment);
+  }
+  if (options.noWrap === true) {
+    /*
+     * No known width to fill to. Collapse each flex slot to a single
+     * fill char (its natural width) rather than expanding it against
+     * the no-wrap sentinel, which would emit a ~1e6-char run.
+     */
+    for (const idx of flexIndices) {
+      const seg = segments[idx];
+      if (!seg) continue;
+      segments[idx] = { ...seg, flex: false, text: seg.text || " " };
+    }
     return segments.map(toSegment);
   }
   const usedWidth = segments.reduce(

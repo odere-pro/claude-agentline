@@ -53,11 +53,13 @@ export async function loadConfig(options: LoadOptions = {}): Promise<LoadedConfi
   const envOverride = envLayer(env);
   const flagOverride = options.flagOverrides ?? {};
 
-  const merged = mergeAll<AgentlineConfig>(
-    structuredClone(DEFAULT_CONFIG),
-    userOverride,
-    envOverride,
-    flagOverride,
+  const merged = dropRetiredKeys(
+    mergeAll<AgentlineConfig>(
+      structuredClone(DEFAULT_CONFIG),
+      userOverride,
+      envOverride,
+      flagOverride,
+    ),
   );
 
   if (!options.skipValidation) validateConfig(merged);
@@ -69,6 +71,27 @@ export async function loadConfig(options: LoadOptions = {}): Promise<LoadedConfi
       user: userOverride !== undefined,
     },
   };
+}
+
+/**
+ * Top-level keys that were valid in an earlier release but have since
+ * been removed. Strict validation (`additionalProperties: false`) would
+ * otherwise hard-fail a config written by a prior install — bricking the
+ * statusline on upgrade — so we silently drop these before validating.
+ * Keys that were *never* valid still fail; this only forgives the ones
+ * we deliberately retired.
+ *
+ *   - `glyphs` — the top-level Nerd Font glyph mode, removed in the
+ *     glyphs teardown (it never worked reliably across terminals).
+ */
+const RETIRED_TOP_LEVEL_KEYS = ["glyphs"] as const;
+
+function dropRetiredKeys(config: AgentlineConfig): AgentlineConfig {
+  const record = config as unknown as Record<string, unknown>;
+  if (!RETIRED_TOP_LEVEL_KEYS.some((key) => key in record)) return config;
+  const next: Record<string, unknown> = { ...record };
+  for (const key of RETIRED_TOP_LEVEL_KEYS) delete next[key];
+  return next as unknown as AgentlineConfig;
 }
 
 async function readJsonIfExists(path: string): Promise<unknown> {

@@ -14,48 +14,52 @@ describe("parseWidgetAddArgs", () => {
   });
 
   it("defaults line to 0 and leaves at/options unset", () => {
-    expect(parseWidgetAddArgs(["clock"])).toEqual({ type: "clock", line: 0 });
+    expect(parseWidgetAddArgs(["version"])).toEqual({ type: "version", line: 0 });
   });
 
   it("reads --line and --at as space- or =-separated integers", () => {
-    expect(parseWidgetAddArgs(["clock", "--line", "1", "--at", "2"])).toEqual({
-      type: "clock",
+    expect(parseWidgetAddArgs(["version", "--line", "1", "--at", "2"])).toEqual({
+      type: "version",
       line: 1,
       at: 2,
     });
-    expect(parseWidgetAddArgs(["clock", "--line=2", "--at=0"])).toEqual({
-      type: "clock",
+    expect(parseWidgetAddArgs(["version", "--line=2", "--at=0"])).toEqual({
+      type: "version",
       line: 2,
       at: 0,
     });
   });
 
   it("parses --options into an object", () => {
-    expect(parseWidgetAddArgs(["session-usage", "--options", '{"reset":"block"}'])).toEqual({
-      type: "session-usage",
-      line: 0,
-      options: { reset: "block" },
-    });
+    expect(parseWidgetAddArgs(["session-weekly-usage", "--options", '{"reset":"block"}'])).toEqual(
+      {
+        type: "session-weekly-usage",
+        line: 0,
+        options: { reset: "block" },
+      },
+    );
   });
 
   it("rejects non-integer --line / --at", () => {
-    expect(() => parseWidgetAddArgs(["clock", "--line", "x"])).toThrow(/must be an integer/);
+    expect(() => parseWidgetAddArgs(["version", "--line", "x"])).toThrow(/must be an integer/);
   });
 
   it("rejects invalid or non-object --options", () => {
-    expect(() => parseWidgetAddArgs(["clock", "--options", "nope"])).toThrow(/not valid JSON/);
-    expect(() => parseWidgetAddArgs(["clock", "--options", "[1,2]"])).toThrow(/must be a JSON object/);
+    expect(() => parseWidgetAddArgs(["version", "--options", "nope"])).toThrow(/not valid JSON/);
+    expect(() => parseWidgetAddArgs(["version", "--options", "[1,2]"])).toThrow(
+      /must be a JSON object/,
+    );
   });
 
   it("rejects prototype-polluting option keys", () => {
-    expect(() => parseWidgetAddArgs(["clock", "--options", '{"__proto__":{}}'])).toThrow(
+    expect(() => parseWidgetAddArgs(["version", "--options", '{"__proto__":{}}'])).toThrow(
       /not allowed/,
     );
   });
 
   it("rejects unknown options and extra positionals", () => {
-    expect(() => parseWidgetAddArgs(["clock", "--nope"])).toThrow(/unknown option/);
-    expect(() => parseWidgetAddArgs(["clock", "extra"])).toThrow(/unexpected argument/);
+    expect(() => parseWidgetAddArgs(["version", "--nope"])).toThrow(/unknown option/);
+    expect(() => parseWidgetAddArgs(["version", "extra"])).toThrow(/unexpected argument/);
   });
 });
 
@@ -67,7 +71,10 @@ describe("runWidgetAddCommand", () => {
     claudeCfgDir = await fs.mkdtemp(join(tmpdir(), "agentline-widget-add-"));
     userCfg = join(claudeCfgDir, "agentline", "config.json");
     await fs.mkdir(join(claudeCfgDir, "agentline"), { recursive: true });
-    await fs.writeFile(userCfg, JSON.stringify({ version: 1, lines: [{ widgets: [{ type: "model" }] }] }));
+    await fs.writeFile(
+      userCfg,
+      JSON.stringify({ version: 1, lines: [{ widgets: [{ type: "model" }] }] }),
+    );
   });
 
   afterEach(async () => {
@@ -93,11 +100,11 @@ describe("runWidgetAddCommand", () => {
   it("inserts at an index and carries options through", async () => {
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     await runWidgetAddCommand({
-      args: { type: "session-usage", line: 0, at: 0, options: { reset: "block" } },
+      args: { type: "session-weekly-usage", line: 0, at: 0, options: { reset: "block" } },
       env: { CLAUDE_CONFIG_DIR: claudeCfgDir },
     });
     const widgets = (await onDisk()).lines[0]?.widgets;
-    expect(widgets?.[0]).toEqual({ type: "session-usage", options: { reset: "block" } });
+    expect(widgets?.[0]).toEqual({ type: "session-weekly-usage", options: { reset: "block" } });
     expect(widgets?.[1]?.type).toBe("model");
   });
 

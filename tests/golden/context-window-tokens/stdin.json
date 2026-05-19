@@ -1,0 +1,11 @@
+{
+  "model": "claude-opus-4-7",
+  "cwd": "/repo/agentline",
+  "context_window": {
+    "current_usage": {
+      "input_tokens": 120000,
+      "cache_read_input_tokens": 60000
+    },
+    "context_window_size": 1000000
+  }
+}

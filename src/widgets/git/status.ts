@@ -1,7 +1,7 @@
 /**
- * `git-staged`, `git-unstaged`, `git-untracked` widgets (§7.6). All
- * three read the porcelain counts off the snapshot and render the bare
- * count; they hide on zero (default), opt-out via `options.hideZero: false`.
+ * `git-untracked` widget (§7.6). Reads the porcelain count off the
+ * snapshot and renders the bare count; it hides on zero (default),
+ * opt-out via `options.hideZero: false`.
  */
 
 import type { Cell } from "../cell.js";
@@ -29,6 +29,4 @@ function countWidget(name: string, pick: (s: ReturnType<typeof snap>) => number)
   });
 }
 
-export const gitStagedWidget = countWidget("git-staged", (s) => (s ? s.status.staged : 0));
-export const gitUnstagedWidget = countWidget("git-unstaged", (s) => (s ? s.status.unstaged : 0));
 export const gitUntrackedWidget = countWidget("git-untracked", (s) => (s ? s.status.untracked : 0));

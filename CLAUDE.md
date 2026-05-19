@@ -8,9 +8,9 @@ This file is the agent's entry-point briefing for the `agentline` repository. It
 
 It is **not** a Claude Code plugin. There is no `.claude-plugin/plugin.json`. Wiring into Claude Code is consumer-side: `agentline install` writes the bin invocation into the `statusLine` key of `~/.claude/settings.json` and copies Claude skill files from `agents/` (repo root) into `~/.claude/agents/` so Claude Code can assist with configuration and troubleshooting. `agentline uninstall` reverses both steps.
 
-## Where the spec lives
+## Where the rules live
 
-The normative spec is **`docs/plan/SPEC-v0.1.0.md`**. Treat it as authoritative. The PR roadmap is `docs/plan/PR-PLAN.md`; PR / branch / commit conventions are `docs/plan/PR-CONVENTIONS.md`.
+PR / branch / commit conventions are in **`docs/PR-CONVENTIONS.md`**. End-user and architecture docs live under `docs/`; the `docs/cookbook/` set explains the design intent behind the build.
 
 ## House rules
 
@@ -33,26 +33,25 @@ The normative spec is **`docs/plan/SPEC-v0.1.0.md`**. Treat it as authoritative.
 
 ## Non-goals (v0.1.0)
 
-Plugin distribution (`.claude-plugin/`), native binaries, Homebrew, curl-installer, Bun/Deno-tested runtimes, Powershell-native scripts, telemetry, remote update checks, dynamic-library / WASM widget plugins, marketplace listing automation. See `docs/plan/SPEC-v0.1.0.md` §13.
+Plugin distribution (`.claude-plugin/`), native binaries, Homebrew, curl-installer, Bun/Deno-tested runtimes, Powershell-native scripts, telemetry, remote update checks, dynamic-library / WASM widget plugins, marketplace listing automation.
 
 ## Quick commands
 
-| Command                                   | Purpose                                    |
-| ----------------------------------------- | ------------------------------------------ |
-| `npm i && npm run build`                  | Bootstrap and build                        |
-| `npm test`                                | Unit tests                                 |
-| `bash tests/gates/run-all.sh`             | Run all repo gates                         |
-| `node dist/cli.mjs install --from-source` | Wire statusline + install skills locally   |
-| `node dist/cli.mjs start`                 | Preview statusline using last cached stdin |
-| `node dist/cli.mjs edit`                  | Open the TUI editor                        |
-| `npm run preview:watch`                   | Live-reload preview while editing config   |
-| `bash scripts/install.sh --dry-run`       | Preview the install actions (legacy)       |
-| `bash scripts/doctor.sh`                  | Diagnose host configuration (legacy)       |
+| Command                                             | Purpose                                                   |
+| --------------------------------------------------- | --------------------------------------------------------- |
+| `corepack enable && pnpm install && pnpm run build` | Bootstrap and build (pnpm is pinned via `packageManager`) |
+| `pnpm test`                                         | Unit tests                                                |
+| `bash tests/gates/run-all.sh`                       | Run all repo gates                                        |
+| `node dist/cli.mjs install --from-source`           | Wire statusline + install skills locally                  |
+| `node dist/cli.mjs edit`                            | Open the TUI editor                                       |
+| `pnpm run preview:watch`                            | Live-reload preview while editing config                  |
+| `bash scripts/install.sh --dry-run`                 | Preview the install actions (legacy)                      |
+| `bash scripts/doctor.sh`                            | Diagnose host configuration (legacy)                      |
 
 ## Source layout
 
-Core modules follow `docs/plan/SPEC-v0.1.0.md §2`. Additional directories
-present in `src/` that are not in the spec architecture table:
+Core modules live under `src/`, organised by feature. Notable top-level
+directories:
 
 | Directory        | Purpose                                                              |
 | ---------------- | -------------------------------------------------------------------- |
@@ -60,9 +59,8 @@ present in `src/` that are not in the spec architecture table:
 | `src/lib/`       | Shared pure utilities (env, fs, nerd-font detection, object, result) |
 | `src/install/`   | `agentline install` command implementation                           |
 | `src/uninstall/` | `agentline uninstall` command implementation                         |
-| `src/start/`     | `agentline start` — preview statusline from last cached stdin        |
 | `src/state/`     | Stdin payload cache, render output cache, config backup              |
 
 ## When in doubt
 
-Read the spec section linked from the PR's `## Why`. If the spec is silent, open an issue rather than inventing behaviour.
+Check `docs/` and `docs/cookbook/` for design intent. If the docs are silent, open an issue rather than inventing behaviour.

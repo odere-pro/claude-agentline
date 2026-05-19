@@ -68,10 +68,7 @@ describe("maybeRefresh", () => {
 
   it("skips the fetch when the cache is within TTL", async () => {
     const recent = "2026-05-14T11:59:00.000Z";
-    await saveVersionCheck(
-      { savedAt: recent, current: "0.1.0", latest: "0.2.0" },
-      env,
-    );
+    await saveVersionCheck({ savedAt: recent, current: "0.1.0", latest: "0.2.0" }, env);
     let fetchCalls = 0;
     const fakeFetchWithCounter = (async () => {
       fetchCalls += 1;
@@ -136,10 +133,7 @@ describe("maybeRefresh", () => {
 
   it("force: true bypasses the TTL", async () => {
     const recent = "2026-05-14T11:59:00.000Z";
-    await saveVersionCheck(
-      { savedAt: recent, current: "0.1.0", latest: "0.2.0" },
-      env,
-    );
+    await saveVersionCheck({ savedAt: recent, current: "0.1.0", latest: "0.2.0" }, env);
     const outcome = await maybeRefresh({
       env,
       now: Date.parse("2026-05-14T12:00:00.000Z"),

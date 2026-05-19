@@ -13,8 +13,8 @@ const sample = (): AgentlineConfig =>
     {
       widgets: [
         { type: "model" },
-        { type: "tokens-total", options: { reset: "block" } },
-        { type: "clock", hidden: true },
+        { type: "tokens", options: { reset: "block" } },
+        { type: "version", hidden: true },
       ],
     },
     { widgets: [] },
@@ -42,8 +42,8 @@ describe("formatJson", () => {
     expect(parsed.lines).toHaveLength(2);
     expect(parsed.lines[0]?.widgets).toEqual([
       { at: 0, type: "model" },
-      { at: 1, type: "tokens-total", options: { reset: "block" } },
-      { at: 2, type: "clock", hidden: true },
+      { at: 1, type: "tokens", options: { reset: "block" } },
+      { at: 2, type: "version", hidden: true },
     ]);
     expect(parsed.lines[1]).toEqual({ line: 1, widgets: [] });
   });
@@ -54,8 +54,8 @@ describe("formatText", () => {
     const text = formatText(sample());
     expect(text).toContain("line 0:");
     expect(text).toContain(" 0  model");
-    expect(text).toContain('tokens-total {"reset":"block"}');
-    expect(text).toContain("clock [hidden]");
+    expect(text).toContain('tokens {"reset":"block"}');
+    expect(text).toContain("version [hidden]");
     expect(text).toContain("(empty)");
   });
 

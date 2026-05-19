@@ -34,8 +34,13 @@ describe("pickGlyphs", () => {
 
   it("ships an icon for every widget family", () => {
     const g = pickGlyphs({ unicode: true });
-    for (const cat of ["session", "tokens", "context", "rate-limits", "git", "time", "custom"] as const) {
+    for (const cat of ["session", "tokens", "context", "rate-limits", "git"] as const) {
       expect(g.family[cat]).toBeTruthy();
     }
+  });
+
+  it("sources family icons from family-identity (context is ◰, not the tofu ▤)", () => {
+    expect(pickGlyphs({ unicode: true }).family.context).toBe("◰");
+    expect(pickGlyphs({ unicode: false }).family.context).toBe("[c]");
   });
 });

@@ -30,8 +30,10 @@ describe("DEFAULT_CONFIG", () => {
     expect(DEFAULT_CONFIG.keymap).toEqual({});
   });
 
-  it("glyphs defaults to 'nerd-font' (on by default)", () => {
-    expect(DEFAULT_CONFIG.glyphs).toBe("nerd-font");
+  it("defaults language to en with empty families/translations overrides", () => {
+    expect(DEFAULT_CONFIG.language).toBe("en");
+    expect(DEFAULT_CONFIG.families).toEqual({});
+    expect(DEFAULT_CONFIG.translations).toEqual({});
   });
 
   it("global defaults match documented spec values", () => {

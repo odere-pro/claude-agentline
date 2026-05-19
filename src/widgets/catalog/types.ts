@@ -9,37 +9,34 @@
  * a within-catalog implementation detail.
  */
 
+import { DEFAULT_FAMILY_IDENTITY } from "../family-identity.js";
+import type { Colour } from "../../theme/colours.js";
+
 export const WIDGET_FAMILIES = [
   "session",
   "tokens",
   "context",
   "rate-limits",
   "git",
-  "time",
-  "custom",
 ] as const;
 
 export type WidgetFamily = (typeof WIDGET_FAMILIES)[number];
 
 /**
- * Per-family accent colour. The editor uses this in two surfaces that
- * have to agree visually — the picker's group label and the inline preview
- * widget chips — so a user scanning the layout can tell which group every
- * widget belongs to without reading the type name. Names are from Ink's
- * 8-colour palette so they degrade cleanly on hosts without truecolor.
- *
- * This is a decorative, editor-only mapping: the real render path through
- * `pipeline.ts` keeps using the configured theme's roles.
+ * Per-family accent colour, projected from the single family-identity
+ * source of truth (`family-identity.ts`). Kept as a named export so the
+ * picker's existing `FAMILY_COLOR[...]` call sites keep resolving while
+ * the surfaces migrate onto the richer identity API. Names are from
+ * Ink's 8-colour palette so they degrade cleanly without truecolor.
  */
-export const FAMILY_COLOR: Readonly<Record<WidgetFamily, string>> = Object.freeze({
-  session: "blue",
-  tokens: "yellow",
-  context: "magenta",
-  "rate-limits": "red",
-  git: "green",
-  time: "cyan",
-  custom: "white",
-});
+export const FAMILY_COLOR: Readonly<Record<WidgetFamily, Colour>> = Object.freeze(
+  Object.fromEntries(
+    (Object.keys(DEFAULT_FAMILY_IDENTITY) as WidgetFamily[]).map((family) => [
+      family,
+      DEFAULT_FAMILY_IDENTITY[family].colour,
+    ]),
+  ) as Record<WidgetFamily, Colour>,
+);
 
 /**
  * A *variant* is a named alternative way a single widget can render itself —
@@ -77,14 +74,6 @@ export interface WidgetMeta {
    * of the picker and as the targets of the `u` (update) verb.
    */
   readonly variants?: readonly WidgetVariant[];
-  /**
-   * Single grapheme prepended to the widget's text when
-   * `config.glyphs === "nerd-font"`. Codepoints come from the Nerd Font
-   * Private Use Area (PUA) — they only render correctly with a Nerd Font
-   * installed in the user's terminal, which is why glyph mode is opt-in.
-   * Widgets without a glyph are unaffected by the mode toggle.
-   */
-  readonly glyph?: string;
 }
 
 /** A catalogue entry paired with the `type` it describes. */

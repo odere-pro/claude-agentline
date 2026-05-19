@@ -26,8 +26,15 @@ export function modelDisplayName(id: string): string {
 
 export const modelWidget = defineWidget<ModelOptions>("model", (ctx, settings): Cell => {
   const id = ctx.session?.model ?? ctx.stdin.model;
-  if (!id) return { text: "", hidden: true };
+  if (!id && !ctx.stdin.modelDisplayName) return { text: "", hidden: true };
   const label = settings.rawValue ? "" : (settings.options.label ?? "");
   const fg = resolveRole(ctx.theme, "accent");
-  return { text: `${label}${modelDisplayName(id)}`, fg };
+  /*
+   * Prefer Claude Code's `display_name` (e.g. "Opus 4.7 (1M context)")
+   * over the local id→label table — Claude Code is authoritative for
+   * variants like the 1M-context suffix (`claude-opus-4-7[1m]`), which
+   * the table cannot enumerate.
+   */
+  const display = ctx.stdin.modelDisplayName ?? (id ? modelDisplayName(id) : "");
+  return { text: `${label}${display}`, fg };
 });
