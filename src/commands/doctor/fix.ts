@@ -87,8 +87,21 @@ async function fixD02(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
   /*
    * Explicit `render` subcommand: matches `agentline install`'s wired form
    * and stays unambiguous against any future top-level subcommand.
+   *
+   * Mirror install's `refreshInterval` so a single `doctor --fix`
+   * converges the host in one pass: without this, D02's fix wires the
+   * statusLine but D09 (evaluated before fixes ran, when no statusLine
+   * existed) stays a no-op, and the interval only lands on a *second*
+   * --fix run — breaking the one-pass idempotency invariant.
    */
-  parsed["statusLine"] = { type: "command", command: "npx -y @agentline/cli render", padding: 0 };
+  const { config } = await loadConfig({ env: ctx.env });
+  const statusLine: Record<string, unknown> = {
+    type: "command",
+    command: "npx -y @agentline/cli render",
+    padding: 0,
+  };
+  if (config.refreshInterval >= 1) statusLine["refreshInterval"] = config.refreshInterval;
+  parsed["statusLine"] = statusLine;
   await writeJsonIdempotent(target, parsed, { mode: 0o600, dirMode: 0o700 });
   const note = backup === "created" ? "; prior value backed up" : "";
   return {
