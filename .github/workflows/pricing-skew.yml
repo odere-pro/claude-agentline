@@ -1,7 +1,7 @@
 # .github/workflows/pricing-skew.yml
 # Scheduled comparison of the embedded pricing table against (a) the
 # §9.2 D06 staleness budget and (b) an optional external reference URL.
-# The cost widget reads from `src/tokens/pricing.ts`; this workflow
+# The cost widget reads from `src/data/tokens/pricing.ts`; this workflow
 # exists so the table never quietly drifts past 90 days.
 #
 # Spec: §8.5, §11.1
@@ -61,7 +61,7 @@ jobs:
       - name: Extract pricing table snapshot
         id: snapshot
         env:
-          PRICING_FILE: src/tokens/pricing.ts
+          PRICING_FILE: src/data/tokens/pricing.ts
         run: |
           set -Eeuo pipefail
           mkdir -p .ci-pricing
@@ -132,7 +132,7 @@ jobs:
             if (summary) fs.appendFileSync(summary, lines.join("\n") + "\n");
             console.log("PRICING_TABLE_VERSION=" + snap.version + " age=" + ageDays + "d threshold=" + threshold + "d");
             if (ageDays > threshold) {
-              console.log("::error::pricing table is stale: " + ageDays + " > " + threshold + " days; refresh src/tokens/pricing.ts");
+              console.log("::error::pricing table is stale: " + ageDays + " > " + threshold + " days; refresh src/data/tokens/pricing.ts");
               process.exit(1);
             }
           '

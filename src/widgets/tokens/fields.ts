@@ -10,7 +10,7 @@
  * token widgets declare a reset axis).
  */
 
-import { aggregate, type TokenTotals, type TokensSnapshot } from "../../tokens/index.js";
+import { aggregate, type TokenTotals, type TokensSnapshot } from "../../data/tokens/index.js";
 import type { WidgetContext } from "../types.js";
 import { defineWidget } from "../widget.js";
 import type { WidgetDef } from "../widget.js";

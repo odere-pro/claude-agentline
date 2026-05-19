@@ -6,7 +6,7 @@
  * are zero (the default; opt-out via `options.hideZero: false`).
  */
 
-import { resolveRole } from "../../theme/index.js";
+import { resolveRole } from "../../data/theme/index.js";
 import type { Cell } from "../cell.js";
 import type { WidgetContext } from "../context.js";
 import { defineWidget } from "../widget.js";

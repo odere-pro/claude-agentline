@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_CONFIG } from "../config/index.js";
-import type { StdinPayload } from "../stdin/index.js";
+import { DEFAULT_CONFIG } from "../data/config/index.js";
+import type { StdinPayload } from "../core/stdin/index.js";
 
 import { HIDDEN_CELL } from "./cell.js";
 import { frozenClock } from "./clock.js";

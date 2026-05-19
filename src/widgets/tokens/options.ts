@@ -6,7 +6,7 @@
  * `token-speed` widgets are resolved here too so both stay in sync.
  */
 
-import type { ResetAxis } from "../../tokens/index.js";
+import type { ResetAxis } from "../../data/tokens/index.js";
 
 const VALID_AXES: ReadonlySet<ResetAxis> = new Set<ResetAxis>([
   "session",

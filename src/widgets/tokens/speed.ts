@@ -6,7 +6,7 @@
  * `options.windowSec`; hides when the snapshot is unavailable.
  */
 
-import { rollingSpeed } from "../../tokens/index.js";
+import { rollingSpeed } from "../../data/tokens/index.js";
 import { defineWidget } from "../widget.js";
 import { formatSpeed } from "./format.js";
 import { resolveGlyphs } from "./options.js";

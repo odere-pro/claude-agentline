@@ -1,0 +1,1 @@
+- Regroup the flat src/ tree into six feature groups (core, data, widgets, render, tui, commands) so per-area docs scope cleanly; mechanical move + relative-import rewrite, no behaviour change.

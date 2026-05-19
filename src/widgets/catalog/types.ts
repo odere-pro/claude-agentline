@@ -10,7 +10,7 @@
  */
 
 import { DEFAULT_FAMILY_IDENTITY } from "../family-identity.js";
-import type { Colour } from "../../theme/colours.js";
+import type { Colour } from "../../data/theme/colours.js";
 
 export const WIDGET_FAMILIES = [
   "session",

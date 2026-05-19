@@ -14,8 +14,8 @@
  * voice, the widget's output is its preference.
  */
 
-import type { WidgetConfig } from "../config/types.js";
-import type { Colour } from "../theme/colours.js";
+import type { WidgetConfig } from "../data/config/types.js";
+import type { Colour } from "../data/theme/colours.js";
 import { widgetMeta, type WidgetFamily } from "./catalog.js";
 import type { Cell, MergeMode } from "./cell.js";
 import { HIDDEN_CELL } from "./cell.js";

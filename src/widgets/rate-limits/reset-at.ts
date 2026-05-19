@@ -23,8 +23,8 @@
  * fallback block anchor).
  */
 
-import { identityTranslator, widgetLabelId } from "../../i18n/index.js";
-import { blockEnd, weekStart } from "../../tokens/index.js";
+import { identityTranslator, widgetLabelId } from "../../core/i18n/index.js";
+import { blockEnd, weekStart } from "../../data/tokens/index.js";
 import type { Cell } from "../cell.js";
 import { frozenClock } from "../clock.js";
 import type { WidgetContext } from "../context.js";

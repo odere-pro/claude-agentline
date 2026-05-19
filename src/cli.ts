@@ -17,17 +17,17 @@
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { StdinParseError } from "./stdin/index.js";
+import { StdinParseError } from "./core/stdin/index.js";
 import { AGENTLINE_VERSION } from "./version.js";
-import { HelpRequestedError, isHelpFlag, requestHelp } from "./cli/help.js";
-import { parseDoctorArgs, runDoctorCommand } from "./doctor/command.js";
-import { parseInstallArgs, runInstallCommand } from "./install/command.js";
-import { parseResetArgs, runResetCommand } from "./reset/command.js";
-import { parseUninstallArgs, runUninstallCommand } from "./uninstall/command.js";
-import { parseRenderArgs, runRenderCommand } from "./render/fixture-command.js";
-import { detectColourDepth } from "./render/colour-depth.js";
-import { effectiveDepth, honourNoColorEnv } from "./render/accessibility.js";
-import { runWidgetSubgroup } from "./config/widget-command.js";
+import { HelpRequestedError, isHelpFlag, requestHelp } from "./commands/cli/help.js";
+import { parseDoctorArgs, runDoctorCommand } from "./commands/doctor/command.js";
+import { parseInstallArgs, runInstallCommand } from "./commands/install/command.js";
+import { parseResetArgs, runResetCommand } from "./commands/reset/command.js";
+import { parseUninstallArgs, runUninstallCommand } from "./commands/uninstall/command.js";
+import { parseRenderArgs, runRenderCommand } from "./render/render/fixture-command.js";
+import { detectColourDepth } from "./render/render/colour-depth.js";
+import { effectiveDepth, honourNoColorEnv } from "./render/render/accessibility.js";
+import { runWidgetSubgroup } from "./data/config/widget-command.js";
 
 type ParsedArgs = {
   command: string;

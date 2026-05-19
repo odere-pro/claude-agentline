@@ -7,7 +7,7 @@
  * adds it; for v0.1.0 the widget emits plain text.
  */
 
-import { resolveRole } from "../../theme/index.js";
+import { resolveRole } from "../../data/theme/index.js";
 import type { Cell } from "../cell.js";
 import { defineWidget } from "../widget.js";
 

@@ -38,6 +38,8 @@ from "react"
 from "../tui/
 from "../../tui/
 from "../../../tui/
+from "../../../../tui/
+from "../../../../../tui/
 from "./tui/
 require("ink")
 require("react")'

@@ -9,8 +9,8 @@
 
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_CONFIG } from "../config/defaults.js";
-import { DEFAULT_PALETTE, type Theme } from "../theme/index.js";
+import { DEFAULT_CONFIG } from "../data/config/defaults.js";
+import { DEFAULT_PALETTE, type Theme } from "../data/theme/index.js";
 import { frozenClock, realClock } from "./clock.js";
 import type { WidgetContext } from "./context.js";
 

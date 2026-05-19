@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_CONFIG } from "../../config/index.js";
-import type { GitSnapshot, GitState } from "../../git/index.js";
-import type { StdinPayload } from "../../stdin/index.js";
-import { DEFAULT_PALETTE } from "../../theme/index.js";
+import { DEFAULT_CONFIG } from "../../data/config/index.js";
+import type { GitSnapshot, GitState } from "../../data/git/index.js";
+import type { StdinPayload } from "../../core/stdin/index.js";
+import { DEFAULT_PALETTE } from "../../data/theme/index.js";
 
 import { frozenClock } from "../clock.js";
 import type { WidgetContext } from "../context.js";

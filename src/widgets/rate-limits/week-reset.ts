@@ -10,7 +10,7 @@
  * the historical local-Monday-00:00 default.
  */
 
-import type { WeekResetOpts } from "../../tokens/index.js";
+import type { WeekResetOpts } from "../../data/tokens/index.js";
 
 export interface WeekResetOptions {
   /** 0 = Sunday … 6 = Saturday (matches `Date.getDay()`). */

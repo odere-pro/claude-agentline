@@ -9,15 +9,15 @@
  * Other modules (cell.ts, widget.ts, context.ts) re-export for backwards compatibility.
  */
 
-import type { AgentlineConfig } from "../config/types.js";
-import type { Translator } from "../i18n/index.js";
-import type { GitState } from "../git/index.js";
-import type { ResolvedSessionFields } from "../session/index.js";
-import type { PlanSnapshot } from "../session/plan.js";
-import type { StdinPayload } from "../stdin/index.js";
-import type { Theme } from "../theme/index.js";
-import type { TokensSnapshot } from "../tokens/index.js";
-import type { Colour } from "../theme/colours.js";
+import type { AgentlineConfig } from "../data/config/types.js";
+import type { Translator } from "../core/i18n/index.js";
+import type { GitState } from "../data/git/index.js";
+import type { ResolvedSessionFields } from "../data/session/index.js";
+import type { PlanSnapshot } from "../data/session/plan.js";
+import type { StdinPayload } from "../core/stdin/index.js";
+import type { Theme } from "../data/theme/index.js";
+import type { TokensSnapshot } from "../data/tokens/index.js";
+import type { Colour } from "../data/theme/colours.js";
 import type { Clock } from "./clock.js";
 
 // ─── Cell: the render unit ──────────────────────────────────────────────────

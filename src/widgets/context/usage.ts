@@ -17,7 +17,7 @@
  *      to display "999%" on a long session. Kept only as a fallback.
  */
 
-import { aggregate } from "../../tokens/index.js";
+import { aggregate } from "../../data/tokens/index.js";
 import type { WidgetContext } from "../context.js";
 import { formatCount } from "../tokens/format.js";
 

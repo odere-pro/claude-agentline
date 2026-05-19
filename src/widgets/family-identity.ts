@@ -12,8 +12,8 @@
  * (§1.2 N3 / gate-19).
  */
 
-import { unicodeCapable, type UnicodeEnvOptions } from "../lib/unicode-env.js";
-import type { Colour } from "../theme/colours.js";
+import { unicodeCapable, type UnicodeEnvOptions } from "../core/lib/unicode-env.js";
+import type { Colour } from "../data/theme/colours.js";
 import type { WidgetFamily } from "./catalog/types.js";
 
 export interface FamilyIdentity {

@@ -10,14 +10,14 @@ set -Eeuo pipefail
 # Pass: `PRICING_TABLE_VERSION` parses as YYYY-MM-DD and is within
 #       `PRICING_FRESH_MAX_DAYS` (defaulting to 90 if the constant is absent).
 # Fail: the version literal is missing/malformed, or older than the budget.
-# Skip: `src/tokens/pricing.ts` is missing (running outside the repo).
+# Skip: `src/data/tokens/pricing.ts` is missing (running outside the repo).
 
 # shellcheck source=lib/common.sh
 . "$(dirname "$0")/lib/common.sh"
 
-pricing_file="$(repo_path src/tokens/pricing.ts)"
+pricing_file="$(repo_path src/data/tokens/pricing.ts)"
 if [ ! -f "${pricing_file}" ]; then
-  skip_gate "src/tokens/pricing.ts missing; not running inside the repo"
+  skip_gate "src/data/tokens/pricing.ts missing; not running inside the repo"
 fi
 
 if ! have_cmd node; then
@@ -57,5 +57,5 @@ if out="$(
   pass_gate "pricing table ${out}"
 else
   log_info "${out}"
-  fail_gate "embedded pricing table stale or unparseable — refresh src/tokens/pricing.ts and bump PRICING_TABLE_VERSION"
+  fail_gate "embedded pricing table stale or unparseable — refresh src/data/tokens/pricing.ts and bump PRICING_TABLE_VERSION"
 fi

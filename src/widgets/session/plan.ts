@@ -9,7 +9,7 @@
  * active plan.
  */
 
-import { resolveRole } from "../../theme/index.js";
+import { resolveRole } from "../../data/theme/index.js";
 import type { Cell } from "../cell.js";
 import { defineWidget } from "../widget.js";
 
