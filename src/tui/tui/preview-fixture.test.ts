@@ -4,7 +4,7 @@ import type { GitState } from "../../data/git/index.js";
 import type { ResolvedSessionFields } from "../../data/session/index.js";
 import type { StdinPayload } from "../../core/stdin/index.js";
 import type { TokensSnapshot } from "../../data/tokens/index.js";
-import { PRICING_TABLE_VERSION, contextWindowFor } from "../../data/tokens/index.js";
+import { contextWindowFor } from "../../data/tokens/index.js";
 import { DEFAULT_CONFIG } from "../../data/config/index.js";
 import type { AgentlineConfig } from "../../data/config/types.js";
 import { buildWidgetContext } from "../../render/render/context.js";
@@ -56,7 +56,6 @@ const realTokens: TokensSnapshot = Object.freeze({
   sessionStart: Date.parse("2026-05-13T10:00:00.000Z"),
   blockAnchor: Date.parse("2026-05-13T10:00:00.000Z"),
   contextWindow: contextWindowFor("claude-opus-4-7"),
-  pricingVersion: PRICING_TABLE_VERSION,
 });
 
 const realGit: GitState = Object.freeze({

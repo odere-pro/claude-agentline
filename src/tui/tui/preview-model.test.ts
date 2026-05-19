@@ -5,7 +5,7 @@ import type { LineConfig } from "../../data/config/types.js";
 import type { GitState } from "../../data/git/index.js";
 import { DEFAULT_PALETTE, type Theme } from "../../data/theme/index.js";
 import { resetPreviewModeCache, setPreviewModeForTesting } from "./preview-fixture.js";
-import { PRICING_TABLE_VERSION, contextWindowFor, type TokensSnapshot } from "../../data/tokens/index.js";
+import { contextWindowFor, type TokensSnapshot } from "../../data/tokens/index.js";
 
 import { buildPreview, type PreviewRow } from "./preview-model.js";
 
@@ -39,7 +39,6 @@ const realTokens: TokensSnapshot = Object.freeze({
   events: Object.freeze([]) as TokensSnapshot["events"],
   now: Date.parse("2026-05-13T11:00:00.000Z"),
   contextWindow: contextWindowFor("claude-opus-4-7"),
-  pricingVersion: PRICING_TABLE_VERSION,
 });
 
 /*

@@ -1,5 +1,5 @@
 /**
- * Token / cost / context data layer used by widgets in PR 11.
+ * Token / context data layer used by widgets in PR 11.
  *
  * The render-tick resolver (`loadTokensSnapshot`) reads the JSONL
  * transcript once and freezes a snapshot widgets can index into.
@@ -8,13 +8,11 @@
  */
 
 import { contextWindowFor } from "./context-window.js";
-import { PRICING_TABLE_VERSION } from "./pricing.js";
 import { readTranscript, type TranscriptEvent } from "./transcript.js";
 
 export type { ResetAxis, TokenTotals, WeekResetOpts } from "./aggregate.js";
 export { aggregate, blockEnd, weekStart } from "./aggregate.js";
 export { rollingSpeed } from "./speed.js";
-export { PRICING_TABLE_VERSION } from "./pricing.js";
 export { contextWindowFor } from "./context-window.js";
 export type { TranscriptEvent } from "./transcript.js";
 
@@ -29,8 +27,6 @@ export interface TokensSnapshot {
   readonly blockAnchor?: number;
   /** Current model context window in tokens. */
   readonly contextWindow: number;
-  /** Pricing table version, surfaced to `agentline doctor`. */
-  readonly pricingVersion: string;
 }
 
 export interface LoadTokensInput {
@@ -49,6 +45,5 @@ export function loadTokensSnapshot(input: LoadTokensInput): TokensSnapshot {
     sessionStart,
     blockAnchor,
     contextWindow: contextWindowFor(input.modelId),
-    pricingVersion: PRICING_TABLE_VERSION,
   });
 }

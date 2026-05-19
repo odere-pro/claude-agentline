@@ -1,5 +1,5 @@
 /**
- * Shared option parsing for token / cost widgets. Every reset-axis
+ * Shared option parsing for token widgets. Every reset-axis
  * widget declares `options.reset` (§7.3); a missing or unrecognised
  * value falls back to `session` so the renderer can never crash on a
  * typo. The directional glyphs used by the merged `tokens` /

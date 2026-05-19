@@ -91,7 +91,7 @@ export interface WidgetContext {
    */
   readonly session?: ResolvedSessionFields;
   /**
-   * Transcript-derived token / cost / context snapshot (§7.3, §7.4).
+   * Transcript-derived token / context snapshot (§7.3, §7.4).
    * Resolved once per render tick by `loadTokensSnapshot`; widgets
    * MUST NOT read the JSONL transcript themselves during `render()`.
    */

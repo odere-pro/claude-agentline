@@ -17,7 +17,7 @@ import type { GitState } from "../../data/git/index.js";
 import type { ResolvedSessionFields } from "../../data/session/index.js";
 import type { PlanSnapshot } from "../../data/session/plan.js";
 import type { StdinPayload } from "../../core/stdin/index.js";
-import { contextWindowFor, PRICING_TABLE_VERSION, type TokensSnapshot } from "../../data/tokens/index.js";
+import { contextWindowFor, type TokensSnapshot } from "../../data/tokens/index.js";
 
 /** The five snapshots `previewWidget` threads into `buildWidgetContext`. */
 export interface MockPreview {
@@ -101,7 +101,6 @@ export function buildMockPreview(now: number = Date.now()): MockPreview {
     sessionStart: now - 120 * MINUTE,
     blockAnchor: now - 90 * MINUTE,
     contextWindow: contextWindowFor(MOCK_MODEL),
-    pricingVersion: PRICING_TABLE_VERSION,
   };
 
   const git: GitState = {

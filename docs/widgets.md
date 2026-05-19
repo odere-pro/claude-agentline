@@ -177,7 +177,7 @@ forbids outbound calls. `git-pr` is the only widget that needs PR
 metadata, which lives outside the local checkout, so it is gated:
 
 - The widget hides unless `options.allowNetwork: true` is set.
-- The actual network call lives in `src/git/pr.ts`'s `loadPullRequest`,
+- The actual network call lives in `src/data/git/pr.ts`'s `loadPullRequest`,
   which shells out to `gh pr view --json number,url,title`. It is
   invoked only when `loadGitSnapshot` is called with
   `allowPullRequest: true`. `loadGitSnapshot` is itself wired outside

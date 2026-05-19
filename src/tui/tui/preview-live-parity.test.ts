@@ -29,7 +29,7 @@ import { detectColourDepth, type ColourDepth } from "../../render/render/colour-
 import type { StdinPayload } from "../../core/stdin/index.js";
 import { DEFAULT_PALETTE, type Theme } from "../../data/theme/index.js";
 import type { Colour } from "../../data/theme/colours.js";
-import { PRICING_TABLE_VERSION, contextWindowFor, type TokensSnapshot } from "../../data/tokens/index.js";
+import { contextWindowFor, type TokensSnapshot } from "../../data/tokens/index.js";
 import { realClock } from "../../widgets/clock.js";
 import { defaultRegistry, registerAllBuiltins } from "../../widgets/index.js";
 import { renderWidget } from "../../widgets/render-widget.js";
@@ -67,7 +67,6 @@ const realTokens: TokensSnapshot = Object.freeze({
   events: Object.freeze([]) as TokensSnapshot["events"],
   now: Date.parse("2026-05-13T11:00:00.000Z"),
   contextWindow: contextWindowFor("claude-opus-4-7"),
-  pricingVersion: PRICING_TABLE_VERSION,
 });
 
 const payload: StdinPayload = {

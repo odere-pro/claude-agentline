@@ -1,13 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  aggregate,
-  aggregateCost,
-  blockEnd,
-  blockStart,
-  dayStart,
-  weekStart,
-} from "./aggregate.js";
+import { aggregate, blockEnd, blockStart, dayStart, weekStart } from "./aggregate.js";
 
 const FIXED_NOW = new Date("2026-04-28T12:00:00Z").getTime();
 import type { TranscriptEvent } from "./transcript.js";
@@ -80,23 +73,6 @@ describe("aggregate", () => {
     ];
     const totals = aggregate({ events, axis: "block", now, blockAnchor: now - SIX_HOURS });
     expect(totals.input).toBe(5);
-  });
-});
-
-describe("aggregateCost", () => {
-  it("prices each model independently", () => {
-    const events = [
-      ev({ model: "claude-opus-4-7", inputTokens: 1_000_000 }),
-      ev({ model: "claude-sonnet-4-6", outputTokens: 1_000_000 }),
-    ];
-    const cost = aggregateCost({ events, axis: "session", now: 0 });
-    expect(cost).toBeCloseTo(15 + 15, 4);
-  });
-
-  it("uses ctx model when an event omits it", () => {
-    const events = [ev({ inputTokens: 1_000_000 })];
-    const cost = aggregateCost({ events, axis: "session", now: 0, model: "claude-haiku-4-5" });
-    expect(cost).toBeCloseTo(1, 4);
   });
 });
 

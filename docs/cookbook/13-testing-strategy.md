@@ -134,4 +134,4 @@ This test is slow (~30 s) and is run in CI; locally, run it before opening a PR 
 - The gate suite (`tests/gates/run-all`) runs on every push and PR.
 - The platform matrix (gate 15) runs on every push and weekly.
 - The cold-start benchmark (gate 13) runs on every PR with a soft threshold; hard thresholds run nightly.
-- Pricing and runtime skew workflows run weekly / monthly with explicit manual triggers.
+- The runtime skew workflow runs weekly / monthly with an explicit manual trigger.

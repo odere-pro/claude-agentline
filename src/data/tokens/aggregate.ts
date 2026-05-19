@@ -1,13 +1,12 @@
 /**
  * Aggregate transcript events along a reset axis (§7.3, §8.4).
  *
- * Each `tokens-*` and `cost` widget declares its `reset` axis. The
- * aggregator filters events that fall inside the current window for
- * that axis and sums the four token totals. Mixed-axis aggregation
- * is forbidden — every widget queries its own axis explicitly.
+ * Each `tokens-*` widget declares its `reset` axis. The aggregator
+ * filters events that fall inside the current window for that axis
+ * and sums the four token totals. Mixed-axis aggregation is
+ * forbidden — every widget queries its own axis explicitly.
  */
 
-import { priceForModel } from "./pricing.js";
 import type { TranscriptEvent } from "./transcript.js";
 
 export type ResetAxis = "session" | "block" | "day" | "week" | "model" | "effort";
@@ -63,27 +62,6 @@ export function aggregate(input: AggregateInput): TokenTotals {
     cached += ev.cachedTokens;
   }
   return { input: inTok, output: outTok, cached, total: inTok + outTok + cached };
-}
-
-export function aggregateCost(input: AggregateInput): number {
-  let cost = 0;
-  const byModel = new Map<string, { input: number; output: number; cached: number }>();
-  for (const ev of input.events) {
-    if (!withinWindow(ev, input)) continue;
-    const key = ev.model ?? input.model ?? "";
-    const acc = byModel.get(key) ?? { input: 0, output: 0, cached: 0 };
-    acc.input += ev.inputTokens;
-    acc.output += ev.outputTokens;
-    acc.cached += ev.cachedTokens;
-    byModel.set(key, acc);
-  }
-  for (const [model, totals] of byModel) {
-    const price = priceForModel(model);
-    cost +=
-      (totals.input * price.input + totals.output * price.output + totals.cached * price.cached) /
-      1_000_000;
-  }
-  return cost;
 }
 
 /**

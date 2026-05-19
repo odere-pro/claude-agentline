@@ -119,11 +119,9 @@ These gates may be added per-implementation; the IDs are kept stable.
 - **Probes.** Glossary terms used inside source comments use the canonical spelling.
 - **Pass criterion.** No mismatches.
 
-## gate-22 · pricing-table freshness
+## gate-22 · _retired_
 
-- **Probes.** Regex-parses `PRICING_TABLE_VERSION` (and `PRICING_FRESH_MAX_DAYS`) out of `src/tokens/pricing.ts` and compares the embedded date against the budget.
-- **Pass criterion.** The version literal parses as `YYYY-MM-DD` and is within the freshness budget (90 days by default).
-- **Debugging.** If stale, refresh `src/tokens/pricing.ts` and bump `PRICING_TABLE_VERSION` as part of the next release. This is the local + PR signal that replaced the retired `doctor` D06 pricing check; the scheduled `pricing-skew.yml` workflow remains the monthly belt-and-suspenders.
+Slot retired with the pricing/cost feature. There is no embedded pricing table to keep fresh; token widgets cover counts and speed only. Per the stable-ID rule, the slot is not reused.
 
 ---
 

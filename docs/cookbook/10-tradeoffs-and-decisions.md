@@ -95,11 +95,10 @@ Each entry: **decision**, **alternatives**, **why this**, **what we give up**.
 
 ---
 
-## D-012 · Embedded pricing table refreshed at release time
+## D-012 · _Reversed_ — pricing/cost feature dropped
 
-- **Alternatives.** Fetch pricing at render time; allow per-tenant tables in config.
-- **Why this.** No network at render time (`03 · N5`). A scheduled workflow (`pricing-skew.yml`) flags drift weekly.
-- **What we give up.** Real-time pricing. Freshness is enforced off the user-facing path: a unit test plus the `gate-22-pricing-freshness` repo gate fail the build when the embedded table ages past 90 days (the scheduled `pricing-skew.yml` workflow remains the monthly belt-and-suspenders). `agentline doctor` no longer reports pricing — no widget consumes the table at runtime, so it is a maintainer/CI concern only.
+- **Original decision.** Ship an embedded pricing table refreshed at release time so cost/spend widgets could render without network at render time.
+- **Reversal.** The pricing/cost feature was removed wholesale: the embedded pricing table, the cost/spend widgets, and the `gate-22` pricing-freshness gate plus its CI workflow are all gone. Token widgets now cover counts and speed only. Per the stable-ID rule, the decision number is retained and not reused.
 
 ---
 

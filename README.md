@@ -12,7 +12,7 @@
 A fast, themeable statusline for Claude Code. Reads the stdin payload Claude Code's statusline contract sends, writes an ANSI-styled line, exits. No network. No native modules. No plugin scaffolding.
 
 ```text
- Opus 4.7   main ●3 ↑1   23k tokens   $0.70   4h 12m left
+ Opus 4.7   main ●3 ↑1   23k tokens   ↓1.2k/s   4h 12m left
 ```
 
 ---
@@ -27,7 +27,7 @@ A fast, themeable statusline for Claude Code. Reads the stdin payload Claude Cod
 - **Scriptable layout** — `agentline config widget <add|remove|move|replace|set-option|list|catalog>`
 - **`agentline doctor --fix`** — auto-repairs settings wiring, config defaults, and missing themes
 - **Reversible** — `install` backs up your prior `statusLine`; `uninstall` restores it byte-for-byte
-- **Zero render-time I/O** — pricing table, themes, and widget registry are all embedded
+- **Zero render-time I/O** — themes and the widget registry are all embedded
 
 ---
 
