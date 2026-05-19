@@ -400,7 +400,7 @@ JS
 merge_statusline_into_settings() {
   __file="$1"
   __cmd="$2"
-  AL_FILE="${__file}" AL_CMD="${__cmd}" al_node - <<'JS'
+  AL_FILE="${__file}" AL_CMD="${__cmd}" AL_CONFIG_FILE="${config_file}" al_node - <<'JS'
 const fs = require('node:fs');
 const file = process.env.AL_FILE;
 const cmd = process.env.AL_CMD;
@@ -410,7 +410,21 @@ try {
   const t = JSON.parse(raw);
   if (t && typeof t === 'object' && !Array.isArray(t)) parsed = t;
 } catch { /* fresh object */ }
-parsed.statusLine = { type: 'command', command: cmd, padding: 0 };
+/*
+ * The wall-clock refresh cadence is owned by the agentline config
+ * (seeded in Step 2, so it exists by now). 0 / missing / invalid means
+ * "event-driven only" — omit the field so Claude Code falls back to its
+ * default; >= 1 is written through to statusLine.refreshInterval.
+ */
+let refresh = 0;
+try {
+  const cfg = JSON.parse(fs.readFileSync(process.env.AL_CONFIG_FILE, 'utf8'));
+  const n = cfg && cfg.refreshInterval;
+  if (Number.isInteger(n) && n >= 0) refresh = n;
+} catch { /* default: omit */ }
+const statusLine = { type: 'command', command: cmd, padding: 0 };
+if (refresh >= 1) statusLine.refreshInterval = refresh;
+parsed.statusLine = statusLine;
 process.stdout.write(JSON.stringify(parsed, null, 2) + '\n');
 JS
 }

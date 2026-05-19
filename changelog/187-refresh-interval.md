@@ -1,0 +1,1 @@
+- Keep idle statuslines fresh: a new top-level `refreshInterval` config key (integer seconds, default `5`; `0` disables) is mirrored 1:1 into Claude Code's `statusLine.refreshInterval` at `install` / `reset`, by the new `agentline config refresh [<seconds>]` command, and by `agentline doctor --fix` (new check D09), so time-based widgets keep advancing while the session is idle.

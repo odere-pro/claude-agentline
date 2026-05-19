@@ -1,6 +1,6 @@
 /**
- * Auto-fix routines for D01–D04. Anything outside that range is reported
- * but never auto-repaired (per spec).
+ * Auto-fix routines for D01–D04 and D09. Anything outside that set is
+ * reported but never auto-repaired (per spec).
  *
  * Each fix is idempotent: re-running `agentline doctor --fix` on an
  * already-healthy host MUST not mutate any byte. Atomic writes only.
@@ -10,6 +10,8 @@ import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { writeJsonIdempotent } from "../../core/lib/atomic-write.js";
 import { DEFAULT_CONFIG, type AgentlineConfig } from "../../data/config/index.js";
+import { loadConfig } from "../../data/config/load.js";
+import { syncRefreshInterval } from "../install/settings-refresh.js";
 import { pathExists } from "../../core/lib/fs.js";
 import { saveStatusLineBackup } from "../../data/state/backup.js";
 import type { CheckResult } from "./types.js";
@@ -40,6 +42,10 @@ export async function applyFixes(results: CheckResult[], ctx: FixCtx): Promise<C
     }
     if (r.id === "D04") {
       out.push(await fixD04(r, ctx));
+      continue;
+    }
+    if (r.id === "D09") {
+      out.push(await fixD09(r, ctx));
       continue;
     }
     out.push(r);
@@ -110,6 +116,33 @@ async function fixD03(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
     fixed: true,
     hint: undefined,
   };
+}
+
+/**
+ * D09 — re-sync settings.json `statusLine.refreshInterval` from the
+ * configured value. `syncRefreshInterval` is itself idempotent (it
+ * returns `unchanged` without writing when already in sync) and only
+ * touches an agentline-wired statusLine, so a foreign / unwired host
+ * stays a `warn` pointing at `agentline install`.
+ */
+async function fixD09(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
+  const { config } = await loadConfig({ env: ctx.env });
+  const result = await syncRefreshInterval(ctx.home, config.refreshInterval);
+  if (result.kind === "not-wired") {
+    return {
+      ...r,
+      status: "warn",
+      message: "statusLine is not wired to agentline; cannot sync refreshInterval",
+      hint: "run `agentline install` to wire the statusline first",
+    };
+  }
+  const detail =
+    result.kind === "written"
+      ? `wrote statusLine.refreshInterval=${result.value}`
+      : result.kind === "removed"
+        ? "removed statusLine.refreshInterval (refresh disabled)"
+        : `already in sync (refreshInterval=${config.refreshInterval})`;
+  return { ...r, status: "fixed", message: detail, fixed: true, hint: undefined };
 }
 
 async function fixD04(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {

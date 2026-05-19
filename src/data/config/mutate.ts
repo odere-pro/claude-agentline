@@ -154,6 +154,22 @@ export function setTheme(cfg: AgentlineConfig, themeId: string | null): Agentlin
   return { ...cfg, theme: themeId };
 }
 
+/**
+ * Set the statusline re-render cadence in seconds. `0` disables the
+ * wall-clock timer (Claude Code reverts to event-driven updates);
+ * `1`+ is the cadence. Mirrors the schema bound (`integer`, `minimum
+ * 0`); `syncRefreshInterval` propagates the value into Claude Code's
+ * `settings.json`.
+ */
+export function setRefreshInterval(cfg: AgentlineConfig, seconds: number): AgentlineConfig {
+  if (!Number.isInteger(seconds) || seconds < 0) {
+    throw new ConfigMutationError(
+      `refresh interval must be a non-negative integer (got ${seconds})`,
+    );
+  }
+  return { ...cfg, refreshInterval: seconds };
+}
+
 // ─── disk wrappers ──────────────────────────────────────────────────────────
 
 export interface SaveOptions {
@@ -187,6 +203,13 @@ export function saveSetWidgetOption(
   opts?: SaveOptions,
 ): Promise<AgentlineConfig> {
   return persist((cfg) => setWidgetOption(cfg, spec), opts);
+}
+
+export function saveSetRefreshInterval(
+  seconds: number,
+  opts?: SaveOptions,
+): Promise<AgentlineConfig> {
+  return persist((cfg) => setRefreshInterval(cfg, seconds), opts);
 }
 
 /**

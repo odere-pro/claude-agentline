@@ -28,6 +28,7 @@ import { parseRenderArgs, runRenderCommand } from "./render/render/fixture-comma
 import { detectColourDepth } from "./render/render/colour-depth.js";
 import { effectiveDepth, honourNoColorEnv } from "./render/render/accessibility.js";
 import { runWidgetSubgroup } from "./data/config/widget-command.js";
+import { runRefreshSubgroup } from "./data/config/refresh-command.js";
 
 type ParsedArgs = {
   command: string;
@@ -106,6 +107,7 @@ function runHelp(): number {
       "  doctor [--fix]       diagnose + repair host wiring",
       "  edit                 open the TUI editor",
       "  config widget <sub>  inspect or edit the statusline layout (scriptable)",
+      "  config refresh [<s>] get/set the statusline refresh cadence (seconds)",
       "  version              print version (alias: -v, --version)",
       "  help                 print this message (alias: -h, --help)",
       "",
@@ -122,7 +124,8 @@ Usage:
   agentline config <group> [<options>]
 
 Groups:
-  widget <sub>   inspect or edit the statusline layout; see \`agentline config widget --help\`
+  widget <sub>           inspect or edit the statusline layout; see \`agentline config widget --help\`
+  refresh [<seconds>]    get or set the statusline refresh cadence (seconds; 0 disables)
 
 For interactive editing with live preview, use \`agentline edit\` instead.
 `;
@@ -136,6 +139,8 @@ async function runConfig(rest: readonly string[]): Promise<number> {
   switch (group) {
     case "widget":
       return runWidgetSubgroup(groupRest);
+    case "refresh":
+      return runRefreshSubgroup(groupRest);
     default:
       process.stderr.write(`agentline config: unknown group '${group}'\n`);
       process.stdout.write(CONFIG_HELP);

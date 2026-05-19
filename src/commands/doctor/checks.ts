@@ -1,9 +1,9 @@
 /**
- * Implementations of the eight doctor checks (D01–D08).
+ * Implementations of the nine doctor checks (D01–D09).
  *
  * Reporting and repair are split: a check NEVER mutates the host;
  * `--fix` calls the matching `fixD0N` helper in `fix.ts` separately
- * (D01–D04 have fixers; D05–D08 are reporting-only).
+ * (D01–D04 and D09 have fixers; D05–D08 are reporting-only).
  *
  * On a missing-but-expected file (e.g. no themes directory when no
  * theme is referenced) the check returns `pass` with an explanatory
@@ -66,6 +66,7 @@ export async function runChecks(opts: RunOptions): Promise<CheckResult[]> {
     await checkD06(ctx),
     await checkD07(ctx),
     await checkD08(ctx),
+    await checkD09(ctx),
   ];
 }
 
@@ -274,6 +275,60 @@ async function checkD08(_ctx: CheckCtx): Promise<CheckResult> {
     status: "fail",
     message: ok.detail,
     hint: "the bin's render path drifted from the embedded snapshot — investigate src/cli.ts and src/render/",
+  };
+}
+
+/**
+ * D09 — `statusLine.refreshInterval` matches the configured cadence.
+ *
+ * The agentline config owns `refreshInterval`; install / `config
+ * refresh` / this fixer mirror it into Claude Code's settings.json.
+ * `0` means "event-driven only" (the field must be absent); `>= 1`
+ * must equal the field. Not applicable (→ pass with note) when the
+ * config failed to load (D03 owns that) or the statusLine is not wired
+ * to agentline (D02 owns that) — D09 never double-reports another
+ * check's failure.
+ */
+async function checkD09(ctx: CheckCtx): Promise<CheckResult> {
+  if (!ctx.config) {
+    return ok("D09", "Refresh interval synced", "config not loaded — see D03");
+  }
+  const expected = ctx.config.refreshInterval;
+  const parsed = await readJsonOrNull(settingsPath(ctx.home));
+  if (!isPlainObject(parsed)) {
+    return ok("D09", "Refresh interval synced", "no readable settings.json — see D01/D02");
+  }
+  const sl = parsed["statusLine"];
+  const cmd = extractStatusLineCommand(sl);
+  if (!cmd || !/agentline/.test(cmd) || !isPlainObject(sl)) {
+    return ok("D09", "Refresh interval synced", "statusLine not wired to agentline — see D02");
+  }
+  const actual = sl["refreshInterval"];
+
+  if (expected === 0) {
+    if (actual === undefined) {
+      return ok("D09", "Refresh interval synced", "disabled (0) — settings.json has no refreshInterval");
+    }
+    return {
+      id: "D09",
+      title: "Refresh interval synced",
+      status: "warn",
+      message: `config disables refresh (0) but settings.json has refreshInterval=${JSON.stringify(actual)}`,
+      hint: "run `agentline doctor --fix` to remove it (or `agentline config refresh <seconds>`)",
+    };
+  }
+  if (actual === expected) {
+    return ok("D09", "Refresh interval synced", `statusLine.refreshInterval = ${expected}s`);
+  }
+  return {
+    id: "D09",
+    title: "Refresh interval synced",
+    status: "warn",
+    message:
+      actual === undefined
+        ? `config sets refreshInterval=${expected} but settings.json has none`
+        : `config sets refreshInterval=${expected} but settings.json has ${JSON.stringify(actual)}`,
+    hint: "run `agentline doctor --fix` to sync it from your config",
   };
 }
 
