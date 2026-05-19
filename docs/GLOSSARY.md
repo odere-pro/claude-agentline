@@ -31,7 +31,7 @@ update the other artefact, not this one.
 > The hot path from Claude Code's stdin JSON to ANSI stdout.
 > Must complete in ≤ 25 ms p95.
 
-**Used in:** performance rules, gate-13, gate-19, `src/render/`.
+**Used in:** performance rules, gate-13, gate-19, `src/render/render/`.
 
 ---
 
@@ -40,7 +40,7 @@ update the other artefact, not this one.
 > The full sequence: parse stdin → load config → resolve theme →
 > render widgets → compose lines → encode ANSI → write stdout.
 
-**Used in:** architecture docs, `src/render/pipeline.ts`.  
+**Used in:** architecture docs, `src/render/render/pipeline.ts`.  
 **Distinct from:** "render path" (pipeline = the whole chain; path = the hot measurable segment).
 
 ---
@@ -183,7 +183,7 @@ All types are kebab-case strings. Source of truth: `src/widgets/catalog.ts`.
 > `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`.
 > The single source of truth; there is no per-project layer.
 
-**Used in:** all config docs, `src/config/`.
+**Used in:** all config docs, `src/data/config/`.
 
 ---
 
@@ -205,7 +205,7 @@ All types are kebab-case strings. Source of truth: `src/widgets/catalog.ts`.
 > leaf at render time without editing the config file.
 > Example: `AGENTLINE_THEME=vscode-dark`.
 
-**Used in:** `src/config/env.ts`, spec §4.
+**Used in:** `src/data/config/env.ts`, spec §4.
 
 ---
 
@@ -235,7 +235,7 @@ All types are kebab-case strings. Source of truth: `src/widgets/catalog.ts`.
 > glyphs and computes colour transitions between adjacent segments.
 > Enabled via `config.powerline.enabled: true`.
 
-**Used in:** `PowerlineConfig`, `src/powerline/`, config docs.
+**Used in:** `PowerlineConfig`, `src/render/powerline/`, config docs.
 
 ---
 
@@ -244,7 +244,7 @@ All types are kebab-case strings. Source of truth: `src/widgets/catalog.ts`.
 > The boundary at which a token, speed, or rate-limit widget resets its
 > accumulator. One of: `session`, `block`, `day`, `week`, `model`, `effort`.
 
-**Used in:** `ResetAxis`, widget `options.reset`, spec §8.4, `src/tokens/`.
+**Used in:** `ResetAxis`, widget `options.reset`, spec §8.4, `src/data/tokens/`.
 
 ---
 
@@ -266,7 +266,7 @@ All types are kebab-case strings. Source of truth: `src/widgets/catalog.ts`.
 > A JSON file that maps semantic role names to terminal colour values.
 > Referenced by `config.theme: "<name>"`.
 
-**Used in:** `Theme`, `src/theme/`, `themes/`, config docs.
+**Used in:** `Theme`, `src/data/theme/`, `themes/`, config docs.
 
 ---
 
@@ -285,7 +285,7 @@ All types are kebab-case strings. Source of truth: `src/widgets/catalog.ts`.
 
 > The `palette` key inside a theme file; a map from role names to colour values.
 
-**Used in:** `themes/*.json`, `src/theme/`, theme schema.
+**Used in:** `themes/*.json`, `src/data/theme/`, theme schema.
 
 ---
 
@@ -328,7 +328,7 @@ Optional roles (missing roles fall back to the compiled defaults):
 > The renderer's detected ANSI capability level:
 > `truecolor` (24-bit), `256` (8-bit palette), `16` (named colours), or `none`.
 
-**Used in:** `ColourDepth`, `src/render/colour-depth.ts`, gate-16.
+**Used in:** `ColourDepth`, `src/render/render/colour-depth.ts`, gate-16.
 
 ---
 
@@ -338,32 +338,32 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 
 | Type                     | File                           | Description                                                      |
 | ------------------------ | ------------------------------ | ---------------------------------------------------------------- |
-| `AgentlineConfig`        | `src/config/types.ts`          | Top-level config shape                                           |
-| `PartialAgentlineConfig` | `src/config/types.ts`          | Partial version for merging                                      |
-| `GlobalConfig`           | `src/config/types.ts`          | `config.global` block                                            |
-| `LineConfig`             | `src/config/types.ts`          | Single line (array of `WidgetConfig`)                            |
-| `WidgetConfig`           | `src/config/types.ts`          | Per-widget config entry                                          |
-| `PowerlineConfig`        | `src/config/types.ts`          | `config.powerline` block                                         |
-| `PowerlineCaps`          | `src/config/types.ts`          | Start/end cap glyphs                                             |
-| `PowerlineGlyphs`        | `src/config/types.ts`          | Chevron glyph overrides                                          |
-| `TerminalWidthConfig`    | `src/config/types.ts`          | Width detection settings                                         |
-| `RawColour`              | `src/config/types.ts`          | Pre-validation colour string                                     |
+| `AgentlineConfig`        | `src/data/config/types.ts`     | Top-level config shape                                           |
+| `PartialAgentlineConfig` | `src/data/config/types.ts`     | Partial version for merging                                      |
+| `GlobalConfig`           | `src/data/config/types.ts`     | `config.global` block                                            |
+| `LineConfig`             | `src/data/config/types.ts`     | Single line (array of `WidgetConfig`)                            |
+| `WidgetConfig`           | `src/data/config/types.ts`     | Per-widget config entry                                          |
+| `PowerlineConfig`        | `src/data/config/types.ts`     | `config.powerline` block                                         |
+| `PowerlineCaps`          | `src/data/config/types.ts`     | Start/end cap glyphs                                             |
+| `PowerlineGlyphs`        | `src/data/config/types.ts`     | Chevron glyph overrides                                          |
+| `TerminalWidthConfig`    | `src/data/config/types.ts`     | Width detection settings                                         |
+| `RawColour`              | `src/data/config/types.ts`     | Pre-validation colour string                                     |
 | `Cell`                   | `src/widgets/types.ts`         | Atomic render unit output                                        |
 | `WidgetContext`          | `src/widgets/types.ts`         | Render-time environment passed to each widget                    |
 | `WidgetSettings`         | `src/widgets/types.ts`         | Resolved per-widget settings                                     |
 | `WidgetRender`           | `src/widgets/types.ts`         | Widget render function signature                                 |
 | `WidgetDef`              | `src/widgets/types.ts`         | Widget contract registered in `WidgetRegistry`                   |
 | `MergeMode`              | `src/widgets/types.ts`         | `"off" \| "merge" \| "merge-no-padding"`                         |
-| `Segment`                | `src/render/segment.ts`        | ANSI-encoded output segment                                      |
-| `StdinPayload`           | `src/stdin/index.ts`           | Parsed Claude Code statusline JSON                               |
-| `Theme`                  | `src/theme/index.ts`           | Loaded theme with resolved palette                               |
-| `ThemeRole`              | `src/theme/roles.ts`           | Union of valid palette role keys                                 |
-| `Colour`                 | `src/theme/colours.ts`         | Parsed colour (named / indexed / hex)                            |
-| `ResetAxis`              | `src/tokens/index.ts`          | `"session" \| "block" \| "day" \| "week" \| "model" \| "effort"` |
-| `TokensSnapshot`         | `src/tokens/index.ts`          | Accumulated token totals                                         |
-| `TokenTotals`            | `src/tokens/index.ts`          | Token sub-totals by type                                         |
-| `KeyScope`               | `src/keys/bindings.ts`         | `"edit" \| "picker" \| "any"`                                    |
-| `KeyBinding`             | `src/keys/bindings.ts`         | Single key binding entry                                         |
+| `Segment`                | `src/render/render/segment.ts` | ANSI-encoded output segment                                      |
+| `StdinPayload`           | `src/core/stdin/index.ts`      | Parsed Claude Code statusline JSON                               |
+| `Theme`                  | `src/data/theme/index.ts`      | Loaded theme with resolved palette                               |
+| `ThemeRole`              | `src/data/theme/roles.ts`      | Union of valid palette role keys                                 |
+| `Colour`                 | `src/data/theme/colours.ts`    | Parsed colour (named / indexed / hex)                            |
+| `ResetAxis`              | `src/data/tokens/index.ts`     | `"session" \| "block" \| "day" \| "week" \| "model" \| "effort"` |
+| `TokensSnapshot`         | `src/data/tokens/index.ts`     | Accumulated token totals                                         |
+| `TokenTotals`            | `src/data/tokens/index.ts`     | Token sub-totals by type                                         |
+| `KeyScope`               | `src/tui/keys/bindings.ts`     | `"edit" \| "picker" \| "any"`                                    |
+| `KeyBinding`             | `src/tui/keys/bindings.ts`     | Single key binding entry                                         |
 | `WidgetMeta`             | `src/widgets/catalog.ts`       | Widget metadata entry in catalog                                 |
 | `WidgetVariant`          | `src/widgets/catalog.ts`       | Named display variant for a widget                               |
 | `WidgetFamily`           | `src/widgets/catalog/types.ts` | Union of the 5 widget family strings                             |
@@ -378,7 +378,7 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 > The Ink-based TUI opened by `agentline edit`.
 > Lazy-imported so it never loads on the render path.
 
-**Used in:** `src/tui/`, `agentline edit` command, keymap docs.
+**Used in:** `src/tui/tui/`, `agentline edit` command, keymap docs.
 
 ---
 
@@ -390,7 +390,7 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 > on each row. Widgets with catalogued variants drill into a final
 > variant step.
 
-**Used in:** `src/tui/picker.ts`, `src/tui/state.ts`, keymap docs.
+**Used in:** `src/tui/tui/picker.ts`, `src/tui/tui/state.ts`, keymap docs.
 
 ---
 
@@ -411,7 +411,7 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 > A synthetic Claude Code stdin JSON payload used in tests and
 > `agentline render`.
 
-**Used in:** `tests/golden/`, `src/render/fixture-runner.ts`, `src/doctor/fixture.ts`.
+**Used in:** `tests/golden/`, `src/render/render/fixture-runner.ts`, `src/commands/doctor/fixture.ts`.
 
 ---
 

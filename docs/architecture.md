@@ -16,14 +16,14 @@ stdin (JSON) → parser → widgets → renderer → stdout (ANSI)
 
 The render path is synchronous, I/O-free, and deterministic:
 
-1. **Parse stdin** (`src/stdin/`) — 256 KB cap, guard against malformed JSON
-2. **Load config** (`src/config/`) — merge defaults + user file + env vars
-3. **Load theme** (`src/theme/`) — validate against schema, downgrade colour depth
-4. **Load tokens snapshot** (`src/tokens/`) — read transcript once, cache globally
+1. **Parse stdin** (`src/core/stdin/`) — 256 KB cap, guard against malformed JSON
+2. **Load config** (`src/data/config/`) — merge defaults + user file + env vars
+3. **Load theme** (`src/data/theme/`) — validate against schema, downgrade colour depth
+4. **Load tokens snapshot** (`src/data/tokens/`) — read transcript once, cache globally
 5. **Render widgets** (`src/widgets/`) — each widget is a pure function
-6. **Compose line** (`src/render/compose.ts`) — layout flex-separators
-7. **Powerline transform** (`src/powerline/`) — insert chevrons, adjust colours
-8. **Encode ANSI** (`src/render/ansi.ts`) — apply colour depth downgrade
+6. **Compose line** (`src/render/render/compose.ts`) — layout flex-separators
+7. **Powerline transform** (`src/render/powerline/`) — insert chevrons, adjust colours
+8. **Encode ANSI** (`src/render/render/ansi.ts`) — apply colour depth downgrade
 9. **Write stdout** — one atomic write, never torn
 
 **Invariant**: No imports of `ink` or `react` above `src/tui/`. Enforced by `tests/gates/gate-14-no-network-render.sh`.
@@ -36,7 +36,7 @@ When invoked as `agentline config` (edit mode), the TUI loads `ink` and React to
 agentline config → TUI (Ink + React) → config mutation → file write
 ```
 
-The TUI reads the existing config, mutates it via reducer, and persists via atomic write (same path as render-time `config/atomic.ts`).
+The TUI reads the existing config, mutates it via reducer, and persists via atomic write (same path as render-time `src/data/config/atomic.ts`).
 
 ## Widget System (§7)
 
@@ -60,7 +60,7 @@ The registry holds built-in implementations; tests can inject isolated instances
 
 Configuration is **layered, global-only, and immutable**:
 
-1. Built-in defaults (`src/config/defaults.ts`)
+1. Built-in defaults (`src/data/config/defaults.ts`)
 2. User file at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`
    — the single source of truth (§13: no project layer; any
    `.agentline.json` in cwd is silently ignored)
@@ -69,7 +69,7 @@ Configuration is **layered, global-only, and immutable**:
 
 Each layer is validated against the JSON Schema before merge. Writes go through atomic file operations (write-temp + fsync + rename). See [`docs/install.md`](./install.md#how-agentline-syncs-with-claude-code) for the end-to-end stdin → render → stdout chain.
 
-## Token/Transcript System (`src/tokens/`)
+## Token/Transcript System (`src/data/tokens/`)
 
 The transcript is the Claude Code session's token ledger: a JSONL file containing:
 
@@ -82,11 +82,11 @@ The render-tick resolver reads the file once and caches it (`process-wide, LRU, 
 
 Reset axes (session, block, day, week, model, effort) are enforced: a widget cannot mix axes in a single aggregation.
 
-## Git System (`src/git/`)
+## Git System (`src/data/git/`)
 
 Similar to tokens, the render-tick resolver runs `git` once and caches the result. Widgets query the frozen snapshot.
 
-## Doctor System (`src/doctor/`)
+## Doctor System (`src/commands/doctor/`)
 
 Verification checks (D01–D08) run sequentially and report health status. `--fix` repairs the four safe mutations (settings scaffold, statusLine wiring, config defaults, theme copy). Refusing unsafe mutations (`--force` required for foreign statusLines).
 

@@ -1,0 +1,1 @@
+- Update every stale src/ path reference across docs, the root CLAUDE.md source-layout table, and the agent skills to the post-regroup six-group layout.

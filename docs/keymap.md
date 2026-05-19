@@ -7,7 +7,7 @@ statusline itself (which is non-interactive output).
 The editor draws a two-line footer at the bottom showing every binding
 for the current scope (motion on line 1, actions on line 2). The
 authoritative list of default bindings lives in
-[`src/keys/bindings.ts`](../src/keys/bindings.ts).
+[`src/tui/keys/bindings.ts`](../src/tui/keys/bindings.ts).
 
 ## Modes
 
@@ -70,7 +70,7 @@ cell.
 
 The `keymap` block in your config maps an **action id** to a key
 binding. Action ids are listed in
-[`src/keys/bindings.ts`](../src/keys/bindings.ts); an example:
+[`src/tui/keys/bindings.ts`](../src/tui/keys/bindings.ts); an example:
 
 ```json
 "keymap": {

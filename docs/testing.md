@@ -40,7 +40,7 @@ across hosts and runs. Each scenario under `tests/golden/` ships:
 | `clock.txt`     | ISO timestamp the renderer freezes time at |
 | `expected.ansi` | the exact bytes the renderer must emit     |
 
-The harness in `src/render/__golden__.test.ts` walks every directory
+The harness in `src/render/render/__golden__.test.ts` walks every directory
 and asserts `renderForFixture(...) === expected.ansi`.
 
 ### Adding a scenario

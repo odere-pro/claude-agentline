@@ -50,16 +50,24 @@ Plugin distribution (`.claude-plugin/`), native binaries, Homebrew, curl-install
 
 ## Source layout
 
-Core modules live under `src/`, organised by feature. Notable top-level
-directories:
+Core modules live under `src/`, organised into six nested groups. The CLI
+dispatch entry (`src/cli.ts`) and `src/version.ts` stay at the `src/` root;
+`src/widgets/` keeps its own top-level group.
 
-| Directory        | Purpose                                                              |
-| ---------------- | -------------------------------------------------------------------- |
-| `src/cli/`       | CLI help-string utilities (separate from the dispatch entry)         |
-| `src/lib/`       | Shared pure utilities (env, fs, nerd-font detection, object, result) |
-| `src/install/`   | `agentline install` command implementation                           |
-| `src/uninstall/` | `agentline uninstall` command implementation                         |
-| `src/state/`     | Stdin payload cache, render output cache, config backup              |
+| Group           | Purpose                                                                                                     |
+| --------------- | ----------------------------------------------------------------------------------------------------------- |
+| `src/core/`     | Stdin parse, schema, i18n, shared pure libs (`lib`, `stdin`, `schema`, `i18n`)                              |
+| `src/data/`     | Config, theme, tokens, git, session, on-disk state (`config`, `theme`, `tokens`, `git`, `session`, `state`) |
+| `src/widgets/`  | Widget families (unchanged by the regroup)                                                                  |
+| `src/render/`   | Line composer + powerline transform (`render`, `powerline`)                                                 |
+| `src/tui/`      | Lazy-imported TUI editor + keymap registry (`tui`, `keys`)                                                  |
+| `src/commands/` | Verb implementations (`doctor`, `install`, `uninstall`, `reset`, `update-check`, `cli`)                     |
+
+Representative leaf paths: `src/core/lib/`, `src/core/stdin/`,
+`src/data/config/`, `src/data/theme/`, `src/data/state/`,
+`src/render/render/`, `src/render/powerline/`, `src/tui/tui/`,
+`src/tui/keys/`, `src/commands/doctor/`, `src/commands/install/`,
+`src/commands/uninstall/`, `src/commands/cli/`.
 
 ## When in doubt
 
