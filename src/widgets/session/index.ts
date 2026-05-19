@@ -16,15 +16,6 @@ import { sessionIdWidget } from "./session-id.js";
 import { thinkingEffortWidget } from "./thinking-effort.js";
 import { versionWidget } from "./version.js";
 
-export {
-  accountEmailWidget,
-  modelWidget,
-  planWidget,
-  sessionIdWidget,
-  thinkingEffortWidget,
-  versionWidget,
-};
-
 export const SESSION_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   accountEmailWidget,
   modelWidget,

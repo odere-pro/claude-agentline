@@ -12,23 +12,11 @@ import { PRICING_TABLE_VERSION } from "./pricing.js";
 import { readTranscript, type TranscriptEvent } from "./transcript.js";
 
 export type { ResetAxis, TokenTotals, WeekResetOpts } from "./aggregate.js";
-export {
-  aggregate,
-  aggregateCost,
-  blockStart,
-  blockEnd,
-  dayStart,
-  weekStart,
-} from "./aggregate.js";
-export { rollingSpeed, type SpeedInput, type SpeedTotals } from "./speed.js";
-export {
-  priceForModel,
-  type ModelPrice,
-  listPricedModels,
-  PRICING_TABLE_VERSION,
-} from "./pricing.js";
+export { aggregate, blockEnd, weekStart } from "./aggregate.js";
+export { rollingSpeed } from "./speed.js";
+export { PRICING_TABLE_VERSION } from "./pricing.js";
 export { contextWindowFor } from "./context-window.js";
-export { readTranscript, clearTranscriptCache, type TranscriptEvent } from "./transcript.js";
+export type { TranscriptEvent } from "./transcript.js";
 
 export interface TokensSnapshot {
   /** Parsed transcript events; `[]` when the file is missing/unreadable. */

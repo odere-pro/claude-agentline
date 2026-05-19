@@ -11,11 +11,6 @@ import type { WidgetRegistry } from "../registry.js";
 import { tokensCachedWidget, tokensWidget } from "./fields.js";
 import { tokenSpeedWidget } from "./speed.js";
 
-export { tokensCachedWidget, tokensWidget } from "./fields.js";
-export { tokenSpeedWidget } from "./speed.js";
-export { resolveResetAxis } from "./options.js";
-export { formatCount, formatSpeed, tokenRole } from "./format.js";
-
 export const TOKEN_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   eraseWidget(tokensWidget),
   eraseWidget(tokensCachedWidget),

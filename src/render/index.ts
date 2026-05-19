@@ -9,37 +9,7 @@
  * before the widget surface lands.
  */
 
-export {
-  detectTerminalWidth,
-  detectTerminalWidthInfo,
-  applyWidthMode,
-  FALLBACK_WIDTH,
-  NO_WRAP_WIDTH,
-  DEFAULT_COMPACT_THRESHOLD,
-  type AppliedWidth,
-  type DetectedWidth,
-  type WidthMode,
-  type WidthModeOptions,
-  type WidthSource,
-} from "./width.js";
-
-export { detectColourDepth, type ColourDepth, type ColourDepthSource } from "./colour-depth.js";
-
-export { encodeSegments, SGR_RESET } from "./ansi.js";
-export { plainSegment, type Segment } from "./segment.js";
-
-export {
-  parseAccessibilityArgs,
-  honourNoColorEnv,
-  effectiveDepth,
-  applyAccessibility,
-  stripNonAscii,
-  type AccessibilityFlags,
-} from "./accessibility.js";
-
-export { writeOnce, type WritableLike } from "./write.js";
-
-export { composeLines, type ComposeOptions } from "./compose.js";
+export type { Segment } from "./segment.js";
 
 import { encodeSegments } from "./ansi.js";
 import { applyAccessibility, effectiveDepth, type AccessibilityFlags } from "./accessibility.js";

@@ -8,26 +8,8 @@
  * `defaultRegistry()`.
  */
 
-export { HIDDEN_CELL, isHidden, plainCell, type Cell, type MergeMode } from "./cell.js";
-export { realClock, frozenClock, type Clock } from "./clock.js";
-export { type WidgetContext } from "./context.js";
-export { defineWidget, type WidgetDef, type WidgetRender, type WidgetSettings } from "./widget.js";
-export {
-  WidgetRegistry,
-  WidgetTypeAlreadyRegistered,
-  WidgetTypeNotRegistered,
-  defaultRegistry,
-  resetDefaultRegistry,
-} from "./registry.js";
-export { renderWidget, WidgetTypeMissingError, type RenderWidgetOptions } from "./render-widget.js";
-export {
-  WIDGET_CATALOG,
-  WIDGET_FAMILIES,
-  widgetMeta,
-  type WidgetFamily,
-  type WidgetMeta,
-  type WidgetMetaEntry,
-} from "./catalog.js";
+export { WidgetRegistry, defaultRegistry } from "./registry.js";
+export { WIDGET_FAMILIES, type WidgetMetaEntry } from "./catalog.js";
 
 import type { WidgetRegistry } from "./registry.js";
 import { registerSessionWidgets } from "./session/index.js";

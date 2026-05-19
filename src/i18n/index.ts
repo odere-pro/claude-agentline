@@ -5,10 +5,5 @@
  * dragging the editor in (gate-19).
  */
 
-export {
-  createTranslator,
-  identityTranslator,
-  type Translator,
-  type TranslateVars,
-} from "./loader.js";
+export { createTranslator, identityTranslator, type Translator } from "./loader.js";
 export { widgetNameId, widgetDescId, widgetVariantId, widgetLabelId } from "./ids.js";

@@ -17,13 +17,7 @@ import {
   type AuthSnapshot,
 } from "./auth-file.js";
 
-export {
-  type AuthSnapshot,
-  readAuthFile,
-  readClaudeAccountFile,
-  resolveAuthFilePath,
-  resolveClaudeAccountFilePath,
-} from "./auth-file.js";
+export type { AuthSnapshot } from "./auth-file.js";
 
 export interface ResolvedSessionFields {
   readonly model?: string;

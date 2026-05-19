@@ -25,9 +25,8 @@ import { THEME_JSON_SCHEMA } from "./schema.js";
 
 export { THEME_ROLES };
 export type { ThemeRole };
-export { isColour, parseColour, type Colour, type ParsedColour } from "./colours.js";
-export { DEFAULT_PALETTE, defaultRoleColour } from "./defaults.js";
-export { THEME_JSON_SCHEMA } from "./schema.js";
+export type { Colour } from "./colours.js";
+export { DEFAULT_PALETTE } from "./defaults.js";
 
 export interface Theme {
   readonly name: string;

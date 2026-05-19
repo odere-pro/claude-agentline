@@ -9,10 +9,6 @@ import { contextBarWidget } from "./context-bar.js";
 import { contextLengthWidget } from "./context-length.js";
 import { contextPercentageWidget } from "./percentage.js";
 
-export { contextBarWidget } from "./context-bar.js";
-export { contextLengthWidget } from "./context-length.js";
-export { contextPercentageWidget } from "./percentage.js";
-
 export const CONTEXT_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   eraseWidget(contextBarWidget),
   eraseWidget(contextLengthWidget),

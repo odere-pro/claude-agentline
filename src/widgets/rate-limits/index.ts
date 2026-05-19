@@ -19,12 +19,6 @@ import { currentSessionResetAtWidget, weeklyResetAtWidget } from "./reset-at.js"
 import { currentSessionResetTimerWidget, weekLimitTimerWidget } from "./timers.js";
 import { sessionWeeklyUsageWidget } from "./usage.js";
 
-export { currentSessionResetAtWidget, weeklyResetAtWidget } from "./reset-at.js";
-export { currentSessionResetTimerWidget, weekLimitTimerWidget } from "./timers.js";
-export { sessionWeeklyUsageWidget } from "./usage.js";
-export { formatDuration, resolveDurationFormat, type DurationFormat } from "./duration.js";
-export { resolveWeekReset, type WeekResetOptions } from "./week-reset.js";
-
 export const RATE_LIMIT_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   eraseWidget(sessionWeeklyUsageWidget),
   eraseWidget(currentSessionResetTimerWidget),

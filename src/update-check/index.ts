@@ -7,5 +7,4 @@
  * `src/update-check/fetch.ts` for the lone outbound HTTP call site.
  */
 
-export { fetchLatestVersion, type FetchLatestVersionOptions } from "./fetch.js";
-export { maybeRefresh, isNewer, type MaybeRefreshOptions, type RefreshOutcome } from "./refresh.js";
+export { maybeRefresh } from "./refresh.js";

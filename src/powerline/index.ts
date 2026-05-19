@@ -13,10 +13,6 @@
  * The render-path entry point is filesystem- and network-free.
  */
 
-export {
-  applyPowerline,
-  applyPowerlineLines,
-  type PowerlineTransformOptions,
-} from "./transform.js";
-export { ASCII_GLYPHS, NERD_FONT_GLYPHS, resolveGlyphs, type PowerlineGlyphSet } from "./glyphs.js";
+export { applyPowerlineLines } from "./transform.js";
+export { resolveGlyphs } from "./glyphs.js";
 export { detectGlyphSupport, type GlyphSupport } from "./detect.js";

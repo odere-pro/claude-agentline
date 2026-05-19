@@ -19,14 +19,6 @@ import { gitOriginRepoWidget, gitUpstreamWidget } from "./remote.js";
 import { gitShaWidget, gitWorktreeWidget } from "./sha.js";
 import { gitUntrackedWidget } from "./status.js";
 
-export { gitAheadBehindWidget, gitConflictsWidget } from "./ahead-behind.js";
-export { gitBranchWidget } from "./branch.js";
-export { gitChangesWidget } from "./changes.js";
-export { gitPrWidget } from "./pr.js";
-export { gitOriginRepoWidget, gitUpstreamWidget } from "./remote.js";
-export { gitShaWidget, gitWorktreeWidget } from "./sha.js";
-export { gitUntrackedWidget } from "./status.js";
-
 export const GIT_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   eraseWidget(gitBranchWidget),
   eraseWidget(gitShaWidget),
