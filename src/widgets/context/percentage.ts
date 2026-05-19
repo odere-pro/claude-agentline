@@ -9,6 +9,7 @@
  */
 
 import type { Cell } from "../cell.js";
+import { valueSeparator } from "../separator.js";
 import { defineWidget } from "../widget.js";
 
 import { formatWindowLabel, resolveContextUsage } from "./usage.js";
@@ -28,7 +29,7 @@ export const contextPercentageWidget = defineWidget<Options>(
     const pct = Math.min(MAX_DISPLAY_PERCENTAGE, Math.round(ratio * 100));
     const label = settings.rawValue ? "" : (settings.options.label ?? "");
     const windowLabel = formatWindowLabel(usage.window);
-    const postfix = windowLabel ? ` · ${windowLabel}` : "";
+    const postfix = windowLabel ? ` ${valueSeparator(ctx)} ${windowLabel}` : "";
     return { text: `${label}${pct}%${postfix}` };
   },
 );

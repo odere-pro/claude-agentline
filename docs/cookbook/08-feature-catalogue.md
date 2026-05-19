@@ -28,7 +28,7 @@ Surface state from the host stdin payload.
 
 | Type            | Renders                                             |
 | --------------- | --------------------------------------------------- |
-| `tokens`        | Input ↓ + output ↑ subtotals (`↓<in> ↑<out>`)       |
+| `tokens`        | Input ↓ + output ↑ subtotals (`↓<in> · ↑<out>`)     |
 | `tokens-cached` | Cached subtotal (prompt-cache hits)                 |
 | `token-speed`   | Input ↓ + output ↑ tokens/sec over a rolling window |
 
@@ -39,9 +39,9 @@ model's context-window size as a postfix (e.g. `200k`, `1M`).
 
 | Type                 | Renders                                                                 |
 | -------------------- | ----------------------------------------------------------------------- |
-| `context-length`     | Raw token count + window (`45.2k / 200k`).                              |
+| `context-length`     | Raw token count + window (`45.2k · 200k`).                              |
 | `context-percentage` | Used / window, colour-graded green→yellow→red, + window (`37% · 200k`). |
-| `context-bar`        | Visual bar in the context family accent + window (`████░░░░ 200k`).     |
+| `context-bar`        | Visual bar in the context family accent + window (`████░░░░ · 200k`).   |
 
 ### Rate limits (~5 widgets)
 
@@ -50,7 +50,7 @@ usage-limits screen.
 
 | Type                          | Renders                                  |
 | ----------------------------- | ---------------------------------------- |
-| `session-weekly-usage`        | Session + weekly % — `52% / weekly 33%`. |
+| `session-weekly-usage`        | Session + weekly % — `52% · weekly 33%`. |
 | `current-session-reset-timer` | Countdown to next session reset.         |
 | `current-session-reset-at`    | Wall-clock of next session reset.        |
 | `week-limit-timer`            | Countdown to next weekly reset.          |
@@ -63,9 +63,9 @@ Read the working tree implied by stdin `cwd`.
 | Type               | Renders                                          |
 | ------------------ | ------------------------------------------------ |
 | `git-branch`       | Branch name (detached HEAD shows short SHA).     |
-| `git-changes`      | `+N -M` aggregate.                               |
+| `git-changes`      | `+N · -M` aggregate.                             |
 | `git-untracked`    | Untracked file count.                            |
-| `git-ahead-behind` | `↑N ↓M`; hidden when even.                       |
+| `git-ahead-behind` | `↑N · ↓M`; hidden when even.                     |
 | `git-conflicts`    | Conflict count; hidden at zero.                  |
 | `git-sha`          | Short SHA.                                       |
 | `git-worktree`     | Worktree name when inside one.                   |

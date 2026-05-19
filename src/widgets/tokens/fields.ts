@@ -11,6 +11,7 @@
  */
 
 import { aggregate, type TokenTotals, type TokensSnapshot } from "../../data/tokens/index.js";
+import { joinValues } from "../separator.js";
 import type { WidgetContext } from "../types.js";
 import { defineWidget } from "../widget.js";
 import type { WidgetDef } from "../widget.js";
@@ -63,7 +64,10 @@ export const tokensWidget = defineWidget<TokensOptions>("tokens", (ctx, settings
   if (!snapshot) return { text: "", hidden: true };
   const totals = aggregateFor(snapshot, ctx, settings.options.reset);
   const { inGlyph, outGlyph } = resolveGlyphs(settings.options);
-  const body = `${inGlyph}${formatCount(totals.input)} ${outGlyph}${formatCount(totals.output)}`;
+  const body = joinValues(ctx, [
+    `${inGlyph}${formatCount(totals.input)}`,
+    `${outGlyph}${formatCount(totals.output)}`,
+  ]);
   const label = settings.rawValue ? "" : (settings.options.label ?? "");
   return { text: `${label}${body}` };
 });

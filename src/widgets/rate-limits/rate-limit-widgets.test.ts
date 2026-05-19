@@ -54,7 +54,6 @@ function makeSnapshot(
     sessionStart,
     blockAnchor,
     contextWindow: 200_000,
-    pricingVersion: "test",
     ...overrides,
   });
 }
@@ -162,7 +161,7 @@ describe("session-weekly-usage widget", () => {
     expect(cell.hidden).toBe(true);
   });
 
-  it("renders both windows as '52% / weekly 33%'", () => {
+  it("renders both windows as '52% · weekly 33%'", () => {
     const cell = sessionWeeklyUsageWidget.render(
       makeCtx(undefined, {
         stdin: stdinWith({
@@ -172,7 +171,7 @@ describe("session-weekly-usage widget", () => {
       }),
       { options: {}, rawValue: false },
     );
-    expect(cell.text).toBe("52% / weekly 33%");
+    expect(cell.text).toBe("52% · weekly 33%");
   });
 
   it("shows the session half alone when the weekly window is absent", () => {
@@ -215,7 +214,7 @@ describe("session-weekly-usage widget", () => {
       }),
       { options: { plan: "Max" }, rawValue: false },
     );
-    expect(cell.text).toBe("Max 52% / weekly 33%");
+    expect(cell.text).toBe("Max 52% · weekly 33%");
   });
 
   it("a host-provided raw.plan wins over the configured plan", () => {
@@ -228,7 +227,7 @@ describe("session-weekly-usage widget", () => {
       }),
       { options: { plan: "Max" }, rawValue: false },
     );
-    expect(cell.text).toBe("Team 52% / weekly 33%");
+    expect(cell.text).toBe("Team 52% · weekly 33%");
   });
 
   it("clamps an over-budget percentage at 999", () => {
@@ -241,7 +240,7 @@ describe("session-weekly-usage widget", () => {
       }),
       { options: {}, rawValue: false },
     );
-    expect(cell.text).toBe("999% / weekly 33%");
+    expect(cell.text).toBe("999% · weekly 33%");
   });
 
   it("rawValue strips the label and plan prefix", () => {
@@ -254,7 +253,7 @@ describe("session-weekly-usage widget", () => {
       }),
       { options: { label: "usage ", plan: "Max" }, rawValue: true },
     );
-    expect(cell.text).toBe("52% / weekly 33%");
+    expect(cell.text).toBe("52% · weekly 33%");
   });
 });
 

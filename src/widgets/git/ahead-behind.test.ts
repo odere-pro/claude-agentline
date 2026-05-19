@@ -97,7 +97,7 @@ describe("git-ahead-behind widget", () => {
       makeCtx(makeSnapshot({ upstream: "origin/main", aheadBehind: { ahead: 2, behind: 5 } })),
       { options: {}, rawValue: false },
     );
-    expect(cell.text).toBe("↑2 ↓5");
+    expect(cell.text).toBe("↑2 · ↓5");
   });
 
   it("hideEven=false keeps the widget visible at parity", () => {
@@ -106,7 +106,7 @@ describe("git-ahead-behind widget", () => {
       { options: { hideEven: false }, rawValue: false },
     );
     expect(cell.hidden).not.toBe(true);
-    expect(cell.text).toBe("↑0 ↓0");
+    expect(cell.text).toBe("↑0 · ↓0");
   });
 
   it("respects custom aheadGlyph and behindGlyph", () => {
@@ -114,7 +114,7 @@ describe("git-ahead-behind widget", () => {
       makeCtx(makeSnapshot({ upstream: "origin/main", aheadBehind: { ahead: 1, behind: 2 } })),
       { options: { aheadGlyph: "+", behindGlyph: "-" }, rawValue: false },
     );
-    expect(cell.text).toBe("+1 -2");
+    expect(cell.text).toBe("+1 · -2");
   });
 
   it("suppresses label when rawValue: true", () => {

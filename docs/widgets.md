@@ -28,7 +28,7 @@ widget's own defaults.
 
 ## Reset axes
 
-Token, cost, speed, and rate-limit widgets always declare a `reset`
+Token and rate-limit widgets always declare a `reset`
 axis on their `options`. Mixed-axis aggregation is forbidden — the
 renderer rejects it with a schema error. Allowed values:
 
@@ -46,11 +46,11 @@ widget instances with different `reset` axes.
 
 ## Built-in widgets
 
-28 widgets ship with v0.1.0, organised into five families. The
+27 widgets ship with v0.1.0, organised into five families. The
 authoritative registry is `src/widgets/registry.ts`; this page tracks
 it.
 
-### Session (7)
+### Session (6)
 
 Surface state from the stdin payload that Claude Code emits.
 
@@ -69,11 +69,11 @@ so the line is never blank for an authenticated user.
 
 ### Tokens (3)
 
-| Type            | Renders                                          | Required `options.reset` |
-| --------------- | ------------------------------------------------ | ------------------------ |
-| `tokens`        | input ↓ and output ↑ subtotals (`↓<in> ↑<out>`)  | yes                      |
-| `tokens-cached` | cached-token subtotal (prompt-cache hits)        | yes                      |
-| `token-speed`   | input ↓ and output ↑ tokens per second (rolling) | no — uses `windowSec`    |
+| Type            | Renders                                           | Required `options.reset` |
+| --------------- | ------------------------------------------------- | ------------------------ |
+| `tokens`        | input ↓ and output ↑ subtotals (`↓<in> · ↑<out>`) | yes                      |
+| `tokens-cached` | cached-token subtotal (prompt-cache hits)         | yes                      |
+| `token-speed`   | input ↓ and output ↑ tokens per second (rolling)  | no — uses `windowSec`    |
 
 `tokens` and `token-speed` take optional `inputGlyph` / `outputGlyph`
 (defaults `↓` / `↑`). `token-speed` takes `windowSec` (default 60,
@@ -88,8 +88,8 @@ clamped 1–3600) instead of a reset axis.
 | `context-bar`        | tiny inline bar approximating context fill    |
 
 Each of these appends the current model's context-window size as a
-postfix — `context-length` → `45.2k / 200k`, `context-percentage` →
-`37% · 200k`, `context-bar` → `████░░░░ 200k` (`1M` for the 1M-token
+postfix — `context-length` → `45.2k · 200k`, `context-percentage` →
+`37% · 200k`, `context-bar` → `████░░░░ · 200k` (`1M` for the 1M-token
 model variants). The postfix is omitted when the window size is unknown
 (synthetic fallback). `context-bar` carries no usage-threshold colour;
 it renders in the `context` family accent like every other surface that
@@ -129,18 +129,18 @@ Claude Code.
 
 | Type                          | Renders                                                            |
 | ----------------------------- | ------------------------------------------------------------------ |
-| `session-weekly-usage`        | combined session + weekly usage % — `52% / weekly 33%`             |
+| `session-weekly-usage`        | combined session + weekly usage % — `52% · weekly 33%`             |
 | `current-session-reset-timer` | time to the next session reset (`rate_limits.five_hour.resets_at`) |
 | `current-session-reset-at`    | wall-clock of the next session reset (e.g. `resets 18:30`)         |
 | `week-limit-timer`            | time to the next weekly reset (`rate_limits.seven_day.resets_at`)  |
 | `weekly-reset-at`             | wall-clock of the next weekly reset (e.g. `week resets …`)         |
 
-`session-weekly-usage` renders both windows as `52% / weekly 33%`,
+`session-weekly-usage` renders both windows as `52% · weekly 33%`,
 dropping a half when the host omits that window (session-only → `52%`,
 weekly-only → `weekly 33%`). A plan name is prefixed when present — a
 host-provided `plan` field if Claude Code ever ships one, else the
 configured `options.plan` (e.g. `{ "plan": "Max" }` →
-`Max 52% / weekly 33%`). Out of the box there is no prefix.
+`Max 52% · weekly 33%`). Out of the box there is no prefix.
 
 The reset widgets prefer the host's `rate_limits.*.resets_at` and only
 fall back to a local estimate when Claude Code doesn't ship it. The
@@ -187,7 +187,7 @@ metadata, which lives outside the local checkout, so it is gated:
   malformed, network timeout — silently yields `null` and the widget
   hides. There is no error surface on the statusline.
 - Variants in the catalogue: `number` (`#42`, default), `url`,
-  `title`, `number-title` (`#42 feat: do the thing`).
+  `title`, `number-title` (`#42 · feat: do the thing`).
 
 ## Choosing widgets
 

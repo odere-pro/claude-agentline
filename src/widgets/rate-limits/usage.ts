@@ -30,6 +30,7 @@
 
 import type { Cell } from "../cell.js";
 import type { WidgetContext } from "../context.js";
+import { joinValues } from "../separator.js";
 import type { WidgetSettings } from "../widget.js";
 import { defineWidget } from "../widget.js";
 
@@ -40,7 +41,6 @@ interface Options {
 }
 
 const MAX_PERCENT = 999;
-const SEPARATOR = " / ";
 const WEEKLY_PREFIX = "weekly ";
 
 /** Round + clamp a host percentage into a `NN%` string, or `null` when absent. */
@@ -72,7 +72,7 @@ function renderUsage(ctx: WidgetContext, settings: WidgetSettings<Options>): Cel
   const parts: string[] = [];
   if (session !== null) parts.push(session);
   if (weekly !== null) parts.push(`${WEEKLY_PREFIX}${weekly}`);
-  const body = parts.join(SEPARATOR);
+  const body = joinValues(ctx, parts);
 
   if (settings.rawValue) return { text: body };
   const label = settings.options.label ?? "";

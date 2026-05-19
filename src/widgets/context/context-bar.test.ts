@@ -35,7 +35,6 @@ function makeSnapshot(
     sessionStart: events[0]?.timestamp ?? now,
     blockAnchor: events[0]?.timestamp ?? now,
     contextWindow: 200_000,
-    pricingVersion: "test",
     ...overrides,
   });
 }
@@ -66,7 +65,7 @@ describe("context-bar widget", () => {
       makeSnapshot([ev({ timestamp: 0, inputTokens: 50_000 })], { contextWindow: 200_000 }),
     );
     const cell = contextBarWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.text).toMatch(/^.{12} 200k$/u);
+    expect(cell.text).toMatch(/^.{12} · 200k$/u);
   });
 
   it("renders the bar with the custom width option", () => {
@@ -77,7 +76,7 @@ describe("context-bar widget", () => {
       options: { width: 8, filled: "#", empty: "." },
       rawValue: false,
     });
-    expect(cell.text).toBe("##...... 200k");
+    expect(cell.text).toBe("##...... · 200k");
   });
 
   it("renders a full bar at 100% usage", () => {
@@ -88,7 +87,7 @@ describe("context-bar widget", () => {
       options: { width: 5, filled: "X", empty: "." },
       rawValue: false,
     });
-    expect(cell.text).toBe("XXXXX 200k");
+    expect(cell.text).toBe("XXXXX · 200k");
   });
 
   it("renders an empty bar at 0% usage", () => {
@@ -97,7 +96,7 @@ describe("context-bar widget", () => {
       options: { width: 5, filled: "X", empty: "." },
       rawValue: false,
     });
-    expect(cell.text).toBe("..... 200k");
+    expect(cell.text).toBe("..... · 200k");
   });
 
   it("emits no state-signal colour so the context family accent applies", () => {
@@ -137,7 +136,7 @@ describe("context-bar — stdin priority branches", () => {
       options: { width: 8, filled: "#", empty: "." },
       rawValue: false,
     });
-    expect(cell.text).toBe("##...... 200k");
+    expect(cell.text).toBe("##...... · 200k");
   });
 
   it("synthesises usage from usedPercentage when usedTokens is missing", () => {
@@ -148,7 +147,7 @@ describe("context-bar — stdin priority branches", () => {
       options: { width: 8, filled: "#", empty: "." },
       rawValue: false,
     });
-    expect(cell.text).toBe("####.... 200k");
+    expect(cell.text).toBe("####.... · 200k");
   });
 
   it("hides when windowSize is zero (degenerate)", () => {
@@ -167,7 +166,7 @@ describe("context-bar — stdin priority branches", () => {
       options: { width: 5, filled: "X", empty: "." },
       rawValue: false,
     });
-    expect(cell.text).toBe("XXXXX 200k");
+    expect(cell.text).toBe("XXXXX · 200k");
   });
 
   it("falls through to the legacy aggregate when neither usedTokens nor usedPercentage is set", () => {
@@ -179,6 +178,6 @@ describe("context-bar — stdin priority branches", () => {
       options: { width: 4, filled: "#", empty: "." },
       rawValue: false,
     });
-    expect(cell.text).toBe("##.. 200k");
+    expect(cell.text).toBe("##.. · 200k");
   });
 });

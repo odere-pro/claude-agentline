@@ -7,6 +7,7 @@
  */
 
 import { rollingSpeed } from "../../data/tokens/index.js";
+import { joinValues } from "../separator.js";
 import { defineWidget } from "../widget.js";
 import { formatSpeed } from "./format.js";
 import { resolveGlyphs } from "./options.js";
@@ -36,7 +37,10 @@ export const tokenSpeedWidget = defineWidget<TokenSpeedOptions>("token-speed", (
     windowMs: windowMs(settings.options.windowSec),
   });
   const { inGlyph, outGlyph } = resolveGlyphs(settings.options);
-  const body = `${inGlyph}${formatSpeed(speed.inputPerSec)} ${outGlyph}${formatSpeed(speed.outputPerSec)}`;
+  const body = joinValues(ctx, [
+    `${inGlyph}${formatSpeed(speed.inputPerSec)}`,
+    `${outGlyph}${formatSpeed(speed.outputPerSec)}`,
+  ]);
   const label = settings.rawValue ? "" : (settings.options.label ?? "");
   return { text: `${label}${body}` };
 });

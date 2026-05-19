@@ -115,7 +115,7 @@ describe("gitPrWidget", () => {
       options: { allowNetwork: true, variant: "number-title" },
       rawValue: false,
     });
-    expect(cell.text).toBe("#42 feat: do the thing");
+    expect(cell.text).toBe("#42 · feat: do the thing");
   });
 
   it("falls back to #N for number-title when the PR has no title", () => {

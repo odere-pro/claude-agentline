@@ -10,6 +10,7 @@
  * the transcript-derived snapshot only for older hosts.
  */
 
+import { valueSeparator } from "../separator.js";
 import { defineWidget } from "../widget.js";
 import { formatCount } from "../tokens/format.js";
 
@@ -24,6 +25,6 @@ export const contextLengthWidget = defineWidget<Options>("context-length", (ctx,
   if (usage === null) return { text: "", hidden: true };
   const label = settings.rawValue ? "" : (settings.options.label ?? "");
   const windowLabel = formatWindowLabel(usage.window);
-  const postfix = windowLabel ? ` / ${windowLabel}` : "";
+  const postfix = windowLabel ? ` ${valueSeparator(ctx)} ${windowLabel}` : "";
   return { text: `${label}${formatCount(usage.used)}${postfix}` };
 });

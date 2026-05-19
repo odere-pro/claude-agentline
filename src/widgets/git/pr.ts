@@ -22,6 +22,7 @@
  */
 
 import type { Cell } from "../cell.js";
+import { valueSeparator } from "../separator.js";
 import { defineWidget } from "../widget.js";
 
 type GitPrVariant = "number" | "url" | "title" | "number-title";
@@ -48,6 +49,7 @@ const VALID_VARIANTS: ReadonlySet<GitPrVariant> = new Set<GitPrVariant>([
 function renderVariant(
   variant: GitPrVariant,
   pr: { readonly number: number; readonly url: string; readonly title: string },
+  sep: string,
 ): string {
   switch (variant) {
     case "number":
@@ -57,7 +59,7 @@ function renderVariant(
     case "title":
       return pr.title;
     case "number-title":
-      return pr.title.length > 0 ? `#${pr.number} ${pr.title}` : `#${pr.number}`;
+      return pr.title.length > 0 ? `#${pr.number} ${sep} ${pr.title}` : `#${pr.number}`;
   }
 }
 
@@ -67,7 +69,7 @@ export const gitPrWidget = defineWidget<Options>("git-pr", (ctx, settings): Cell
   if (!snap || !snap.available || !snap.pr) return { text: "", hidden: true };
   const requested = settings.options.variant ?? "number";
   const variant: GitPrVariant = VALID_VARIANTS.has(requested) ? requested : "number";
-  const body = renderVariant(variant, snap.pr);
+  const body = renderVariant(variant, snap.pr, valueSeparator(ctx));
   if (!body) return { text: "", hidden: true };
   const label = settings.rawValue ? "" : (settings.options.label ?? "");
   // The PR url is the natural click target for every variant — clicking

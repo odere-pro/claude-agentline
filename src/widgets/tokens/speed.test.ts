@@ -31,7 +31,6 @@ function makeSnapshot(
     sessionStart: events[0]?.timestamp ?? now,
     blockAnchor: events[0]?.timestamp ?? now,
     contextWindow: 200_000,
-    pricingVersion: "test",
     ...overrides,
   });
 }
@@ -57,10 +56,10 @@ describe("token-speed widget", () => {
     expect(cell.hidden).toBe(true);
   });
 
-  it("renders ↓0 ↑0 when no events in window", () => {
+  it("renders ↓0 · ↑0 when no events in window", () => {
     const ctx = makeCtx(makeSnapshot([], { now: 1_000_000 }));
     const cell = tokenSpeedWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.text).toBe("↓0 ↑0");
+    expect(cell.text).toBe("↓0 · ↑0");
   });
 
   it("computes input ↓ and output ↑ per second over the default 60 s window", () => {
@@ -69,7 +68,7 @@ describe("token-speed widget", () => {
       makeSnapshot([ev({ timestamp: now - 30_000, inputTokens: 600, outputTokens: 300 })], { now }),
     );
     const cell = tokenSpeedWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.text).toBe("↓10/s ↑5/s");
+    expect(cell.text).toBe("↓10/s · ↑5/s");
   });
 
   it("respects a custom windowSec option", () => {
@@ -78,7 +77,7 @@ describe("token-speed widget", () => {
       makeSnapshot([ev({ timestamp: now - 5_000, inputTokens: 50, outputTokens: 50 })], { now }),
     );
     const cell = tokenSpeedWidget.render(ctx, { options: { windowSec: 10 }, rawValue: false });
-    expect(cell.text).toBe("↓5/s ↑5/s");
+    expect(cell.text).toBe("↓5/s · ↑5/s");
   });
 
   it("ignores cached tokens for the rate calculation", () => {
@@ -87,7 +86,7 @@ describe("token-speed widget", () => {
       makeSnapshot([ev({ timestamp: now - 30_000, cachedTokens: 600 })], { now }),
     );
     const cell = tokenSpeedWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.text).toBe("↓0 ↑0");
+    expect(cell.text).toBe("↓0 · ↑0");
   });
 
   it("accepts custom inputGlyph / outputGlyph", () => {
@@ -99,7 +98,7 @@ describe("token-speed widget", () => {
       options: { inputGlyph: ">", outputGlyph: "<" },
       rawValue: false,
     });
-    expect(cell.text).toBe(">10/s <10/s");
+    expect(cell.text).toBe(">10/s · <10/s");
   });
 
   it("supports a label and suppresses it when rawValue: true", () => {
@@ -109,7 +108,7 @@ describe("token-speed widget", () => {
     );
     const withLabel = tokenSpeedWidget.render(ctx, { options: { label: "io:" }, rawValue: false });
     const noLabel = tokenSpeedWidget.render(ctx, { options: { label: "io:" }, rawValue: true });
-    expect(withLabel.text).toBe("io:↓10/s ↑10/s");
-    expect(noLabel.text).toBe("↓10/s ↑10/s");
+    expect(withLabel.text).toBe("io:↓10/s · ↑10/s");
+    expect(noLabel.text).toBe("↓10/s · ↑10/s");
   });
 });

@@ -58,7 +58,14 @@ export interface LineConfig {
 
 export interface GlobalConfig {
   padding: number;
+  /** Separator between whole widgets (e.g. `|`). */
   separator: string;
+  /**
+   * Separator rendered between sub-values *inside* a single widget
+   * (e.g. `65k · 1M`). Distinct from {@link separator}, which divides
+   * whole widgets. Applied uniformly by every multi-value widget.
+   */
+  valueSeparator: string;
   inheritColors: boolean;
   bold: boolean;
   italic: boolean;
@@ -103,6 +110,15 @@ export interface AgentlineConfig {
   terminalWidth: TerminalWidthConfig;
   keymap: Record<string, string>;
   language: string;
+  /**
+   * Wall-clock re-render cadence in seconds. Mirrored into Claude
+   * Code's `settings.json` `statusLine.refreshInterval` at install /
+   * `config refresh` / `doctor --fix` time so time-varying widgets keep
+   * advancing while the session is idle. `0` disables it (the field is
+   * omitted from settings.json → Claude Code reverts to event-driven
+   * updates only); `1`+ is written through.
+   */
+  refreshInterval: number;
   families: FamiliesConfig;
   translations: TranslationsConfig;
 }
@@ -117,6 +133,7 @@ export type PartialAgentlineConfig = Partial<{
   terminalWidth: Partial<TerminalWidthConfig>;
   keymap: Record<string, string>;
   language: string;
+  refreshInterval: number;
   families: FamiliesConfig;
   translations: TranslationsConfig;
 }>;

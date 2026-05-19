@@ -35,7 +35,6 @@ function makeSnapshot(
     sessionStart: events[0]?.timestamp ?? now,
     blockAnchor: events[0]?.timestamp ?? now,
     contextWindow: overrides.contextWindow ?? 200_000,
-    pricingVersion: "test",
     ...overrides,
   });
 }

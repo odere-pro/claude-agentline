@@ -35,7 +35,6 @@ function makeSnapshot(
     sessionStart: events[0]?.timestamp ?? now,
     blockAnchor: events[0]?.timestamp ?? now,
     contextWindow: 200_000,
-    pricingVersion: "test",
     ...overrides,
   });
 }
@@ -67,7 +66,7 @@ describe("context-length widget", () => {
         stdin: stdinWith({ usedTokens: 180_000, windowSize: 1_000_000 }),
       });
       const cell = contextLengthWidget.render(ctx, { options: {}, rawValue: false });
-      expect(cell.text).toBe("180k / 1M");
+      expect(cell.text).toBe("180k · 1M");
     });
 
     it("does not balloon past the window like the old cumulative sum", () => {
@@ -77,7 +76,7 @@ describe("context-length widget", () => {
         stdin: stdinWith({ usedTokens: 180_000, windowSize: 1_000_000 }),
       });
       const cell = contextLengthWidget.render(ctx, { options: {}, rawValue: false });
-      expect(cell.text).toBe("180k / 1M");
+      expect(cell.text).toBe("180k · 1M");
     });
 
     it("falls back to the snapshot window when windowSize is absent", () => {
@@ -85,7 +84,7 @@ describe("context-length widget", () => {
         stdin: stdinWith({ usedTokens: 45_200 }),
       });
       const cell = contextLengthWidget.render(ctx, { options: {}, rawValue: false });
-      expect(cell.text).toBe("45k / 200k");
+      expect(cell.text).toBe("45k · 200k");
     });
 
     it("synthesizes used from usedPercentage when only the ratio is reported", () => {
@@ -93,7 +92,7 @@ describe("context-length widget", () => {
         stdin: stdinWith({ usedPercentage: 18, windowSize: 1_000_000 }),
       });
       const cell = contextLengthWidget.render(ctx, { options: {}, rawValue: false });
-      expect(cell.text).toBe("180k / 1M");
+      expect(cell.text).toBe("180k · 1M");
     });
 
     it("omits the postfix when the window is the synthetic fallback", () => {
@@ -109,7 +108,7 @@ describe("context-length widget", () => {
     it("renders 0 with no events, plus the window postfix", () => {
       const ctx = makeCtx(makeSnapshot([]));
       const cell = contextLengthWidget.render(ctx, { options: {}, rawValue: false });
-      expect(cell.text).toBe("0 / 200k");
+      expect(cell.text).toBe("0 · 200k");
     });
 
     it("sums input + cached tokens (not output)", () => {
@@ -119,13 +118,13 @@ describe("context-length widget", () => {
         ]),
       );
       const cell = contextLengthWidget.render(ctx, { options: {}, rawValue: false });
-      expect(cell.text).toBe("2k / 200k");
+      expect(cell.text).toBe("2k · 200k");
     });
 
     it("formats large context lengths with k suffix", () => {
       const ctx = makeCtx(makeSnapshot([ev({ timestamp: 0, inputTokens: 150_000 })]));
       const cell = contextLengthWidget.render(ctx, { options: {}, rawValue: false });
-      expect(cell.text).toBe("150k / 200k");
+      expect(cell.text).toBe("150k · 200k");
     });
 
     it("renders the window postfix as 1M for a 1M-token model window", () => {
@@ -133,7 +132,7 @@ describe("context-length widget", () => {
         makeSnapshot([ev({ timestamp: 0, inputTokens: 500 })], { contextWindow: 1_000_000 }),
       );
       const cell = contextLengthWidget.render(ctx, { options: {}, rawValue: false });
-      expect(cell.text).toBe("500 / 1M");
+      expect(cell.text).toBe("500 · 1M");
     });
   });
 
@@ -146,7 +145,7 @@ describe("context-length widget", () => {
         options: { label: "ctx:" },
         rawValue: false,
       });
-      expect(cell.text).toBe("ctx:500 / 200k");
+      expect(cell.text).toBe("ctx:500 · 200k");
     });
 
     it("suppresses label when rawValue: true", () => {
@@ -161,8 +160,8 @@ describe("context-length widget", () => {
         options: { label: "ctx:" },
         rawValue: true,
       });
-      expect(withLabel.text).toBe("ctx:500 / 200k");
-      expect(noLabel.text).toBe("500 / 200k");
+      expect(withLabel.text).toBe("ctx:500 · 200k");
+      expect(noLabel.text).toBe("500 · 200k");
     });
   });
 });

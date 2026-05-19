@@ -50,7 +50,6 @@ function makeSnapshot(
     sessionStart: events[0]?.timestamp ?? now,
     blockAnchor: events[0]?.timestamp ?? now,
     contextWindow: 200_000,
-    pricingVersion: "test",
     ...overrides,
   });
 }
@@ -119,7 +118,7 @@ describe("token widgets", () => {
 
   it("render 0 when the snapshot has no events", () => {
     const ctx = makeCtx(makeSnapshot([]));
-    expect(tokensWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("↓0 ↑0");
+    expect(tokensWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("↓0 · ↑0");
     expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("0");
   });
 
@@ -130,14 +129,14 @@ describe("token widgets", () => {
         ev({ timestamp: 200, inputTokens: 500, outputTokens: 1000 }),
       ]),
     );
-    expect(tokensWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("↓1.5k ↑2.5k");
+    expect(tokensWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("↓1.5k · ↑2.5k");
   });
 
   it("tokens excludes cached tokens from both segments", () => {
     const ctx = makeCtx(
       makeSnapshot([ev({ timestamp: 0, inputTokens: 100, outputTokens: 200, cachedTokens: 999 })]),
     );
-    expect(tokensWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("↓100 ↑200");
+    expect(tokensWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("↓100 · ↑200");
   });
 
   it("tokens accepts custom inputGlyph / outputGlyph", () => {
@@ -147,7 +146,7 @@ describe("token widgets", () => {
         options: { inputGlyph: ">", outputGlyph: "<" },
         rawValue: false,
       }).text,
-    ).toBe(">100 <200");
+    ).toBe(">100 · <200");
   });
 
   it("tokens-cached sums cache_read + cache_creation as one bucket", () => {
@@ -177,16 +176,16 @@ describe("token widgets", () => {
       options: { reset: "block" },
       rawValue: false,
     });
-    expect(cell.text).toBe("↓5 ↑0");
+    expect(cell.text).toBe("↓5 · ↑0");
   });
 
   it("supports a custom label and rawValue suppression", () => {
     const ctx = makeCtx(makeSnapshot([ev({ timestamp: 0, inputTokens: 100 })]));
     expect(tokensWidget.render(ctx, { options: { label: "io:" }, rawValue: false }).text).toBe(
-      "io:↓100 ↑0",
+      "io:↓100 · ↑0",
     );
     expect(tokensWidget.render(ctx, { options: { label: "io:" }, rawValue: true }).text).toBe(
-      "↓100 ↑0",
+      "↓100 · ↑0",
     );
   });
 });
@@ -198,14 +197,16 @@ describe("speed widgets", () => {
         now: 1_000_000,
       }),
     );
-    expect(tokenSpeedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("↓10/s ↑10/s");
+    expect(tokenSpeedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe(
+      "↓10/s · ↑10/s",
+    );
   });
 
   it("token-speed shows zero for the idle direction", () => {
     const ctx = makeCtx(
       makeSnapshot([ev({ timestamp: 1_000_000 - 30_000, inputTokens: 600 })], { now: 1_000_000 }),
     );
-    expect(tokenSpeedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("↓10/s ↑0");
+    expect(tokenSpeedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("↓10/s · ↑0");
   });
 
   it("token-speed honours custom windowSec", () => {
@@ -213,7 +214,7 @@ describe("speed widgets", () => {
       makeSnapshot([ev({ timestamp: 1_000_000 - 5000, outputTokens: 50 })], { now: 1_000_000 }),
     );
     expect(tokenSpeedWidget.render(ctx, { options: { windowSec: 10 }, rawValue: false }).text).toBe(
-      "↓0 ↑5/s",
+      "↓0 · ↑5/s",
     );
   });
 
@@ -228,7 +229,7 @@ describe("speed widgets", () => {
         options: { inputGlyph: ">", outputGlyph: "<" },
         rawValue: false,
       }).text,
-    ).toBe(">10/s <10/s");
+    ).toBe(">10/s · <10/s");
   });
 });
 
@@ -240,7 +241,7 @@ describe("context widgets", () => {
       ]),
     );
     expect(contextLengthWidget.render(ctx, { options: {}, rawValue: false }).text).toBe(
-      "2k / 200k",
+      "2k · 200k",
     );
   });
 
@@ -272,7 +273,7 @@ describe("context widgets", () => {
       options: { width: 8, filled: "#", empty: "." },
       rawValue: false,
     });
-    expect(cell.text).toBe("##...... 200k");
+    expect(cell.text).toBe("##...... · 200k");
   });
 
   it("context-bar handles a missing snapshot", () => {

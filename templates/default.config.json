@@ -29,6 +29,7 @@
   "global": {
     "padding": 1,
     "separator": "|",
+    "valueSeparator": "·",
     "inheritColors": false,
     "bold": false,
     "italic": false,
@@ -49,6 +50,7 @@
   },
   "keymap": {},
   "language": "en",
+  "refreshInterval": 5,
   "families": {},
   "translations": {}
 }

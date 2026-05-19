@@ -27,6 +27,7 @@
       "minLength": 1,
       "default": "en"
     },
+    "refreshInterval": { "type": "integer", "minimum": 0, "default": 5 },
     "families": {
       "type": "object",
       "additionalProperties": false,
@@ -137,6 +138,7 @@
       "properties": {
         "padding": { "type": "integer", "minimum": 0, "default": 1 },
         "separator": { "type": "string", "default": "|" },
+        "valueSeparator": { "type": "string", "default": "·" },
         "inheritColors": { "type": "boolean", "default": false },
         "bold": { "type": "boolean", "default": false },
         "italic": { "type": "boolean", "default": false },

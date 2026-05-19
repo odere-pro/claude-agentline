@@ -165,7 +165,7 @@ describe("git-changes widget", () => {
 
   it("git-changes renders +N -M", () => {
     const cell = gitChangesWidget.render(makeCtx(dirty), { options: {}, rawValue: false });
-    expect(cell.text).toBe("+12 -4");
+    expect(cell.text).toBe("+12 · -4");
     expect(cell.fg).toBe(DEFAULT_PALETTE["git-dirty"]);
   });
 
@@ -180,7 +180,7 @@ describe("git-changes widget", () => {
       options: { hideZero: false },
       rawValue: false,
     });
-    expect(cell.text).toBe("+0 -0");
+    expect(cell.text).toBe("+0 · -0");
   });
 
   it("honours options.label and rawValue strips it", () => {
@@ -193,8 +193,8 @@ describe("git-changes widget", () => {
       options: { label: "diff:" },
       rawValue: true,
     });
-    expect(withLabel.text).toBe("diff:+5 -2");
-    expect(noLabel.text).toBe("+5 -2");
+    expect(withLabel.text).toBe("diff:+5 · -2");
+    expect(noLabel.text).toBe("+5 · -2");
   });
 });
 
@@ -245,7 +245,7 @@ describe("git-ahead-behind widget", () => {
       makeCtx(makeSnapshot({ upstream: "origin/main", aheadBehind: { ahead: 2, behind: 5 } })),
       { options: {}, rawValue: false },
     );
-    expect(cell.text).toBe("↑2 ↓5");
+    expect(cell.text).toBe("↑2 · ↓5");
   });
 
   it("hideEven=false keeps the widget visible at parity", () => {
@@ -253,7 +253,7 @@ describe("git-ahead-behind widget", () => {
       options: { hideEven: false },
       rawValue: false,
     });
-    expect(cell.text).toBe("↑0 ↓0");
+    expect(cell.text).toBe("↑0 · ↓0");
   });
 });
 

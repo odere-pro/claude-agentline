@@ -13,6 +13,7 @@
 
 import { resolveRole } from "../../data/theme/index.js";
 import type { Cell } from "../cell.js";
+import { joinValues } from "../separator.js";
 import { defineWidget } from "../widget.js";
 
 interface AheadBehindOptions {
@@ -49,7 +50,7 @@ export const gitAheadBehindWidget = defineWidget<AheadBehindOptions>(
       segs.push(`${aheadGlyph}0`, `${behindGlyph}0`);
     }
     const label = settings.rawValue ? "" : (settings.options.label ?? "");
-    return { text: `${label}${segs.join(" ")}` };
+    return { text: `${label}${joinValues(ctx, segs)}` };
   },
 );
 

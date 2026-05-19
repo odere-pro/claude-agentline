@@ -12,6 +12,7 @@
  * with `context-percentage`.
  */
 
+import { valueSeparator } from "../separator.js";
 import { defineWidget } from "../widget.js";
 import { clampWidth } from "../tokens/format.js";
 
@@ -39,6 +40,6 @@ export const contextBarWidget = defineWidget<Options>("context-bar", (ctx, setti
   const bar = filledChar.repeat(filledCount) + emptyChar.repeat(width - filledCount);
   const label = settings.rawValue ? "" : (settings.options.label ?? "");
   const windowLabel = formatWindowLabel(usage.window);
-  const postfix = windowLabel ? ` ${windowLabel}` : "";
+  const postfix = windowLabel ? ` ${valueSeparator(ctx)} ${windowLabel}` : "";
   return { text: `${label}${bar}${postfix}` };
 });

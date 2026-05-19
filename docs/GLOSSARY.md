@@ -248,6 +248,17 @@ All types are kebab-case strings. Source of truth: `src/widgets/catalog.ts`.
 
 ---
 
+### `value separator`
+
+> The configurable `config.global.valueSeparator` (default `·`, U+00B7
+> MIDDLE DOT) rendered between two sub-values _inside_ a single widget,
+> e.g. `65k · 1M`, `52% · weekly 33%`, `↓150 · ↑45`.
+
+**Used in:** `GlobalConfig.valueSeparator`, intra-widget renderers, config docs.  
+**Distinct from:** `separator` (`config.global.separator`, default `|`), which divides whole widgets from each other.
+
+---
+
 ## Theme terms
 
 ### `theme`

@@ -2,6 +2,9 @@ import type { AgentlineConfig } from "./types.js";
 
 export const DEFAULT_COMPACT_THRESHOLD = 60;
 
+/** Default statusline re-render cadence, in seconds (§5.1). */
+export const DEFAULT_REFRESH_INTERVAL = 5;
+
 /**
  * Built-in defaults — layer 1 of the merge order (§4.1).
  *
@@ -17,6 +20,7 @@ export const DEFAULT_CONFIG: AgentlineConfig = {
   global: {
     padding: 1,
     separator: "|",
+    valueSeparator: "·",
     inheritColors: false,
     bold: false,
     italic: false,
@@ -37,6 +41,7 @@ export const DEFAULT_CONFIG: AgentlineConfig = {
   },
   keymap: {},
   language: "en",
+  refreshInterval: DEFAULT_REFRESH_INTERVAL,
   families: {},
   translations: {},
 };
