@@ -1,0 +1,1 @@
+- Add agent-facing `CLAUDE.md` at each of the six `src/` feature groups (core, data, widgets, render, tui, commands) describing scope, boundary rules, applied patterns, tradeoffs, and how to test that area.
