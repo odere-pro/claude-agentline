@@ -1,1 +1,0 @@
-- Introduce `ThemeFactory` / `createThemeFactory` in `src/widgets/family-factory.ts` as the single funnel for "what does family X look like in this render context?"; `widgetIdentityFor` and the picker's `familyAccent` now resolve through it.

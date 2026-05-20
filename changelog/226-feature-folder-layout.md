@@ -1,1 +1,0 @@
-- Reorganise `src/` to feature folders: every impl + test pair (or shared-prefix group) now lives in its own folder so related files (helpers, types, per-folder `CLAUDE.md`) can co-locate. No behaviour change — pure relocation; import paths updated, build entries adjusted in `tsup.config.ts`.

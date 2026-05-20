@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-05-21
+
 ### Chapter 1 — 2026-05-03
 
 - `8a206eb` — Bootstrap the repository and gates infrastructure: TypeScript build pipeline, repo layout, CI workflow, and the first wave of repo gates under `tests/gates/` (shellcheck, no-absolute-paths, accessibility fallbacks, platform matrix, no-network-render).
@@ -45,4 +47,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chapter 9 — 2026-05-15
 
-- _(this commit)_ — Post-redesign sweep — module decomposition, late polish features, glossary + comment audit: `app-decompose` / `state-split` / `catalog-split` and related refactors; `osc-link` widget, weekly-model-usage, update-check banner, doctor D05 font hint, Powerline glyph/cap arrays; gate-20 glossary + gate-21 comment-glossary land alongside a full comment audit and README refresh. Anchored as `(this commit)` because the CHANGELOG itself lives in Chapter 9 — the commit hash is whatever `git log -1` reports on `main` for this entry.
+- `fd4a882` — Post-redesign sweep — module decomposition, late polish features, glossary + comment audit: `app-decompose` / `state-split` / `catalog-split` and related refactors; `osc-link` widget, weekly-model-usage, update-check banner, doctor D05 font hint, Powerline glyph/cap arrays; gate-20 glossary + gate-21 comment-glossary land alongside a full comment audit and README refresh.
+
+### Chapter 10 — 2026-05-15
+
+- `e09cfd1` — Add a tech-agnostic `docs/cookbook/` set explaining the design intent behind the build.
+
+### Chapter 11 — 2026-05-21
+
+- `f118929` — Cut the first published release of `@agentline/cli`; squash-anchor for the v0.2.0 tag.

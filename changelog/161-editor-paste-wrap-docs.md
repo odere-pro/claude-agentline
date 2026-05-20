@@ -1,1 +1,0 @@
-- Editor input fixes: pasting now works in the osc-link url/label prompt and the widget filter / flat-search fields, and picker lists (group, widget, search, variant) wrap around — ↑ on the first row jumps to the last and ↓ on the last jumps to the first.

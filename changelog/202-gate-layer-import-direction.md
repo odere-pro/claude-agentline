@@ -1,1 +1,0 @@
-- Move `syncRefreshInterval` from `src/commands/install/` to `src/core/lib/settings-refresh.ts` so `src/data/config/refresh-command.ts` no longer reaches up into the commands layer, then add `gate-25-layer-import-direction.sh` to keep `core` / `data` / `render` / `widgets` permanently free of `src/commands/` static imports.

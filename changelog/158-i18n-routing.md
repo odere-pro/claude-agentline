@@ -1,1 +1,0 @@
-- Internationalisation: editor chrome (picker titles / hints / counts, footer verbs, status & save messages, selected-widget label) and catalogue descriptions / variant labels now resolve through the translator, so `config.translations.<lang>` can localise the editor; English output is byte-for-byte unchanged.

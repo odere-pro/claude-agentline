@@ -1,1 +1,0 @@
-- Remove the embedded pricing table, cost/spend widgets, and the gate-22 pricing-freshness gate plus its CI workflow; token widgets now cover counts and speed only.

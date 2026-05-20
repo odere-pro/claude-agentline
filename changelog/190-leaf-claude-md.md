@@ -1,1 +1,0 @@
-- Add deep-dive `CLAUDE.md` for the three highest-risk leaves (`src/data/config`, `src/render/render`, `src/tui/tui`) capturing the leaf-specific invariants an agent must not break.

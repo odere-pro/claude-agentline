@@ -1,1 +1,0 @@
-- Editor preview now shows every configured widget at all times (data-less widgets as dim identity chips) and resolves real data via a stdin-cache → discovered-transcript → mock waterfall instead of a bare type-name fallback.

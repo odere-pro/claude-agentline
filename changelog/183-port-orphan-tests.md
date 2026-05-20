@@ -1,1 +1,0 @@
-- Port the three vitest-uncollected test files (tests/tui, tests/widgets) into colocated src suites and remove the orphans, so their coverage actually runs.

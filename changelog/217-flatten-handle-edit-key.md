@@ -1,1 +1,0 @@
-- Flatten `handleEditKey` in `editor-input-handlers.ts` by extracting `triggerSave` (the `.then().then().catch()` save chain that previously nested five levels deep), `handleEditArrowKey` (the four arrow-key branches that all return after one dispatch), and an `isSaveKey` predicate, so the main entry point is a clean if-else cascade under 30 lines instead of 77.

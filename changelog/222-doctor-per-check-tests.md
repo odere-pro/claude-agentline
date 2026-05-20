@@ -1,1 +1,0 @@
-- Add a per-check direct unit suite (`src/commands/doctor/checks/dnn-direct.test.ts`, 16 tests) for D01, D03, D04, D05, D08, and D09 so each check's pass / warn / fail branches are asserted in isolation (the existing `checks.test.ts` only exercised D02, D06, and D07 through the full `runChecks` pipeline).

@@ -1,1 +1,0 @@
-- Promote the per-axis predicate table to an `AxisStrategy` interface bundling `filter` with `windowEnd`; `resolveResetAxis` derives its accepted set from the same `RESET_AXES` source of truth instead of restating the union.

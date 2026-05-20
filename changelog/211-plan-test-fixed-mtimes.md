@@ -1,1 +1,0 @@
-- Pin both plan-file mtimes to fixed absolute timestamps in `plan.test.ts`'s "most-recently-modified" case so the assertion can't race the host clock or coarse-grained-filesystem mtime coalescing (the prior `Date.now() − 60_000` relative offset risked colliding with the second `writeFileSync`'s own mtime on slow CI runners).

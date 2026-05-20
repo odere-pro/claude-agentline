@@ -1,1 +1,0 @@
-- Configuration: add optional `families` (per-family glyph / colour overrides), `language`, and `translations` keys; defaults preserve current behaviour and the config version is unchanged, so existing configs keep validating.

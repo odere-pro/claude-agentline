@@ -1,1 +1,0 @@
-- Make the intra-widget value separator configurable: a new `global.valueSeparator` key (default `·`) now sets the character rendered between sub-values inside a single widget, applied uniformly across `tokens`, `token-speed`, `git-ahead-behind`, `git-changes`, `git-pr`, `context-bar`, `context-length`, `context-percentage`, and `session-weekly-usage`.

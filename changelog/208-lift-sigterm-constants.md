@@ -1,1 +1,0 @@
-- Lift the `SIGNAL_EXIT_OFFSET` / `SIGTERM_SIGNAL` / `SIGTERM_EXIT_CODE` triplet from inside `enterAltScreen`'s body to module scope in `src/tui/tui/mount.ts` so the SIGTERM exit-code convention is discoverable to readers who land on the file rather than buried inside a closure.

@@ -1,1 +1,0 @@
-- Replace the inline `255 - ANSI_GREY_OFFSET` upper-threshold check in `rgbToAnsi256` with the existing `ANSI_GREY_RAMP_DIVISOR` constant (whose value is the same arithmetic) so the threshold and the interpolation divisor can't drift apart if `ANSI_GREY_OFFSET` is ever retuned.

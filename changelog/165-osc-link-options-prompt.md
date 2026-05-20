@@ -1,1 +1,0 @@
-- Fix the `osc-link` widget being unusable from the TUI editor: picking it now prompts inline for `url` (required) and `label` (optional) before committing instead of inserting a hidden, unconfigured widget; `r`eplace on an existing `osc-link` pre-fills the prompt, giving the editor a path to edit a link's URL.

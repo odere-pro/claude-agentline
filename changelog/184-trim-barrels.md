@@ -1,1 +1,0 @@
-- Trim the never-consumed re-exports from the feature index barrels (knip-flagged); the barrels and their live public surface stay intact, no behaviour change.

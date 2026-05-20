@@ -1,1 +1,0 @@
-- Stamp every `adaptStatuslinePayload` output with `STATUSLINE_TRANSLATOR_VERSION`, the anti-corruption-layer dialect tag; remove the deprecated `AXIS_FILTERS` alias now that all callers use `AXIS_STRATEGIES`.

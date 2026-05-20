@@ -1,1 +1,0 @@
-- Make `agentline start` an accurate preview: it now loads the merged user config and live git/session/token snapshots instead of always rendering built-in defaults, so widgets added in the editor actually appear when previewing a freshly saved config.

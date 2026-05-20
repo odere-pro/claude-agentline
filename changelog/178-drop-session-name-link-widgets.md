@@ -1,1 +1,0 @@
-- Trim and link the statusline: remove the `session-name` widget (catalogue is now 27 widgets), make the `plan` and `git-pr` widgets emit OSC 8 hyperlinks so clicking the rendered plan name opens its plan file and the PR opens in the browser, and underline every OSC 8 link in the ANSI encoder.
