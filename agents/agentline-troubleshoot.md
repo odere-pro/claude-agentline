@@ -37,8 +37,8 @@ Read the output. Each line has a check ID (D01–D09) and a glyph:
 | D04   | theme file missing                                         | `agentline doctor --fix`                                         |
 | D05   | `git` not on PATH                                          | install git                                                      |
 | D06   | resolved global config directory not writable              | fix directory permissions                                        |
-| D07   | update-check cache reports a newer release                 | `npm install -g @agentline/cli@latest`                           |
-| D08   | render dry-run does not match the stored snapshot          | `npm install -g @agentline/cli@latest`                           |
+| D07   | update-check cache reports a newer release                 | `npm install -g @odere-pro/agentline@latest`                     |
+| D08   | render dry-run does not match the stored snapshot          | `npm install -g @odere-pro/agentline@latest`                     |
 | D09   | `statusLine.refreshInterval` mismatch (WARN, auto-fixable) | `agentline doctor --fix` or `agentline config refresh <seconds>` |
 
 ---

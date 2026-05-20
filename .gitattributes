@@ -20,6 +20,10 @@
 *.yml               text eol=lf
 *.yaml              text eol=lf
 
+# Golden render fixtures must round-trip byte-for-byte; CRLF on Windows
+# checkout would diff against the LF the renderer emits.
+*.ansi              text eol=lf
+
 # Binary assets — leave untouched.
 *.png               binary
 *.jpg               binary

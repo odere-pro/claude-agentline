@@ -158,9 +158,9 @@ Each component entry has: **Responsibility**, **Public surface**, **Inputs**, **
 
 ## Install / uninstall scripts
 
-- **Responsibility.** Wire the bin into the host's `statusLine` setting; seed default config and themes; reverse on uninstall.
+- **Responsibility.** Wire the bin into the host's `statusLine` setting; seed default config and themes; copy the shipped subagent skill files into the host's agents directory so the host can dispatch to them; reverse on uninstall.
 - **Public surface.** `install [--force] [--dry-run] [--from-source]`, `uninstall [--purge]`.
-- **Invariants.** Idempotent (re-running leaves state unchanged). Refuses to overwrite a foreign `statusLine` without `--force`. `--dry-run` matches the real run byte-for-byte. Every host-state mutation has a backup (see `06-data-contracts · Backup metadata`).
+- **Invariants.** Idempotent (re-running leaves state unchanged). Refuses to overwrite a foreign `statusLine` without `--force`. `--dry-run` matches the real run byte-for-byte. Every host-state mutation has a backup (see `06-data-contracts · Backup metadata`). Skill files are copied via atomic temp + rename; uninstall removes a skill file only when its bytes still match the shipped original (user-edited copies are preserved unless `--purge`).
 - **Failure mode.** Pre-existing backup → refuse without `--force`. Filesystem errors surface clearly.
 
 ---

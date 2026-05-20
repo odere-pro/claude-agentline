@@ -23,7 +23,7 @@ describe("themeDirectories", () => {
       env: { CLAUDE_CONFIG_DIR: "/tmp/cfg" },
       builtinDir: "/pkg/themes",
     });
-    expect(dirs).toEqual(["/tmp/cfg/agentline/themes", "/pkg/themes"]);
+    expect(dirs).toEqual([path.join("/tmp/cfg", "agentline", "themes"), "/pkg/themes"]);
   });
 
   it("honours CLAUDE_CONFIG_DIR for the user themes path", () => {
@@ -31,7 +31,7 @@ describe("themeDirectories", () => {
       env: { CLAUDE_CONFIG_DIR: "/var/conf" },
       builtinDir: "/x",
     });
-    expect(dirs[0]).toBe("/var/conf/agentline/themes");
+    expect(dirs[0]).toBe(path.join("/var/conf", "agentline", "themes"));
   });
 
   it("falls back to the bundled default when no override is provided", () => {

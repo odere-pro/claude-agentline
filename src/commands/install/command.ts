@@ -1,5 +1,5 @@
 /**
- * `agentline install` — wire @agentline/cli into Claude Code's statusline.
+ * `agentline install` — wire @odere-pro/agentline into Claude Code's statusline.
  *
  * Delegates to scripts/install.sh. Flags are forwarded 1-to-1; stdin/
  * stdout/stderr are inherited so the interactive global-wire prompt

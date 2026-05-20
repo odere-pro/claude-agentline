@@ -13,14 +13,14 @@ Five families, each producing one cell per widget. The exact widget set may evol
 
 Surface state from the host stdin payload.
 
-| Type              | Renders                                                    |
-| ----------------- | ---------------------------------------------------------- |
-| `model`           | Active model id (mapped to display name).                  |
-| `version`         | Host version.                                              |
-| `session-id`      | Short session id; toggleable hide.                         |
-| `account-email`   | Logged-in email; auth-file fallback. Mask modes available. |
-| `thinking-effort` | Effort tier; semantic colour grade.                        |
-| `skills`          | Skills loaded; cycled display (count / list / last).       |
+| Type              | Renders                                                                                                                                                                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `model`           | Active model id (mapped to display name).                                                                                                                                                                                                        |
+| `version`         | Host version.                                                                                                                                                                                                                                    |
+| `session-id`      | Short session id; toggleable hide.                                                                                                                                                                                                               |
+| `account-email`   | Logged-in email; auth-file fallback. Mask modes available.                                                                                                                                                                                       |
+| `thinking-effort` | Effort tier; semantic colour grade.                                                                                                                                                                                                              |
+| `skills`          | Skills loaded for this session; cycled display (count / list / last). Reads the inbound stdin `skills` field — **distinct** from the agent-skill files the installer copies into the host's agents directory (see `Shipped agent skills` below). |
 
 ### Tokens (~3 widgets)
 
@@ -94,18 +94,18 @@ Themes live under the product's themes directory and are copied to the user's th
 
 The CLI surface is intentionally flat — there is no nested dispatcher. The default no-arg path renders.
 
-| Verb            | Purpose                                                                               |
-| --------------- | ------------------------------------------------------------------------------------- |
-| _(no args)_     | Read stdin, render, exit. Default behaviour wired into host `statusLine`.             |
-| `render`        | Same as no-args. `--fixture <path>` and `--config <path>` flags supported.            |
-| `install`       | Wire `statusLine`, seed config, copy themes. `--force`, `--dry-run`, `--from-source`. |
-| `uninstall`     | Reverse install. `--purge` also removes user config and custom themes.                |
-| `doctor`        | Diagnose. `--fix`, `--json`, `--strict`.                                              |
-| `edit`          | Open the TUI editor. Cold path; lazy-imports the TUI framework.                       |
-| `config schema` | Print or write the JSON Schema. `--write <dir>`.                                      |
-| `config widget` | Scriptable: `add`, `remove`, `move`, `replace`, `set-option`, `list`, `catalog`.      |
-| `version`       | Print version and build metadata.                                                     |
-| `update-check`  | Compare local version to registry; gated to its own verb.                             |
+| Verb            | Purpose                                                                                                                                                                           |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _(no args)_     | Read stdin, render, exit. Default behaviour wired into host `statusLine`.                                                                                                         |
+| `render`        | Same as no-args. `--fixture <path>` and `--config <path>` flags supported.                                                                                                        |
+| `install`       | Wire `statusLine`, seed config, copy themes, copy shipped subagent skill files into the host's agents directory. `--force`, `--dry-run`, `--from-source`.                         |
+| `uninstall`     | Reverse install. Removes skill files only when their bytes still match the shipped originals. `--purge` also removes user config, custom themes, and any user-edited skill files. |
+| `doctor`        | Diagnose. `--fix`, `--json`, `--strict`.                                                                                                                                          |
+| `edit`          | Open the TUI editor. Cold path; lazy-imports the TUI framework.                                                                                                                   |
+| `config schema` | Print or write the JSON Schema. `--write <dir>`.                                                                                                                                  |
+| `config widget` | Scriptable: `add`, `remove`, `move`, `replace`, `set-option`, `list`, `catalog`.                                                                                                  |
+| `version`       | Print version and build metadata.                                                                                                                                                 |
+| `update-check`  | Compare local version to registry; gated to its own verb.                                                                                                                         |
 
 ---
 
@@ -141,3 +141,19 @@ line 3  session-weekly-usage · current-session-reset-timer · week-limit-timer
 with Powerline disabled. No personal data (e.g. `account-email`) ships
 in the default. There is exactly one shipped template
 (`templates/default.config.json`); `agentline reset` restores it.
+
+---
+
+## Shipped agent skills
+
+The installer also seeds **five subagent skill files** into the host's agents directory (e.g. `~/.claude/agents/`) so the host's coding agent can dispatch to them by name when a user asks about agentline. Each file is markdown with a YAML frontmatter `description:` that the host uses as the dispatch contract.
+
+| File                        | Dispatch contract (`description:`)                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `agentline.md`              | Top-level entry: installing, configuring, theming, troubleshooting, doctor. Delegates to the four sub-skills. |
+| `agentline-onboarding.md`   | Just-installed tour. Use when the user asks "what now?" or "how do I customize this?".                        |
+| `agentline-configure.md`    | Layout, widgets, presets, theme, env-var overrides. Covers the TUI editor and the `config widget` CLI.        |
+| `agentline-themes.md`       | Theme picker, palette roles, custom-theme authoring, colour-depth degradation.                                |
+| `agentline-troubleshoot.md` | Doctor interpretation, symptom-by-symptom runbooks, reset/wipe procedures.                                    |
+
+These files are **not** a host plugin. The product remains a CLI; the host's existing subagent-discovery system is what makes them reachable. See `04-architecture · State surfaces` for lifecycle and `16-release-and-versioning · Skill-file lifecycle` for the upgrade contract.

@@ -97,7 +97,7 @@ async function fixD02(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
   const { config } = await loadConfig({ env: ctx.env });
   const statusLine: Record<string, unknown> = {
     type: "command",
-    command: "npx -y @agentline/cli render",
+    command: "npx -y @odere-pro/agentline render",
     padding: 0,
   };
   if (config.refreshInterval >= 1) statusLine["refreshInterval"] = config.refreshInterval;
@@ -107,7 +107,7 @@ async function fixD02(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
   return {
     ...r,
     status: "fixed",
-    message: `wrote statusLine = \`npx -y @agentline/cli render\`${note}`,
+    message: `wrote statusLine = \`npx -y @odere-pro/agentline render\`${note}`,
     fixed: true,
     hint: undefined,
   };

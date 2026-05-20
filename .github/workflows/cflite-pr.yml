@@ -1,0 +1,41 @@
+# .github/workflows/cflite-pr.yml
+# ClusterFuzzLite — PR-time fuzzing. Builds the Jazzer.js fuzz targets in
+# .clusterfuzzlite/ and runs a short fuzzing session against the diff so a
+# regression in the stdin / config / transcript parsers is caught before
+# merge. Earns the OpenSSF Scorecard Fuzzing check.
+#
+# Hard invariants (Implementation Plan 3): actions pinned by full commit SHA.
+
+name: cflite-pr
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions: read-all
+
+concurrency:
+  group: cflite-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fuzzing:
+    name: clusterfuzzlite fuzzing
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Build fuzzers
+        id: build
+        uses: google/clusterfuzzlite/actions/build_fuzzers@82652fb49e77bc29c35da1167bb286e93c6bcc05 # v1
+        with:
+          language: javascript
+          sanitizer: address
+
+      - name: Run fuzzers
+        uses: google/clusterfuzzlite/actions/run_fuzzers@82652fb49e77bc29c35da1167bb286e93c6bcc05 # v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          fuzz-seconds: 600
+          mode: code-change
+          sanitizer: address

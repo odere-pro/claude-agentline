@@ -104,9 +104,9 @@ One scripted test scenario covers the install/uninstall lifecycle on a real (but
 
 1. Set up a temp `$HOME` with an empty host settings file.
 2. Run `<bin> install --from-source`.
-3. Assert the `statusLine` setting is wired, default config is seeded, themes are copied.
+3. Assert the `statusLine` setting is wired, default config is seeded, themes are copied, and the shipped subagent skill files are present under the host's agents directory.
 4. Run `<bin> uninstall`.
-5. Assert the host settings file is byte-identical to the pre-install snapshot.
+5. Assert the host settings file is byte-identical to the pre-install snapshot **and** every shipped skill file whose bytes still matched the original is gone (user-edited copies are preserved unless `--purge`).
 
 This test is slow (~30 s) and is run in CI; locally, run it before opening a PR that touches install/uninstall code.
 

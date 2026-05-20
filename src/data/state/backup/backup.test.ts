@@ -14,8 +14,8 @@ import {
 describe("resolveBackupPaths", () => {
   it("treats CLAUDE_CONFIG_DIR as the agentline dir (shell-compatible)", () => {
     const paths = resolveBackupPaths({ CLAUDE_CONFIG_DIR: "/etc/x" });
-    expect(paths.backupFile).toBe("/etc/x/state/settings-backup.json");
-    expect(paths.stateDir).toBe("/etc/x/state");
+    expect(paths.backupFile).toBe(join("/etc/x", "state", "settings-backup.json"));
+    expect(paths.stateDir).toBe(join("/etc/x", "state"));
   });
 
   it("falls back to ~/.config/agentline when CLAUDE_CONFIG_DIR is unset", () => {

@@ -122,7 +122,7 @@ Errors are never silent; they're reported via exit codes (`doctor`) or hidden re
 
 ## Deployment
 
-**Distribution**: `npm install -g @agentline/cli` or `npm link --from-source`
+**Distribution**: `npm install -g @odere-pro/agentline` or `npm link --from-source`
 
 **Wiring**: `agentline install` copies the bin to Claude Code's `statusLine` setting and seeds skills into `~/.claude/agents/`.
 

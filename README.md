@@ -11,9 +11,9 @@
 
 A fast, themeable statusline for Claude Code. Reads the stdin payload Claude Code's statusline contract sends, writes an ANSI-styled line, exits. No network. No native modules. No plugin scaffolding.
 
-```text
- Opus 4.7   main ●3 ↑1   23k tokens   ↓1.2k/s   4h 12m left
-```
+![agentline statusline rendering: model, thinking effort, account, branch, context %, weekly usage, reset timers, cwd, permissions mode](./docs/assets/statusline-example.png)
+
+> **Built for Software 3.0.** Agentline is shaped so an LLM agent — not just a human — can install, configure, theme, and troubleshoot it through natural language. The stable stdin contract, the flat scriptable CLI, the seeded subagent skill files, and the per-group `CLAUDE.md` briefings are one coherent design choice, not a feature list. See [SOFTWARE-3-0.md](./SOFTWARE-3-0.md) for the thesis, the five pillars, and a worked example.
 
 ---
 
@@ -44,7 +44,7 @@ corepack enable && pnpm install && pnpm run build
 node dist/cli.mjs install --from-source
 
 # From npm (when published)
-npm install -g @agentline/cli
+npm install -g @odere-pro/agentline
 agentline install
 ```
 
@@ -93,13 +93,14 @@ agentline doctor --fix       # auto-repair settings + config wiring
 | CLI reference    | [docs/cli.md](./docs/cli.md)                         |
 | Install          | [docs/install.md](./docs/install.md)                 |
 | Configure        | [docs/config.md](./docs/config.md)                   |
-| Widgets (all 34) | [docs/widgets.md](./docs/widgets.md)                 |
+| Widgets (all 27) | [docs/widgets.md](./docs/widgets.md)                 |
 | Themes           | [docs/themes.md](./docs/themes.md)                   |
 | TUI editor keys  | [docs/keymap.md](./docs/keymap.md)                   |
 | Doctor checks    | [docs/doctor.md](./docs/doctor.md)                   |
 | Troubleshooting  | [docs/troubleshooting.md](./docs/troubleshooting.md) |
 | Architecture     | [docs/architecture.md](./docs/architecture.md)       |
 | Glossary         | [docs/GLOSSARY.md](./docs/GLOSSARY.md)               |
+| Why this shape   | [SOFTWARE-3-0.md](./SOFTWARE-3-0.md)                 |
 
 ---
 
@@ -138,15 +139,19 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for branch/commit conventions, the 5-st
 
 ## Source layout
 
-Core modules live under `src/`, organised by feature. Top-level `src/` directories:
+Core modules live under `src/`, organised into six groups plus the CLI entry. Each group has a `CLAUDE.md` briefing for any Claude Code session opened in this repo.
 
-| Directory        | Purpose                                                 |
-| ---------------- | ------------------------------------------------------- |
-| `src/cli/`       | CLI help-string utilities                               |
-| `src/lib/`       | Shared pure utilities (env, fs, object, result)         |
-| `src/install/`   | `agentline install` command                             |
-| `src/uninstall/` | `agentline uninstall` command                           |
-| `src/state/`     | Stdin payload cache, render output cache, config backup |
+| Group           | Purpose                                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `src/cli/`      | CLI dispatch entry (`cli.ts`) — every verb lives behind this one file.                                                    |
+| `src/core/`     | Stdin parse, schema, i18n (`en-dictionary` + `ids`), shared pure libs.                                                    |
+| `src/data/`     | Config, theme, tokens, git, session, on-disk caches (`config`, `theme`, `tokens`, `git`, `session`, `state`).             |
+| `src/widgets/`  | Per-family widget folders + `families/` catalogue + plumbing (`cell`, `clock`, `registry`, `render-widget`, `separator`). |
+| `src/render/`   | Line composer + Powerline transform (`render`, `powerline`).                                                              |
+| `src/tui/`      | Lazy-imported TUI editor: `tui/` shell + `picker`, `preview`, `state`, `keys` siblings.                                   |
+| `src/commands/` | Verb implementations (`install`, `uninstall`, `reset`, `doctor`, `update-check`).                                         |
+
+The render hot path stays `ink`/`react`/`src/tui/`-free (gate-19). See [docs/cookbook/04-architecture.md](./docs/cookbook/04-architecture.md) for the hot-path / cold-path boundary and [SOFTWARE-3-0.md](./SOFTWARE-3-0.md) for the design thesis.
 
 ---
 

@@ -58,15 +58,16 @@ Stages 6–11 are pure functions of their inputs; only stage 5 touches the files
 
 ## State surfaces
 
-Three on-disk state surfaces live under a single product state directory. Each is versioned independently of the binary version.
+Four on-disk state surfaces are touched by the product. The first three live under a single product state directory; the fourth lives under the host application's config directory (so the host can auto-discover the shipped agent skills). Each is versioned independently of the binary version.
 
-| Surface       | Contents                                                                                                                                                                                         | Lifecycle                                           |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| Stdin cache   | Last full stdin payload, JSON. Written by the render path; the preferred (not sole) source for the TUI live preview, which falls back to transcript discovery, then a mock session, when absent. | Overwritten on every real render.                   |
-| Render cache  | Last successful stdout bytes.                                                                                                                                                                    | Overwritten on every successful render.             |
-| Config backup | The user's prior `statusLine` host setting (with checksum) so `uninstall` can restore byte-for-byte.                                                                                             | Written by `install`; consumed once by `uninstall`. |
+| Surface        | Contents                                                                                                                                                                                                                                                             | Lifecycle                                                                                          |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Stdin cache    | Last full stdin payload, JSON. Written by the render path; the preferred (not sole) source for the TUI live preview, which falls back to transcript discovery, then a mock session, when absent.                                                                     | Overwritten on every real render.                                                                  |
+| Render cache   | Last successful stdout bytes.                                                                                                                                                                                                                                        | Overwritten on every successful render.                                                            |
+| Config backup  | The user's prior `statusLine` host setting (with checksum) so `uninstall` can restore byte-for-byte.                                                                                                                                                                 | Written by `install`; consumed once by `uninstall`.                                                |
+| Shipped skills | The five subagent skill files (`agentline.md`, `agentline-onboarding.md`, `agentline-configure.md`, `agentline-themes.md`, `agentline-troubleshoot.md`) copied into the host's agents directory (e.g. `~/.claude/agents/`) so the host can dispatch to them by name. | Seeded on `install`; removed on `uninstall` only when the bytes still match the shipped originals. |
 
-All three writes go through the atomic-write helper (`05 · Atomic file write`).
+The first three writes go through the atomic-write helper (`05 · Atomic file write`). The skill-file copy is also byte-faithful (atomic temp + rename) and is byte-match-checked at uninstall so user-edited copies survive a removal cycle (see `16-release-and-versioning · Skill-file lifecycle`).
 
 ## Failure model
 

@@ -52,6 +52,8 @@ mkdir -p "${prefix}"
 
 log_info "installing tarball into isolated prefix"
 install_out="${work_root}/install.log"
+# Scorecard pin exemption: installs a hash-stable tarball built from source in
+# this same gate run — equivalent to a pinned local file install, no network.
 (cd "${work_root}" && npm install --global --prefix="${prefix}" --no-audit --no-fund "${tarball}" >"${install_out}" 2>&1) \
   || { sed 's/^/    /' "${install_out}" >&2; fail_gate "npm install of tarball failed"; }
 

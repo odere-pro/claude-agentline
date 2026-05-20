@@ -22,7 +22,7 @@ node dist/cli.mjs install --from-source
 ### From npm (when published)
 
 ```bash
-npm install -g @agentline/cli
+npm install -g @odere-pro/agentline
 agentline install
 ```
 

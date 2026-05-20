@@ -10,7 +10,7 @@ update the other artefact, not this one.
 
 ### `agentline`
 
-> The CLI binary and npm package (`@agentline/cli`).
+> The CLI binary and npm package (`@odere-pro/agentline`).
 
 **Used in:** package name, binary name, all docs.
 
@@ -421,6 +421,57 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 > every dictionary-form id is a key in `EN_DICTIONARY`.
 
 **Used in:** `src/core/i18n/ids.ts`, `gate-26-i18n-id-namespace.sh`.
+
+---
+
+## Skill terms
+
+### `skill file`
+
+> A markdown file under the repo's `agents/` directory with YAML
+> frontmatter. The installer (`agentline install`) copies every such
+> file into the host's agents directory (e.g. `~/.claude/agents/`) so
+> Claude Code's existing subagent-dispatch system can route
+> natural-language requests like "change my theme" to the right runbook
+> via the file's `description:` line. Five files ship at v0.1:
+> `agentline.md`, `agentline-onboarding.md`, `agentline-configure.md`,
+> `agentline-themes.md`, `agentline-troubleshoot.md`.
+
+**Used in:** `agents/agentline*.md`, `scripts/install.sh` (`seed_skills`),
+`docs/install.md`, `docs/cookbook/04-architecture.md` (state surfaces),
+`docs/cookbook/08-feature-catalogue.md` (shipped agent skills),
+`docs/cookbook/16-release-and-versioning.md` (skill-file lifecycle).  
+**Distinct from:** the stdin `skills` field (the host-session list of
+loaded subagents) — see `host skills field` below.
+
+---
+
+### `host skills field`
+
+> The `skills` array inside the host stdin JSON envelope (`06 ·
+Host stdin contract`). It tells the renderer which subagents the
+> host has loaded for the current session; the `skills` widget surfaces
+> a cycled view of it. Not a path, not a file — purely the inbound
+> session metadata.
+
+**Used in:** `src/core/stdin/index.ts`, `src/widgets/session/skills/`,
+`docs/cookbook/06-data-contracts.md`.  
+**Distinct from:** `skill file` (the shipped markdown files the
+installer seeds).
+
+---
+
+### `host skill system`
+
+> Claude Code's existing mechanism for auto-discovering subagent
+> markdown files under `~/.claude/agents/` and routing to them by
+> `description:` frontmatter. The product **uses** this system but does
+> not implement or extend it; copying `skill file`s into the host's
+> agents directory is enough to be reachable.
+
+**Used in:** install runbook, `agents/CLAUDE.md`.  
+**Distinct from:** the host's plugin system (which the product
+deliberately does not use — see `agentline` is not a `plugin`).
 
 ---
 

@@ -12,6 +12,7 @@ Each entry: **decision**, **alternatives**, **why this**, **what we give up**.
 - **Alternatives.** Ship as a plugin of the host application (slash commands, hooks, manifest).
 - **Why this.** Stack independence. The plugin path locks the implementation to whatever runtime the host expects from plugins, and forces a non-trivial dependency on a still-evolving plugin contract. The CLI path uses the host's stable statusline contract (`statusLine` + stdin JSON) and otherwise stays at arm's length.
 - **What we give up.** First-class slash-command surface from inside the host; first-class plugin distribution; auto-discovery by users of the host's plugin index.
+- **Middle ground we keep.** The installer copies a small set of versioned subagent skill files into the host's agents directory (`04 · State surfaces`, `08 · Shipped agent skills`). The host's existing subagent system — which is **not** a plugin ABI — is enough to make the product reachable by natural-language requests. The product still owns its own runtime, its own dependency closure, and its own release cadence.
 
 ---
 

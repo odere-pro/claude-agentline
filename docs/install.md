@@ -1,12 +1,12 @@
 # Install
 
 `agentline` is the standalone Claude Code statusline CLI, published to npm
-as `@agentline/cli`. Installing it is two steps:
+as `@odere-pro/agentline`. Installing it is two steps:
 
 1. put the `agentline` binary on `PATH`,
 2. point Claude Code's `statusLine` setting at it.
 
-The blessed path is `npm i -g @agentline/cli && agentline install`.
+The blessed path is `npm i -g @odere-pro/agentline && agentline install`.
 `agentline install` wires the Claude Code `statusLine` setting in your
 global `~/.claude/settings.json` (backing up any prior value);
 `agentline doctor --fix` handles the same repair step if you prefer to
@@ -19,7 +19,7 @@ thing by hand if you would rather not run a command.
 state**. Both run the same `scripts/install.sh`, which:
 
 1. installs a global `agentline` bin (via `npm link` from the checkout,
-   or `npm install -g @agentline/cli`),
+   or `npm install -g @odere-pro/agentline`),
 2. seeds `~/.config/agentline/config.json` (preserved if present),
 3. seeds shipped themes,
 4. installs skill files into `~/.claude/agents/`,
@@ -44,7 +44,7 @@ and state cache are byte-identical. Pick whichever is convenient.
 The shortest path:
 
 ```bash
-npm install -g @agentline/cli
+npm install -g @odere-pro/agentline
 agentline doctor --fix
 ```
 
@@ -61,7 +61,7 @@ bash scripts/install.sh
 What it does, in order:
 
 1. Verifies `node --version` is at least `v20.0.0`.
-2. Runs `npm install -g @agentline/cli@<pinned>` (or `npm link` from the
+2. Runs `npm install -g @odere-pro/agentline@<pinned>` (or `npm link` from the
    current checkout when `--from-source` is passed).
 3. Copies `templates/default.config.json` to
    `${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json` if no user
@@ -161,7 +161,7 @@ If you would rather not run the bootstrap script:
 
 ```bash
 # 1. install the binary globally
-npm install -g @agentline/cli
+npm install -g @odere-pro/agentline
 
 # 2. seed the user config (only if the file does not already exist)
 mkdir -p "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline"
@@ -231,7 +231,7 @@ bash scripts/uninstall.sh
 
 What it does:
 
-1. Runs `npm uninstall -g @agentline/cli` (skipped if the package is not
+1. Runs `npm uninstall -g @odere-pro/agentline` (skipped if the package is not
    installed globally).
 2. Removes shipped themes whose bytes still match the bundled originals.
    User-edited themes are preserved.
@@ -246,13 +246,13 @@ against the pre-install state.
 
 ### If you remove the bin without running uninstall
 
-`npm uninstall -g @agentline/cli` (or `npm unlink`) deletes only the
+`npm uninstall -g @odere-pro/agentline` (or `npm unlink`) deletes only the
 binary. `settings.json` still references the now-missing path, and
 Claude Code keeps painting the cached frame from
 `state/last-render.json` — the statusline looks "stuck" rather than
 disappearing.
 
-Either reinstall (`npm i -g @agentline/cli && agentline install`) or
+Either reinstall (`npm i -g @odere-pro/agentline && agentline install`) or
 run `agentline uninstall` from a working checkout to clean
 `settings.json` and remove the orphan reference.
 

@@ -32,7 +32,7 @@ correct, but the live statusline shows the **previous** layout and
 never updates.
 
 Cause: `~/.claude/settings.json`'s `statusLine.command` points at a bin
-that no longer exists (common after `npm uninstall -g @agentline/cli`,
+that no longer exists (common after `npm uninstall -g @odere-pro/agentline`,
 `npm unlink`, or a Homebrew node prefix change). Claude Code keeps
 painting the last cached frame from `state/last-render.json` instead of
 re-rendering.
@@ -54,7 +54,7 @@ ls -la "$(jq -r '.statusLine.command' ~/.claude/settings.json | awk '{print $1}'
 Fix: reinstall the bin and re-wire in one step:
 
 ```bash
-npm install -g @agentline/cli && agentline install     # registry
+npm install -g @odere-pro/agentline && agentline install     # registry
 # or, from a checkout:
 node dist/cli.mjs install --from-source
 ```
@@ -106,7 +106,7 @@ To strip colour entirely, set `NO_COLOR=1` in your shell environment and restart
 
 ```bash
 which agentline && agentline version   # confirm what is on PATH
-npm install -g @agentline/cli          # fix: from npm
+npm install -g @odere-pro/agentline          # fix: from npm
 node dist/cli.mjs install --from-source  # fix: from source checkout
 ```
 

@@ -5,7 +5,7 @@
 #   1. an explicit AGENTLINE_BIN env var (used by tests / gates),
 #   2. the local build at <repo>/dist/cli.mjs,
 #   3. an `agentline` on PATH (global install),
-#   4. `npx -y @agentline/cli` as the last fallback.
+#   4. `npx -y @odere-pro/agentline` as the last fallback.
 #
 # Forwards every argument unchanged. Never mutates host state — to
 # repair, invoke `agentline doctor --fix` directly.
@@ -38,11 +38,11 @@ run_doctor() {
   fi
 
   if command -v npx >/dev/null 2>&1; then
-    npx -y @agentline/cli doctor "$@"
+    npx -y @odere-pro/agentline doctor "$@"
     return
   fi
 
-  al_die "no agentline bin available (build the repo with \`npm run build\` or install \`@agentline/cli\` globally)" 2
+  al_die "no agentline bin available (build the repo with \`npm run build\` or install \`@odere-pro/agentline\` globally)" 2
 }
 
 run_doctor "$@"

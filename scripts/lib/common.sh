@@ -48,6 +48,9 @@ case "${AL_CONFIG_DIR}" in
     exit 1
     ;;
   /*) ;;
+  # Windows drive-letter paths (`D:\…` or `D:/…`) under Git Bash: still
+  # absolute, just with a drive root. Accept both slash flavours.
+  [A-Za-z]:[/\\]*) ;;
   *)
     printf 'agentline: CLAUDE_CONFIG_DIR must be an absolute path (got: %s)\n' "${AL_CONFIG_DIR}" >&2
     exit 1

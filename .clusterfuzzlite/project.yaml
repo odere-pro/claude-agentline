@@ -1,0 +1,8 @@
+homepage: "https://github.com/odere-pro/claude-agentline"
+language: javascript
+primary_contact: "odere.pub@gmail.com"
+main_repo: "https://github.com/odere-pro/claude-agentline"
+fuzzing_engines:
+  - libfuzzer
+sanitizers:
+  - address

@@ -6,7 +6,7 @@
 #   1. builds `dist/cli.mjs` from the current main
 #   2. pipes a canonical Claude Code statusline payload through it and
 #      asserts the stdout matches the install-matrix expectation
-#   3. when `@agentline/cli` is published, installs the published tarball
+#   3. when `@odere-pro/agentline` is published, installs the published tarball
 #      into an isolated `--prefix` and runs the same render smoke
 #
 # Spec: §1.5, §11.1
@@ -96,16 +96,17 @@ jobs:
           # The published package is the artefact users actually consume.
           # Until the first release lands, skip cleanly: the from-source
           # smoke above already covers the Node-skew signal.
-          if ! npm view @agentline/cli version >/dev/null 2>&1; then
-            echo "@agentline/cli not yet published — skipping published smoke"
+          if ! npm view @odere-pro/agentline version >/dev/null 2>&1; then
+            echo "@odere-pro/agentline not yet published — skipping published smoke"
             exit 0
           fi
-          published_version="$(npm view @agentline/cli version)"
-          echo "smoking @agentline/cli@${published_version}"
+          published_version="$(npm view @odere-pro/agentline version)"
+          echo "smoking @odere-pro/agentline@${published_version}"
 
           prefix="$(pwd)/.ci-prefix"
           mkdir -p "${prefix}"
-          npm install --global --prefix="${prefix}" --no-audit --no-fund "@agentline/cli@${published_version}"
+          # Pinned: ${published_version} was resolved above via `npm view`.
+          npm install --global --prefix="${prefix}" --no-audit --no-fund "@odere-pro/agentline@${published_version}"
 
           # POSIX hosts → <prefix>/bin/agentline; Windows → <prefix>/agentline.cmd.
           bin=""

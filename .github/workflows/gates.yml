@@ -73,7 +73,8 @@ jobs:
         # binary is unavailable, keeping the workflow honest about coverage.
         run: |
           if ! command -v shellcheck >/dev/null 2>&1; then
-            choco install shellcheck -y --no-progress || true
+            # Pinned per OpenSSF Scorecard Pinned-Dependencies check.
+            choco install shellcheck --version=0.10.0 -y --no-progress || true
           fi
 
       - name: Install dependencies (pnpm)

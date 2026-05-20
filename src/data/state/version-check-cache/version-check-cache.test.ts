@@ -26,14 +26,14 @@ afterEach(() => {
 describe("resolveVersionCheckPaths", () => {
   it("honours CLAUDE_CONFIG_DIR", () => {
     const p = resolveVersionCheckPaths({ CLAUDE_CONFIG_DIR: "/x" });
-    expect(p.stateDir).toBe("/x/state");
-    expect(p.cacheFile).toBe("/x/state/version-check.json");
+    expect(p.stateDir).toBe(join("/x", "state"));
+    expect(p.cacheFile).toBe(join("/x", "state", "version-check.json"));
   });
 
   it("falls back to ~/.config/agentline when CLAUDE_CONFIG_DIR is unset", () => {
     const p = resolveVersionCheckPaths({});
-    expect(p.stateDir.endsWith("/.config/agentline/state")).toBe(true);
-    expect(p.cacheFile.endsWith("/version-check.json")).toBe(true);
+    expect(p.stateDir.endsWith(join(".config", "agentline", "state"))).toBe(true);
+    expect(p.cacheFile.endsWith("version-check.json")).toBe(true);
   });
 });
 
