@@ -1,0 +1,1 @@
+- Extend `src/core/lib/result.ts` with Either-monad helpers `andThen`, `mapOk`, `mapErr`; the editor's `tryAsync` save callsite adopts `mapErr` to format its failure message in-band.

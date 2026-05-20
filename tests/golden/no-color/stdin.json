@@ -1,4 +1,4 @@
 {
-  "model": "claude-haiku-4-5",
-  "thinkingEffort": "high"
+  "model": { "id": "claude-haiku-4-5", "display_name": "Haiku 4.5" },
+  "effort": { "level": "high" }
 }

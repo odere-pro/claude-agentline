@@ -9,29 +9,23 @@
 
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_CONFIG } from "../../config/index.js";
-import { DEFAULT_PALETTE } from "../../theme/index.js";
-import type { StdinPayload } from "../../stdin/index.js";
-import type { TokensSnapshot, TranscriptEvent } from "../../tokens/index.js";
+import { DEFAULT_CONFIG } from "../../data/config/index.js";
+import type { StdinPayload } from "../../core/stdin/index.js";
+import type { TokensSnapshot, TranscriptEvent } from "../../data/tokens/index.js";
 
-import { frozenClock } from "../clock.js";
-import type { WidgetContext } from "../context.js";
-import { WidgetRegistry } from "../registry.js";
+import { frozenClock } from "../clock/clock.js";
+import type { WidgetContext } from "../types.js";
+import { WidgetRegistry } from "../registry/registry.js";
 
-import { contextBarWidget } from "../context/context-bar.js";
-import { contextLengthWidget } from "../context/context-length.js";
-import { contextPercentageUsableWidget, contextPercentageWidget } from "../context/percentage.js";
+import { contextBarWidget } from "../context/context-bar/context-bar.js";
+import { contextLengthWidget } from "../context/context-length/context-length.js";
+import { contextPercentageWidget } from "../context/percentage/percentage.js";
 import { registerContextWidgets, CONTEXT_WIDGETS } from "../context/index.js";
 
-import {
-  tokensCachedWidget,
-  tokensInputWidget,
-  tokensOutputWidget,
-  tokensTotalWidget,
-} from "./fields.js";
-import { formatCount, formatSpeed, tokenRole } from "./format.js";
-import { resolveResetAxis } from "./options.js";
-import { inputSpeedWidget, outputSpeedWidget, totalSpeedWidget } from "./speed.js";
+import { tokensCachedWidget, tokensWidget } from "./fields.js";
+import { formatCount, formatSpeed, tokenRole } from "./format/format.js";
+import { resolveResetAxis } from "./options/options.js";
+import { tokenSpeedWidget } from "./speed/speed.js";
 import { registerTokenWidgets, TOKEN_WIDGETS } from "./index.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
@@ -56,7 +50,6 @@ function makeSnapshot(
     sessionStart: events[0]?.timestamp ?? now,
     blockAnchor: events[0]?.timestamp ?? now,
     contextWindow: 200_000,
-    pricingVersion: "test",
     ...overrides,
   });
 }
@@ -119,56 +112,41 @@ describe("resolveResetAxis", () => {
 describe("token widgets", () => {
   it("hide when ctx.tokens is undefined", () => {
     const ctx = makeCtx(undefined);
-    /*
-     * Cover every axis explicitly so a refactor that introduces a hidden-on-no-data
-     * regression on any individual widget is caught here.
-     */
-    expect(tokensInputWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
-    expect(tokensOutputWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
+    expect(tokensWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
     expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
-    expect(tokensTotalWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
   });
 
   it("render 0 when the snapshot has no events", () => {
     const ctx = makeCtx(makeSnapshot([]));
-    expect(tokensInputWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("0");
-    expect(tokensOutputWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("0");
+    expect(tokensWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("↓0 · ↑0");
     expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("0");
-    expect(tokensTotalWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("0");
   });
 
-  it("tokens-input sums input across the session", () => {
+  it("tokens renders input ↓ and output ↑ summed across the session", () => {
     const ctx = makeCtx(
       makeSnapshot([
-        ev({ timestamp: 100, inputTokens: 1000 }),
-        ev({ timestamp: 200, inputTokens: 500 }),
+        ev({ timestamp: 100, inputTokens: 1000, outputTokens: 1500 }),
+        ev({ timestamp: 200, inputTokens: 500, outputTokens: 1000 }),
       ]),
     );
-    expect(tokensInputWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("1.5k");
+    expect(tokensWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("↓1.5k · ↑2.5k");
   });
 
-  it("tokens-input does not include output or cached tokens", () => {
+  it("tokens excludes cached tokens from both segments", () => {
     const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 0, inputTokens: 100, outputTokens: 999, cachedTokens: 999 })]),
+      makeSnapshot([ev({ timestamp: 0, inputTokens: 100, outputTokens: 200, cachedTokens: 999 })]),
     );
-    expect(tokensInputWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("100");
+    expect(tokensWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("↓100 · ↑200");
   });
 
-  it("tokens-output sums output", () => {
-    const ctx = makeCtx(
-      makeSnapshot([
-        ev({ timestamp: 0, outputTokens: 1500 }),
-        ev({ timestamp: 100, outputTokens: 1000 }),
-      ]),
-    );
-    expect(tokensOutputWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("2.5k");
-  });
-
-  it("tokens-output does not include input or cached tokens", () => {
-    const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 0, inputTokens: 999, outputTokens: 200, cachedTokens: 999 })]),
-    );
-    expect(tokensOutputWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("200");
+  it("tokens accepts custom inputGlyph / outputGlyph", () => {
+    const ctx = makeCtx(makeSnapshot([ev({ timestamp: 0, inputTokens: 100, outputTokens: 200 })]));
+    expect(
+      tokensWidget.render(ctx, {
+        options: { inputGlyph: ">", outputGlyph: "<" },
+        rawValue: false,
+      }).text,
+    ).toBe(">100 · <200");
   });
 
   it("tokens-cached sums cache_read + cache_creation as one bucket", () => {
@@ -188,72 +166,70 @@ describe("token widgets", () => {
     expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("100");
   });
 
-  it("tokens-total sums all three", () => {
-    const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 0, inputTokens: 100, outputTokens: 200, cachedTokens: 300 })]),
-    );
-    expect(tokensTotalWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("600");
-  });
-
-  it("tokens-total sums across multiple events", () => {
-    const ctx = makeCtx(
-      makeSnapshot([
-        ev({ timestamp: 0, inputTokens: 500 }),
-        ev({ timestamp: 100, outputTokens: 500 }),
-        ev({ timestamp: 200, cachedTokens: 500 }),
-      ]),
-    );
-    expect(tokensTotalWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("1.5k");
-  });
-
   it("respects options.reset axis", () => {
     const SIX_HOURS = 6 * 60 * 60 * 1000;
     const now = 10_000_000;
     const old = ev({ timestamp: now - SIX_HOURS, inputTokens: 99 });
     const recent = ev({ timestamp: now - 60_000, inputTokens: 5 });
     const ctx = makeCtx(makeSnapshot([old, recent], { now, blockAnchor: now - SIX_HOURS }));
-    const cell = tokensInputWidget.render(ctx, {
+    const cell = tokensWidget.render(ctx, {
       options: { reset: "block" },
       rawValue: false,
     });
-    expect(cell.text).toBe("5");
+    expect(cell.text).toBe("↓5 · ↑0");
   });
 
   it("supports a custom label and rawValue suppression", () => {
     const ctx = makeCtx(makeSnapshot([ev({ timestamp: 0, inputTokens: 100 })]));
-    expect(tokensInputWidget.render(ctx, { options: { label: "in:" }, rawValue: false }).text).toBe(
-      "in:100",
+    expect(tokensWidget.render(ctx, { options: { label: "io:" }, rawValue: false }).text).toBe(
+      "io:↓100 · ↑0",
     );
-    expect(tokensInputWidget.render(ctx, { options: { label: "in:" }, rawValue: true }).text).toBe(
-      "100",
+    expect(tokensWidget.render(ctx, { options: { label: "io:" }, rawValue: true }).text).toBe(
+      "↓100 · ↑0",
     );
   });
 });
 
 describe("speed widgets", () => {
-  it("input-speed reports tokens per second over 60 s", () => {
-    const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 1_000_000 - 30_000, inputTokens: 600 })], { now: 1_000_000 }),
-    );
-    expect(inputSpeedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("10/s");
-  });
-
-  it("output-speed honours custom windowSec", () => {
-    const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 1_000_000 - 5000, outputTokens: 50 })], { now: 1_000_000 }),
-    );
-    expect(
-      outputSpeedWidget.render(ctx, { options: { windowSec: 10 }, rawValue: false }).text,
-    ).toBe("5/s");
-  });
-
-  it("total-speed sums input + output", () => {
+  it("token-speed reports input ↓ and output ↑ per second over 60 s", () => {
     const ctx = makeCtx(
       makeSnapshot([ev({ timestamp: 1_000_000 - 30_000, inputTokens: 600, outputTokens: 600 })], {
         now: 1_000_000,
       }),
     );
-    expect(totalSpeedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("20/s");
+    expect(tokenSpeedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe(
+      "↓10/s · ↑10/s",
+    );
+  });
+
+  it("token-speed shows zero for the idle direction", () => {
+    const ctx = makeCtx(
+      makeSnapshot([ev({ timestamp: 1_000_000 - 30_000, inputTokens: 600 })], { now: 1_000_000 }),
+    );
+    expect(tokenSpeedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("↓10/s · ↑0");
+  });
+
+  it("token-speed honours custom windowSec", () => {
+    const ctx = makeCtx(
+      makeSnapshot([ev({ timestamp: 1_000_000 - 5000, outputTokens: 50 })], { now: 1_000_000 }),
+    );
+    expect(tokenSpeedWidget.render(ctx, { options: { windowSec: 10 }, rawValue: false }).text).toBe(
+      "↓0 · ↑5/s",
+    );
+  });
+
+  it("token-speed accepts custom inputGlyph / outputGlyph", () => {
+    const ctx = makeCtx(
+      makeSnapshot([ev({ timestamp: 1_000_000 - 30_000, inputTokens: 600, outputTokens: 600 })], {
+        now: 1_000_000,
+      }),
+    );
+    expect(
+      tokenSpeedWidget.render(ctx, {
+        options: { inputGlyph: ">", outputGlyph: "<" },
+        rawValue: false,
+      }).text,
+    ).toBe(">10/s · <10/s");
   });
 });
 
@@ -264,7 +240,9 @@ describe("context widgets", () => {
         ev({ timestamp: 0, inputTokens: 1500, outputTokens: 9999, cachedTokens: 500 }),
       ]),
     );
-    expect(contextLengthWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("2k");
+    expect(contextLengthWidget.render(ctx, { options: {}, rawValue: false }).text).toBe(
+      "2k · 200k",
+    );
   });
 
   it("context-percentage divides by the model's window", () => {
@@ -272,37 +250,22 @@ describe("context widgets", () => {
       makeSnapshot([ev({ timestamp: 0, inputTokens: 100_000 })], { contextWindow: 200_000 }),
     );
     const cell = contextPercentageWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.text).toBe("50%");
+    expect(cell.text).toBe("50% · 200k");
   });
 
-  it("context-percentage colour-grades at 60 / 80% boundaries", () => {
+  it("context-percentage emits no state-signal colour (context family accent applies)", () => {
     const events = (used: number) => [ev({ timestamp: 0, inputTokens: used })];
-    const lo = contextPercentageWidget.render(makeCtx(makeSnapshot(events(50_000))), {
-      options: {},
-      rawValue: false,
-    });
-    const mid = contextPercentageWidget.render(makeCtx(makeSnapshot(events(140_000))), {
-      options: {},
-      rawValue: false,
-    });
-    const hi = contextPercentageWidget.render(makeCtx(makeSnapshot(events(180_000))), {
-      options: {},
-      rawValue: false,
-    });
-    expect(lo.fg).toBe(DEFAULT_PALETTE["tokens-low"]);
-    expect(mid.fg).toBe(DEFAULT_PALETTE["tokens-mid"]);
-    expect(hi.fg).toBe(DEFAULT_PALETTE["tokens-high"]);
+    for (const used of [50_000, 140_000, 180_000]) {
+      const cell = contextPercentageWidget.render(makeCtx(makeSnapshot(events(used))), {
+        options: {},
+        rawValue: false,
+      });
+      expect(cell.fg).toBeUndefined();
+      expect(cell.signal).toBeUndefined();
+    }
   });
 
-  it("context-percentage-usable uses the 80% threshold of the window", () => {
-    const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 0, inputTokens: 80_000 })], { contextWindow: 200_000 }),
-    );
-    const cell = contextPercentageUsableWidget.render(ctx, { options: {}, rawValue: false });
-    expect(cell.text).toBe("50%");
-  });
-
-  it("context-bar renders the configured width", () => {
+  it("context-bar renders the configured width plus the window postfix", () => {
     const ctx = makeCtx(
       makeSnapshot([ev({ timestamp: 0, inputTokens: 50_000 })], { contextWindow: 200_000 }),
     );
@@ -310,7 +273,7 @@ describe("context widgets", () => {
       options: { width: 8, filled: "#", empty: "." },
       rawValue: false,
     });
-    expect(cell.text).toBe("##......");
+    expect(cell.text).toBe("##...... · 200k");
   });
 
   it("context-bar handles a missing snapshot", () => {
@@ -320,31 +283,18 @@ describe("context widgets", () => {
 });
 
 describe("registries", () => {
-  it("registerTokenWidgets installs all seven widgets", () => {
+  it("registerTokenWidgets installs all three widgets", () => {
     const r = new WidgetRegistry();
     registerTokenWidgets(r);
-    expect(r.size()).toBe(7);
-    expect(r.list()).toEqual([
-      "input-speed",
-      "output-speed",
-      "tokens-cached",
-      "tokens-input",
-      "tokens-output",
-      "tokens-total",
-      "total-speed",
-    ]);
+    expect(r.size()).toBe(3);
+    expect(r.list()).toEqual(["token-speed", "tokens", "tokens-cached"]);
   });
 
-  it("registerContextWidgets installs all four widgets", () => {
+  it("registerContextWidgets installs all three widgets", () => {
     const r = new WidgetRegistry();
     registerContextWidgets(r);
-    expect(r.size()).toBe(4);
-    expect(r.list()).toEqual([
-      "context-bar",
-      "context-length",
-      "context-percentage",
-      "context-percentage-usable",
-    ]);
+    expect(r.size()).toBe(3);
+    expect(r.list()).toEqual(["context-bar", "context-length", "context-percentage"]);
   });
 
   it("TOKEN_WIDGETS and CONTEXT_WIDGETS are frozen", () => {

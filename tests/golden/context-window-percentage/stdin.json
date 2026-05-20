@@ -1,0 +1,8 @@
+{
+  "model": "claude-opus-4-7",
+  "cwd": "/repo/agentline",
+  "context_window": {
+    "used_percentage": 18,
+    "context_window_size": 1000000
+  }
+}

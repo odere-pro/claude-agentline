@@ -100,7 +100,7 @@ Branch from `main`. Branch name format:
 <type>/agentline-<NN>-<slug>
 ```
 
-Where `<NN>` is the zero-padded PR number from [`docs/plan/PR-PLAN.md`](docs/plan/PR-PLAN.md). Full conventions live in [`docs/plan/PR-CONVENTIONS.md`](docs/plan/PR-CONVENTIONS.md).
+Where `<NN>` is the next zero-padded PR sequence number (one greater than the highest already used). Full conventions live in [`docs/PR-CONVENTIONS.md`](docs/PR-CONVENTIONS.md).
 
 ## Commits
 
@@ -111,9 +111,9 @@ Conventional Commits:
 ```
 
 `<type>` ∈ `feat | fix | chore | docs | test | refactor | perf | ci`.
-`<scope>` ∈ the closed list defined in `docs/plan/PR-CONVENTIONS.md`.
+`<scope>` ∈ the closed list defined in `docs/PR-CONVENTIONS.md`.
 
-Body answers _why_, citing the spec section (e.g. `per §7.3`).
+Body answers _why_, citing the issue or rationale that motivates the change.
 
 ## Tests & gates
 
@@ -129,10 +129,10 @@ CI runs the same on every supported host × Node version. Failures block merge.
 
 ## Pull requests
 
-PR title matches the leading commit subject. PR body uses the template in `docs/plan/PR-CONVENTIONS.md`:
+PR title matches the leading commit subject. PR body uses the template in `docs/PR-CONVENTIONS.md`:
 
 - `## What`
-- `## Why` (spec citation)
+- `## Why` (issue / rationale)
 - `## Gates exercised`
 - `## Depends on`
 - `## Test plan`
@@ -140,17 +140,13 @@ PR title matches the leading commit subject. PR body uses the template in `docs/
 
 Add an entry to `CHANGELOG.md` under `[Unreleased]` in the appropriate group.
 
-## Spec changes
-
-The spec in `docs/plan/SPEC-v0.1.0.md` is normative. Behaviour changes that diverge from the spec must update the spec in the same PR, with the divergence motivated in the PR's `## Why`.
-
 ## Release process
 
-Release-tag PRs follow `docs/plan/SPEC-v0.1.0.md` §14. Maintainers only.
+Release-tag PRs are maintainer-only.
 
 ## Changelog fragments
 
-Every user-visible PR adds one Markdown fragment under `changelog/`. File names follow `<NN>-<slug>.md` where `<NN>` is the zero-padded PR sequence number from `docs/plan/PR-PLAN.md` and `<slug>` is the kebab-case branch slug (≤ 32 chars).
+Every user-visible PR adds one Markdown fragment under `changelog/`. File names follow `<NN>-<slug>.md` where `<NN>` is the next zero-padded PR sequence number (one greater than the highest already used) and `<slug>` is the kebab-case branch slug (≤ 32 chars).
 
 Each fragment is exactly **one bullet** leading with intent, ending with a period. Do not prefix with a commit SHA — `scripts/changelog-aggregate.sh` resolves the introducing commit and prepends the short hash at release time. The aggregator is run with `--apply` only inside the release PR; on every other PR the fragment sits in its own file so two in-flight PRs cannot conflict on the changelog.
 

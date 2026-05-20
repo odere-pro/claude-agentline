@@ -1,0 +1,1 @@
+- Document on `listBindings` in `src/tui/keys/bindings.ts` that `config.keymap` is currently a footer-relabel mechanism only — the actual keypress dispatch hard-codes the recognised keys, so users cannot yet rebind editor keys; a `TODO(keymap-override-runtime)` marker captures the registry-restructuring work needed before override → recognised-key wiring becomes possible.

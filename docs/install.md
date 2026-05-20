@@ -13,6 +13,23 @@ global `~/.claude/settings.json` (backing up any prior value);
 wire manually. The manual recipe at the bottom of this page does the same
 thing by hand if you would rather not run a command.
 
+## Install paths are equivalent
+
+`--from-source` and the registry path produce **identical runtime
+state**. Both run the same `scripts/install.sh`, which:
+
+1. installs a global `agentline` bin (via `npm link` from the checkout,
+   or `npm install -g @agentline/cli`),
+2. seeds `~/.config/agentline/config.json` (preserved if present),
+3. seeds shipped themes,
+4. installs skill files into `~/.claude/agents/`,
+5. wires `statusLine` into `~/.claude/settings.json`,
+6. writes the install manifest.
+
+The only difference is the bytes inside the bin — local checkout vs.
+published tarball. `settings.json`, `config.json`, themes, manifest,
+and state cache are byte-identical. Pick whichever is convenient.
+
 ## Requirements
 
 - Node.js **20 LTS or newer** (the binary is pure JavaScript; no native
@@ -54,7 +71,9 @@ What it does, in order:
    `themes/` subfolder.
 5. Writes a `statusLine` entry into `~/.claude/settings.json` if and
    only if the key is currently unset. To overwrite a foreign value,
-   pass `--force`.
+   pass `--force`. The entry's `refreshInterval` is set from the
+   `refreshInterval` config key (default `5` seconds); a configured `0`
+   omits the field so Claude Code stays event-driven only.
 
 Every filesystem write is atomic (write-temp, `fsync`, `rename`). Re-running
 `install.sh` on a tree it already installed is a byte-for-byte no-op.
@@ -74,6 +93,46 @@ Every filesystem write is atomic (write-temp, `fsync`, `rename`). Re-running
 | ------------------- | -------------------------------------------------------------------------------------- |
 | `CLAUDE_CONFIG_DIR` | Overrides the parent of the agentline config directory. Default: `~/.config`.          |
 | `AGENTLINE_BIN`     | Read by `doctor.sh` and other wrappers to pick a specific bin. Useful in tests and CI. |
+
+## How agentline syncs with Claude Code
+
+agentline has **one config file, globally**. There is no project
+layer; a `.agentline.json` in the cwd is silently ignored. The chain is
+one-directional:
+
+```
+Claude Code event (new prompt, model switch, etc.)
+   │
+   ▼
+~/.claude/settings.json → statusLine.command
+   │
+   ▼
+agentline render
+   ├── reads  ${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json
+   ├── reads  stdin (the session JSON Claude Code pipes in)
+   ├── reads  ${CLAUDE_CONFIG_DIR:-~/.config}/agentline/themes/*.json
+   ├── writes ${CLAUDE_CONFIG_DIR:-~/.config}/agentline/state/last-stdin.json
+   └── writes ${CLAUDE_CONFIG_DIR:-~/.config}/agentline/state/last-render.json
+   │
+   ▼
+ANSI to stdout → Claude Code paints it
+```
+
+Practical consequences:
+
+- `agentline edit` from any worktree / cwd mutates the **same** global
+  `config.json`. Running the editor in worktree A and worktree B shares
+  config.
+- The `cwd`, `workspace`, and `git_worktree` strings that show up in the
+  rendered statusline come from the **stdin payload** Claude Code sends
+  per session, not from any per-project file. Per-worktree branch
+  names just work without configuration.
+- Config edits take effect on the next prompt — Claude Code re-runs
+  `statusLine.command` per event. No watcher, no reload.
+- If `statusLine.command` points at a missing bin, Claude Code keeps
+  painting the last cached frame from `state/last-render.json`. The
+  symptom is "edits don't apply"; the cause is an orphaned wiring. See
+  [troubleshooting.md](./troubleshooting.md#statusline-shows-stale-or-edits-dont-apply).
 
 ## What happens to my existing statusLine?
 
@@ -126,8 +185,10 @@ adds the `statusLine` entry to `~/.claude/settings.json` for you.
 
 `agentline install` seeds the user config at
 `${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json` from the
-shipped `templates/default.config.json` (model, git, context, tokens,
-session usage, block reset timer, clock) the first time it runs. An
+shipped `templates/default.config.json` (model · thinking-effort ·
+git branch · changes / context % · context bar · tokens (block) /
+session+weekly usage · session reset · week reset) the first time it
+runs. An
 existing config is preserved on subsequent runs. To start fresh,
 delete the file and re-run `agentline install`.
 
@@ -183,6 +244,18 @@ What it does:
 `install.sh` followed by `uninstall.sh` on the same host leaves no diff
 against the pre-install state.
 
+### If you remove the bin without running uninstall
+
+`npm uninstall -g @agentline/cli` (or `npm unlink`) deletes only the
+binary. `settings.json` still references the now-missing path, and
+Claude Code keeps painting the cached frame from
+`state/last-render.json` — the statusline looks "stuck" rather than
+disappearing.
+
+Either reinstall (`npm i -g @agentline/cli && agentline install`) or
+run `agentline uninstall` from a working checkout to clean
+`settings.json` and remove the orphan reference.
+
 ## Troubleshooting
 
 - **`node: command not found`** — install Node 20+ from
@@ -193,7 +266,7 @@ against the pre-install state.
   to a user-writable directory, use a Node version manager (`nvm`,
   `fnm`, `volta`), or rerun the install under `sudo`.
 - **statusline shows nothing** — run `agentline doctor`. Each check has
-  a numeric ID (D01–D10); the report tells you what to fix.
+  a numeric ID (D01–D08); the report tells you what to fix.
 - **statusline shows a fallback line** — the renderer is intentionally
   permissive: even if your config fails to validate, it prints a
   one-line ASCII fallback so your shell prompt is never blank. Run

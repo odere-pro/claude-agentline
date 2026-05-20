@@ -34,6 +34,43 @@ AL_AGENTS_DIR="${AL_HOME_DIR}/.claude/agents"
 # Where agentline persists merged user config. Honours XDG-ish overrides.
 AL_CONFIG_DIR_DEFAULT="${AL_HOME_DIR}/.config/agentline"
 AL_CONFIG_DIR="${CLAUDE_CONFIG_DIR:-${AL_CONFIG_DIR_DEFAULT}}"
+
+# Validate `CLAUDE_CONFIG_DIR` before any installer step writes through it.
+# A blank or relative value would resolve against the cwd — `install.sh`
+# called from /tmp would silently write `tmp/themes/`, `tmp/state/...`. A
+# path with `..` segments could escape the user's profile entirely. A path
+# rooted under a system directory (`/etc`, `/usr`, `/var`) is almost
+# certainly a mistake or hostile environment; refuse rather than risk a
+# privileged write when the installer is run as root.
+case "${AL_CONFIG_DIR}" in
+  "")
+    printf 'agentline: CLAUDE_CONFIG_DIR is empty; refusing to derive paths from it\n' >&2
+    exit 1
+    ;;
+  /*) ;;
+  *)
+    printf 'agentline: CLAUDE_CONFIG_DIR must be an absolute path (got: %s)\n' "${AL_CONFIG_DIR}" >&2
+    exit 1
+    ;;
+esac
+case "${AL_CONFIG_DIR}" in
+  */../* | *"/..") # any parent-dir traversal segment
+    printf 'agentline: CLAUDE_CONFIG_DIR must not contain traversal segments (got: %s)\n' "${AL_CONFIG_DIR}" >&2
+    exit 1
+    ;;
+esac
+# `/var` is not blanket-rejected: macOS resolves `$TMPDIR` to a
+# `/private/var/folders/...` path (and `tmpdir()` returns the same), and
+# `/var/tmp` is a valid temp root on most Unixes. Reject only the
+# directories that contain executables / system config rather than
+# user-writable subtrees.
+case "${AL_CONFIG_DIR}" in
+  /etc | /etc/* | /usr | /usr/* | /bin | /bin/* | /sbin | /sbin/* | /boot | /boot/*)
+    printf 'agentline: CLAUDE_CONFIG_DIR points inside a system directory (%s); refusing\n' "${AL_CONFIG_DIR}" >&2
+    exit 1
+    ;;
+esac
+
 AL_CONFIG_FILE="${AL_CONFIG_DIR}/config.json"
 AL_THEMES_DIR="${AL_CONFIG_DIR}/themes"
 # Pre-install snapshot of the user's `statusLine`. Written by install (so

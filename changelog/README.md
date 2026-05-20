@@ -11,7 +11,7 @@ conflict on the changelog. No more rebase-driven `git stash` dances.
 
 `changelog/<NN>-<slug>.md` where:
 
-- `<NN>` is the zero-padded PR sequence number from `docs/plan/PR-PLAN.md`.
+- `<NN>` is the next zero-padded PR sequence number (one greater than the highest already used).
 - `<slug>` is kebab-case, ≤ 32 chars, identical to the branch's slug.
 
 If a PR is genuinely outside the planning sequence, use a unique slug
@@ -44,5 +44,5 @@ change is observable.
 
 Run `bash scripts/changelog-aggregate.sh` for a dry-run preview.
 Run `bash scripts/changelog-aggregate.sh --apply` to inline the fragments
-into `CHANGELOG.md` and remove them from `changelog/`. The release PR
-(per the plan, T2 PR 28) is the canonical place to do this.
+into `CHANGELOG.md` and remove them from `changelog/`. The release PR is
+the canonical place to do this.

@@ -53,8 +53,9 @@ const SPEC_ACTIONS = [
   "add",
   "replace",
   "delete",
-  "toggle-glyphs",
   "save",
+  "undo",
+  "redo",
   // picker (three steps share one scope)
   "picker-filter",
   "picker-navigate",

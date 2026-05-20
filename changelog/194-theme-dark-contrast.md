@@ -1,0 +1,1 @@
+- Brighten the `claude-code-dark` palette so dimmed widget labels in the `agentline edit` preview stay readable against the dark background.

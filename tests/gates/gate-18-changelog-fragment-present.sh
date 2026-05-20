@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 # Gate 18: every PR with a non-doc change adds a `changelog/` fragment.
-# Spec: repo housekeeping (per `changelog/README.md` and `docs/plan/PR-CONVENTIONS.md`).
+# Spec: repo housekeeping (per `changelog/README.md` and `docs/PR-CONVENTIONS.md`).
 # Pass: the diff against the merge base contains no non-doc changes, OR
 #       it adds at least one new file under `changelog/<NN>-<slug>.md`.
 # Fail: non-doc changes are present but no new fragment was added.
@@ -16,7 +16,7 @@ set -Eeuo pipefail
 #   - docs/
 #   - .github/
 #   - LICENSE / CODE_OF_CONDUCT.md / SECURITY.md / SUPPORT.md / CONTRIBUTING.md
-#   - the PR-CONVENTIONS / PR-PLAN / SPEC under docs/plan are already covered by docs/
+#   - PR-CONVENTIONS lives under docs/, so it is already covered by the docs/ rule
 
 # shellcheck source=lib/common.sh
 . "$(dirname "$0")/lib/common.sh"

@@ -1,0 +1,1 @@
+- Add a `knip` dev dependency, `pnpm run knip` script, and a `knip.json` baseline that suppresses the two known false positives (`ajv-formats`, consumed only by the gate-11 shell harness, and `scripts/bench/cold-start.mjs`, run by the gate-13 harness) so future dead-code scans are signal, not noise.

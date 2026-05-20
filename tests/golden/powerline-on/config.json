@@ -4,15 +4,13 @@
   "theme": null,
   "lines": [
     {
-      "widgets": [
-        { "type": "model" },
-        { "type": "clock", "options": { "format": "HH:mm", "tz": "UTC" } }
-      ]
+      "widgets": [{ "type": "model" }]
     }
   ],
   "global": {
     "padding": 1,
     "separator": "|",
+    "valueSeparator": "·",
     "inheritColors": false,
     "bold": false,
     "italic": false,

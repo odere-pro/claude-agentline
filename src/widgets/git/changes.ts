@@ -6,9 +6,10 @@
  * are zero (the default; opt-out via `options.hideZero: false`).
  */
 
-import { resolveRole } from "../../theme/index.js";
-import type { Cell } from "../cell.js";
-import type { WidgetContext } from "../context.js";
+import { resolveRole } from "../../data/theme/index.js";
+import type { Cell } from "../cell/cell.js";
+import type { WidgetContext } from "../types.js";
+import { joinValues } from "../separator/separator.js";
 import { defineWidget } from "../widget.js";
 
 interface Options {
@@ -30,5 +31,5 @@ export const gitChangesWidget = defineWidget<Options>("git-changes", (ctx, setti
   if (total === 0 && hideZero) return { text: "", hidden: true };
   const label = settings.rawValue ? "" : (settings.options.label ?? "");
   const fg = resolveRole(ctx.theme, "git-dirty");
-  return { text: `${label}+${d.ins} -${d.del}`, fg };
+  return { text: `${label}${joinValues(ctx, [`+${d.ins}`, `-${d.del}`])}`, fg, signal: true };
 });

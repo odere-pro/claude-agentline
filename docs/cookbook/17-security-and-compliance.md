@@ -39,15 +39,9 @@ The render path is a small attack surface, but it is invoked on every host promp
 
 ## I-06 · External commands are argv-style, never shell-concat
 
-- **Invariant.** The `command` widget (and any internal `git` call) is invoked with an argv list; user-supplied data NEVER gets concatenated into a shell command line.
+- **Invariant.** Any internal `git` call is invoked with an argv list; user-supplied data NEVER gets concatenated into a shell command line.
 - **Threat.** Shell injection via a cwd containing a backtick, a model id containing `;`, etc.
 - **Control.** Spawn APIs that take an argv array; lint rule that forbids `exec`/`system`-style shell invocations in the render path.
-
-## I-07 · External command timeout
-
-- **Invariant.** Custom-command widgets have a default 250 ms timeout, capped at 2 000 ms per widget.
-- **Threat.** A hanging external command stalls every prompt render until killed manually.
-- **Control.** Timeout enforced at the spawn boundary; timeout produces the widget's `onError` placeholder.
 
 ## I-08 · No remote schemas or templates fetched at runtime
 
@@ -69,9 +63,9 @@ The render path is a small attack surface, but it is invoked on every host promp
 
 ## I-11 · Runtime deps pinned by exact version; audited on merge
 
-- **Invariant.** Every runtime dependency carries an exact-version specifier. No caret/tilde ranges. Audit runs in CI; high-severity advisories block merge.
+- **Invariant.** Every runtime dependency carries an exact-version specifier. No caret/tilde ranges. The runtime tree is audited in CI; **moderate+** advisories block merge (stricter than the original "high").
 - **Threat.** Transitive supply-chain compromise.
-- **Control.** Dependency-policy lint; CI step that runs `<registry> audit --omit=dev` (or stack equivalent).
+- **Control.** `tests/gates/gate-23-dependency-audit.sh` runs `pnpm audit --prod --audit-level moderate` (auto-discovered by `run-all.sh`, so it gates every CI run). The PR-time complement is `.github/workflows/dependency-review.yml` (`fail-on-severity: moderate`) and `.github/workflows/codeql.yml` (SAST). Renovate (`renovate.json`) keeps the tree fresh under a release-age cooldown — see I-16.
 
 ## I-12 · Signed releases with provenance
 
@@ -91,11 +85,23 @@ The render path is a small attack surface, but it is invoked on every host promp
 - **Threat.** Error logs uploaded to a third-party tool (a bug tracker, a chat) leak local data.
 - **Control.** Error messages reference field names and types, not values. A sanitiser strips home-directory prefixes from any path that appears in user-visible errors.
 
+## I-15 · No dependency install-script runs by default
+
+- **Invariant.** No dependency's `preinstall`/`install`/`postinstall`/`prepare` script executes on `pnpm install` unless explicitly allow-listed.
+- **Threat.** A compromised (direct or transitive) dependency runs arbitrary code with the developer's / CI runner's privileges at install time.
+- **Control.** pnpm's default build-script deny, plus an explicit empty `onlyBuiltDependencies: []` in `pnpm-workspace.yaml` (pnpm's canonical settings file; keeping it out of `.npmrc` also stops `npm link` from warning on pnpm-only keys). Adding an entry there is a reviewable, deliberate exception (the set stays empty — even `esbuild` builds without its script). `esbuild` is listed under `ignoredBuiltDependencies` to record that its script is _deliberately_ skipped (not merely unreviewed), which also suppresses pnpm's per-install "Ignored build scripts" nag without ever running the script.
+
+## I-16 · Newly published versions face a release-age cooldown
+
+- **Invariant.** A package version younger than the cooldown window is not adopted into the lockfile by routine installs or automated updates.
+- **Threat.** Self-propagating-worm / account-takeover attacks publish malicious versions and rely on immediate uptake before the registry pulls them.
+- **Control.** `pnpm-workspace.yaml` `minimumReleaseAge` (3 days) for pnpm resolution, and `renovate.json` `minimumReleaseAge` ("3 days") for automated update PRs. Known-CVE bumps are still surfaced (Renovate `vulnerabilityAlerts`, gate-23) for expedited human review.
+
 ---
 
 ## Secret handling
 
-- **No secrets in source.** Tokens, API keys, credentials never appear in the source tree. CI scanners (secret-scan + custom regex per known service) run on every push.
+- **No secrets in source.** Tokens, API keys, credentials never appear in the source tree. `.github/workflows/secret-scan.yml` (gitleaks + `.gitleaks.toml`, with explicit per-service rules for npm + GitHub tokens) runs on every push and pull request; `tests/gates/gate-24-secret-scan.sh` is the local mirror. GitHub-native secret scanning + push protection is the repo-setting backstop.
 - **No secrets in CI logs.** Secrets passed to CI jobs come from the platform's secret store, never from repo files; the platform masks them in logs.
 - **No long-lived publish credentials.** Use OIDC-issued tokens that scope to a single workflow run.
 

@@ -1,0 +1,1 @@
+- Gate the `AGENTLINE_TRANSCRIPT_ROOT` transcript-sandbox override behind `NODE_ENV=test` so a process that can set environment variables on the agentline render (a parent shell, a sibling tool) cannot broaden the sandbox to `/` and weaponise a stdin `transcript_path` into an arbitrary-file read at runtime.

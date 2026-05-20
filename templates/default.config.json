@@ -8,18 +8,28 @@
         { "type": "model" },
         { "type": "thinking-effort" },
         { "type": "git-branch" },
-        { "type": "git-changes" },
+        { "type": "git-changes" }
+      ]
+    },
+    {
+      "widgets": [
         { "type": "context-percentage" },
-        { "type": "tokens-total", "options": { "reset": "block" } },
-        { "type": "session-usage", "options": { "reset": "block" } },
-        { "type": "block-reset-timer" },
-        { "type": "clock" }
+        { "type": "context-bar" },
+        { "type": "tokens", "options": { "reset": "block" } }
+      ]
+    },
+    {
+      "widgets": [
+        { "type": "session-weekly-usage" },
+        { "type": "current-session-reset-timer" },
+        { "type": "week-limit-timer" }
       ]
     }
   ],
   "global": {
     "padding": 1,
     "separator": "|",
+    "valueSeparator": "·",
     "inheritColors": false,
     "bold": false,
     "italic": false,
@@ -38,5 +48,9 @@
     "mode": "full-minus-40",
     "compactThreshold": 60
   },
-  "keymap": {}
+  "keymap": {},
+  "language": "en",
+  "refreshInterval": 5,
+  "families": {},
+  "translations": {}
 }

@@ -1,0 +1,32 @@
+# pnpm settings live here (not .npmrc) so the pnpm-only keys are invisible
+# to `npm` — `agentline install --from-source` runs `npm link`, and npm
+# warns on config keys it doesn't recognise. pnpm >=10 reads these natively.
+
+# Supply-chain cooldown: refuse package versions younger than 3 days
+# (minutes), blunting fresh-malware / self-propagating-worm windows
+# (cookbook 17, I-16).
+minimumReleaseAge: 4320
+
+# Reproducible installs: never silently rewrite the committed lockfile.
+preferFrozenLockfile: true
+
+# Pin discipline: every `pnpm add` writes an exact version (no caret), so
+# `package.json` and the lockfile stay in lockstep with the version the
+# author actually installed. Runtime deps are exact-pinned by house rule;
+# this enforces the same for devDeps too so the manifest never lies about
+# the intent.
+saveExact: true
+
+# react/ink peer graph: install declared peers rather than erroring.
+autoInstallPeers: true
+
+# Enforce the engines range (node >=20, pnpm >=9.15).
+engineStrict: true
+
+# Supply-chain: no dependency build/install scripts run on install
+# (cookbook 17, I-15). The allow-list stays empty; esbuild is recorded as a
+# *deliberately* skipped script (it builds fine without it) so pnpm does not
+# nag on every install — the script is still never executed.
+onlyBuiltDependencies: []
+ignoredBuiltDependencies:
+  - esbuild

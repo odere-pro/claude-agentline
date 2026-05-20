@@ -103,6 +103,8 @@ Each pattern entry has: **name**, **intent**, **where it appears**, **why this o
 
 **Why.** "Per-session input tokens added to per-day input tokens" is meaningless and misleading. Forcing the user to declare the axis surfaces the design choice and prevents silent footguns.
 
+**How.** Each axis is encoded as one entry in the `AXIS_STRATEGIES` table in `src/data/tokens/aggregate/aggregate.ts` — a `Record<ResetAxis, AxisStrategy>` where each strategy bundles the event-window predicate (`filter`) with the rolling-window boundary (`windowEnd`). `Record<ResetAxis, …>` keeps the table exhaustive at compile time; the schema validator and `resolveResetAxis` both derive the accepted-axis set from the same table via `RESET_AXES`, so vocabulary stays consistent end to end. Adding an axis is a single-entry change.
+
 ---
 
 ## Capability flag for editor scopes
@@ -127,9 +129,9 @@ Each pattern entry has: **name**, **intent**, **where it appears**, **why this o
 
 ## Lazy import (cold path isolation)
 
-**Intent.** Heavy modules — TUI framework, font installer, schema validator JIT, watcher — are imported only inside the function of the verb that needs them. The render-path import graph stays tiny.
+**Intent.** Heavy modules — TUI framework, schema validator JIT, watcher — are imported only inside the function of the verb that needs them. The render-path import graph stays tiny.
 
-**Where.** Editor verb, font-install autofix in doctor, watcher mode.
+**Where.** Editor verb, watcher mode.
 
 **Why.** On any runtime where import resolution costs are non-trivial (interpreted languages, JIT runtimes), a top-level `import ink` adds 30–80 ms to cold start. The lazy-import discipline keeps that cost on the cold-path verbs where it doesn't matter.
 

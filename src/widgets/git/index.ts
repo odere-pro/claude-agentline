@@ -9,35 +9,21 @@
  */
 
 import { eraseWidget, type WidgetDef } from "../widget.js";
-import type { WidgetRegistry } from "../registry.js";
+import type { WidgetRegistry } from "../registry/registry.js";
 
-import { gitAheadBehindWidget, gitConflictsWidget } from "./ahead-behind.js";
+import { gitAheadBehindWidget, gitConflictsWidget } from "./ahead-behind/ahead-behind.js";
 import { gitBranchWidget } from "./branch.js";
 import { gitChangesWidget } from "./changes.js";
-import { gitPrWidget } from "./pr.js";
-import { gitOriginRepoWidget, gitUpstreamWidget } from "./remote.js";
-import { gitShaWidget, gitWorktreeWidget } from "./sha.js";
-import {
-  gitStagedWidget,
-  gitUnstagedWidget,
-  gitUntrackedWidget,
-} from "./status.js";
-
-export { gitAheadBehindWidget, gitConflictsWidget } from "./ahead-behind.js";
-export { gitBranchWidget } from "./branch.js";
-export { gitChangesWidget } from "./changes.js";
-export { gitPrWidget } from "./pr.js";
-export { gitOriginRepoWidget, gitUpstreamWidget } from "./remote.js";
-export { gitShaWidget, gitWorktreeWidget } from "./sha.js";
-export { gitStagedWidget, gitUnstagedWidget, gitUntrackedWidget } from "./status.js";
+import { gitPrWidget } from "./pr/pr.js";
+import { gitOriginRepoWidget, gitUpstreamWidget } from "./remote/remote.js";
+import { gitShaWidget, gitWorktreeWidget } from "./sha/sha.js";
+import { gitUntrackedWidget } from "./status/status.js";
 
 export const GIT_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   eraseWidget(gitBranchWidget),
   eraseWidget(gitShaWidget),
   eraseWidget(gitWorktreeWidget),
   eraseWidget(gitChangesWidget),
-  eraseWidget(gitStagedWidget),
-  eraseWidget(gitUnstagedWidget),
   eraseWidget(gitUntrackedWidget),
   eraseWidget(gitConflictsWidget),
   eraseWidget(gitAheadBehindWidget),

@@ -76,24 +76,50 @@ jobs:
             choco install shellcheck -y --no-progress || true
           fi
 
-      - name: Install npm dependencies
+      - name: Install dependencies (pnpm)
         # gate-01 invokes scripts/doctor.sh which needs a runnable bin.
-        # We install via lockfile (`npm ci`) for reproducibility, falling
-        # back to `npm install` if the lockfile drifts.
+        # corepack ships with Node ≥20 and pins pnpm via package.json's
+        # `packageManager` field. `--frozen-lockfile` fails loudly if
+        # pnpm-lock.yaml drifts — the reproducibility we want in CI.
         if: hashFiles('package.json') != ''
         run: |
-          if [ -f package-lock.json ]; then
-            npm ci --no-audit --no-fund
-          else
-            npm install --no-audit --no-fund
-          fi
+          corepack enable
+          pnpm install --frozen-lockfile
 
       - name: Build agentline bin
         # `dist/cli.mjs` is the runnable artefact gate-01's wrapper resolves
         # before falling back to `npx`. Skip cleanly when there is no
         # `package.json` (very early bootstrap commits).
         if: hashFiles('package.json') != ''
-        run: npm run build
+        run: pnpm run build
+
+      - name: Run unit tests (vitest)
+        # Runs colocated Vitest tests + tests/integration/. Roughly ~30s
+        # wall-clock on a CI runner; legs run in parallel, so this adds
+        # negligible time to the slowest matrix leg. Failures here block
+        # gates the same way a gate failure does — both must pass.
+        if: hashFiles('package.json') != '' && !(matrix.os == 'ubuntu-24.04' && matrix.node == 22)
+        run: pnpm test
+
+      - name: Run unit tests with coverage (single leg)
+        # Coverage runs on exactly one matrix leg — running it on every
+        # leg is wasteful, and the report is a stable property of the
+        # suite, not the host. Thresholds are configured in
+        # vitest.config.ts; this step exits non-zero if they regress.
+        if: hashFiles('package.json') != '' && matrix.os == 'ubuntu-24.04' && matrix.node == 22
+        run: pnpm test --coverage
+
+      - name: Upload coverage report
+        # Uploaded only from the coverage leg. lcov.info is the
+        # machine-readable file Codecov/Sonar/etc. consume; the html/
+        # tree is useful for ad-hoc inspection by reviewers.
+        if: hashFiles('package.json') != '' && matrix.os == 'ubuntu-24.04' && matrix.node == 22
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-${{ github.run_id }}
+          path: coverage/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Run gates
         run: bash tests/gates/run-all.sh

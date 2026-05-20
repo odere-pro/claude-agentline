@@ -30,9 +30,8 @@ if ! have_cmd node; then
 fi
 
 ajv_pkg="$(repo_path node_modules/ajv/package.json)"
-formats_pkg="$(repo_path node_modules/ajv-formats/package.json)"
-if [ ! -f "${ajv_pkg}" ] || [ ! -f "${formats_pkg}" ]; then
-  skip_gate "ajv not installed; run \`npm ci\` to activate"
+if [ ! -f "${ajv_pkg}" ]; then
+  skip_gate "ajv not installed; run \`pnpm install\` to activate"
 fi
 
 work_dir="${GATES_TMP_DIR}/gate-11"
@@ -49,11 +48,12 @@ node \
   -e '
     import("node:fs/promises").then(async (fs) => {
       const { default: Ajv } = await import("ajv");
-      const { default: addFormats } = await import("ajv-formats");
       const [, schemaPath, reportPath, ...templates] = process.argv;
       const schema = JSON.parse(await fs.readFile(schemaPath, "utf8"));
+      // No shipped schema declares a "format" keyword today, so
+       // ajv-formats was a no-op here even when present. Drop the
+       // import so the gate runs in the lean runtime install footprint.
       const ajv = new Ajv({ allErrors: true, strict: false });
-      addFormats(ajv);
       let validate;
       try {
         validate = ajv.compile(schema);

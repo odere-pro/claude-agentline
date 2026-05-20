@@ -24,7 +24,7 @@ If you cannot use GitHub advisories, open an issue titled `security contact requ
 
 ## Trust model
 
-The trust model is documented end-to-end in `docs/plan/SPEC-v0.1.0.md`. Summary:
+The trust model in summary:
 
 - **stdin is trusted.** Statusline stdin is supplied by Claude Code, which is the only intended sender; the render path enforces the 256 KiB cap (§8.1) and rejects malformed JSON, and it does not fetch anything based on the payload.
 - **User config is trusted.** A user who edits their own user config (`${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`) or theme JSON can already run arbitrary code on their own machine; widget options that shell out (the `command` widget, §7.8.3) are accepted by design.
@@ -59,5 +59,5 @@ Behaviours that are documented features, not flaws:
 ## Disclosure
 
 - On fix, the advisory is published with a CVE if one was minted and a CHANGELOG entry crediting the reporter (opt-out available).
-- If the trust model changes as a result of the report, the spec section is updated in the same release and a short post-mortem lands under `docs/`.
+- If the trust model changes as a result of the report, the relevant docs are updated in the same release and a short post-mortem lands under `docs/`.
 - We will not silently patch in-scope reports; every advisory ships with a release that consumers can pin to.

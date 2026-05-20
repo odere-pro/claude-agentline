@@ -117,7 +117,7 @@ The reference repository fills these roles with one specific stack (TypeScript /
 
 ## CI provider
 
-**Capability needed.** Per-platform matrix (macOS × Linux × Windows × at least two runtime versions); OIDC-issued signing for releases; scheduled workflows for skew checks (pricing table, runtime versions).
+**Capability needed.** Per-platform matrix (macOS × Linux × Windows × at least two runtime versions); OIDC-issued signing for releases; scheduled workflows for runtime-version skew checks.
 
 **Constraints.**
 

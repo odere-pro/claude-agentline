@@ -12,6 +12,8 @@ set -Eeuo pipefail
 
 # shellcheck source=lib/common.sh
 . "$(dirname "$0")/lib/common.sh"
+# shellcheck source=lib/glossary.sh
+. "$(dirname "$0")/lib/glossary.sh"
 
 FAIL=0
 
@@ -22,18 +24,10 @@ fail_check() {
 
 # ── 1. Widget count in README.md matches the catalog ────────────────────────
 #
-# The catalog lives under src/widgets/catalog/<family>.ts (one file per family).
-# Each widget entry is a line shaped roughly like:
-#     <key>: entry(...
-# where <key> is either an unquoted bareword (e.g. `model`) or a quoted
-# kebab-case string (e.g. `"thinking-effort"`). The regex below matches both.
+# The catalog count comes from lib/glossary.sh so gate-22 (glossary
+# self-consistency) can share the same pipeline.
 
-catalog_count=$(
-  find "${REPO_ROOT}/src/widgets/catalog" -maxdepth 1 -name '*.ts' \
-    -not -name '*.test.ts' -not -name 'types.ts' -print0 2>/dev/null \
-    | xargs -0 grep -hcE '^[[:space:]]+("[a-z0-9-]+"|[a-z0-9_-]+):[[:space:]]*entry\(' 2>/dev/null \
-    | awk '{s+=$1} END {print s+0}'
-)
+catalog_count=$(catalog_total_count)
 
 readme_count=$(grep -oE '\*\*[0-9]+ widgets\*\*' "${REPO_ROOT}/README.md" \
   | head -1 | grep -oE '[0-9]+' || true)

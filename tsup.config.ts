@@ -11,7 +11,7 @@ export default defineConfig({
   //   - `keys` — keymap registry; consumed by gate-17 (keymap
   //              coverage) so the gate can verify §5.5 actions
   //              without depending on a CLI surface.
-  entry: { cli: "src/cli.ts", tui: "src/tui/main.ts", keys: "src/keys/index.ts" },
+  entry: { cli: "src/cli/cli.ts", tui: "src/tui/tui/main/main.ts", keys: "src/tui/keys/index.ts" },
   outDir: "dist",
   format: ["esm"],
   outExtension: () => ({ js: ".mjs" }),

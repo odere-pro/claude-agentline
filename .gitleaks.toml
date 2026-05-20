@@ -1,0 +1,35 @@
+title = "agentline gitleaks config"
+
+# Keep the full upstream ruleset (covers most cloud/provider tokens) and
+# layer on explicit per-service rules for the credentials that actually
+# matter to this project's threat model (npm publish + GitHub tokens).
+[extend]
+useDefault = true
+
+[[rules]]
+id = "npm-access-token"
+description = "npm access / automation token"
+regex = '''npm_[A-Za-z0-9]{36}'''
+keywords = ["npm_"]
+
+[[rules]]
+id = "github-pat-classic"
+description = "GitHub personal access token (classic)"
+regex = '''ghp_[0-9A-Za-z]{36}'''
+keywords = ["ghp_"]
+
+[[rules]]
+id = "github-pat-fine-grained"
+description = "GitHub fine-grained personal access token"
+regex = '''github_pat_[0-9A-Za-z_]{82}'''
+keywords = ["github_pat_"]
+
+[allowlist]
+description = "High-entropy strings that are not secrets"
+# Regex paths. The lockfile's integrity digests and the golden ANSI
+# fixtures are deterministic, non-secret, and trip generic entropy rules.
+paths = [
+  '''pnpm-lock\.yaml''',
+  '''tests/golden/.*''',
+  '''\.gitleaks\.toml''',
+]

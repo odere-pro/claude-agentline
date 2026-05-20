@@ -4,7 +4,7 @@ Complete flag-by-flag reference for every `agentline` subcommand. Intended as th
 
 Every subcommand accepts `-h` / `--help`. The default invocation (no subcommand, no flags) runs the render path.
 
-The top-level surface is intentionally small: **`install` · `uninstall` · `doctor` · `edit`**.
+The top-level surface is intentionally small: **`reset` · `uninstall` · `doctor` · `edit`**. `install` is still dispatched (npm/postinstall flows, the `--from-source` dev path, and existing scripts call it) but is hidden from `agentline --help`; `reset` is the user/agent-facing way to apply or re-apply defaults.
 
 ---
 
@@ -13,14 +13,15 @@ The top-level surface is intentionally small: **`install` · `uninstall` · `doc
 | Command                   | Purpose                                             | Writes to disk |
 | ------------------------- | --------------------------------------------------- | -------------- |
 | _(default)_               | Read stdin JSON, render statusline, write to stdout | no             |
-| [`install`](#install)     | Wire `statusLine` and install skill files           | **yes**        |
+| [`reset`](#reset)         | Restore defaults: reseed config + rewire statusLine | **yes**        |
 | [`uninstall`](#uninstall) | Undo install; restore pre-install state             | **yes**        |
-| [`doctor`](#doctor)       | Diagnose host wiring; `--fix` repairs D01–D04       | with `--fix`   |
+| [`config`](#config)       | Inspect/set scalar config keys (`refresh`)          | with `<value>` |
+| [`doctor`](#doctor)       | Diagnose host wiring; `--fix` repairs D01–D04, D09  | with `--fix`   |
 | [`edit`](#edit)           | Open the interactive TUI editor                     | with save      |
 | [`version`](#version)     | Print binary version                                | no             |
 | [`help`](#help)           | Print the top-level command list                    | no             |
 
-The `render` subcommand is retained for the golden-snapshot harness and doctor's D10 check but is not listed in `agentline --help`; see [`render` (hidden)](#render-hidden) below.
+The `render` subcommand is retained for the golden-snapshot harness and doctor's D08 check but is not listed in `agentline --help`; see [`render` (hidden)](#render-hidden) below. [`install`](#install-hidden) is similarly dispatched-but-hidden — kept for npm/postinstall and the `--from-source` dev flow; end users and agents should use [`reset`](#reset) instead.
 
 ---
 
@@ -35,17 +36,46 @@ Called by Claude Code on every prompt render. Claude Code pipes a JSON payload t
 
 **Stdin contract:** a single JSON object matching the Claude Code statusline contract. An empty payload (no bytes or whitespace-only) emits a one-line fallback and exits 1.
 
-**First-run hint:** when stderr is a TTY and no user config exists, agentline prints a one-time hint recommending `agentline install` to seed the default config. Suppress with `AGENTLINE_QUIET=1`.
+**First-run hint:** when stderr is a TTY and no user config exists, agentline prints a one-time hint recommending `agentline reset` to seed the default config. Suppress with `AGENTLINE_QUIET=1`.
 
 **Exit codes:** `0` success · `1` stdin parse error or empty stdin
 
 ---
 
-## install
+## reset
+
+```bash
+agentline reset [options]
+```
+
+Restores agentline to its shipped default state. This is the user/agent-facing entry point. It delegates to `scripts/install.sh --reset`: it **overwrites** the user config with `templates/default.config.json` (the bare installer preserves an existing config — that preservation is exactly the confusion `reset` removes), re-seeds themes and skills, and ensures `statusLine` is wired. On a host that was never set up, `reset` also performs the first-time wiring.
+
+| Flag            | Type | Default | Description                                                                |
+| --------------- | ---- | ------- | -------------------------------------------------------------------------- |
+| `--from-source` | flag | off     | `npm link` from the local checkout instead of installing from the registry |
+| `--force`       | flag | off     | Overwrite a `statusLine` value even when it does not point at agentline    |
+| `--dry-run`     | flag | off     | Print every action that would be taken; touch nothing                      |
+| `-h` / `--help` | flag | —       | Show command help                                                          |
+
+**Destructive scope:** only `config.json` is overwritten. Themes/skills you edited and any pre-install `statusLine` backup are preserved (the backup is first-writer-wins, so re-running `reset` never clobbers the genuine pre-install snapshot).
+
+**Examples:**
+
+```bash
+agentline reset                            # reseed config + rewire statusLine
+agentline reset --from-source              # dev checkout (npm link first)
+agentline reset --dry-run                  # preview without touching files
+```
+
+---
+
+## install (hidden)
 
 ```bash
 agentline install [options]
 ```
+
+> **Hidden from `agentline --help`.** Kept for npm/postinstall flows, the `--from-source` dev path, and existing scripts/docs. End users and agents should use [`reset`](#reset). The only behavioural difference: `install` **preserves** an existing user config, whereas `reset` overwrites it from the default template.
 
 Wires agentline into Claude Code. Delegates to `scripts/install.sh`; flags are forwarded 1-to-1. Idempotent — re-running on an already-installed host is a no-op.
 
@@ -117,34 +147,76 @@ agentline uninstall --dry-run    # preview actions
 
 ---
 
+## config
+
+```bash
+agentline config refresh [<seconds>]
+```
+
+Inspects or sets scalar top-level config keys. Today the only subject is
+the statusline refresh interval.
+
+**`agentline config refresh`** (no argument) prints the current effective
+`refreshInterval` — just the integer, followed by a newline.
+
+**`agentline config refresh <seconds>`** validates `<seconds>` as an
+integer `>= 0`, persists it to agentline's own config at
+`${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`, and re-syncs
+`~/.claude/settings.json`. `0` disables the timer: agentline omits
+`statusLine.refreshInterval` from `settings.json` so Claude Code reverts
+to event-driven updates only. `1`+ is written through to
+`statusLine.refreshInterval`, which re-runs the statusline command every
+N seconds in addition to event-driven updates. Default is `5`.
+
+If agentline's `statusLine` is not currently wired, the config value is
+still updated but no partial `statusLine` is created — the command prints
+a hint to run `agentline install`.
+
+| Argument    | Type | Default | Description                                                         |
+| ----------- | ---- | ------- | ------------------------------------------------------------------- |
+| `<seconds>` | int  | —       | Refresh interval in seconds; `>= 0`. `0` disables. Omit to read it. |
+
+**Exit codes:** `0` success · non-zero on an argument or validation
+error, with an `agentline config refresh: …` message.
+
+**Examples:**
+
+```bash
+agentline config refresh           # print the current value (e.g. 5)
+agentline config refresh 10        # refresh every 10 seconds
+agentline config refresh 0         # disable; event-driven updates only
+```
+
+---
+
 ## doctor
 
 ```bash
 agentline doctor [options]
 ```
 
-Runs ten health checks (D01–D10) against the host configuration. With `--fix`, auto-repairs D01–D04.
+Runs nine health checks (D01–D09) against the host configuration. With `--fix`, auto-repairs D01–D04 and D09.
 
-| Flag            | Type | Default | Description                                                                |
-| --------------- | ---- | ------- | -------------------------------------------------------------------------- |
-| `--fix`         | flag | off     | Attempt to repair D01–D04 (settings file, statusLine, user config, themes) |
-| `--json`        | flag | off     | Machine-readable JSON output; suppresses the human formatter               |
-| `--strict`      | flag | off     | Promote unresolved warnings/failures to non-zero exit (for CI gates)       |
-| `-h` / `--help` | flag | —       | Show command help                                                          |
+| Flag            | Type | Default | Description                                                                                           |
+| --------------- | ---- | ------- | ----------------------------------------------------------------------------------------------------- |
+| `--fix`         | flag | off     | Attempt to repair D01–D04 (settings file, statusLine, user config, themes) and D09 (refresh interval) |
+| `--json`        | flag | off     | Machine-readable JSON output; suppresses the human formatter                                          |
+| `--strict`      | flag | off     | Promote unresolved warnings/failures to non-zero exit (for CI gates)                                  |
+| `-h` / `--help` | flag | —       | Show command help                                                                                     |
 
 **Checks:**
 
-| ID  | What it checks                   | Auto-fixable |
-| --- | -------------------------------- | ------------ |
-| D01 | `~/.claude/settings.json` exists | yes          |
-| D02 | `statusLine` wired to agentline  | yes          |
-| D03 | User/project config valid schema | yes (seed)   |
-| D04 | Theme files present              | yes (copy)   |
-| D05 | Nerd Font available (Powerline)  | no           |
-| D06 | `git` on PATH                    | no           |
-| D07 | Pricing table age ≤ 90 days      | no           |
-| D08 | `CLAUDE_CONFIG_DIR` writable     | no           |
-| D10 | Render snapshot matches golden   | no           |
+| ID  | What it checks                              | Auto-fixable |
+| --- | ------------------------------------------- | ------------ |
+| D01 | `~/.claude/settings.json` exists            | yes          |
+| D02 | `statusLine` wired to agentline             | yes          |
+| D03 | User/project config valid schema            | yes (seed)   |
+| D04 | Theme files present                         | yes (copy)   |
+| D05 | `git` on PATH                               | no           |
+| D06 | Config directory writable                   | no           |
+| D07 | Update-check cache (read-only)              | no           |
+| D08 | Render snapshot matches golden              | no           |
+| D09 | `statusLine.refreshInterval` matches config | yes          |
 
 **Glyphs in output:** `[ok]` passed · `[!!]` warning · `[XX]` failed · `[fx]` fixed · `[--]` skipped
 
@@ -157,7 +229,7 @@ Runs ten health checks (D01–D10) against the host configuration. With `--fix`,
 
 ```bash
 agentline doctor                  # full health report
-agentline doctor --fix            # repair D01–D04
+agentline doctor --fix            # repair D01–D04 and D09
 agentline doctor --strict         # non-zero on any issue (CI)
 agentline doctor --json | jq .    # machine-readable
 ```
@@ -174,11 +246,10 @@ Opens the interactive TUI editor (Ink-based) — the primary surface for adding,
 
 The TUI editor is lazy-loaded (`dist/tui.mjs` is a separate bundle) so the render path stays light. Reads the active config on entry, writes atomically on save. Requires a TTY; non-interactive contexts produce no output.
 
-**Reset:** there is no dedicated reset command. Delete the user config and re-run `agentline install` — the installer reseeds `templates/default.config.json` when no existing config is present:
+**Reset:** [`agentline reset`](#reset) discards your edits and reseeds `templates/default.config.json`:
 
 ```bash
-rm "${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json"
-agentline install
+agentline reset
 ```
 
 ---
@@ -189,7 +260,7 @@ agentline install
 agentline render [options]
 ```
 
-Re-renders a recorded stdin payload from a file (instead of live stdin). Used by the golden-snapshot harness, doctor's D10 check, and CI pipelines. Produces byte-identical output to the default invocation given the same payload.
+Re-renders a recorded stdin payload from a file (instead of live stdin). Used by the golden-snapshot harness, doctor's D08 check, and CI pipelines. Produces byte-identical output to the default invocation given the same payload.
 
 Not listed in `agentline --help` — call it directly when you need fixture replay.
 
@@ -207,7 +278,7 @@ Not listed in `agentline --help` — call it directly when you need fixture repl
 
 **Without `--fixture`:** reads from stdin (same as the default invocation). The subcommand exists mainly to add `--frozen-clock` and `--config` overrides.
 
-**`--frozen-clock`:** ISO 8601 string (e.g. `2025-01-15T12:00:00.000Z`). Injected into the clock widget and any widget that depends on `Date.now()`. Required for golden-snapshot reproducibility across timezones and CI runners.
+**`--frozen-clock`:** ISO 8601 string (e.g. `2025-01-15T12:00:00.000Z`). Injected into the render clock so any widget that depends on the current time is deterministic. Required for golden-snapshot reproducibility across timezones and CI runners.
 
 **Exit codes:** `0` success · `1` fixture file not found or empty payload
 

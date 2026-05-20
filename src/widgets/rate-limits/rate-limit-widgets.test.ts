@@ -9,71 +9,38 @@
 
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_CONFIG } from "../../config/index.js";
-import type { StdinPayload } from "../../stdin/index.js";
-import { DEFAULT_PALETTE } from "../../theme/index.js";
-import type { TokensSnapshot, TranscriptEvent } from "../../tokens/index.js";
+import type { StdinPayload } from "../../core/stdin/index.js";
+import type { TokensSnapshot, TranscriptEvent } from "../../data/tokens/index.js";
 
-import { frozenClock } from "../clock.js";
-import type { WidgetContext } from "../context.js";
-import { WidgetRegistry } from "../registry.js";
+import {
+  frozenClock,
+  makeTokensSnapshot,
+  makeTranscriptEvent as ev,
+  makeWidgetContext,
+} from "../../test-helpers/index.js";
+import type { WidgetContext } from "../types.js";
+import { WidgetRegistry } from "../registry/registry.js";
 
-import { formatDuration, resolveDurationFormat } from "./duration.js";
-import { blockResetAtWidget, weeklyResetAtWidget } from "./reset-at.js";
-import { blockResetTimerWidget, weeklyResetTimerWidget } from "./timers.js";
-import { sessionUsageWidget, weeklyOpusUsageWidget, weeklySonnetUsageWidget } from "./usage.js";
+import { formatDuration, resolveDurationFormat } from "./duration/duration.js";
+import { currentSessionResetAtWidget, weeklyResetAtWidget } from "./reset-at.js";
+import { currentSessionResetTimerWidget, weekLimitTimerWidget } from "./timers.js";
+import { sessionWeeklyUsageWidget } from "./usage.js";
+import { resolveWeekReset } from "./week-reset.js";
 import { RATE_LIMIT_WIDGETS, registerRateLimitWidgets } from "./index.js";
-
-const baseStdin: StdinPayload = { raw: {}, truncated: false };
 
 const HOUR_MS = 60 * 60 * 1000;
 /** Pinned wall-clock for snapshot defaults so the tests stay deterministic. */
 const FIXED_NOW_MS = Date.parse("2026-05-01T03:00:00Z");
 
-const ev = (overrides: Partial<TranscriptEvent>): TranscriptEvent => ({
-  timestamp: 0,
-  inputTokens: 0,
-  outputTokens: 0,
-  cachedTokens: 0,
-  compaction: false,
-  ...overrides,
-});
+const makeSnapshot = (events: TranscriptEvent[], overrides: Partial<TokensSnapshot> = {}) =>
+  makeTokensSnapshot(events, { now: FIXED_NOW_MS, ...overrides });
 
-function makeSnapshot(
-  events: TranscriptEvent[],
-  overrides: Partial<TokensSnapshot> = {},
-): TokensSnapshot {
-  const now = overrides.now ?? FIXED_NOW_MS;
-  const blockAnchor =
-    overrides.blockAnchor !== undefined ? overrides.blockAnchor : (events[0]?.timestamp ?? now);
-  const sessionStart =
-    overrides.sessionStart !== undefined ? overrides.sessionStart : (events[0]?.timestamp ?? now);
-  return Object.freeze({
-    events: Object.freeze(events) as readonly TranscriptEvent[],
-    now,
-    sessionStart,
-    blockAnchor,
-    contextWindow: 200_000,
-    pricingVersion: "test",
+const makeCtx = (snapshot: TokensSnapshot | undefined, overrides: Partial<WidgetContext> = {}) =>
+  makeWidgetContext({
+    tokens: snapshot,
+    clock: frozenClock(new Date(snapshot?.now ?? FIXED_NOW_MS)),
     ...overrides,
   });
-}
-
-function makeCtx(
-  snapshot: TokensSnapshot | undefined,
-  overrides: Partial<WidgetContext> = {},
-): WidgetContext {
-  const now = snapshot?.now ?? FIXED_NOW_MS;
-  return {
-    stdin: baseStdin,
-    config: DEFAULT_CONFIG,
-    theme: null,
-    clock: frozenClock(new Date(now)),
-    env: {},
-    tokens: snapshot,
-    ...overrides,
-  };
-}
 
 describe("formatDuration", () => {
   it("short format omits hour segment when zero", () => {
@@ -107,293 +74,170 @@ describe("formatDuration", () => {
   });
 });
 
+describe("resolveWeekReset", () => {
+  it("returns undefined when neither option is a valid integer", () => {
+    expect(resolveWeekReset({})).toBeUndefined();
+    expect(resolveWeekReset({ resetWeekday: 7, resetHour: 24 })).toBeUndefined();
+    expect(resolveWeekReset({ resetWeekday: -1 })).toBeUndefined();
+    expect(resolveWeekReset({ resetHour: 2.5 })).toBeUndefined();
+  });
+
+  it("passes through valid weekday/hour and drops invalid siblings", () => {
+    expect(resolveWeekReset({ resetWeekday: 4, resetHour: 12 })).toEqual({ weekday: 4, hour: 12 });
+    expect(resolveWeekReset({ resetWeekday: 0 })).toEqual({ weekday: 0 });
+    expect(resolveWeekReset({ resetWeekday: 99, resetHour: 9 })).toEqual({ hour: 9 });
+  });
+});
+
 describe("registerRateLimitWidgets", () => {
   it("ships exactly five widgets in sorted order", () => {
     const r = new WidgetRegistry();
     registerRateLimitWidgets(r);
-    expect(r.size()).toBe(7);
+    expect(r.size()).toBe(5);
     expect(r.list()).toEqual([
-      "block-reset-at",
-      "block-reset-timer",
-      "session-usage",
-      "weekly-opus-usage",
+      "current-session-reset-at",
+      "current-session-reset-timer",
+      "session-weekly-usage",
+      "week-limit-timer",
       "weekly-reset-at",
-      "weekly-reset-timer",
-      "weekly-sonnet-usage",
     ]);
     expect(Object.isFrozen(RATE_LIMIT_WIDGETS)).toBe(true);
-    expect(RATE_LIMIT_WIDGETS).toHaveLength(7);
+    expect(RATE_LIMIT_WIDGETS).toHaveLength(5);
   });
 });
 
-describe("session-usage widget", () => {
-  const NOW = Date.parse("2026-05-01T03:00:00Z");
-  const recent = (overrides: Partial<TranscriptEvent>): TranscriptEvent =>
-    ev({ timestamp: NOW - 30 * 60 * 1000, ...overrides });
+type RateLimits = NonNullable<StdinPayload["rateLimits"]>;
 
-  it("hides when no snapshot is supplied", () => {
-    const cell = sessionUsageWidget.render(makeCtx(undefined), {
+function stdinWith(rateLimits?: RateLimits, raw: Record<string, unknown> = {}): StdinPayload {
+  return { raw, truncated: false, ...(rateLimits ? { rateLimits } : {}) };
+}
+
+describe("session-weekly-usage widget", () => {
+  it("hides when the host ships no rate_limits block", () => {
+    const cell = sessionWeeklyUsageWidget.render(makeCtx(undefined, { stdin: stdinWith() }), {
       options: {},
       rawValue: false,
     });
     expect(cell.hidden).toBe(true);
   });
 
-  it("falls back to formatCount when no limit is set", () => {
-    const snap = makeSnapshot([recent({ inputTokens: 50_000, outputTokens: 5_000 })], {
-      now: NOW,
-    });
-    const cell = sessionUsageWidget.render(makeCtx(snap), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("55k");
+  it("hides when neither window carries a percentage", () => {
+    const cell = sessionWeeklyUsageWidget.render(
+      makeCtx(undefined, { stdin: stdinWith({ fiveHour: {}, sevenDay: {} }) }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.hidden).toBe(true);
   });
 
-  it("renders a percent against the configured limit", () => {
-    const snap = makeSnapshot([recent({ inputTokens: 60_000 })], { now: NOW });
-    const cell = sessionUsageWidget.render(makeCtx(snap), {
-      options: { limit: 100_000 },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("60%");
+  it("renders both windows as '52% · weekly 33%'", () => {
+    const cell = sessionWeeklyUsageWidget.render(
+      makeCtx(undefined, {
+        stdin: stdinWith({
+          fiveHour: { usedPercentage: 52 },
+          sevenDay: { usedPercentage: 33 },
+        }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toBe("52% · weekly 33%");
   });
 
-  it("colour grades via tokens-high at 90%", () => {
-    const snap = makeSnapshot([recent({ inputTokens: 90_000 })], { now: NOW });
-    const cell = sessionUsageWidget.render(makeCtx(snap), {
-      options: { limit: 100_000 },
-      rawValue: false,
-    });
-    expect(cell.fg).toBe(DEFAULT_PALETTE["tokens-high"]);
+  it("shows the session half alone when the weekly window is absent", () => {
+    const cell = sessionWeeklyUsageWidget.render(
+      makeCtx(undefined, { stdin: stdinWith({ fiveHour: { usedPercentage: 52 } }) }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toBe("52%");
   });
 
-  it("colour grades via tokens-low below 60%", () => {
-    const snap = makeSnapshot([recent({ inputTokens: 30_000 })], { now: NOW });
-    const cell = sessionUsageWidget.render(makeCtx(snap), {
-      options: { limit: 100_000 },
-      rawValue: false,
-    });
-    expect(cell.fg).toBe(DEFAULT_PALETTE["tokens-low"]);
+  it("shows the weekly half alone when the session window is absent", () => {
+    const cell = sessionWeeklyUsageWidget.render(
+      makeCtx(undefined, { stdin: stdinWith({ sevenDay: { usedPercentage: 33 } }) }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toBe("weekly 33%");
   });
 
-  it("renders a 12-cell bar by default for display=bar", () => {
-    const snap = makeSnapshot([recent({ inputTokens: 50_000 })], { now: NOW });
-    const cell = sessionUsageWidget.render(makeCtx(snap), {
-      options: { limit: 100_000, display: "bar" },
-      rawValue: false,
-    });
-    expect(cell.text.length).toBe(12);
-    expect(cell.text.startsWith("█")).toBe(true);
+  it("emits no state-signal colour so the rate-limits family accent applies", () => {
+    const cell = sessionWeeklyUsageWidget.render(
+      makeCtx(undefined, {
+        stdin: stdinWith({
+          fiveHour: { usedPercentage: 90 },
+          sevenDay: { usedPercentage: 80 },
+        }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.fg).toBeUndefined();
+    expect(cell.signal).toBeUndefined();
   });
 
-  it("renders a short bar at 6 cells", () => {
-    const snap = makeSnapshot([recent({ inputTokens: 50_000 })], { now: NOW });
-    const cell = sessionUsageWidget.render(makeCtx(snap), {
-      options: { limit: 100_000, display: "short-bar" },
-      rawValue: false,
-    });
-    expect(cell.text.length).toBe(6);
+  it("prefixes the configured plan name once", () => {
+    const cell = sessionWeeklyUsageWidget.render(
+      makeCtx(undefined, {
+        stdin: stdinWith({
+          fiveHour: { usedPercentage: 52 },
+          sevenDay: { usedPercentage: 33 },
+        }),
+      }),
+      { options: { plan: "Max" }, rawValue: false },
+    );
+    expect(cell.text).toBe("Max 52% · weekly 33%");
   });
 
-  it("filters events to the current 5-h block", () => {
-    const now = Date.parse("2026-05-01T10:00:00Z");
-    const oldEv = ev({
-      timestamp: Date.parse("2026-05-01T03:00:00Z"),
-      inputTokens: 999_999,
-    });
-    const recentEv = ev({
-      timestamp: Date.parse("2026-05-01T09:30:00Z"),
-      inputTokens: 1_000,
-    });
-    const snap = makeSnapshot([oldEv, recentEv], { now, blockAnchor: oldEv.timestamp });
-    const cell = sessionUsageWidget.render(makeCtx(snap), {
-      options: { limit: 10_000 },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("10%");
+  it("a host-provided raw.plan wins over the configured plan", () => {
+    const cell = sessionWeeklyUsageWidget.render(
+      makeCtx(undefined, {
+        stdin: stdinWith(
+          { fiveHour: { usedPercentage: 52 }, sevenDay: { usedPercentage: 33 } },
+          { plan: "Team" },
+        ),
+      }),
+      { options: { plan: "Max" }, rawValue: false },
+    );
+    expect(cell.text).toBe("Team 52% · weekly 33%");
   });
 
-  it("rawValue suppresses label", () => {
-    const snap = makeSnapshot([recent({ inputTokens: 1_000 })], { now: NOW });
-    const cell = sessionUsageWidget.render(makeCtx(snap), {
-      options: { label: "block ", limit: 10_000 },
-      rawValue: true,
-    });
-    expect(cell.text).toBe("10%");
+  it("clamps an over-budget percentage at 999", () => {
+    const cell = sessionWeeklyUsageWidget.render(
+      makeCtx(undefined, {
+        stdin: stdinWith({
+          fiveHour: { usedPercentage: 4000 },
+          sevenDay: { usedPercentage: 33 },
+        }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toBe("999% · weekly 33%");
+  });
+
+  it("rawValue strips the label and plan prefix", () => {
+    const cell = sessionWeeklyUsageWidget.render(
+      makeCtx(undefined, {
+        stdin: stdinWith({
+          fiveHour: { usedPercentage: 52 },
+          sevenDay: { usedPercentage: 33 },
+        }),
+      }),
+      { options: { label: "usage ", plan: "Max" }, rawValue: true },
+    );
+    expect(cell.text).toBe("52% · weekly 33%");
   });
 });
 
-describe("weekly-sonnet-usage / weekly-opus-usage widgets", () => {
-  /*
-   * Anchor inside the week so any "older than 7 days" timestamps fall
-   * before the local-week boundary regardless of which weekday `NOW`
-   * lands on.
-   */
-  const NOW = Date.parse("2026-05-08T12:00:00Z"); // Friday
-  const sameWeek = (overrides: Partial<TranscriptEvent>): TranscriptEvent =>
-    ev({ timestamp: NOW - 2 * HOUR_MS, ...overrides });
-  /*
-   * 30 days back — always before the local-week boundary no matter
-   * which day the test runs.
-   */
-  const lastMonth = (overrides: Partial<TranscriptEvent>): TranscriptEvent =>
-    ev({ timestamp: NOW - 30 * 24 * HOUR_MS, ...overrides });
-
-  it("hides when no snapshot is supplied", () => {
-    const sonnetCell = weeklySonnetUsageWidget.render(makeCtx(undefined), {
-      options: {},
-      rawValue: false,
-    });
-    const opusCell = weeklyOpusUsageWidget.render(makeCtx(undefined), {
-      options: {},
-      rawValue: false,
-    });
-    expect(sonnetCell.hidden).toBe(true);
-    expect(opusCell.hidden).toBe(true);
-  });
-
-  it("sums only Sonnet events for the Sonnet widget", () => {
-    const snap = makeSnapshot(
-      [
-        sameWeek({ model: "claude-sonnet-4-6", inputTokens: 30_000 }),
-        sameWeek({ model: "claude-opus-4-7", inputTokens: 999_999 }),
-        sameWeek({ model: "claude-haiku-4-5", inputTokens: 999_999 }),
-      ],
-      { now: NOW },
-    );
-    const cell = weeklySonnetUsageWidget.render(makeCtx(snap), {
-      options: { limit: 100_000 },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("30%");
-  });
-
-  it("sums only Opus events for the Opus widget", () => {
-    const snap = makeSnapshot(
-      [
-        sameWeek({ model: "claude-sonnet-4-6", inputTokens: 999_999 }),
-        sameWeek({ model: "claude-opus-4-7", inputTokens: 45_000 }),
-        sameWeek({ model: "claude-opus-4-7[1m]", inputTokens: 5_000 }),
-      ],
-      { now: NOW },
-    );
-    const cell = weeklyOpusUsageWidget.render(makeCtx(snap), {
-      options: { limit: 100_000 },
-      rawValue: false,
-    });
-    /*
-     * 45k + 5k = 50k against 100k = 50%. The `[1m]` variant is still
-     * an Opus family member via prefix match.
-     */
-    expect(cell.text).toBe("50%");
-  });
-
-  it("excludes events outside the current local week", () => {
-    const snap = makeSnapshot(
-      [
-        lastMonth({ model: "claude-sonnet-4-6", inputTokens: 999_999 }),
-        sameWeek({ model: "claude-sonnet-4-6", inputTokens: 10_000 }),
-      ],
-      { now: NOW },
-    );
-    const cell = weeklySonnetUsageWidget.render(makeCtx(snap), {
-      options: { limit: 100_000 },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("10%");
-  });
-
-  it("skips events with no model id", () => {
-    const snap = makeSnapshot(
-      [
-        sameWeek({ inputTokens: 999_999 }), // no model → unattributable
-        sameWeek({ model: "claude-sonnet-4-6", inputTokens: 20_000 }),
-      ],
-      { now: NOW },
-    );
-    const cell = weeklySonnetUsageWidget.render(makeCtx(snap), {
-      options: { limit: 100_000 },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("20%");
-  });
-
-  it("falls back to formatCount when no limit is set", () => {
-    const snap = makeSnapshot(
-      [sameWeek({ model: "claude-sonnet-4-6", inputTokens: 1_500, outputTokens: 500 })],
-      { now: NOW },
-    );
-    const cell = weeklySonnetUsageWidget.render(makeCtx(snap), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("2k");
-  });
-
-  it("renders a 12-cell bar for display=bar", () => {
-    const snap = makeSnapshot([sameWeek({ model: "claude-opus-4-7", inputTokens: 50_000 })], {
-      now: NOW,
-    });
-    const cell = weeklyOpusUsageWidget.render(makeCtx(snap), {
-      options: { limit: 100_000, display: "bar" },
-      rawValue: false,
-    });
-    expect(cell.text.length).toBe(12);
-    expect(cell.text.startsWith("█")).toBe(true);
-  });
-
-  it("rawValue suppresses label", () => {
-    const snap = makeSnapshot([sameWeek({ model: "claude-opus-4-7", inputTokens: 1_000 })], {
-      now: NOW,
-    });
-    const cell = weeklyOpusUsageWidget.render(makeCtx(snap), {
-      options: { label: "opus ", limit: 10_000 },
-      rawValue: true,
-    });
-    expect(cell.text).toBe("10%");
-  });
-
-  it("Sonnet and Opus families do not bleed across each other", () => {
-    /*
-     * Pure cross-check: a snapshot containing only Sonnet events
-     * returns zero (0%) for the Opus widget, and vice versa.
-     */
-    const sonnetOnly = makeSnapshot(
-      [sameWeek({ model: "claude-sonnet-4-6", inputTokens: 10_000 })],
-      { now: NOW },
-    );
-    const opusOnly = makeSnapshot([sameWeek({ model: "claude-opus-4-7", inputTokens: 10_000 })], {
-      now: NOW,
-    });
-    expect(
-      weeklyOpusUsageWidget.render(makeCtx(sonnetOnly), {
-        options: { limit: 100_000 },
-        rawValue: false,
-      }).text,
-    ).toBe("0%");
-    expect(
-      weeklySonnetUsageWidget.render(makeCtx(opusOnly), {
-        options: { limit: 100_000 },
-        rawValue: false,
-      }).text,
-    ).toBe("0%");
-  });
-});
-
-describe("block-reset-timer widget", () => {
-  it("default label says 'resets '", () => {
+describe("current-session-reset-timer widget", () => {
+  it("default label says 'reset in ' with the compact minute-aware format", () => {
     const anchor = Date.parse("2026-05-01T00:00:00Z");
     const now = anchor + 4 * HOUR_MS;
     const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
       now,
       blockAnchor: anchor,
     });
-    const cell = blockResetTimerWidget.render(makeCtx(snap), {
+    const cell = currentSessionResetTimerWidget.render(makeCtx(snap), {
       options: {},
       rawValue: false,
     });
-    expect(cell.text).toBe("resets 1h0m");
+    expect(cell.text).toBe("reset in 1h 0m");
   });
 
   it("rawValue strips the default label", () => {
@@ -403,11 +247,11 @@ describe("block-reset-timer widget", () => {
       now,
       blockAnchor: anchor,
     });
-    const cell = blockResetTimerWidget.render(makeCtx(snap), {
+    const cell = currentSessionResetTimerWidget.render(makeCtx(snap), {
       options: {},
       rawValue: true,
     });
-    expect(cell.text).toBe("1h0m");
+    expect(cell.text).toBe("1h 0m");
   });
 
   it("clock format renders HH:MM:SS", () => {
@@ -417,15 +261,15 @@ describe("block-reset-timer widget", () => {
       now,
       blockAnchor: anchor,
     });
-    const cell = blockResetTimerWidget.render(makeCtx(snap), {
+    const cell = currentSessionResetTimerWidget.render(makeCtx(snap), {
       options: { format: "clock" },
       rawValue: false,
     });
-    expect(cell.text).toBe("resets 01:00:00");
+    expect(cell.text).toBe("reset in 01:00:00");
   });
 
   it("falls back to current time when no snapshot is present", () => {
-    const cell = blockResetTimerWidget.render(makeCtx(undefined), {
+    const cell = currentSessionResetTimerWidget.render(makeCtx(undefined), {
       options: { format: "short" },
       rawValue: true,
     });
@@ -439,7 +283,7 @@ describe("block-reset-timer widget", () => {
       now,
       blockAnchor: anchor,
     });
-    const cell = blockResetTimerWidget.render(makeCtx(snap), {
+    const cell = currentSessionResetTimerWidget.render(makeCtx(snap), {
       options: { label: "reset in: " },
       rawValue: false,
     });
@@ -447,52 +291,62 @@ describe("block-reset-timer widget", () => {
   });
 });
 
-describe("weekly-reset-timer widget", () => {
-  it("counts down to next local Monday 00:00", () => {
+describe("week-limit-timer widget", () => {
+  it("counts down to next local Monday 00:00 by default", () => {
     const monday = Date.parse("2026-04-27T00:00:00Z");
     const tuesday = monday + 24 * HOUR_MS;
     const snap = makeSnapshot([], { now: tuesday });
-    const cell = weeklyResetTimerWidget.render(makeCtx(snap), {
+    const cell = weekLimitTimerWidget.render(makeCtx(snap), {
       options: { format: "long" },
       rawValue: false,
     });
     /*
-     * Locale-dependent (the spec defines week boundary as local Monday
+     * Locale-dependent (the default week boundary is local Monday
      * 00:00). The widget delegates to weekStart which uses the local
      * calendar, so we only assert the label + non-empty body shape.
      */
-    expect(cell.text.startsWith("week resets ")).toBe(true);
+    expect(cell.text.startsWith("reset in ")).toBe(true);
     expect(/\d+(h \d+m| ?m)/.test(cell.text)).toBe(true);
   });
 
   it("works without a snapshot (clock-only)", () => {
-    const cell = weeklyResetTimerWidget.render(makeCtx(undefined), {
+    const cell = weekLimitTimerWidget.render(makeCtx(undefined), {
       options: {},
       rawValue: false,
     });
-    expect(cell.text.startsWith("week resets ")).toBe(true);
+    expect(cell.text.startsWith("reset in ")).toBe(true);
+  });
+
+  it("a configured reset anchor still renders a bounded countdown", () => {
+    const snap = makeSnapshot([], { now: Date.parse("2026-04-28T12:00:00Z") });
+    const cell = weekLimitTimerWidget.render(makeCtx(snap), {
+      options: { resetWeekday: 4, resetHour: 12, format: "compact" },
+      rawValue: true,
+    });
+    // Within (0, 7d] of the configured anchor → matches the compact shape.
+    expect(/^(\d+d \d+h \d+m|\d+h \d+m|\d+m)$/.test(cell.text)).toBe(true);
   });
 
   it("rawValue strips the default label", () => {
     const snap = makeSnapshot([], { now: Date.parse("2026-04-28T12:00:00Z") });
-    const cell = weeklyResetTimerWidget.render(makeCtx(snap), {
+    const cell = weekLimitTimerWidget.render(makeCtx(snap), {
       options: {},
       rawValue: true,
     });
-    expect(cell.text.startsWith("week resets ")).toBe(false);
+    expect(cell.text.startsWith("reset in ")).toBe(false);
     expect(/\d/.test(cell.text)).toBe(true);
   });
 });
 
-describe("block-reset-at widget", () => {
-  it("renders the wall-clock of the next block reset with default label", () => {
+describe("current-session-reset-at widget", () => {
+  it("renders the wall-clock of the next session reset with default label", () => {
     const anchor = Date.parse("2026-05-01T13:00:00Z");
     const now = anchor + HOUR_MS;
     const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
       now,
       blockAnchor: anchor,
     });
-    const cell = blockResetAtWidget.render(makeCtx(snap), {
+    const cell = currentSessionResetAtWidget.render(makeCtx(snap), {
       options: { tz: "UTC" },
       rawValue: false,
     });
@@ -507,7 +361,7 @@ describe("block-reset-at widget", () => {
       now,
       blockAnchor: anchor,
     });
-    const cell = blockResetAtWidget.render(makeCtx(snap), {
+    const cell = currentSessionResetAtWidget.render(makeCtx(snap), {
       options: { tz: "UTC" },
       rawValue: true,
     });
@@ -521,7 +375,7 @@ describe("block-reset-at widget", () => {
       now,
       blockAnchor: anchor,
     });
-    const cell = blockResetAtWidget.render(makeCtx(snap), {
+    const cell = currentSessionResetAtWidget.render(makeCtx(snap), {
       options: { format: "h:mma", tz: "UTC" },
       rawValue: true,
     });
@@ -529,14 +383,8 @@ describe("block-reset-at widget", () => {
   });
 
   it("falls back to now + 5h when no snapshot is present", () => {
-    const ctx = {
-      stdin: baseStdin,
-      config: DEFAULT_CONFIG,
-      theme: null,
-      clock: frozenClock("2026-05-01T13:00:00Z"),
-      env: {},
-    } as WidgetContext;
-    const cell = blockResetAtWidget.render(ctx, {
+    const ctx = makeWidgetContext({ clock: frozenClock("2026-05-01T13:00:00Z") });
+    const cell = currentSessionResetAtWidget.render(ctx, {
       options: { tz: "UTC" },
       rawValue: true,
     });
@@ -550,7 +398,7 @@ describe("block-reset-at widget", () => {
       now,
       blockAnchor: anchor,
     });
-    const cell = blockResetAtWidget.render(makeCtx(snap), {
+    const cell = currentSessionResetAtWidget.render(makeCtx(snap), {
       options: { label: "next ", tz: "UTC" },
       rawValue: false,
     });
@@ -568,23 +416,28 @@ describe("weekly-reset-at widget", () => {
     expect(cell.text.startsWith("week resets ")).toBe(true);
   });
 
-  it("emits a HH:mm clock body after the label", () => {
+  it("emits a 'EEE D HH:mm' body after the label by default", () => {
     const snap = makeSnapshot([], { now: Date.parse("2026-04-28T12:00:00Z") });
     const cell = weeklyResetAtWidget.render(makeCtx(snap), {
       options: {},
       rawValue: false,
     });
-    expect(cell.text).toMatch(/^week resets \d{2}:\d{2}$/);
+    expect(cell.text).toMatch(/^week resets \w{3} \d{1,2} \d{2}:\d{2}$/);
+  });
+
+  it("a configured Thursday reset lands on Thursday", () => {
+    // weekStart works on the local calendar; assert the weekday only so
+    // the test is server-timezone- and DST-independent.
+    const snap = makeSnapshot([], { now: Date.parse("2026-04-28T12:00:00Z") });
+    const cell = weeklyResetAtWidget.render(makeCtx(snap), {
+      options: { resetWeekday: 4, resetHour: 12, format: "EEE" },
+      rawValue: true,
+    });
+    expect(cell.text).toBe("Thu");
   });
 
   it("works without a snapshot (clock-only)", () => {
-    const ctx = {
-      stdin: baseStdin,
-      config: DEFAULT_CONFIG,
-      theme: null,
-      clock: frozenClock("2026-04-28T12:00:00Z"),
-      env: {},
-    } as WidgetContext;
+    const ctx = makeWidgetContext({ clock: frozenClock("2026-04-28T12:00:00Z") });
     const cell = weeklyResetAtWidget.render(ctx, { options: {}, rawValue: false });
     expect(cell.text.startsWith("week resets ")).toBe(true);
   });
@@ -595,7 +448,109 @@ describe("weekly-reset-at widget", () => {
       options: {},
       rawValue: true,
     });
+    // rawValue gives the raw formatted string without label — matches "EEE D HH:mm"
     expect(cell.text.startsWith("week resets ")).toBe(false);
-    expect(cell.text).toMatch(/^\d{2}:\d{2}$/);
+    expect(cell.text).toMatch(/^\w{3} \d{1,2} \d{2}:\d{2}$/);
+  });
+});
+
+describe("reset widgets — host rate_limits.resets_at", () => {
+  const NOW_SEC = Math.floor(FIXED_NOW_MS / 1000);
+
+  it("current-session-reset-timer counts down to the host five_hour.resets_at", () => {
+    const cell = currentSessionResetTimerWidget.render(
+      makeCtx(undefined, {
+        stdin: stdinWith({ fiveHour: { resetsAt: NOW_SEC + 119 * 60 } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    // Matches the host's "/usage" — e.g. "Resets in 1 hr 59 min".
+    expect(cell.text).toBe("reset in 1h 59m");
+  });
+
+  it("current-session-reset-timer prefers the host value over the block anchor", () => {
+    const anchor = FIXED_NOW_MS - 4 * HOUR_MS;
+    const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
+      now: FIXED_NOW_MS,
+      blockAnchor: anchor,
+    });
+    // Block-anchor math alone would render "1h 0m"; the host says 30m.
+    const cell = currentSessionResetTimerWidget.render(
+      makeCtx(snap, { stdin: stdinWith({ fiveHour: { resetsAt: NOW_SEC + 30 * 60 } }) }),
+      { options: {}, rawValue: true },
+    );
+    expect(cell.text).toBe("30m");
+  });
+
+  it("current-session-reset-timer clamps a stale (past) host reset to 0m", () => {
+    const cell = currentSessionResetTimerWidget.render(
+      makeCtx(undefined, {
+        stdin: stdinWith({ fiveHour: { resetsAt: NOW_SEC - 600 } }),
+      }),
+      { options: {}, rawValue: true },
+    );
+    expect(cell.text).toBe("0m");
+  });
+
+  it("current-session-reset-timer falls back to the block anchor when rate_limits is absent", () => {
+    const anchor = Date.parse("2026-05-01T00:00:00Z");
+    const snap = makeSnapshot([ev({ timestamp: anchor, inputTokens: 1 })], {
+      now: anchor + 4 * HOUR_MS,
+      blockAnchor: anchor,
+    });
+    const cell = currentSessionResetTimerWidget.render(makeCtx(snap, { stdin: stdinWith() }), {
+      options: {},
+      rawValue: true,
+    });
+    expect(cell.text).toBe("1h 0m");
+  });
+
+  it("week-limit-timer counts down to the host seven_day.resets_at", () => {
+    const cell = weekLimitTimerWidget.render(
+      makeCtx(undefined, {
+        stdin: stdinWith({ sevenDay: { resetsAt: NOW_SEC + 2 * 86400 + 3600 } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toBe("reset in 2d 1h 0m");
+  });
+
+  it("current-session-reset-at renders the host five_hour wall-clock", () => {
+    const resetsAt = Math.floor(Date.parse("2026-05-01T18:30:00Z") / 1000);
+    const cell = currentSessionResetAtWidget.render(
+      makeCtx(undefined, { stdin: stdinWith({ fiveHour: { resetsAt } }) }),
+      { options: { tz: "UTC" }, rawValue: false },
+    );
+    expect(cell.text).toBe("resets 18:30");
+  });
+
+  it("current-session-reset-at renders a past host reset verbatim (no clamp)", () => {
+    const cell = currentSessionResetAtWidget.render(
+      makeCtx(undefined, {
+        stdin: stdinWith({ fiveHour: { resetsAt: NOW_SEC - 3600 } }),
+      }),
+      { options: { tz: "UTC" }, rawValue: true },
+    );
+    // FIXED_NOW_MS is 03:00 UTC → one hour earlier is 02:00, shown as-is.
+    expect(cell.text).toBe("02:00");
+  });
+
+  it("weekly-reset-at renders the host seven_day wall-clock", () => {
+    const resetsAt = Math.floor(Date.parse("2026-05-07T12:00:00Z") / 1000);
+    const cell = weeklyResetAtWidget.render(
+      makeCtx(undefined, { stdin: stdinWith({ sevenDay: { resetsAt } }) }),
+      { options: { tz: "UTC" }, rawValue: true },
+    );
+    // 2026-05-07 is a Thursday — matches the host's "Resets Thu 12:00 PM".
+    expect(cell.text).toBe("Thu 7 12:00");
+  });
+
+  it("weekly-reset-at: the host value wins over configured resetWeekday/resetHour", () => {
+    const resetsAt = Math.floor(Date.parse("2026-05-07T12:00:00Z") / 1000);
+    const cell = weeklyResetAtWidget.render(
+      makeCtx(undefined, { stdin: stdinWith({ sevenDay: { resetsAt } }) }),
+      { options: { resetWeekday: 0, resetHour: 0, tz: "UTC" }, rawValue: true },
+    );
+    expect(cell.text).toBe("Thu 7 12:00");
   });
 });

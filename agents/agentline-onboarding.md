@@ -26,7 +26,7 @@ Five small, reversible things — each tracked in the install manifest so `agent
 2. **Seeded the user config** at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`. An existing config is preserved; only a fresh tree gets the default template.
 3. **Seeded shipped themes** into the user themes directory.
 4. **Copied agentline skill files** (`agentline*.md`) into `~/.claude/agents/` so this skill (and its siblings) are available from inside Claude Code sessions.
-5. **Wired the statusline** by setting `statusLine` in `~/.claude/settings.json` to point at the agentline bin. A prior `statusLine` value is backed up before the swap.
+5. **Wired the statusline** by setting `statusLine` in `~/.claude/settings.json` to point at the agentline bin, with a default `refreshInterval` of `5` seconds so time-varying widgets keep ticking while the session is idle. A prior `statusLine` value is backed up before the swap.
 
 Nothing was changed in your project directory — agentline's state lives globally.
 
@@ -62,6 +62,13 @@ There is no per-project config layer; a `.agentline.json` in the current directo
 
 You'll see this reflected in the editor's save message: `saved → <path> (reloads on next prompt)`. No daemon, no signal, no restart needed.
 
+Install also wires a **timed refresh** so the bin re-runs every few
+seconds even when you're not sending prompts — that keeps session
+duration, countdowns, and token totals from looking frozen while idle.
+The default is `5` seconds; change it with `agentline config refresh
+<seconds>`, or pass `0` to disable the timer and fall back to
+event-driven updates only.
+
 ---
 
 ## Step 3 — open the editor and try a change
@@ -73,7 +80,7 @@ agentline edit
 Opens a TUI editor with a **live preview** at the top:
 
 - The preview is the editing surface — the cursor moves through the rendered statusline itself, with each row ending in a navigable `+ add widget` cell.
-- If you've used Claude Code in this session, the preview shows real values from the last render — your branch, your token counts. If you haven't yet, every widget renders as its own type name (`tokens-input`, `git-branch`, …) so you can still see the layout.
+- If you've used Claude Code in this session, the preview shows real values from the last render — your branch, your token counts. If you haven't yet, every widget renders as its own type name (`tokens`, `git-branch`, …) so you can still see the layout.
 - Common verbs: `a` add, `r` replace, `u` update variant, `d` delete, `S` save, `q`/`Esc` quit. The two-line footer at the bottom of the editor lists every binding for the current scope.
 
 Save with `S`; the on-disk config updates atomically; the new render fires on Claude Code's next prompt.
@@ -112,16 +119,17 @@ The prior `statusLine` was backed up at install time. Uninstall restores it from
 
 ## Quick reference
 
-| Want to                     | Do                                                            |
-| --------------------------- | ------------------------------------------------------------- |
-| See if it's working         | `agentline doctor`                                            |
-| Repair host wiring          | `agentline doctor --fix`                                      |
-| Open the interactive editor | `agentline edit`                                              |
-| Reset config to the default | Delete the user config, then re-run `agentline install`       |
-| Edit config by hand         | `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`       |
-| Remove agentline            | `agentline uninstall` (add `--purge` to wipe config + themes) |
+| Want to                     | Do                                                             |
+| --------------------------- | -------------------------------------------------------------- |
+| See if it's working         | `agentline doctor`                                             |
+| Repair host wiring          | `agentline doctor --fix`                                       |
+| Open the interactive editor | `agentline edit`                                               |
+| Change the refresh interval | `agentline config refresh <seconds>` (`0` disables; default 5) |
+| Reset config to the default | `agentline reset` (overwrites config, re-seeds, rewires)       |
+| Edit config by hand         | `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`        |
+| Remove agentline            | `agentline uninstall` (add `--purge` to wipe config + themes)  |
 
-Top-level CLI surface is intentionally small: `render` (default, fed stdin by Claude Code) · `edit` · `install` · `uninstall` · `doctor`. See `agentline --help`.
+Top-level CLI surface is intentionally small: `render` (default, fed stdin by Claude Code) · `edit` · `reset` · `uninstall` · `doctor`. See `agentline --help`. (`agentline install` still works but is hidden — `reset` is the entry point.)
 
 For deeper tasks, route through the focused sub-skills:
 

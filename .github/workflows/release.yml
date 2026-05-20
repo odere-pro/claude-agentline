@@ -4,8 +4,9 @@
 # Triggers on pushes of annotated `v*` tags. The job:
 #   1. Refuses to publish unless the tag (`vX.Y.Z`) matches
 #      `package.json#version` (spec §12.2 — tag ↔ package version).
-#   2. Re-runs the full local quality bar: `npm ci`, build, tests, and
-#      `tests/gates/run-all.sh`. A failure aborts before any publish.
+#   2. Re-runs the full local quality bar: `pnpm install --frozen-lockfile`,
+#      build, lint, typecheck, tests, and `tests/gates/run-all.sh`. A
+#      failure aborts before any publish.
 #   3. Packs the canonical tarball, computes `SHA256SUMS`.
 #   4. `npm publish --provenance`. OIDC-based provenance attestation is
 #      issued by GitHub to npm; no manual key handling.
@@ -71,20 +72,25 @@ jobs:
           fi
           echo "tag matches package.json version: ${tag}"
 
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+      - name: Install dependencies (pnpm)
+        # corepack ships with Node ≥20 and pins pnpm via package.json's
+        # `packageManager`. The shim persists across job steps, so the
+        # `npm publish` step's `prepublishOnly` (pnpm run build) still works.
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
 
       - name: Build
-        run: npm run build
+        run: pnpm run build
 
       - name: Lint
-        run: npm run lint
+        run: pnpm run lint
 
       - name: Type-check
-        run: npm run typecheck
+        run: pnpm run typecheck
 
       - name: Test
-        run: npm test
+        run: pnpm test
 
       - name: Run gates
         run: bash tests/gates/run-all.sh

@@ -27,7 +27,7 @@ There is **no per-project config layer**. A `.<product>.json` in the cwd is sile
 
 ## F3 — Lines are ordered widget lists
 
-A line is an ordered list of widgets. A widget is one of: built-in (see `08-feature-catalogue`) or `separator`. Each line MUST contain at least one widget. Lines render top-to-bottom in declaration order.
+A line is an ordered list of widgets. A widget is a built-in type (see `08-feature-catalogue`). Each line MUST contain at least one widget. Lines render top-to-bottom in declaration order.
 
 ## F4 — Per-widget style flags
 
@@ -55,7 +55,7 @@ Session widgets read every field the host stdin contract exposes. When a field i
 
 ## F10 — Interactive editor
 
-A TUI editor verb lets users add, reorder, recolour, and toggle widgets with live preview. Persistence is atomic (write-temp + fsync-equivalent + rename). The editor and its framework MUST NOT be loaded by the render path.
+A TUI editor verb lets users add, reorder, recolour, and toggle widgets with live preview. The preview is a configuration surface: it shows every configured widget at all times (a widget with no current data appears as a dim identity chip, never filtered out), and it resolves real data in a waterfall — the stdin cache, else the newest discovered transcript, else a mock session — so it is never a bare type-name placeholder. Persistence is atomic (write-temp + fsync-equivalent + rename). The editor and its framework MUST NOT be loaded by the render path.
 
 ## F11 — Doctor diagnostics
 

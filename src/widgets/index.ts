@@ -3,40 +3,20 @@
  *
  * Re-exports the contract types (`Cell`, `WidgetDef`, …), the registry, the
  * dispatcher, and the catalogue lookup helpers. `registerAllBuiltins` wires
- * every built-in family (session, tokens, context, rate-limits, git, time,
- * custom) into a given registry; the render pipeline calls it once during
- * boot against `defaultRegistry()`.
+ * every built-in family (session, tokens, context, rate-limits, git) into a
+ * given registry; the render pipeline calls it once during boot against
+ * `defaultRegistry()`.
  */
 
-export { HIDDEN_CELL, isHidden, plainCell, type Cell, type MergeMode } from "./cell.js";
-export { realClock, frozenClock, type Clock } from "./clock.js";
-export { type WidgetContext } from "./context.js";
-export { defineWidget, type WidgetDef, type WidgetRender, type WidgetSettings } from "./widget.js";
-export {
-  WidgetRegistry,
-  WidgetTypeAlreadyRegistered,
-  WidgetTypeNotRegistered,
-  defaultRegistry,
-  resetDefaultRegistry,
-} from "./registry.js";
-export { renderWidget, WidgetTypeMissingError, type RenderWidgetOptions } from "./render-widget.js";
-export {
-  WIDGET_CATALOG,
-  WIDGET_FAMILIES,
-  widgetMeta,
-  type WidgetFamily,
-  type WidgetMeta,
-  type WidgetMetaEntry,
-} from "./catalog.js";
+export { WidgetRegistry, defaultRegistry } from "./registry/registry.js";
+export { WIDGET_FAMILIES, type WidgetMetaEntry } from "./families/catalog.js";
 
-import type { WidgetRegistry } from "./registry.js";
+import type { WidgetRegistry } from "./registry/registry.js";
 import { registerSessionWidgets } from "./session/index.js";
 import { registerTokenWidgets } from "./tokens/index.js";
 import { registerContextWidgets } from "./context/index.js";
 import { registerRateLimitWidgets } from "./rate-limits/index.js";
 import { registerGitWidgets } from "./git/index.js";
-import { registerTimeWidgets } from "./time/index.js";
-import { registerCustomWidgets } from "./custom/index.js";
 
 /** Register every built-in widget family against the given registry. */
 export function registerAllBuiltins(registry: WidgetRegistry): void {
@@ -45,6 +25,4 @@ export function registerAllBuiltins(registry: WidgetRegistry): void {
   registerContextWidgets(registry);
   registerRateLimitWidgets(registry);
   registerGitWidgets(registry);
-  registerTimeWidgets(registry);
-  registerCustomWidgets(registry);
 }

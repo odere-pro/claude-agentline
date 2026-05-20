@@ -1,0 +1,1 @@
+- Add editor undo/redo via a bounded (64-entry) Memento history wrapping the reducer; Ctrl+Z undoes the last layout change, Ctrl+Y (and Ctrl+Shift+Z) redoes. Picker scope is a no-op so the discriminated-union state stays well-typed.

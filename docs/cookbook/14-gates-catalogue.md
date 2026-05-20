@@ -12,7 +12,7 @@ Exit contract for every gate: `0` pass, `1` fail, `2` skipped (with a printed re
 ## gate-01 · doctor exits 0 on a healthy host
 
 - **Probes.** `<bin> doctor` on a CI host that has been freshly bootstrapped.
-- **Pass criterion.** Exit `0`; report shows D01–D10 all green or "not applicable".
+- **Pass criterion.** Exit `0`; report shows D01–D08 all green or "not applicable".
 - **Debugging.** Run `<bin> doctor --json` locally and inspect each check's status. Often this fails because the host config dir env var is missing in CI; gate the dependency explicitly.
 
 ## gate-02 · no absolute paths in shipped artefacts
@@ -118,6 +118,10 @@ These gates may be added per-implementation; the IDs are kept stable.
 
 - **Probes.** Glossary terms used inside source comments use the canonical spelling.
 - **Pass criterion.** No mismatches.
+
+## gate-22 · _retired_
+
+Slot retired with the pricing/cost feature. There is no embedded pricing table to keep fresh; token widgets cover counts and speed only. Per the stable-ID rule, the slot is not reused.
 
 ---
 

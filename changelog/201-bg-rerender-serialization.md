@@ -1,0 +1,1 @@
+- Serialise the post-save background re-render so rapid saves can no longer land their `last-render.json` writes out of order, and pull the POSIX signal-exit offset out of the SIGTERM math into a named `SIGNAL_EXIT_OFFSET` constant.

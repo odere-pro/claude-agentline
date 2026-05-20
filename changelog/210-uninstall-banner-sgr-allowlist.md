@@ -1,0 +1,1 @@
+- Filter the `agentline uninstall` "last statusline" banner through an SGR allow-list so a tampered `state/last-render.json` cannot pivot the banner into a vehicle for arbitrary terminal control sequences (OSC 52 clipboard writes, cursor relocations, title spoofs, BEL noise); colour / bold / italic / reset codes the render path actually emits are preserved byte-for-byte.

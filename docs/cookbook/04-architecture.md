@@ -29,7 +29,7 @@ host stdin (JSON) ──┼──> parser ──> resolvers ──> widgets ─�
 
 ## The hot-path / cold-path boundary
 
-This is the single most load-bearing invariant in the architecture: **the render hot path MUST NOT import any TUI framework, font installer, or other heavy module.**
+This is the single most load-bearing invariant in the architecture: **the render hot path MUST NOT import any TUI framework or other heavy module.**
 
 - **Render hot path.** Anything reachable from `<bin>` invoked with no args (or `<bin> render`, `<bin> render --fixture`). Synchronous, I/O-frugal, deterministic. Must hit the cold-start budget (`03 · N2`).
 - **Editor cold path.** Anything reachable only from `<bin> edit` (and similar interactive verbs). May import the TUI framework, React-style reconciler, debouncer, watcher. Loaded lazily — never imported transitively from the render path.
@@ -60,11 +60,11 @@ Stages 6–11 are pure functions of their inputs; only stage 5 touches the files
 
 Three on-disk state surfaces live under a single product state directory. Each is versioned independently of the binary version.
 
-| Surface       | Contents                                                                                             | Lifecycle                                           |
-| ------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Stdin cache   | Last full stdin payload, JSON. Used by `<bin> start` to preview offline.                             | Overwritten on every real render.                   |
-| Render cache  | Last successful stdout bytes. Used by `<bin> start` to redisplay without reloading.                  | Overwritten on every successful render.             |
-| Config backup | The user's prior `statusLine` host setting (with checksum) so `uninstall` can restore byte-for-byte. | Written by `install`; consumed once by `uninstall`. |
+| Surface       | Contents                                                                                                                                                                                         | Lifecycle                                           |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------- |
+| Stdin cache   | Last full stdin payload, JSON. Written by the render path; the preferred (not sole) source for the TUI live preview, which falls back to transcript discovery, then a mock session, when absent. | Overwritten on every real render.                   |
+| Render cache  | Last successful stdout bytes.                                                                                                                                                                    | Overwritten on every successful render.             |
+| Config backup | The user's prior `statusLine` host setting (with checksum) so `uninstall` can restore byte-for-byte.                                                                                             | Written by `install`; consumed once by `uninstall`. |
 
 All three writes go through the atomic-write helper (`05 · Atomic file write`).
 

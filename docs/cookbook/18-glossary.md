@@ -36,7 +36,7 @@ Wall-clock time from process start to the first byte on stdout. Subject to budge
 
 ### `cold path`
 
-The set of modules reachable only from non-render verbs (the editor, the font installer, the watcher mode init). MUST NOT be imported transitively from the render path.
+The set of modules reachable only from non-render verbs (the editor, the watcher mode init). MUST NOT be imported transitively from the render path.
 
 ### `hot path`
 
@@ -56,7 +56,7 @@ The unit produced by a widget. Carries `text`, optional `fg`/`bg`/`bold`/`italic
 
 ### `family`
 
-A logical grouping of related widgets (session, tokens, context, rate-limits, git, time, custom). Surfaced in the editor's three-step picker as the first step.
+A logical grouping of related widgets (session, tokens, context, rate-limits, git). Surfaced in the editor's three-step picker as the first step.
 
 ### `reset axis`
 
@@ -116,11 +116,11 @@ The TUI verb (`<bin> edit`). Cold path; lazy-imports the TUI framework.
 
 ### `picker`
 
-The editor's three-step widget-chooser scope: family → widget → variant. The third step is skipped for widgets without catalogued variants.
+The editor's widget-chooser scope. Default view is the group browser (pick a family → in-family list with a live filter). Pressing `/` opens a flat search overlay across every catalogued widget with a family badge per row. Widgets with catalogued variants drill into a final variant step; others commit immediately. Already-placed widgets are hidden in every view.
 
 ### `variant`
 
-A pre-configured combination of a widget's options that the catalogue advertises (e.g. `tokens-total reset:session`, `tokens-total reset:block`). Surfaced as the third step of the picker.
+A pre-configured combination of a widget's options that the catalogue advertises (e.g. `tokens reset:session`, `tokens reset:block`). Surfaced as the picker's variant step.
 
 ### `scope`
 

@@ -7,7 +7,7 @@ statusline itself (which is non-interactive output).
 The editor draws a two-line footer at the bottom showing every binding
 for the current scope (motion on line 1, actions on line 2). The
 authoritative list of default bindings lives in
-[`src/keys/bindings.ts`](../src/keys/bindings.ts).
+[`src/tui/keys/bindings/bindings.ts`](../src/tui/keys/bindings/bindings.ts).
 
 ## Modes
 
@@ -18,18 +18,26 @@ The editor has two modes; a binding's **scope** says where it applies
   slots are always rendered; the selected widget is highlighted in
   place; each row ends in a navigable **+ add widget** cell that the
   cursor walks onto and confirms to insert.
-- **picker** — a three-step drill-down opened by `a` (add), `r`
-  (replace), <kbd>↵</kbd> on the +add cell, or `u` (update — same as
-  step 3 only). Step 1 picks the group (`session`, `git`, …); step 2
-  picks the widget within that group, with a live filter and a per-row
-  mini-preview; step 3 picks a _variant_ (the same widget rendered a
-  different way, e.g. `skills` as count / list / last). Widgets with no
-  variants in the catalogue skip step 3 and commit straight from step 2.
-  <kbd>Esc</kbd> steps back one level (cancels at step 1).
+- **picker** — a drill-down opened by `a` (add), `r` (replace),
+  <kbd>↵</kbd> on the +add cell, or `u` (update — same as the variant
+  step only). The default view is the **group browser**: pick a family
+  (`session`, `git`, …) and Enter drills into an in-family widget list
+  with a live filter and per-row mini-preview. From either the group
+  browser or the in-family list, press <kbd>/</kbd> to open the
+  **flat-search overlay** — a single list across every catalogued
+  widget with a family badge on each row. Already-placed widgets are
+  hidden in every view. A widget with catalogued _variants_ (the same
+  widget rendered a different way, e.g. `current-session-reset-timer`
+  as short / long / clock) drills into a variant step; widgets
+  without variants commit immediately. <kbd>Esc</kbd> steps back one
+  level — from the variant step to wherever the widget was picked
+  (without committing), from the in-family list back to the group
+  browser, from search back to the group browser, and from the group
+  browser back to edit mode.
 
 Per-widget flags (`visible`, `mergeWithPrev`, `useRawValue`) are set
-by editing the config file directly. The TUI no longer ships a
-per-widget options sheet.
+by editing the config file directly. There is no per-widget options
+sheet in the editor.
 
 ## Default bindings
 
@@ -44,12 +52,14 @@ per-widget options sheet.
 | <kbd>r</kbd>                | edit   | replace the selected widget (opens the picker)                   |
 | <kbd>u</kbd>                | edit   | update — pick a different variant of the selected widget         |
 | <kbd>d</kbd>                | edit   | delete the selected widget                                       |
-| <kbd>g</kbd>                | edit   | toggle Nerd Font glyphs on / off (top-level `config.glyphs`)     |
 | <kbd>S</kbd>                | edit   | save (Ctrl+S also works)                                         |
-| _(type)_                    | picker | filter widgets by name or type (step 2)                          |
+| <kbd>Ctrl+Z</kbd>           | edit   | undo the last layout change                                      |
+| <kbd>Ctrl+Y</kbd>           | edit   | redo (Ctrl+Shift+Z also works)                                   |
+| _(type)_                    | picker | filter widgets by name or type                                   |
+| <kbd>/</kbd>                | picker | open the flat search overlay from the group browser              |
 | <kbd>↑</kbd> <kbd>↓</kbd>   | picker | highlight a row                                                  |
 | <kbd>↵</kbd>                | picker | confirm the highlighted row and advance / commit                 |
-| <kbd>Esc</kbd>              | picker | step back one level (cancels at step 1)                          |
+| <kbd>Esc</kbd>              | picker | step back one level (cancels at the group view)                  |
 | <kbd>q</kbd>                | any    | quit (prompts if there are unsaved changes)                      |
 
 The editor always shows three rows so up/down navigation has somewhere
@@ -62,7 +72,7 @@ cell.
 
 The `keymap` block in your config maps an **action id** to a key
 binding. Action ids are listed in
-[`src/keys/bindings.ts`](../src/keys/bindings.ts); an example:
+[`src/tui/keys/bindings/bindings.ts`](../src/tui/keys/bindings/bindings.ts); an example:
 
 ```json
 "keymap": {

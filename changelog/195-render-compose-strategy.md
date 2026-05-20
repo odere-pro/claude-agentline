@@ -1,0 +1,1 @@
+- Refactor render compose pipeline: extract `ComposeStrategy` with named `plainCompose` / `powerlineCompose` strategies selected via `pickComposeStrategy`; `composeLines` is now a thin facade. Behaviour and goldens unchanged.

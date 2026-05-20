@@ -3,13 +3,12 @@
 #
 # Idempotent. Verifies Node >=20. In order:
 #   1. install or link `@agentline/cli` (npm i -g, or `npm link` with --from-source)
-#   2. seed the user config from templates/default.config.json (no overwrite)
+#   2. seed the user config from templates/default.config.json
+#      (no overwrite; --reset forces the overwrite for `agentline reset`)
 #   3. seed themes/ to the same config dir
 #   4. copy agents/agentline*.md skill files to $HOME/.claude/agents/
 #   5. wire `statusLine` into $HOME/.claude/settings.json (always global)
 #   6. write install manifest to state dir
-#   7. probe the host for a Nerd Font and write the sentinel read by the
-#      TUI editor's glyph toggle
 # All filesystem writes go through atomic write-temp + rename.
 #
 # Spec: §10. Bash 3.2 friendly; no associative arrays / mapfile / Bash-4 features.
@@ -25,13 +24,14 @@ al_setup
 DRY_RUN=0
 FORCE=0
 FROM_SOURCE=0
+RESET=0
 
 usage() {
   cat <<'EOF'
 agentline install — wires @agentline/cli into Claude Code's statusline.
 
 Usage:
-  scripts/install.sh [--dry-run] [--force] [--from-source]
+  scripts/install.sh [--dry-run] [--force] [--from-source] [--reset]
 
 Options:
   --dry-run       Print the actions that would be taken; touch nothing.
@@ -39,6 +39,9 @@ Options:
                   already point at agentline.
   --from-source   `npm link` from the current checkout instead of installing
                   the published tarball. Intended for repo contributors.
+  --reset         Overwrite an existing user config with the default
+                  template (the no-flag run preserves it). Used by
+                  `agentline reset`.
   -h, --help      Show this help.
 
 Wires statusLine into $HOME/.claude/settings.json. Honours $CLAUDE_CONFIG_DIR.
@@ -52,6 +55,7 @@ while [ "$#" -gt 0 ]; do
     --dry-run) DRY_RUN=1 ;;
     --force) FORCE=1 ;;
     --from-source) FROM_SOURCE=1 ;;
+    --reset) RESET=1 ;;
     -h | --help)
       usage
       exit 0
@@ -149,13 +153,18 @@ install_or_link_package() {
   if [ "${FROM_SOURCE}" = "1" ]; then
     al_log_info "installing from source via \`npm link\` in ${REPO_ROOT}"
     if [ "${DRY_RUN}" = "1" ]; then
-      al_log_info "would run: (cd ${REPO_ROOT} && npm install --no-audit --no-fund && npm run build && npm link)"
+      al_log_info "would run: (cd ${REPO_ROOT} && corepack pnpm install --frozen-lockfile && corepack pnpm run build && npm link)"
       return 0
     fi
+    # Install/build with the pinned pnpm (packageManager field). Running
+    # `npm install` over a pnpm-managed node_modules tree crashes npm's
+    # ideal-tree builder ("Cannot read properties of null (reading
+    # 'matches')"); `npm link` itself is pnpm-tree-safe, so keep it for
+    # the global symlink (pnpm's global link needs `pnpm setup` first).
     (
       cd "${REPO_ROOT}"
-      npm install --no-audit --no-fund
-      npm run build
+      corepack pnpm install --frozen-lockfile
+      corepack pnpm run build
       npm link
     )
     # Verify the link actually landed.
@@ -193,8 +202,12 @@ seed_user_config() {
     return 0
   fi
   if [ -f "${config_file}" ]; then
-    al_log_info "user config already exists; preserving"
-    return 0
+    if [ "${RESET}" = "1" ]; then
+      al_log_info "reset: overwriting user config with default template"
+    else
+      al_log_info "user config already exists; preserving"
+      return 0
+    fi
   fi
   atomic_copy_via_node "${__template}" "${config_file}"
   [ "${DRY_RUN}" = "1" ] || al_log_info "seeded ${config_file}"
@@ -387,7 +400,7 @@ JS
 merge_statusline_into_settings() {
   __file="$1"
   __cmd="$2"
-  AL_FILE="${__file}" AL_CMD="${__cmd}" al_node - <<'JS'
+  AL_FILE="${__file}" AL_CMD="${__cmd}" AL_CONFIG_FILE="${config_file}" al_node - <<'JS'
 const fs = require('node:fs');
 const file = process.env.AL_FILE;
 const cmd = process.env.AL_CMD;
@@ -397,7 +410,21 @@ try {
   const t = JSON.parse(raw);
   if (t && typeof t === 'object' && !Array.isArray(t)) parsed = t;
 } catch { /* fresh object */ }
-parsed.statusLine = { type: 'command', command: cmd, padding: 0 };
+/*
+ * The wall-clock refresh cadence is owned by the agentline config
+ * (seeded in Step 2, so it exists by now). 0 / missing / invalid means
+ * "event-driven only" — omit the field so Claude Code falls back to its
+ * default; >= 1 is written through to statusLine.refreshInterval.
+ */
+let refresh = 0;
+try {
+  const cfg = JSON.parse(fs.readFileSync(process.env.AL_CONFIG_FILE, 'utf8'));
+  const n = cfg && cfg.refreshInterval;
+  if (Number.isInteger(n) && n >= 0) refresh = n;
+} catch { /* default: omit */ }
+const statusLine = { type: 'command', command: cmd, padding: 0 };
+if (refresh >= 1) statusLine.refreshInterval = refresh;
+parsed.statusLine = statusLine;
 process.stdout.write(JSON.stringify(parsed, null, 2) + '\n');
 JS
 }
@@ -466,55 +493,6 @@ JS
   al_log_info "wrote manifest: ${manifest_file}"
 }
 
-# Step 7: probe the host for a Nerd Font. If absent, write the sentinel so
-# the TUI editor disables the glyph toggle, and force `glyphs: "off"` in
-# the user config so the rendered statusline doesn't ship tofu boxes.
-probe_nerd_font() {
-  if [ "${DRY_RUN}" = "1" ]; then
-    al_log_info "would probe host for a Nerd Font (skipped in --dry-run)"
-    return 0
-  fi
-  AL_STATE_DIR="${AL_STATE_DIR}" \
-  al_node - <<'JS'
-const fs = require('node:fs');
-const path = require('node:path');
-const { execFileSync } = require('node:child_process');
-
-function detect() {
-  try {
-    if (process.platform === 'linux') {
-      const out = execFileSync('fc-list', [], { timeout: 2500, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-      return /nerd font/i.test(out);
-    }
-    if (process.platform === 'darwin') {
-      const out = execFileSync('system_profiler', ['SPFontsDataType'], { timeout: 5000, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-      return /nerd font/i.test(out);
-    }
-  } catch { /* fall through */ }
-  return false;
-}
-
-const stateDir = process.env.AL_STATE_DIR;
-const available = detect();
-
-// Sentinel — read by the TUI editor to clamp glyphs="off" on startup
-// and refuse the `g` toggle so a user can't paint tofu boxes onto a
-// statusline rendered by a host that has no Nerd Font installed.
-fs.mkdirSync(stateDir, { recursive: true, mode: 0o700 });
-const sentinel = path.join(stateDir, 'nerd-font.json');
-const tmp = sentinel + '.tmp.' + process.pid;
-fs.writeFileSync(tmp, JSON.stringify({ available, checkedAt: new Date().toISOString() }, null, 2) + '\n', { mode: 0o600 });
-fs.renameSync(tmp, sentinel);
-
-if (!available) {
-  process.stderr.write('[agentline] no Nerd Font detected — TUI editor will lock glyphs to "off"\n');
-  process.stderr.write('[agentline] install a Nerd Font (https://www.nerdfonts.com) and re-run `agentline install` to re-enable\n');
-} else {
-  process.stderr.write('[agentline] Nerd Font detected — glyph toggle remains available\n');
-}
-JS
-}
-
 # ---------------- run ----------------
 
 install_or_link_package
@@ -523,6 +501,5 @@ seed_themes
 seed_skills
 wire_statusline "${settings_file}" "${settings_backup}"
 write_manifest
-probe_nerd_font
 
 al_log_info "install complete"

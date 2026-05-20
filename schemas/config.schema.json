@@ -2,19 +2,13 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/odere-pro/claude-agentline/schemas/config.schema.json",
   "title": "agentline configuration",
-  "description": "Schema for agentline statusline configuration. See docs/plan/SPEC-v0.1.0.md §4.",
+  "description": "Schema for agentline statusline configuration.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string" },
     "version": { "type": "integer", "minimum": 1, "default": 1 },
     "theme": { "type": ["string", "null"], "default": null },
-    "glyphs": {
-      "type": "string",
-      "enum": ["off", "nerd-font"],
-      "default": "off",
-      "description": "Top-level glyph mode. 'nerd-font' prepends each widget's catalogue glyph to its rendered text (Nerd Font required); 'off' keeps the bytes the goldens depend on."
-    },
     "lines": {
       "type": "array",
       "minItems": 1,
@@ -27,6 +21,32 @@
       "type": "object",
       "additionalProperties": { "type": "string" },
       "default": {}
+    },
+    "language": {
+      "type": "string",
+      "minLength": 1,
+      "default": "en"
+    },
+    "refreshInterval": { "type": "integer", "minimum": 0, "default": 5 },
+    "families": {
+      "type": "object",
+      "additionalProperties": false,
+      "default": {},
+      "properties": {
+        "session": { "$ref": "#/definitions/familyIdentity" },
+        "tokens": { "$ref": "#/definitions/familyIdentity" },
+        "context": { "$ref": "#/definitions/familyIdentity" },
+        "rate-limits": { "$ref": "#/definitions/familyIdentity" },
+        "git": { "$ref": "#/definitions/familyIdentity" }
+      }
+    },
+    "translations": {
+      "type": "object",
+      "default": {},
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "type": "string" }
+      }
     }
   },
   "required": ["version"],
@@ -63,6 +83,15 @@
     },
     "colourOrNull": {
       "oneOf": [{ "$ref": "#/definitions/colour" }, { "type": "null" }]
+    },
+    "familyIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "glyph": { "type": "string" },
+        "glyphAscii": { "type": "string" },
+        "colour": { "$ref": "#/definitions/colour" }
+      }
     },
     "stringOrStringArray": {
       "oneOf": [
@@ -109,6 +138,7 @@
       "properties": {
         "padding": { "type": "integer", "minimum": 0, "default": 1 },
         "separator": { "type": "string", "default": "|" },
+        "valueSeparator": { "type": "string", "default": "·" },
         "inheritColors": { "type": "boolean", "default": false },
         "bold": { "type": "boolean", "default": false },
         "italic": { "type": "boolean", "default": false },

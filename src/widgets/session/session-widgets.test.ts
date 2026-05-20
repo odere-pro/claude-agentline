@@ -2,8 +2,8 @@
  * Consolidated test surface for every widget in `src/widgets/session/`
  * (PR E1 — test rationalisation).
  *
- * Per-widget files (account-email / model / session-id / session-name /
- * skills / thinking-effort / version) were folded in here because each
+ * Per-widget files (account-email / model / plan / session-id /
+ * thinking-effort / version) were folded in here because each
  * one repeated the same render contract — render a Cell, hide on no
  * data, honour `options.label` + `rawValue` — and re-tested helpers
  * already covered downstream.
@@ -14,21 +14,20 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_CONFIG } from "../../config/index.js";
-import type { ResolvedSessionFields } from "../../session/index.js";
-import type { StdinPayload } from "../../stdin/index.js";
-import { DEFAULT_PALETTE } from "../../theme/index.js";
+import { DEFAULT_CONFIG } from "../../data/config/index.js";
+import type { ResolvedSessionFields } from "../../data/session/index.js";
+import type { StdinPayload } from "../../core/stdin/index.js";
+import { DEFAULT_PALETTE } from "../../data/theme/index.js";
 
-import { frozenClock } from "../clock.js";
-import type { WidgetContext } from "../context.js";
-import { WidgetRegistry } from "../registry.js";
-import { renderWidget } from "../render-widget.js";
+import { frozenClock } from "../clock/clock.js";
+import type { WidgetContext } from "../types.js";
+import { WidgetRegistry } from "../registry/registry.js";
+import { renderWidget } from "../render-widget/render-widget.js";
 
 import { accountEmailWidget, maskEmail } from "./account-email.js";
 import { modelDisplayName, modelWidget } from "./model.js";
+import { planWidget } from "./plan.js";
 import { sessionIdWidget } from "./session-id.js";
-import { sessionNameWidget } from "./session-name.js";
-import { skillsWidget } from "./skills.js";
 import { thinkingEffortWidget } from "./thinking-effort.js";
 import { versionWidget } from "./version.js";
 import { registerSessionWidgets, SESSION_WIDGETS } from "./index.js";
@@ -55,14 +54,13 @@ const registry = new WidgetRegistry();
 registerSessionWidgets(registry);
 
 describe("registerSessionWidgets", () => {
-  it("registers exactly the 7 session widgets", () => {
-    expect(registry.size()).toBe(7);
+  it("registers exactly the 6 session widgets", () => {
+    expect(registry.size()).toBe(6);
     expect(registry.list()).toEqual([
       "account-email",
       "model",
+      "plan",
       "session-id",
-      "session-name",
-      "skills",
       "thinking-effort",
       "version",
     ]);
@@ -70,7 +68,7 @@ describe("registerSessionWidgets", () => {
 
   it("SESSION_WIDGETS is a frozen array", () => {
     expect(Object.isFrozen(SESSION_WIDGETS)).toBe(true);
-    expect(SESSION_WIDGETS).toHaveLength(7);
+    expect(SESSION_WIDGETS).toHaveLength(6);
   });
 });
 
@@ -203,41 +201,39 @@ describe("version widget", () => {
 
 describe("session-id widget", () => {
   it("truncates to 8 chars by default", () => {
-    const cell = sessionIdWidget.render(
-      makeCtx({ sessionId: "abcdef0123456789" }),
-      { options: {}, rawValue: false },
-    );
+    const cell = sessionIdWidget.render(makeCtx({ sessionId: "abcdef0123456789" }), {
+      options: {},
+      rawValue: false,
+    });
     expect(cell.text).toBe("abcdef01");
   });
 
   it("respects options.length", () => {
-    const cell = sessionIdWidget.render(
-      makeCtx({ sessionId: "abcdef0123456789" }),
-      { options: { length: 4 }, rawValue: false },
-    );
+    const cell = sessionIdWidget.render(makeCtx({ sessionId: "abcdef0123456789" }), {
+      options: { length: 4 },
+      rawValue: false,
+    });
     expect(cell.text).toBe("abcd");
   });
 
   it("ignores invalid options.length (negative)", () => {
-    const cell = sessionIdWidget.render(
-      makeCtx({ sessionId: "abcdef0123456789" }),
-      { options: { length: -1 }, rawValue: false },
-    );
+    const cell = sessionIdWidget.render(makeCtx({ sessionId: "abcdef0123456789" }), {
+      options: { length: -1 },
+      rawValue: false,
+    });
     expect(cell.text).toBe("abcdef01");
   });
 
   it("ignores invalid options.length (zero)", () => {
-    const cell = sessionIdWidget.render(
-      makeCtx({ sessionId: "abcdef0123456789" }),
-      { options: { length: 0 }, rawValue: false },
-    );
+    const cell = sessionIdWidget.render(makeCtx({ sessionId: "abcdef0123456789" }), {
+      options: { length: 0 },
+      rawValue: false,
+    });
     expect(cell.text).toBe("abcdef01");
   });
 
   it("hides when sessionId missing", () => {
-    expect(
-      sessionIdWidget.render(makeCtx(), { options: {}, rawValue: false }).hidden,
-    ).toBe(true);
+    expect(sessionIdWidget.render(makeCtx(), { options: {}, rawValue: false }).hidden).toBe(true);
   });
 
   it("falls back to stdin.sessionId when session.sessionId is absent", () => {
@@ -259,53 +255,6 @@ describe("session-id widget", () => {
     });
     expect(withLabel.text).toBe("id:abcdef01");
     expect(noLabel.text).toBe("abcdef01");
-  });
-});
-
-// ── session-name ─────────────────────────────────────────────────────────
-
-describe("session-name widget", () => {
-  it("renders when present", () => {
-    const cell = sessionNameWidget.render(makeCtx({ sessionName: "ship-it" }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("ship-it");
-  });
-
-  it("hides when empty / missing", () => {
-    expect(
-      sessionNameWidget.render(makeCtx(), { options: {}, rawValue: false }).hidden,
-    ).toBe(true);
-  });
-
-  it("falls back to stdin.sessionName when session.sessionName is absent", () => {
-    const cell = sessionNameWidget.render(makeCtx({}, { sessionName: "stdin-session" }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("stdin-session");
-  });
-
-  it("prefers session.sessionName over stdin.sessionName", () => {
-    const cell = sessionNameWidget.render(
-      makeCtx({ sessionName: "session-name" }, { sessionName: "stdin-name" }),
-      { options: {}, rawValue: false },
-    );
-    expect(cell.text).toBe("session-name");
-  });
-
-  it("honours options.label and rawValue strips it", () => {
-    const withLabel = sessionNameWidget.render(makeCtx({ sessionName: "ship-it" }), {
-      options: { label: "name:" },
-      rawValue: false,
-    });
-    const noLabel = sessionNameWidget.render(makeCtx({ sessionName: "ship-it" }), {
-      options: { label: "name:" },
-      rawValue: true,
-    });
-    expect(withLabel.text).toBe("name:ship-it");
-    expect(noLabel.text).toBe("ship-it");
   });
 });
 
@@ -333,32 +282,32 @@ describe("maskEmail", () => {
 
 describe("account-email widget", () => {
   it("hides when no email is available", () => {
-    expect(
-      accountEmailWidget.render(makeCtx(), { options: {}, rawValue: false }).hidden,
-    ).toBe(true);
+    expect(accountEmailWidget.render(makeCtx(), { options: {}, rawValue: false }).hidden).toBe(
+      true,
+    );
   });
 
   it("renders the full email by default (mask=none)", () => {
-    const cell = accountEmailWidget.render(
-      makeCtx({ accountEmail: "user@example.com" }),
-      { options: {}, rawValue: false },
-    );
+    const cell = accountEmailWidget.render(makeCtx({ accountEmail: "user@example.com" }), {
+      options: {},
+      rawValue: false,
+    });
     expect(cell.text).toBe("user@example.com");
   });
 
   it("applies domain mask when options.mask = domain", () => {
-    const cell = accountEmailWidget.render(
-      makeCtx({ accountEmail: "user@example.com" }),
-      { options: { mask: "domain" }, rawValue: false },
-    );
+    const cell = accountEmailWidget.render(makeCtx({ accountEmail: "user@example.com" }), {
+      options: { mask: "domain" },
+      rawValue: false,
+    });
     expect(cell.text).toBe("*@example.com");
   });
 
   it("applies localpart mask when options.mask = localpart", () => {
-    const cell = accountEmailWidget.render(
-      makeCtx({ accountEmail: "user@example.com" }),
-      { options: { mask: "localpart" }, rawValue: false },
-    );
+    const cell = accountEmailWidget.render(makeCtx({ accountEmail: "user@example.com" }), {
+      options: { mask: "localpart" },
+      rawValue: false,
+    });
     expect(cell.text).toBe("user@*");
   });
 
@@ -372,14 +321,14 @@ describe("account-email widget", () => {
   });
 
   it("honours options.label and rawValue strips it", () => {
-    const withLabel = accountEmailWidget.render(
-      makeCtx({ accountEmail: "u@test.com" }),
-      { options: { label: "email:" }, rawValue: false },
-    );
-    const noLabel = accountEmailWidget.render(
-      makeCtx({ accountEmail: "u@test.com" }),
-      { options: { label: "email:" }, rawValue: true },
-    );
+    const withLabel = accountEmailWidget.render(makeCtx({ accountEmail: "u@test.com" }), {
+      options: { label: "email:" },
+      rawValue: false,
+    });
+    const noLabel = accountEmailWidget.render(makeCtx({ accountEmail: "u@test.com" }), {
+      options: { label: "email:" },
+      rawValue: true,
+    });
     expect(withLabel.text).toBe("email:u@test.com");
     expect(noLabel.text).toBe("u@test.com");
   });
@@ -389,48 +338,25 @@ describe("account-email widget", () => {
 
 describe("thinking-effort widget", () => {
   it("hides when no thinking effort is available", () => {
-    expect(
-      thinkingEffortWidget.render(makeCtx(), { options: {}, rawValue: false }).hidden,
-    ).toBe(true);
+    expect(thinkingEffortWidget.render(makeCtx(), { options: {}, rawValue: false }).hidden).toBe(
+      true,
+    );
   });
 
-  it("renders 'low' with success colour", () => {
-    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "low" }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("low");
-    expect(cell.fg).toBe(DEFAULT_PALETTE.success);
-  });
+  it.each(["low", "medium", "high", "xhigh"])(
+    "renders '%s' as plain text with no state-signal colour (family accent applies)",
+    (effort) => {
+      const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: effort }), {
+        options: {},
+        rawValue: false,
+      });
+      expect(cell.text).toBe(effort);
+      expect(cell.fg).toBeUndefined();
+      expect(cell.signal).toBeUndefined();
+    },
+  );
 
-  it("renders 'medium' with info colour", () => {
-    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "medium" }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("medium");
-    expect(cell.fg).toBe(DEFAULT_PALETTE.info);
-  });
-
-  it("renders 'high' with warning colour", () => {
-    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "high" }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("high");
-    expect(cell.fg).toBe(DEFAULT_PALETTE.warning);
-  });
-
-  it("renders 'xhigh' with danger colour", () => {
-    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "xhigh" }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("xhigh");
-    expect(cell.fg).toBe(DEFAULT_PALETTE.danger);
-  });
-
-  it("renders unknown effort without colour", () => {
+  it("renders unknown effort verbatim with no colour", () => {
     const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "unknown" }), {
       options: {},
       rawValue: false,
@@ -439,13 +365,12 @@ describe("thinking-effort widget", () => {
     expect(cell.fg).toBeUndefined();
   });
 
-  it("normalises case — 'LOW' renders as 'low' with success colour", () => {
+  it("normalises case — 'LOW' renders as 'low'", () => {
     const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "LOW" }), {
       options: {},
       rawValue: false,
     });
     expect(cell.text).toBe("low");
-    expect(cell.fg).toBe(DEFAULT_PALETTE.success);
   });
 
   it("falls back to stdin.thinkingEffort when session is absent", () => {
@@ -454,7 +379,6 @@ describe("thinking-effort widget", () => {
       rawValue: false,
     });
     expect(cell.text).toBe("medium");
-    expect(cell.fg).toBe(DEFAULT_PALETTE.info);
   });
 
   it("honours options.label and rawValue strips it", () => {
@@ -471,89 +395,47 @@ describe("thinking-effort widget", () => {
   });
 });
 
-// ── skills ───────────────────────────────────────────────────────────────
+// ── plan ─────────────────────────────────────────────────────────────────
 
-describe("skills widget", () => {
-  it("count variant renders the cardinality", () => {
-    const cell = skillsWidget.render(makeCtx({ skills: ["a", "b", "c"] }), {
-      options: { variant: "count" },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("3");
-  });
-
-  it("renders count variant by default (no variant set)", () => {
-    const cell = skillsWidget.render(makeCtx({ skills: ["tdd", "refactor", "review"] }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("3");
-  });
-
-  it("single skill count is 1", () => {
-    const cell = skillsWidget.render(makeCtx({ skills: ["only-one"] }), {
-      options: { variant: "count" },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("1");
-  });
-
-  it("list variant joins names with comma by default", () => {
-    const cell = skillsWidget.render(makeCtx({ skills: ["a", "b", "c"] }), {
-      options: { variant: "list" },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("a, b, c");
-  });
-
-  it("list variant respects custom listSeparator", () => {
-    const cell = skillsWidget.render(makeCtx({ skills: ["a", "b"] }), {
-      options: { variant: "list", listSeparator: " | " },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("a | b");
-  });
-
-  it("last variant returns trailing entry", () => {
-    const cell = skillsWidget.render(makeCtx({ skills: ["a", "b", "c"] }), {
-      options: { variant: "last" },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("c");
-  });
-
-  it("falls back to count for an unknown variant", () => {
-    const cell = skillsWidget.render(
-      makeCtx({ skills: ["x", "y"] }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { options: { variant: "unknown" as any }, rawValue: false },
+describe("plan widget", () => {
+  it("renders the active plan name from ctx.plan", () => {
+    const cell = planWidget.render(
+      makeCtx({}, {}, { plan: { name: "my-feature", href: "file:///plans/my-feature.md" } }),
+      {
+        options: {},
+        rawValue: false,
+      },
     );
-    expect(cell.text).toBe("2");
+    expect(cell.text).toBe("my-feature");
   });
 
-  it("hides when skills is an empty array", () => {
-    expect(
-      skillsWidget.render(makeCtx({ skills: [] }), { options: {}, rawValue: false }).hidden,
-    ).toBe(true);
+  it("exposes ctx.plan.href as the cell href so the name is a clickable link", () => {
+    const cell = planWidget.render(
+      makeCtx({}, {}, { plan: { name: "my-feature", href: "file:///plans/my-feature.md" } }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.href).toBe("file:///plans/my-feature.md");
   });
 
-  it("hides when skills is absent from session", () => {
+  it("hides when ctx.plan is absent", () => {
+    expect(planWidget.render(makeCtx({}), { options: {}, rawValue: false }).hidden).toBe(true);
+  });
+
+  it("hides when ctx.plan.name is empty", () => {
     expect(
-      skillsWidget.render(makeCtx({}), { options: {}, rawValue: false }).hidden,
+      planWidget.render(makeCtx({}, {}, { plan: { name: "", href: "file:///plans/x.md" } }), {
+        options: {},
+        rawValue: false,
+      }).hidden,
     ).toBe(true);
   });
 
   it("honours options.label and rawValue strips it", () => {
-    const withLabel = skillsWidget.render(makeCtx({ skills: ["a"] }), {
-      options: { label: "s:" },
-      rawValue: false,
-    });
-    const noLabel = skillsWidget.render(makeCtx({ skills: ["a"] }), {
-      options: { label: "s:" },
-      rawValue: true,
-    });
-    expect(withLabel.text).toBe("s:1");
-    expect(noLabel.text).toBe("1");
+    const ctx = makeCtx({}, {}, { plan: { name: "p", href: "file:///plans/p.md" } });
+    const withLabel = planWidget.render(ctx, { options: { label: "plan:" }, rawValue: false });
+    const noLabel = planWidget.render(ctx, { options: { label: "plan:" }, rawValue: true });
+    expect(withLabel.text).toBe("plan:p");
+    expect(noLabel.text).toBe("p");
   });
 });
 

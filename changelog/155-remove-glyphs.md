@@ -1,0 +1,1 @@
+- Remove the top-level Nerd Font glyph mode: dropped `config.glyphs`, the `g` editor toggle, the catalogue glyph layer, the Nerd Font auto-installer, and doctor's D05 Nerd Font check (D06–D10 renumber to D05–D09); existing configs carrying a `glyphs` key are migrated silently instead of failing validation. Powerline chevrons are unaffected.

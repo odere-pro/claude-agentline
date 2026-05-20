@@ -6,34 +6,15 @@
  */
 
 import { eraseWidget, type WidgetDef } from "../widget.js";
-import type { WidgetRegistry } from "../registry.js";
+import type { WidgetRegistry } from "../registry/registry.js";
 
-import {
-  tokensCachedWidget,
-  tokensInputWidget,
-  tokensOutputWidget,
-  tokensTotalWidget,
-} from "./fields.js";
-import { inputSpeedWidget, outputSpeedWidget, totalSpeedWidget } from "./speed.js";
-
-export {
-  tokensCachedWidget,
-  tokensInputWidget,
-  tokensOutputWidget,
-  tokensTotalWidget,
-} from "./fields.js";
-export { inputSpeedWidget, outputSpeedWidget, totalSpeedWidget } from "./speed.js";
-export { resolveResetAxis } from "./options.js";
-export { formatCount, formatSpeed, tokenRole } from "./format.js";
+import { tokensCachedWidget, tokensWidget } from "./fields.js";
+import { tokenSpeedWidget } from "./speed/speed.js";
 
 export const TOKEN_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
-  eraseWidget(tokensTotalWidget),
-  eraseWidget(tokensInputWidget),
-  eraseWidget(tokensOutputWidget),
+  eraseWidget(tokensWidget),
   eraseWidget(tokensCachedWidget),
-  eraseWidget(inputSpeedWidget),
-  eraseWidget(outputSpeedWidget),
-  eraseWidget(totalSpeedWidget),
+  eraseWidget(tokenSpeedWidget),
 ]);
 
 export function registerTokenWidgets(registry: WidgetRegistry): void {

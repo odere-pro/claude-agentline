@@ -33,7 +33,6 @@ Anything not on this list is not part of the v0.1.0 contract.
 - **Package-manager taps** (Homebrew, etc.) at v0.1; primary channel is the language's package registry.
 - **`curl … | sh` installer.** Refused for supply-chain hygiene.
 - **Dynamic widget plugins** (loadable libraries, WASM, scripted widgets). Widget set is fixed at build time. There is a sandboxed `command` widget escape hatch for one-shot shell output.
-- **Per-tenant pricing tables.** Cost widgets use one embedded table refreshed at release time.
 - **Powershell-native install scripts** at v0.1. Windows hosts use Git Bash or WSL.
 - **Per-project config overrides** at v0.1. There is exactly one config layer between defaults and env vars. A `.<product>.json` in the cwd is ignored by design.
 

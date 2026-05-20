@@ -5,46 +5,25 @@
  * bootstrap.
  *
  * Widgets shipped:
- *   - session-usage          (block token usage)
- *   - weekly-sonnet-usage    (week token usage, Sonnet-only)
- *   - weekly-opus-usage      (week token usage, Opus-only)
- *   - block-reset-timer      (countdown to the next block reset)
- *   - block-reset-at         (wall-clock of the next block reset)
- *   - weekly-reset-timer     (countdown to the next weekly reset)
- *   - weekly-reset-at        (wall-clock of the next weekly reset)
+ *   - session-weekly-usage        (combined session + weekly usage %)
+ *   - current-session-reset-timer (countdown to the next session reset)
+ *   - current-session-reset-at    (wall-clock of the next session reset)
+ *   - week-limit-timer            (countdown to the next weekly reset)
+ *   - weekly-reset-at             (wall-clock of the next weekly reset)
  */
 
 import { eraseWidget, type WidgetDef } from "../widget.js";
-import type { WidgetRegistry } from "../registry.js";
+import type { WidgetRegistry } from "../registry/registry.js";
 
-import { blockResetAtWidget, weeklyResetAtWidget } from "./reset-at.js";
-import { blockResetTimerWidget, weeklyResetTimerWidget } from "./timers.js";
-import {
-  sessionUsageWidget,
-  weeklyOpusUsageWidget,
-  weeklySonnetUsageWidget,
-} from "./usage.js";
-
-export { blockResetAtWidget, weeklyResetAtWidget } from "./reset-at.js";
-export { blockResetTimerWidget, weeklyResetTimerWidget } from "./timers.js";
-export {
-  sessionUsageWidget,
-  weeklyOpusUsageWidget,
-  weeklySonnetUsageWidget,
-} from "./usage.js";
-export {
-  formatDuration,
-  resolveDurationFormat,
-  type DurationFormat,
-} from "./duration.js";
+import { currentSessionResetAtWidget, weeklyResetAtWidget } from "./reset-at.js";
+import { currentSessionResetTimerWidget, weekLimitTimerWidget } from "./timers.js";
+import { sessionWeeklyUsageWidget } from "./usage.js";
 
 export const RATE_LIMIT_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
-  eraseWidget(sessionUsageWidget),
-  eraseWidget(weeklySonnetUsageWidget),
-  eraseWidget(weeklyOpusUsageWidget),
-  eraseWidget(blockResetTimerWidget),
-  eraseWidget(blockResetAtWidget),
-  eraseWidget(weeklyResetTimerWidget),
+  eraseWidget(sessionWeeklyUsageWidget),
+  eraseWidget(currentSessionResetTimerWidget),
+  eraseWidget(currentSessionResetAtWidget),
+  eraseWidget(weekLimitTimerWidget),
   eraseWidget(weeklyResetAtWidget),
 ]);
 

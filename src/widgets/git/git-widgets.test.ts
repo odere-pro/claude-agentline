@@ -1,67 +1,31 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_CONFIG } from "../../config/index.js";
-import type { GitSnapshot, GitState } from "../../git/index.js";
-import type { StdinPayload } from "../../stdin/index.js";
-import { DEFAULT_PALETTE } from "../../theme/index.js";
+import type { GitState } from "../../data/git/index.js";
+import { DEFAULT_PALETTE } from "../../data/theme/index.js";
 
-import { frozenClock } from "../clock.js";
-import type { WidgetContext } from "../context.js";
-import { WidgetRegistry } from "../registry.js";
+import {
+  makeGitSnapshot as makeSnapshot,
+  makeWidgetContext,
+} from "../../test-helpers/index.js";
+import type { WidgetContext } from "../types.js";
+import { WidgetRegistry } from "../registry/registry.js";
 
-import { gitAheadBehindWidget, gitConflictsWidget } from "./ahead-behind.js";
+import { gitAheadBehindWidget, gitConflictsWidget } from "./ahead-behind/ahead-behind.js";
 import { gitBranchWidget } from "./branch.js";
 import { gitChangesWidget } from "./changes.js";
-import { gitOriginRepoWidget, gitUpstreamWidget } from "./remote.js";
-import { gitShaWidget, gitWorktreeWidget } from "./sha.js";
-import {
-  gitStagedWidget,
-  gitUnstagedWidget,
-  gitUntrackedWidget,
-} from "./status.js";
+import { gitOriginRepoWidget, gitUpstreamWidget } from "./remote/remote.js";
+import { gitShaWidget, gitWorktreeWidget } from "./sha/sha.js";
+import { gitUntrackedWidget } from "./status/status.js";
 import { GIT_WIDGETS, registerGitWidgets } from "./index.js";
 
-const baseStdin: StdinPayload = { raw: {}, truncated: false };
-
-function makeSnapshot(overrides: Partial<GitSnapshot> = {}): GitSnapshot {
-  return Object.freeze({
-    available: true,
-    cwd: "/repo",
-    branch: "main",
-    detached: false,
-    sha: "abcdef0123456789abcdef0123456789abcdef01",
-    shortSha: "abcdef0",
-    status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 0, modified: 0, added: 0 },
-    diff: { insertions: 0, deletions: 0, filesChanged: 0 },
-    diffStaged: { insertions: 0, deletions: 0, filesChanged: 0 },
-    aheadBehind: { ahead: 0, behind: 0 },
-    upstream: null,
-    origin: null,
-    upstreamRemote: null,
-    worktreeName: null,
-    inWorktree: false,
-    pr: null,
-    ...overrides,
-  });
-}
-
-function makeCtx(git: GitState | undefined, overrides: Partial<WidgetContext> = {}): WidgetContext {
-  return {
-    stdin: baseStdin,
-    config: DEFAULT_CONFIG,
-    theme: null,
-    clock: frozenClock("2026-05-01T00:00:00Z"),
-    env: {},
-    git,
-    ...overrides,
-  };
-}
+const makeCtx = (git: GitState | undefined, overrides: Partial<WidgetContext> = {}) =>
+  makeWidgetContext({ git, ...overrides });
 
 describe("registerGitWidgets", () => {
-  it("ships exactly 12 widgets in sorted order", () => {
+  it("ships exactly 10 widgets in sorted order", () => {
     const r = new WidgetRegistry();
     registerGitWidgets(r);
-    expect(r.size()).toBe(12);
+    expect(r.size()).toBe(10);
     expect(r.list()).toEqual([
       "git-ahead-behind",
       "git-branch",
@@ -70,14 +34,12 @@ describe("registerGitWidgets", () => {
       "git-origin-repo",
       "git-pr",
       "git-sha",
-      "git-staged",
-      "git-unstaged",
       "git-untracked",
       "git-upstream",
       "git-worktree",
     ]);
     expect(Object.isFrozen(GIT_WIDGETS)).toBe(true);
-    expect(GIT_WIDGETS).toHaveLength(12);
+    expect(GIT_WIDGETS).toHaveLength(10);
   });
 
   it("hides every widget when ctx.git is missing", () => {
@@ -109,7 +71,11 @@ describe("git-branch widget", () => {
 
   it("uses the dirty role when there are staged changes", () => {
     const cell = gitBranchWidget.render(
-      makeCtx(makeSnapshot({ status: { staged: 1, unstaged: 0, untracked: 0, conflicts: 0, modified: 0, added: 1 } })),
+      makeCtx(
+        makeSnapshot({
+          status: { staged: 1, unstaged: 0, untracked: 0, conflicts: 0, modified: 0, added: 1 },
+        }),
+      ),
       { options: {}, rawValue: false },
     );
     expect(cell.fg).toBe(DEFAULT_PALETTE["git-dirty"]);
@@ -117,7 +83,11 @@ describe("git-branch widget", () => {
 
   it("uses the dirty role when there are unstaged changes", () => {
     const cell = gitBranchWidget.render(
-      makeCtx(makeSnapshot({ status: { staged: 0, unstaged: 2, untracked: 0, conflicts: 0, modified: 2, added: 0 } })),
+      makeCtx(
+        makeSnapshot({
+          status: { staged: 0, unstaged: 2, untracked: 0, conflicts: 0, modified: 2, added: 0 },
+        }),
+      ),
       { options: {}, rawValue: false },
     );
     expect(cell.fg).toBe(DEFAULT_PALETTE["git-dirty"]);
@@ -125,7 +95,11 @@ describe("git-branch widget", () => {
 
   it("uses the dirty role when there are untracked files", () => {
     const cell = gitBranchWidget.render(
-      makeCtx(makeSnapshot({ status: { staged: 0, unstaged: 0, untracked: 3, conflicts: 0, modified: 0, added: 0 } })),
+      makeCtx(
+        makeSnapshot({
+          status: { staged: 0, unstaged: 0, untracked: 3, conflicts: 0, modified: 0, added: 0 },
+        }),
+      ),
       { options: {}, rawValue: false },
     );
     expect(cell.fg).toBe(DEFAULT_PALETTE["git-dirty"]);
@@ -159,7 +133,7 @@ describe("git-changes widget", () => {
 
   it("git-changes renders +N -M", () => {
     const cell = gitChangesWidget.render(makeCtx(dirty), { options: {}, rawValue: false });
-    expect(cell.text).toBe("+12 -4");
+    expect(cell.text).toBe("+12 · -4");
     expect(cell.fg).toBe(DEFAULT_PALETTE["git-dirty"]);
   });
 
@@ -174,7 +148,7 @@ describe("git-changes widget", () => {
       options: { hideZero: false },
       rawValue: false,
     });
-    expect(cell.text).toBe("+0 -0");
+    expect(cell.text).toBe("+0 · -0");
   });
 
   it("honours options.label and rawValue strips it", () => {
@@ -187,31 +161,25 @@ describe("git-changes widget", () => {
       options: { label: "diff:" },
       rawValue: true,
     });
-    expect(withLabel.text).toBe("diff:+5 -2");
-    expect(noLabel.text).toBe("+5 -2");
+    expect(withLabel.text).toBe("diff:+5 · -2");
+    expect(noLabel.text).toBe("+5 · -2");
   });
 });
 
-describe("git-staged / -unstaged / -untracked widgets", () => {
+describe("git-untracked widget", () => {
   const dirty = makeSnapshot({
     status: { staged: 2, unstaged: 1, untracked: 3, conflicts: 0, modified: 1, added: 1 },
   });
 
-  it("count widgets render their number", () => {
-    expect(
-      gitStagedWidget.render(makeCtx(dirty), { options: {}, rawValue: false }).text,
-    ).toBe("2");
-    expect(
-      gitUnstagedWidget.render(makeCtx(dirty), { options: {}, rawValue: false }).text,
-    ).toBe("1");
-    expect(
-      gitUntrackedWidget.render(makeCtx(dirty), { options: {}, rawValue: false }).text,
-    ).toBe("3");
+  it("count widget renders its number", () => {
+    expect(gitUntrackedWidget.render(makeCtx(dirty), { options: {}, rawValue: false }).text).toBe(
+      "3",
+    );
   });
 
-  it("count widgets hide at zero by default", () => {
+  it("count widget hides at zero by default", () => {
     expect(
-      gitStagedWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false }).hidden,
+      gitUntrackedWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false }).hidden,
     ).toBe(true);
   });
 });
@@ -219,17 +187,16 @@ describe("git-staged / -unstaged / -untracked widgets", () => {
 describe("git-ahead-behind widget", () => {
   it("hides without an upstream ref", () => {
     expect(
-      gitAheadBehindWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false })
-        .hidden,
+      gitAheadBehindWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false }).hidden,
     ).toBe(true);
   });
 
   it("hides when ahead and behind are both zero (default)", () => {
     expect(
-      gitAheadBehindWidget.render(
-        makeCtx(makeSnapshot({ upstream: "origin/main" })),
-        { options: {}, rawValue: false },
-      ).hidden,
+      gitAheadBehindWidget.render(makeCtx(makeSnapshot({ upstream: "origin/main" })), {
+        options: {},
+        rawValue: false,
+      }).hidden,
     ).toBe(true);
   });
 
@@ -246,15 +213,15 @@ describe("git-ahead-behind widget", () => {
       makeCtx(makeSnapshot({ upstream: "origin/main", aheadBehind: { ahead: 2, behind: 5 } })),
       { options: {}, rawValue: false },
     );
-    expect(cell.text).toBe("↑2 ↓5");
+    expect(cell.text).toBe("↑2 · ↓5");
   });
 
   it("hideEven=false keeps the widget visible at parity", () => {
-    const cell = gitAheadBehindWidget.render(
-      makeCtx(makeSnapshot({ upstream: "origin/main" })),
-      { options: { hideEven: false }, rawValue: false },
-    );
-    expect(cell.text).toBe("↑0 ↓0");
+    const cell = gitAheadBehindWidget.render(makeCtx(makeSnapshot({ upstream: "origin/main" })), {
+      options: { hideEven: false },
+      rawValue: false,
+    });
+    expect(cell.text).toBe("↑0 · ↓0");
   });
 });
 
@@ -267,7 +234,11 @@ describe("git-conflicts widget", () => {
 
   it("renders ⚡N with the danger role", () => {
     const cell = gitConflictsWidget.render(
-      makeCtx(makeSnapshot({ status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 2, modified: 0, added: 0 } })),
+      makeCtx(
+        makeSnapshot({
+          status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 2, modified: 0, added: 0 },
+        }),
+      ),
       { options: {}, rawValue: false },
     );
     expect(cell.text).toBe("⚡2");
@@ -318,18 +289,17 @@ describe("git-origin-repo widget", () => {
 
   it("hides without an origin", () => {
     expect(
-      gitOriginRepoWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false })
-        .hidden,
+      gitOriginRepoWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false }).hidden,
     ).toBe(true);
   });
 });
 
 describe("git-upstream widget", () => {
   it("renders the upstream ref", () => {
-    const cell = gitUpstreamWidget.render(
-      makeCtx(makeSnapshot({ upstream: "origin/main" })),
-      { options: {}, rawValue: false },
-    );
+    const cell = gitUpstreamWidget.render(makeCtx(makeSnapshot({ upstream: "origin/main" })), {
+      options: {},
+      rawValue: false,
+    });
     expect(cell.text).toBe("origin/main");
   });
 

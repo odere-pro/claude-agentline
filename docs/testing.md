@@ -11,11 +11,11 @@
 ## Unit tests
 
 ```bash
-npm test
+pnpm test
 ```
 
 Vitest discovers `src/**/*.test.ts` and the integration suite under
-`tests/integration/`. The full run is ~15 s on a laptop. Single-file
+`tests/integration/`. The full run is ~30 s on a laptop. Single-file
 runs:
 
 ```bash
@@ -23,10 +23,58 @@ npx vitest run src/widgets/git/branch.test.ts
 npx vitest --watch
 ```
 
-Add a unit test next to the source it covers
-(`src/widgets/foo/bar.ts` → `src/widgets/foo/bar.test.ts`). Use the
-Arrange / Act / Assert structure and prefer test names that describe
-behaviour, not internals.
+### Folder-per-feature placement
+
+Every source file lives in a folder named after the feature, with the
+test as its sibling. Adding a new utility called `foo` looks like:
+
+```
+src/<area>/foo/
+├── foo.ts
+└── foo.test.ts
+```
+
+Same shape for widgets (`src/widgets/git/sha/sha.ts` + `sha.test.ts`),
+data resolvers, render stages, and TUI modules. Aggregate tests
+(`git-widgets.test.ts`, `rate-limit-widgets.test.ts`) are transitional —
+they cover several widgets whose source files have not yet been folder-
+ized, and split once the underlying widgets do.
+
+Use the Arrange / Act / Assert structure and prefer test names that
+describe behaviour, not internals.
+
+### Shared helpers
+
+The factory and sandbox helpers live under
+[`src/test-helpers/`](../src/test-helpers/) and are imported only by
+`*.test.ts` files (enforced by ESLint). The barrel exports:
+
+| Helper                           | Use it for                                                              |
+| -------------------------------- | ----------------------------------------------------------------------- |
+| `makeWidgetContext`              | `WidgetContext` with `stdin`/`config`/`theme`/`clock`/`env` set.        |
+| `makeGitSnapshot`                | Clean-default `GitSnapshot` (`branch: "main"`, `pr: null`).             |
+| `makeTokensSnapshot`             | `TokensSnapshot` with a 200k window and event-derived anchors.          |
+| `makeTranscriptEvent`            | Zero-filled `TranscriptEvent` — often aliased to `ev`.                  |
+| `makeStdinPayload`               | Empty `StdinPayload`; pass `contextWindow` / `rateLimits` as overrides. |
+| `makeCell`                       | Frozen `Cell` for render unit tests.                                    |
+| `frozenClock` / `canonicalClock` | Deterministic clock; `CANONICAL_TEST_INSTANT` is the shared default.    |
+| `withTmpDir`                     | Allocate a tmpdir, run `fn(dir)`, always clean up.                      |
+| `withSandbox`                    | The `home` + `cfgDir` + `cwd` triple for CLI tests.                     |
+
+Every factory accepts a `Partial<T>` of overrides spread last, so tests
+say what they care about and inherit the rest:
+
+```ts
+import { makeGitSnapshot, makeWidgetContext } from "../../test-helpers/index.js";
+
+const ctx = makeWidgetContext({
+  git: makeGitSnapshot({ branch: "feat/x" }),
+});
+```
+
+If a test legitimately needs a different default (file-local
+conventions, e.g. a pinned `FIXED_NOW_MS` in `rate-limit-widgets.test.ts`),
+keep a thin file-local wrapper that composes the shared factory.
 
 ## Golden (renderer-determinism) tests
 
@@ -40,7 +88,7 @@ across hosts and runs. Each scenario under `tests/golden/` ships:
 | `clock.txt`     | ISO timestamp the renderer freezes time at |
 | `expected.ansi` | the exact bytes the renderer must emit     |
 
-The harness in `src/render/__golden__.test.ts` walks every directory
+The harness in `src/render/render/__golden__.test.ts` walks every directory
 and asserts `renderForFixture(...) === expected.ansi`.
 
 ### Adding a scenario
@@ -113,7 +161,7 @@ in CI.
    options edge case (e.g. `format: "human"`).
 2. **Implement** — `src/widgets/<family>/<name>.ts`. Use
    `defineWidget<Options>("<name>", (ctx, settings) => …)`.
-3. **Register** — add the export to `src/widgets/registry.ts` next to
+3. **Register** — add the export to `src/widgets/registry/registry.ts` next to
    its family.
 4. **Lock determinism** — drop a fixture under `tests/golden/` that
    exercises the new widget; commit `expected.ansi`.

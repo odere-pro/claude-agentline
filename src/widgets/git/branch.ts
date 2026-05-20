@@ -7,8 +7,8 @@
  * adds it; for v0.1.0 the widget emits plain text.
  */
 
-import { resolveRole } from "../../theme/index.js";
-import type { Cell } from "../cell.js";
+import { resolveRole } from "../../data/theme/index.js";
+import type { Cell } from "../cell/cell.js";
 import { defineWidget } from "../widget.js";
 
 interface Options {
@@ -21,9 +21,10 @@ export const gitBranchWidget = defineWidget<Options>("git-branch", (ctx, setting
   const label = settings.rawValue ? "" : (settings.options.label ?? "");
   const body = snap.detached ? `(${snap.branch})` : snap.branch;
   if (!body) return { text: "", hidden: true };
-  const role = snap.status.staged + snap.status.unstaged + snap.status.untracked > 0
-    ? "git-dirty"
-    : "git-clean";
+  const role =
+    snap.status.staged + snap.status.unstaged + snap.status.untracked > 0
+      ? "git-dirty"
+      : "git-clean";
   const fg = resolveRole(ctx.theme, role);
-  return { text: `${label}${body}`, fg };
+  return { text: `${label}${body}`, fg, signal: true };
 });

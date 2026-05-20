@@ -15,18 +15,19 @@ Each contract: **name**, **purpose**, **version key**, **top-level keys**, **str
 
 **Top-level keys (typical).**
 
-| Key               | Type   | Notes                                              |
-| ----------------- | ------ | -------------------------------------------------- |
-| `model`           | string | Active model id                                    |
-| `sessionId`       | string | Stable per session                                 |
-| `sessionName`     | string | User-chosen label (may be empty)                   |
-| `version`         | string | Host version                                       |
-| `cwd`             | string | Working directory the host is running in           |
-| `transcript_path` | string | Path to JSONL transcript file (subject to sandbox) |
-| `thinkingEffort`  | string | `low` / `medium` / `high` / `xhigh`                |
-| `skills`          | array  | Skills loaded for this session                     |
-| `user.email`      | string | Optional; falls back to auth file                  |
-| Other host fields | …      | Preserved untouched.                               |
+| Key               | Type   | Notes                                                                                                                                                                                                                                                                   |
+| ----------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`           | string | Active model id                                                                                                                                                                                                                                                         |
+| `sessionId`       | string | Stable per session                                                                                                                                                                                                                                                      |
+| `sessionName`     | string | User-chosen label (may be empty)                                                                                                                                                                                                                                        |
+| `version`         | string | Host version                                                                                                                                                                                                                                                            |
+| `cwd`             | string | Working directory the host is running in                                                                                                                                                                                                                                |
+| `transcript_path` | string | Path to JSONL transcript file (subject to sandbox)                                                                                                                                                                                                                      |
+| `thinkingEffort`  | string | `low` / `medium` / `high` / `xhigh`                                                                                                                                                                                                                                     |
+| `skills`          | array  | Skills loaded for this session                                                                                                                                                                                                                                          |
+| `user.email`      | string | Optional; falls back to auth file                                                                                                                                                                                                                                       |
+| `rate_limits`     | object | `{ five_hour, seven_day }`, each `{ used_percentage, resets_at }` — the host's `/usage` numbers. `used_percentage` feeds the usage widgets; `resets_at` (epoch seconds) feeds the reset-timer / reset-at widgets, which fall back to a local estimate when it is absent |
+| Other host fields | …      | Preserved untouched.                                                                                                                                                                                                                                                    |
 
 **Strictness.** Lenient — unknown fields are preserved. Truncated above 256 KB with a `truncated` marker emitted to stderr.
 
@@ -44,16 +45,17 @@ Each contract: **name**, **purpose**, **version key**, **top-level keys**, **str
 
 **Top-level keys.**
 
-| Key             | Type   | Default     | Notes                                                              |
-| --------------- | ------ | ----------- | ------------------------------------------------------------------ |
-| `$schema`       | string | URL         | Schema URL for editor tooling                                      |
-| `version`       | int    | `1`         | Schema version                                                     |
-| `theme`         | string | `null`      | Named theme from the theme registry                                |
-| `lines`         | array  | one default | Ordered list of `{ widgets: Widget[] }`                            |
-| `global`        | object | defaults    | Render options: `padding`, `separator`, `inheritColors`, etc.      |
-| `powerline`     | object | defaults    | Powerline options (see `02-functional-requirements · F5`)          |
-| `terminalWidth` | object | defaults    | Width-detection mode: `full`, `full-minus-N`, `full-until-compact` |
-| `keymap`        | object | `{}`        | Editor keymap overrides                                            |
+| Key               | Type   | Default     | Notes                                                                                                    |
+| ----------------- | ------ | ----------- | -------------------------------------------------------------------------------------------------------- |
+| `$schema`         | string | URL         | Schema URL for editor tooling                                                                            |
+| `version`         | int    | `1`         | Schema version                                                                                           |
+| `theme`           | string | `null`      | Named theme from the theme registry                                                                      |
+| `lines`           | array  | one default | Ordered list of `{ widgets: Widget[] }`                                                                  |
+| `global`          | object | defaults    | Render options: `padding`, `separator`, `inheritColors`, etc.                                            |
+| `powerline`       | object | defaults    | Powerline options (see `02-functional-requirements · F5`)                                                |
+| `terminalWidth`   | object | defaults    | Width-detection mode: `full`, `full-minus-N`, `full-until-compact`                                       |
+| `keymap`          | object | `{}`        | Editor keymap overrides                                                                                  |
+| `refreshInterval` | int    | `5`         | Statusline re-run period in seconds; `>= 0`. `0` disables, syncing the host so it re-runs on events only |
 
 **Strictness.** Root object: `additionalProperties: false`. `widgets[].options` and `palette` are extensible (`additionalProperties: true`); the reserved-key strip applies there to close the prototype-pollution gap.
 
@@ -126,13 +128,16 @@ A scenario directory contains:
 
 ## Auth file (fallback for session widgets)
 
-**Purpose.** Read-only fallback when the host stdin payload omits identity fields.
+**Purpose.** Read-only fallback when the host stdin payload omits identity fields (`accountEmail`, `loginMethod`, `orgSlug`).
 
-**Location.** `${HOST_CONFIG_DIR}/.credentials.json` (or platform equivalent).
+**Sources, in precedence order.**
 
-**Read mode.** Read-only. Size cap: 64 KB. Oversize files or symlinks to special devices are treated as unreadable; the dependent widget renders as hidden.
+1. **Legacy auth file** — `${HOST_CONFIG_DIR}/auth.json`. Flat object with `email` / `authMethod` / `orgSlug` string keys. Size cap: 64 KB. Wins per-field when present (back-compat).
+2. **Host primary config `oauthAccount`** — the host's main config file (`${HOST_CONFIG_DIR}/.claude.json` when `CLAUDE_CONFIG_DIR` is set, else `~/.claude.json`; note this is a _sibling_ of the config dir, not inside it). Modern hosts no longer ship a plaintext auth file, so this is the only source on current installs. The `oauthAccount` block supplies `emailAddress` → email, `organizationName` → org, and an implied `oauth` login method. Size cap: 4 MB (this file grows with per-project history).
 
-**Sandboxing.** MUST be inside the host's config root.
+**Read mode.** Read-only, single bounded synchronous read per render tick, never throws. Missing / oversize / malformed / symlink-to-special-device inputs are treated as unreadable and the dependent widget renders as hidden. Only a handful of scalar identity fields are extracted; the rest of the (potentially large) file is ignored.
+
+**Sandboxing.** Paths resolve from `CLAUDE_CONFIG_DIR` / the home directory only — no caller-supplied path is followed.
 
 ---
 
