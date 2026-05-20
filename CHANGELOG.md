@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.0] — 2026-05-21
+## [0.1.0] — 2026-05-21
 
 ### Chapter 1 — 2026-05-03
 
@@ -55,4 +55,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chapter 11 — 2026-05-21
 
-- `f118929` — Cut the first published release of `@agentline/cli`; squash-anchor for the v0.2.0 tag.
+- `f118929` — Cut the first published release of `@odere-pro/agentline`; squash-anchor for the v0.1.0 tag.

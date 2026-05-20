@@ -42,7 +42,7 @@ node dist/cli.mjs install --from-source
 
 `(2)` and `(3)` create two symlinks under your npm global prefix (`npm prefix -g`):
 
-- `<prefix>/lib/node_modules/@agentline/cli` → this checkout
+- `<prefix>/lib/node_modules/@odere-pro/agentline` → this checkout
 - `<prefix>/bin/agentline` → the `dist/cli.mjs` inside this checkout
 
 Rebuild with `npm run build` and the live `agentline` command picks up the change on its next invocation — no re-link needed.

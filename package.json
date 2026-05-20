@@ -1,6 +1,6 @@
 {
-  "name": "@agentline/cli",
-  "version": "0.2.0",
+  "name": "@odere-pro/agentline",
+  "version": "0.1.0",
   "description": "Standalone Claude Code statusline CLI: reads stdin JSON, writes ANSI-styled output.",
   "author": {
     "name": "agentline maintainers",

@@ -19,7 +19,9 @@ Coloured variants, multi-line layouts, and Powerline-style chevrons are all conf
 
 ## Distribution model
 
-This product is a **standalone CLI**. It is **not** a plugin of the host application. It does not ship slash commands, hooks, agent files, or any host-plugin scaffold. Wiring into the host happens once at install time by writing the binary's invocation into the host's `statusLine` settings key; uninstall reverses that exact byte change.
+This product is a **standalone CLI**. It is **not** a plugin of the host application. It ships no slash commands, no hooks, and no host-plugin scaffold (no `.<host>-plugin/` manifest, no top-level `commands/`/`hooks/`/`powers/`/`rules/`/`skills/` directories that mimic the host's plugin tree). Wiring into the host happens once at install time by writing the binary's invocation into the host's `statusLine` settings key; uninstall reverses that exact byte change.
+
+The installer **does** copy a small set of versioned subagent skill files into the host's agents directory (see `04 · State surfaces` and `08 · Shipped agent skills`). That is a documentation surface, not a plugin contract — it lets the host's coding agent route natural-language requests like "change my theme" to the right runbook, without coupling the product to any host plugin ABI.
 
 The decision to be CLI-only is load-bearing. It buys:
 

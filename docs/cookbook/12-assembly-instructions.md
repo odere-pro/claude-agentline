@@ -121,8 +121,8 @@ G10–G13 are **parallel-safe.**
 ## G20 · Install / uninstall wires statusline
 
 - **Prereq.** G3, G5.
-- **Produces.** Real install logic in `src/commands/install/` and `src/commands/uninstall/`. Backup metadata. `--force`, `--dry-run`, `--from-source`, `--purge`.
-- **Exit.** Roundtrip gates 07, 08, 09, 10 pass.
+- **Produces.** Real install logic in `src/commands/install/` and `src/commands/uninstall/`. Backup metadata. Shipped subagent skill files under `agents/` and the install-time copy into the host's agents directory (byte-match-checked at uninstall). `--force`, `--dry-run`, `--from-source`, `--purge`.
+- **Exit.** Roundtrip gates 07, 08, 09, 10 pass; install + uninstall on a temp host config dir leaves both the `statusLine` setting **and** the shipped skill files in their pre-install state.
 
 ## G21 · Golden tests
 

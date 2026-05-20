@@ -2,7 +2,7 @@
 # scripts/install.sh — install agentline and wire it into Claude Code.
 #
 # Idempotent. Verifies Node >=20. In order:
-#   1. install or link `@agentline/cli` (npm i -g, or `npm link` with --from-source)
+#   1. install or link `@odere-pro/agentline` (npm i -g, or `npm link` with --from-source)
 #   2. seed the user config from templates/default.config.json
 #      (no overwrite; --reset forces the overwrite for `agentline reset`)
 #   3. seed themes/ to the same config dir
@@ -28,7 +28,7 @@ RESET=0
 
 usage() {
   cat <<'EOF'
-agentline install — wires @agentline/cli into Claude Code's statusline.
+agentline install — wires @odere-pro/agentline into Claude Code's statusline.
 
 Usage:
   scripts/install.sh [--dry-run] [--force] [--from-source] [--reset]
@@ -148,7 +148,7 @@ fs.renameSync(tmp, target);
 JS
 }
 
-# Step 1: install or link @agentline/cli.
+# Step 1: install or link @odere-pro/agentline.
 install_or_link_package() {
   if [ "${FROM_SOURCE}" = "1" ]; then
     al_log_info "installing from source via \`npm link\` in ${REPO_ROOT}"
@@ -178,15 +178,15 @@ install_or_link_package() {
   # PATH check: only skip if the binary actually exists at the resolved path.
   __bin="$(command -v agentline 2>/dev/null || true)"
   if [ -n "${__bin}" ] && [ -x "${__bin}" ]; then
-    al_log_info "@agentline/cli already installed at ${__bin}; skipping global install"
+    al_log_info "@odere-pro/agentline already installed at ${__bin}; skipping global install"
     return 0
   fi
-  al_log_info "installing @agentline/cli globally via npm"
+  al_log_info "installing @odere-pro/agentline globally via npm"
   if [ "${DRY_RUN}" = "1" ]; then
-    al_log_info "would run: npm install -g @agentline/cli"
+    al_log_info "would run: npm install -g @odere-pro/agentline"
     return 0
   fi
-  npm install -g @agentline/cli
+  npm install -g @odere-pro/agentline
   __bin="$(command -v agentline 2>/dev/null || true)"
   if [ -z "${__bin}" ] || [ ! -x "${__bin}" ]; then
     al_die "agentline binary not found after npm install -g; check npm global bin is on PATH"
@@ -326,7 +326,7 @@ resolve_status_command() {
     printf '%s render' "${__bin}"
     return 0
   fi
-  printf 'npx -y @agentline/cli render'
+  printf 'npx -y @odere-pro/agentline render'
 }
 
 # Save a snapshot of the existing `statusLine` value to the backup file.

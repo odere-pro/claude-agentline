@@ -120,3 +120,33 @@ If a release ships with a Sev-1 bug:
 - Tag-only changes (a tag pointing at a different commit than what was tested).
 - "Re-publishing" the same version with different contents.
 - Long-lived `[Unreleased]` sections (release more often).
+
+## Skill-file lifecycle
+
+The shipped subagent skill files under `agents/` (see `04 · State surfaces` and `08 · Shipped agent skills`) are **byte-coupled to the package version**, and the install / uninstall lifecycle deliberately leans on that coupling.
+
+### Adding a skill file
+
+- Drop it under `agents/<product>-<slug>.md` with a YAML frontmatter `description:` (the host's dispatch contract) and a body that follows the length envelope from `15 · Shipped skill files`.
+- The installer copies every file in `agents/` whose name matches the shipped prefix; no registry change is required.
+- A changelog fragment under `Added` notes the new dispatch surface.
+
+### Editing a skill file
+
+- Edit in place. The new bytes become the canonical "shipped" content for the next release.
+- Users who already installed the prior version keep their on-disk copy at the **previous** bytes. The byte-match check at uninstall therefore stops matching for them until they reinstall.
+- An `Added` / `Changed` changelog entry tells those users what changed; they can re-run `<bin> install --force` (or `<bin> reset`) to take the new content.
+
+### Removing a skill file
+
+- Delete the file from `agents/` and add a `Removed` entry to the changelog.
+- The installer no longer ships it, so new installs do not place it.
+- Existing installs keep the file on disk; `uninstall` will not delete it because the byte-match check fails against a file the current shipped set does not contain. Users have to remove it manually or pass `--purge`.
+
+### Why byte-match, not a manifest
+
+A manifest (`agents/manifest.json` listing every shipped skill file) would let `uninstall` delete files that no longer exist in `agents/`. We avoided it for two reasons: it doubles the chances of drift (now the manifest can disagree with the directory), and it tempts the installer into deleting **edited** user content. Byte-matching is conservative: it preserves anything the user touched, at the cost of leaving stale files on disk after a `Removed` release.
+
+### Future gate (out of scope at v0.1)
+
+A gate that fails when a skill file's SHA changes within a point release (e.g. `0.1.0` → `0.1.1`) would tighten the contract: skill files would then only change on minor / major bumps. This is a reasonable v0.2 ask; the current contract is the trust floor.

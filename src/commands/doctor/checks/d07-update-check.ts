@@ -1,6 +1,6 @@
 /**
  * D07 — Update-check cache (read-only). Surfaces a hint when the cache
- * says a newer `@agentline/cli` exists. Never initiates a fetch from
+ * says a newer `@odere-pro/agentline` exists. Never initiates a fetch from
  * inside `runChecks`; the cache is refreshed by `install`, `edit`,
  * and any future explicit refresh entry point. A missing cache or
  * registry-unreachable state is reported as `pass` with an

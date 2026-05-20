@@ -89,7 +89,9 @@ describe("loadConfig", () => {
     ).rejects.toThrow(/invalid JSON/);
   });
 
-  it("propagates non-SyntaxError fs errors unchanged", async () => {
+  // `chmod 0o000` does not make a file unreadable on Windows the way it
+  // does on POSIX, so the EACCES-rethrow branch is unobservable there.
+  it.skipIf(process.platform === "win32")("propagates non-SyntaxError fs errors unchanged", async () => {
     /*
      * Make the user config file unreadable so fs.readFile throws EACCES;
      * exercises the rethrow branch (not ENOENT, not SyntaxError).

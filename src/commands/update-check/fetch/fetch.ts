@@ -1,5 +1,5 @@
 /**
- * Fetch the latest published `@agentline/cli` version from the npm
+ * Fetch the latest published `@odere-pro/agentline` version from the npm
  * registry.
  *
  * This module is the only place in agentline that initiates an outbound
@@ -17,7 +17,7 @@
 
 import { isPlainObject } from "../../../core/lib/object/object.js";
 
-const NPM_REGISTRY_URL = "https://registry.npmjs.org/@agentline/cli/latest";
+const NPM_REGISTRY_URL = "https://registry.npmjs.org/@odere-pro/agentline/latest";
 const FETCH_TIMEOUT_MS = 3000;
 
 export interface FetchLatestVersionOptions {

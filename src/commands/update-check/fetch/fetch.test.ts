@@ -42,7 +42,7 @@ describe("fetchLatestVersion", () => {
 
   it("returns null when the JSON body has no `version`", async () => {
     const result = await fetchLatestVersion({
-      fetchImpl: makeFetch({ json: { name: "@agentline/cli" } }),
+      fetchImpl: makeFetch({ json: { name: "@odere-pro/agentline" } }),
     });
     expect(result).toBeNull();
   });

@@ -12,7 +12,7 @@ describe("resolveConfigPaths", () => {
 
   it("uses CLAUDE_CONFIG_DIR when set", () => {
     const paths = resolveConfigPaths({ CLAUDE_CONFIG_DIR: "/custom/cfg" });
-    expect(paths.userDir).toBe("/custom/cfg/agentline");
+    expect(paths.userDir).toBe(join("/custom/cfg", "agentline"));
   });
 
   it("userConfig is always ${userDir}/config.json", () => {

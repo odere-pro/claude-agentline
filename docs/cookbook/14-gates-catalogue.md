@@ -123,6 +123,30 @@ These gates may be added per-implementation; the IDs are kept stable.
 
 Slot retired with the pricing/cost feature. There is no embedded pricing table to keep fresh; token widgets cover counts and speed only. Per the stable-ID rule, the slot is not reused.
 
+## gate-23 · dependency audit
+
+- **Probes.** Runs the package manager's audit on production runtime dependencies; PR-time complements include a SAST scan and a dependency-review action (`17-security-and-compliance · I-11`).
+- **Pass criterion.** No advisories at the configured severity threshold (the reference implementation uses `moderate`).
+- **Debugging.** Inspect the per-advisory output; bumping a transitive dep usually means waiting for a fix upstream or pinning a known-good version with a documented exception.
+
+## gate-24 · secret scan
+
+- **Probes.** Greps tracked files for credential-shaped literals using a vetted rule set; pairs with the platform's native secret-scanning + push-protection as a backstop (`17-security-and-compliance · Secret handling`).
+- **Pass criterion.** No matches outside the explicit allowlist.
+- **Debugging.** Rotate any matched secret immediately; replace the literal with an env-var indirection.
+
+## gate-25 · layer import direction
+
+- **Probes.** The static-import graph of `src/core/`, `src/data/`, `src/render/`, and `src/widgets/`. None may import from `src/commands/`; each must also obey the documented within-group direction (`core` imports nothing from `src/`; `data` imports only from `core`; `render` imports from `core`/`data`/`widgets`).
+- **Pass criterion.** No reverse or cross-layer imports detected. Logs `file:line` for every violation.
+- **Debugging.** The most common cause is a helper that grew an import from a higher layer — move the helper into the lower layer, or duplicate the small piece you actually need.
+
+## gate-26 · i18n dictionary contract
+
+- **Probes.** Every translator call in the source tree against `src/core/i18n/ids.ts` (registered prefixes) and `src/core/i18n/en-dictionary.ts` (authored English). Three sub-checks: (a) literal ids start with a registered prefix, (b) every dictionary-form id is a key in `EN_DICTIONARY`, (c) no id appears with two different literal-en fallbacks.
+- **Pass criterion.** All three sub-checks clean.
+- **Debugging.** A missing entry: add it to `EN_DICTIONARY`. A duplicate fallback: pick one canonical English and update the other call site. A typo in a prefix: rename to one of the registered prefixes (or add a new prefix in `ids.ts` and document why).
+
 ---
 
 ## Debugging a failing gate

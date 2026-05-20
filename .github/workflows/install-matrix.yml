@@ -109,8 +109,10 @@ jobs:
           # `gate-15` is not a known model id, so the `model` widget
           # falls back to the raw id. The rest of the default config
           # widgets hide (no transcript, no git repo, etc.), so the
-          # expected line is just the raw model id.
-          expected='gate-15'
+          # rendered line is just the model widget — which carries its
+          # `session` family glyph (U+2302) per the family-identity
+          # contract. ASCII fallback engages only with NO_UNICODE=1.
+          expected=$'⌂ gate-15'
           actual="$(printf '%s' '{"model":"gate-15","cwd":"/agentline/gate-15"}' | NO_COLOR=1 "${{ steps.prefix.outputs.bin }}")"
           # Trim a single trailing newline so the byte-comparison is shell-agnostic.
           actual="${actual%$'\n'}"

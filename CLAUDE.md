@@ -4,7 +4,7 @@ This file is the agent's entry-point briefing for the `agentline` repository. It
 
 ## What agentline is
 
-`agentline` is a **standalone CLI statusline tool**, distributed as the npm package `@agentline/cli`. The compiled bin reads JSON from stdin (Claude Code's statusline contract) and writes ANSI-styled output to stdout.
+`agentline` is a **standalone CLI statusline tool**, distributed as the npm package `@odere-pro/agentline`. The compiled bin reads JSON from stdin (Claude Code's statusline contract) and writes ANSI-styled output to stdout.
 
 It is **not** a Claude Code plugin. There is no `.claude-plugin/plugin.json`. Wiring into Claude Code is consumer-side: `agentline install` writes the bin invocation into the `statusLine` key of `~/.claude/settings.json` and copies Claude skill files from `agents/` (repo root) into `~/.claude/agents/` so Claude Code can assist with configuration and troubleshooting. `agentline uninstall` reverses both steps.
 

@@ -40,6 +40,12 @@
 │   └── minimal.config                Smaller shipped variant
 ├── themes/
 │   └── …                             Built-in theme files
+├── agents/                           Shipped subagent skill files; install copies these into the host's agents dir
+│   ├── <product>.md                  Top-level dispatch skill (entry point)
+│   ├── <product>-onboarding.md       Sub-skill: just-installed tour
+│   ├── <product>-configure.md        Sub-skill: layout / widgets / theme / env vars
+│   ├── <product>-themes.md           Sub-skill: theme picker + custom-theme authoring
+│   └── <product>-troubleshoot.md     Sub-skill: doctor runbooks
 ├── changelog/                        Per-PR fragments; aggregator promotes to CHANGELOG at release
 ├── tests/
 │   ├── gates/
@@ -109,52 +115,54 @@
 
 ## Per-folder responsibility (one line each)
 
-| Folder                                                       | Owns                                                                                        |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `.github/`                                                   | CI configuration and contribution templates.                                                |
-| `docs/`                                                      | User-facing documentation.                                                                  |
-| `docs/plan/`                                                 | Engineering documents the user does not read.                                               |
-| `examples/`                                                  | Configs maintainers use; updated when defaults change.                                      |
-| `schemas/`                                                   | The single source of truth for on-disk JSON shapes.                                         |
-| `scripts/`                                                   | Shell entry points wrapping the bin's verbs.                                                |
-| `templates/`                                                 | Shipped default configs.                                                                    |
-| `themes/`                                                    | Shipped themes.                                                                             |
-| `changelog/`                                                 | Per-PR fragment files; one bullet per PR.                                                   |
-| `tests/gates/`                                               | Whole-product invariant gates; shell-orchestrated.                                          |
-| `tests/golden/`                                              | Fixture scenarios for byte-exact render comparison.                                         |
-| `tests/integration/`                                         | Real-disk install/uninstall lifecycle tests.                                                |
-| `src/cli/`                                                   | CLI dispatch (`src/cli/cli.ts`) + `src/version.ts` at root; verbs delegate to their module. |
-| `src/core/stdin/`                                            | Stdin read + parse + truncation handling.                                                   |
-| `src/core/schema/embedded/`                                  | Schema embedding; custom keyword for reset-axis.                                            |
-| `src/core/i18n/`                                             | Message catalogue (`loader/`, `en-dictionary`, `ids`).                                      |
-| `src/core/lib/<feature>/`                                    | Pure utilities; one feature folder per helper; no business logic.                           |
-| `src/data/config/<feature>/`                                 | Layered merge, env decoder, schema validation, atomic writes, mutate-by-path helpers.       |
-| `src/data/theme/`                                            | Named theme → palette by role (`colours/`, `resolve/`).                                     |
-| `src/data/tokens/`                                           | Transcript caching, axis bucketing, token speed (one folder per stage).                     |
-| `src/data/session/`                                          | Session field extraction; auth-file fallback (`auth-file/`, `plan/`).                       |
-| `src/data/git/`                                              | `git -C` invocation; parser; CRLF / Windows path normalisation (one folder per stage).      |
-| `src/data/state/`                                            | On-disk caches and backup metadata (one folder per cache).                                  |
-| `src/widgets/families/`                                      | Catalog + family-identity (single source of truth for the shipped widget set).              |
-| `src/widgets/<family>/`                                      | One folder per widget family; per-widget feature folders inside (`<widget>/`).              |
-| `src/widgets/{cell,clock,registry,render-widget,separator}/` | Widget plumbing in feature folders.                                                         |
-| `src/render/render/<stage>/`                                 | Composer; width; truncation; ANSI encoder; fixture runner; one feature per stage.           |
-| `src/render/powerline/`                                      | Chevron transform; glyph fallback; adjoining colour math.                                   |
-| `src/tui/tui/`                                               | Editor app shell; lazy-imported only on `edit` verb.                                        |
-| `src/tui/picker/`                                            | Picker overlays (group / widget / search / variant).                                        |
-| `src/tui/preview/`                                           | Live-preview waterfall + preview-live parity guard.                                         |
-| `src/tui/state/`                                             | Reducer-style state machine (`state`, `state-core`, `state-mutations`, `state-picker`).     |
-| `src/tui/keys/`                                              | Keymap registry; gate scans this for coverage.                                              |
-| `src/commands/cli/`                                          | CLI help-string utilities.                                                                  |
-| `src/commands/doctor/`                                       | D01–D08 checks; documented repairs.                                                         |
-| `src/commands/install/`                                      | Wires `statusLine`; seeds config; copies themes; writes backup.                             |
-| `src/commands/uninstall/`                                    | Restores backup; removes seeded files; verifies checksum.                                   |
-| `src/commands/reset/`                                        | Reset verb for token/cost/rate-limit counters.                                              |
-| `src/commands/update-check/`                                 | Out-of-render version check.                                                                |
+| Folder                                                       | Owns                                                                                                                                           |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.github/`                                                   | CI configuration and contribution templates.                                                                                                   |
+| `docs/`                                                      | User-facing documentation.                                                                                                                     |
+| `docs/plan/`                                                 | Engineering documents the user does not read.                                                                                                  |
+| `examples/`                                                  | Configs maintainers use; updated when defaults change.                                                                                         |
+| `schemas/`                                                   | The single source of truth for on-disk JSON shapes.                                                                                            |
+| `scripts/`                                                   | Shell entry points wrapping the bin's verbs.                                                                                                   |
+| `templates/`                                                 | Shipped default configs.                                                                                                                       |
+| `themes/`                                                    | Shipped themes.                                                                                                                                |
+| `agents/`                                                    | Versioned subagent skill files (markdown + YAML frontmatter); install copies them into the host's agents dir so the host can dispatch by name. |
+| `changelog/`                                                 | Per-PR fragment files; one bullet per PR.                                                                                                      |
+| `tests/gates/`                                               | Whole-product invariant gates; shell-orchestrated.                                                                                             |
+| `tests/golden/`                                              | Fixture scenarios for byte-exact render comparison.                                                                                            |
+| `tests/integration/`                                         | Real-disk install/uninstall lifecycle tests.                                                                                                   |
+| `src/cli/`                                                   | CLI dispatch (`src/cli/cli.ts`) + `src/version.ts` at root; verbs delegate to their module.                                                    |
+| `src/core/stdin/`                                            | Stdin read + parse + truncation handling.                                                                                                      |
+| `src/core/schema/embedded/`                                  | Schema embedding; custom keyword for reset-axis.                                                                                               |
+| `src/core/i18n/`                                             | Message catalogue (`loader/`, `en-dictionary`, `ids`).                                                                                         |
+| `src/core/lib/<feature>/`                                    | Pure utilities; one feature folder per helper; no business logic.                                                                              |
+| `src/data/config/<feature>/`                                 | Layered merge, env decoder, schema validation, atomic writes, mutate-by-path helpers.                                                          |
+| `src/data/theme/`                                            | Named theme → palette by role (`colours/`, `resolve/`).                                                                                        |
+| `src/data/tokens/`                                           | Transcript caching, axis bucketing, token speed (one folder per stage).                                                                        |
+| `src/data/session/`                                          | Session field extraction; auth-file fallback (`auth-file/`, `plan/`).                                                                          |
+| `src/data/git/`                                              | `git -C` invocation; parser; CRLF / Windows path normalisation (one folder per stage).                                                         |
+| `src/data/state/`                                            | On-disk caches and backup metadata (one folder per cache).                                                                                     |
+| `src/widgets/families/`                                      | Catalog + family-identity (single source of truth for the shipped widget set).                                                                 |
+| `src/widgets/<family>/`                                      | One folder per widget family; per-widget feature folders inside (`<widget>/`).                                                                 |
+| `src/widgets/{cell,clock,registry,render-widget,separator}/` | Widget plumbing in feature folders.                                                                                                            |
+| `src/render/render/<stage>/`                                 | Composer; width; truncation; ANSI encoder; fixture runner; one feature per stage.                                                              |
+| `src/render/powerline/`                                      | Chevron transform; glyph fallback; adjoining colour math.                                                                                      |
+| `src/tui/tui/`                                               | Editor app shell; lazy-imported only on `edit` verb.                                                                                           |
+| `src/tui/picker/`                                            | Picker overlays (group / widget / search / variant).                                                                                           |
+| `src/tui/preview/`                                           | Live-preview waterfall + preview-live parity guard.                                                                                            |
+| `src/tui/state/`                                             | Reducer-style state machine (`state`, `state-core`, `state-mutations`, `state-picker`).                                                        |
+| `src/tui/keys/`                                              | Keymap registry; gate scans this for coverage.                                                                                                 |
+| `src/commands/cli/`                                          | CLI help-string utilities.                                                                                                                     |
+| `src/commands/doctor/`                                       | D01–D08 checks; documented repairs.                                                                                                            |
+| `src/commands/install/`                                      | Wires `statusLine`; seeds config; copies themes; copies shipped subagent skill files into the host's agents dir; writes backup.                |
+| `src/commands/uninstall/`                                    | Restores backup; removes seeded files (skill files only when bytes still match the shipped originals); verifies checksum.                      |
+| `src/commands/reset/`                                        | Reset verb for token/cost/rate-limit counters.                                                                                                 |
+| `src/commands/update-check/`                                 | Out-of-render version check.                                                                                                                   |
 
 ## What MUST NOT exist
 
 - `.<host>-plugin/` (any plugin scaffold of the host application). The product is a CLI, not a plugin.
-- `agents/`, `commands/`, `hooks/`, `powers/`, `rules/`, `skills/` directories that constitute host-plugin artefacts.
+- Top-level `commands/`, `hooks/`, `powers/`, `rules/`, `skills/` directories that mimic the host's plugin tree. The product is **not** consumed via the host's plugin loader; do not encourage that misreading by mirroring its directory shape.
+- `agents/` is **the one exception**: it is a shipping artefact, not a plugin scaffold. The installer copies its contents into the host's agents directory so the host's existing subagent-dispatch system (which is independent of any plugin ABI) can reach the product by name. Adding non-skill files to `agents/` is forbidden — the installer treats every file in it as a skill file.
 - Hardcoded user-home paths in shipped artefacts (`/Users/*`, `/home/*`, `~/.claude/*` literals) — gate 02 enforces.
 
 ## When deviating

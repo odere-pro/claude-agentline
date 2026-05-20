@@ -77,7 +77,7 @@ Full reference → [themes.md](../docs/themes.md)
 ## Install / Uninstall
 
 ```bash
-npm install -g @agentline/cli && agentline install   # install
+npm install -g @odere-pro/agentline && agentline install   # install
 agentline uninstall [--purge]                        # uninstall
 ```
 
@@ -92,7 +92,7 @@ Full reference → [install.md](../docs/install.md)
 | Statusline not showing       | `agentline doctor --fix` then restart Claude Code                                        |
 | Blank/garbled output         | Reset config (see above), run `agentline doctor`                                         |
 | Config ignored               | Check path is `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` (no project layer) |
-| Outdated CLI                 | `npm install -g @agentline/cli@latest`                                                   |
+| Outdated CLI                 | `npm install -g @odere-pro/agentline@latest`                                             |
 | Powerline `>` instead of `❯` | Install a Nerd Font, or set `AGENTLINE_GLYPHS=nerd`                                      |
 
 More → [troubleshooting.md](../docs/troubleshooting.md) · Full CLI reference → [cli.md](../docs/cli.md)

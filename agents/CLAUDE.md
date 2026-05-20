@@ -32,7 +32,7 @@ Pattern: **Reversible host-state mutation** (`docs/cookbook/05-design-patterns.m
 - **Authoritative vocabulary.** Every term used in a skill must match `docs/GLOSSARY.md`. gate-20 (`docs glossary parity`) rejects retired terms in shipped markdown.
 - **Frontmatter format is enforced by the install command.** Each file declares its skill `name`, `description`, and any `tools` allowlist in YAML frontmatter. Changes to the frontmatter shape need a paired update in `src/commands/install/`.
 - **No absolute paths.** gate-02 (`no absolute paths in artefacts`) rejects literal `/Users/`, `/home/`, or `~/.claude/` in shipped files. Use `${CLAUDE_CONFIG_DIR}` / `~` placeholders in prose.
-- **Skills must not assume the dev repo is present.** A user with `@agentline/cli` installed from npm has no `tests/gates/`, no `src/`, no cookbook. Skill content references the user-facing CLI, the user config file, and `docs/` topics — not the dev repo.
+- **Skills must not assume the dev repo is present.** A user with `@odere-pro/agentline` installed from npm has no `tests/gates/`, no `src/`, no cookbook. Skill content references the user-facing CLI, the user config file, and `docs/` topics — not the dev repo.
 - **Atomic copy + checksummed backup.** The install command copies via `src/core/lib/atomic-write/`; the prior host file (if any) is backed up under `src/data/state/backup/` with a SHA256. `uninstall` restores from that backup byte-for-byte.
 
 ## Editing checklist

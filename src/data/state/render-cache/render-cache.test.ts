@@ -15,8 +15,8 @@ const ESC = "\x1b[";
 describe("resolveRenderCachePaths", () => {
   it("uses $CLAUDE_CONFIG_DIR when set", () => {
     const p = resolveRenderCachePaths({ CLAUDE_CONFIG_DIR: "/tmp/x" });
-    expect(p.stateDir).toBe("/tmp/x/state");
-    expect(p.cacheFile).toBe("/tmp/x/state/last-render.json");
+    expect(p.stateDir).toBe(join("/tmp/x", "state"));
+    expect(p.cacheFile).toBe(join("/tmp/x", "state", "last-render.json"));
   });
 });
 

@@ -177,6 +177,17 @@ A doc is a contract with its reader. Length envelopes prevent docs from rotting 
 
 ---
 
+## Shipped skill files (`agents/<product>*.md`)
+
+- **Reader.** A host coding-agent session that needs to operate the product on the user's behalf (install, configure, theme, troubleshoot).
+- **Distribution.** Committed under `agents/` in the repo; copied into the host's agents directory by the installer (see `04 · State surfaces`, `16 · Skill-file lifecycle`).
+- **Length.** ≤ 200 lines each.
+- **MUST contain.** YAML frontmatter with a `description:` line the host will use as the dispatch contract — phrased so the host can route natural-language requests like "change my theme" to the right file. Body MUST contain a short cheatsheet (commands, file paths, decision rules) the agent can apply without further reading.
+- **MUST NOT contain.** Absolute user-home paths (`/Users/*`, `/home/*`, `~/.claude/*` literals — gate 02 enforces), trademark strings outside the allowlist (gate 06), or retired glossary terms (gate 20).
+- **Versioning.** Byte-coupled to the package version. See `16 · Skill-file lifecycle` for the upgrade contract.
+
+---
+
 ## Documentation maintenance rules
 
 - A doc file MUST have one owner (a directory CODEOWNERS line or equivalent).

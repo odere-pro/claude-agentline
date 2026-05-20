@@ -22,7 +22,7 @@ For each step, delegate to a focused sub-skill rather than duplicating its conte
 
 Five small, reversible things — each tracked in the install manifest so `agentline uninstall` can undo them cleanly:
 
-1. **Installed `@agentline/cli` globally** (or `npm link`-ed it from a local checkout with `--from-source`).
+1. **Installed `@odere-pro/agentline` globally** (or `npm link`-ed it from a local checkout with `--from-source`).
 2. **Seeded the user config** at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`. An existing config is preserved; only a fresh tree gets the default template.
 3. **Seeded shipped themes** into the user themes directory.
 4. **Copied agentline skill files** (`agentline*.md`) into `~/.claude/agents/` so this skill (and its siblings) are available from inside Claude Code sessions.

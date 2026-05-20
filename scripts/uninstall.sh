@@ -2,7 +2,7 @@
 # scripts/uninstall.sh — remove agentline from this host.
 #
 # Idempotent. In order:
-#   1. `npm uninstall -g @agentline/cli` (skipped if absent).
+#   1. `npm uninstall -g @odere-pro/agentline` (skipped if absent).
 #   2. remove themes whose bytes match the bundled set; preserve user-edited.
 #   3. on --purge, also remove user-edited config.
 #   4. remove the installed agentline*.md skill files from $HOME/.claude/agents
@@ -172,15 +172,15 @@ uninstall_global_package() {
     al_log_info "npm not on PATH; skipping global uninstall"
     return 0
   fi
-  if ! npm ls -g --depth=0 2>/dev/null | grep -q '@agentline/cli'; then
-    al_log_info "@agentline/cli not globally installed; nothing to uninstall"
+  if ! npm ls -g --depth=0 2>/dev/null | grep -q '@odere-pro/agentline'; then
+    al_log_info "@odere-pro/agentline not globally installed; nothing to uninstall"
     return 0
   fi
   if [ "${DRY_RUN}" = "1" ]; then
-    al_log_info "would run: npm uninstall -g @agentline/cli"
+    al_log_info "would run: npm uninstall -g @odere-pro/agentline"
     return 0
   fi
-  npm uninstall -g @agentline/cli || al_log_warn "npm uninstall reported non-zero exit; continuing"
+  npm uninstall -g @odere-pro/agentline || al_log_warn "npm uninstall reported non-zero exit; continuing"
 }
 
 tidy_themes() {

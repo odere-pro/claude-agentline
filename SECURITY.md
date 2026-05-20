@@ -1,6 +1,6 @@
 # Security policy
 
-`agentline` is the `@agentline/cli` statusline tool wired into Claude Code via the `statusLine` key of the Claude config. The render hot path makes no network calls, ships no native modules, and writes config atomically. This document defines what counts as a vulnerability, how to report one privately, and what is explicitly out of scope so future audits don't re-flag known design choices.
+`agentline` is the `@odere-pro/agentline` statusline tool wired into Claude Code via the `statusLine` key of the Claude config. The render hot path makes no network calls, ships no native modules, and writes config atomically. This document defines what counts as a vulnerability, how to report one privately, and what is explicitly out of scope so future audits don't re-flag known design choices.
 
 ## Supported versions
 

@@ -1,4 +1,4 @@
-# Releasing `@agentline/cli`
+# Releasing `@odere-pro/agentline`
 
 The release pipeline is automated. To cut version `X.Y.Z`, push an annotated
 `vX.Y.Z` tag from `main` — the [`release.yml`](../.github/workflows/release.yml)
@@ -7,9 +7,9 @@ suite, `npm publish --provenance`, GitHub Release with tarball + `SHA256SUMS`.
 
 ## One-time setup (already done for the org)
 
-- npm account that maintains the `@agentline` scope.
+- npm account that maintains the `@odere-pro` scope.
 - GitHub repo secret `NPM_TOKEN` (npm Automation or granular token scoped
-  to `@agentline/cli` with publish rights). Stored at
+  to `@odere-pro/agentline` with publish rights). Stored at
   `Settings → Secrets and variables → Actions`.
 
 ## Cut a release
@@ -60,7 +60,7 @@ From a clean `main` with the changes you want to ship already merged:
    ```
 
    On success: the npm package page lists `X.Y.Z` with a provenance badge,
-   and a GitHub Release `vX.Y.Z` appears with `agentline-cli-X.Y.Z.tgz`
+   and a GitHub Release `vX.Y.Z` appears with `odere-pro-agentline-X.Y.Z.tgz`
    plus `SHA256SUMS` attached.
 
 ## What the workflow enforces
@@ -85,7 +85,7 @@ From a clean `main` with the changes you want to ship already merged:
   artefact named `release-vX.Y.Z`. Inspect, then re-push the tag once the
   underlying issue is fixed.
 - **Published a bad version**: within 72 hours `npm unpublish
-@agentline/cli@X.Y.Z` works; after that, ship `X.Y.Z+1` with the fix.
+@odere-pro/agentline@X.Y.Z` works; after that, ship `X.Y.Z+1` with the fix.
 
 ## Out of scope
 

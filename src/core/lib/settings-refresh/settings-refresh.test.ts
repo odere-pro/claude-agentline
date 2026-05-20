@@ -27,7 +27,7 @@ function readSettings(): Record<string, unknown> {
 }
 
 const wired = (extra: Record<string, unknown> = {}) => ({
-  command: "npx -y @agentline/cli render",
+  command: "npx -y @odere-pro/agentline render",
   ...extra,
 });
 
@@ -75,7 +75,7 @@ describe("syncRefreshInterval", () => {
     const sl = after["statusLine"] as Record<string, unknown>;
     expect(sl["refreshInterval"]).toBe(5);
     // Other statusLine keys (command) and other top-level keys survive.
-    expect(sl["command"]).toBe("npx -y @agentline/cli render");
+    expect(sl["command"]).toBe("npx -y @odere-pro/agentline render");
   });
 
   it("returns `unchanged` when seconds >= 1 and the value already matches", async () => {
@@ -91,7 +91,7 @@ describe("syncRefreshInterval", () => {
     const after = readSettings();
     const sl = after["statusLine"] as Record<string, unknown>;
     expect(sl["refreshInterval"]).toBeUndefined();
-    expect(sl["command"]).toBe("npx -y @agentline/cli render");
+    expect(sl["command"]).toBe("npx -y @odere-pro/agentline render");
   });
 
   it("returns `unchanged` when seconds === 0 and the field is already absent", async () => {

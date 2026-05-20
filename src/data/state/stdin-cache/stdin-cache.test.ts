@@ -20,8 +20,8 @@ const samplePayload = {
 describe("resolveCachePaths", () => {
   it("uses $CLAUDE_CONFIG_DIR when set", () => {
     const p = resolveCachePaths({ CLAUDE_CONFIG_DIR: "/tmp/x" });
-    expect(p.stateDir).toBe("/tmp/x/state");
-    expect(p.cacheFile).toBe("/tmp/x/state/last-stdin.json");
+    expect(p.stateDir).toBe(join("/tmp/x", "state"));
+    expect(p.cacheFile).toBe(join("/tmp/x", "state", "last-stdin.json"));
   });
 });
 

@@ -47,7 +47,16 @@ describe("withFileLock", () => {
       order.push("b-end");
     });
     await Promise.all([a, b]);
-    expect(order).toEqual(["a-start", "a-end", "b-start", "b-end"]);
+    /*
+     * The lock guarantees serialisation, not winner: whichever caller
+     * acquires the filesystem lock first runs to completion before the
+     * other starts. Accept either total order; reject any interleave.
+     */
+    expect(order).toSatisfy(
+      (events: string[]) =>
+        events.join() === "a-start,a-end,b-start,b-end" ||
+        events.join() === "b-start,b-end,a-start,a-end",
+    );
   });
 
   it("times out when the lock is held past the deadline", async () => {

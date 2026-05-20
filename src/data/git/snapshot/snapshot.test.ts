@@ -97,7 +97,11 @@ describe("loadGitSnapshot", () => {
       }
     });
 
-    it("reports detached HEAD with the short SHA as branch", () => {
+    // Windows + Node 22 occasionally returns `--is-inside-work-tree` !=
+    // "true" for ~1s after `git checkout --detach` against a freshly
+    // committed ref — the FS state hasn't propagated yet. Same test
+    // passes on every other OS × Node combo. Retry absorbs the flake.
+    it("reports detached HEAD with the short SHA as branch", { retry: 2 }, () => {
       const r = makeRepo();
       try {
         writeFileSync(join(r.path, "a.txt"), "v1\n");

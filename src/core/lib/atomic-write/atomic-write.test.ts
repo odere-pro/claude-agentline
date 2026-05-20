@@ -82,7 +82,9 @@ describe("writeIdempotent", () => {
     expect(await fs.readFile(target, "utf8")).toBe("hello");
   });
 
-  it("honours the file mode option", async () => {
+  // Windows' NTFS does not honour POSIX 0o600 the way these tests assert
+  // (fs.stat.mode returns 0o666 regardless of the umask passed at open).
+  it.skipIf(process.platform === "win32")("honours the file mode option", async () => {
     const target = join(dir, "secret.txt");
     await writeIdempotent(target, "x", { mode: 0o600 });
     const stat = await fs.stat(target);
@@ -120,7 +122,9 @@ describe("writeOnce", () => {
     expect(await fs.readFile(target, "utf8")).toBe("ok");
   });
 
-  it("honours the file mode option", async () => {
+  // Windows' NTFS does not honour POSIX 0o600 the way these tests assert
+  // (fs.stat.mode returns 0o666 regardless of the umask passed at open).
+  it.skipIf(process.platform === "win32")("honours the file mode option", async () => {
     const target = join(dir, "secret.txt");
     await writeOnce(target, "x", { mode: 0o600 });
     const stat = await fs.stat(target);

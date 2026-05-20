@@ -25,17 +25,17 @@ wrapper around the bin is read-only by construction — it never passes
 
 ## Checks
 
-| ID  | Check                                                                                           | Auto-fix                                                           |
-| --- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| D01 | `~/.claude/settings.json` exists                                                                | create with default skeleton                                       |
-| D02 | `statusLine.command` resolves to a working `agentline` invocation                               | rewrite to `npx -y @agentline/cli` or the absolute global bin path |
-| D03 | user config exists and matches schema                                                           | migrate or write defaults                                          |
-| D04 | every theme referenced by config is installed                                                   | copy from the package's embedded theme set                         |
-| D05 | git binary on PATH when any git widget is enabled                                               | none; reports                                                      |
-| D06 | the resolved global config directory is writable (or creatable)                                 | none; reports                                                      |
-| D07 | update-check cache (read-only) reports a newer release                                          | none; reports                                                      |
-| D08 | render dry-run on an embedded fixture matches the stored snapshot                               | none; reports                                                      |
-| D09 | `~/.claude/settings.json` `statusLine.refreshInterval` matches the configured `refreshInterval` | re-sync from config                                                |
+| ID  | Check                                                                                           | Auto-fix                                                                 |
+| --- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| D01 | `~/.claude/settings.json` exists                                                                | create with default skeleton                                             |
+| D02 | `statusLine.command` resolves to a working `agentline` invocation                               | rewrite to `npx -y @odere-pro/agentline` or the absolute global bin path |
+| D03 | user config exists and matches schema                                                           | migrate or write defaults                                                |
+| D04 | every theme referenced by config is installed                                                   | copy from the package's embedded theme set                               |
+| D05 | git binary on PATH when any git widget is enabled                                               | none; reports                                                            |
+| D06 | the resolved global config directory is writable (or creatable)                                 | none; reports                                                            |
+| D07 | update-check cache (read-only) reports a newer release                                          | none; reports                                                            |
+| D08 | render dry-run on an embedded fixture matches the stored snapshot                               | none; reports                                                            |
+| D09 | `~/.claude/settings.json` `statusLine.refreshInterval` matches the configured `refreshInterval` | re-sync from config                                                      |
 
 `--fix` touches D01–D04 and D09. Everything else is reported and left
 to you, on the principle that doctor never acts on host state it does
@@ -58,7 +58,7 @@ Verifies `settings.json` contains a `statusLine` entry whose `command`
 resolves to an `agentline` binary **that still exists and is
 executable** at run time. This catches the orphaned-bin failure mode
 where a user removed the global package (`npm uninstall -g
-@agentline/cli`, `npm unlink`, prefix change) without running
+@odere-pro/agentline`, `npm unlink`, prefix change) without running
 `agentline uninstall` — Claude Code keeps painting the last cached
 render until the wiring is repaired. With `--fix`, writes:
 
@@ -66,12 +66,12 @@ render until the wiring is repaired. With `--fix`, writes:
 {
   "statusLine": {
     "type": "command",
-    "command": "npx -y @agentline/cli"
+    "command": "npx -y @odere-pro/agentline"
   }
 }
 ```
 
-When a global install of `@agentline/cli` is detected on PATH, the
+When a global install of `@odere-pro/agentline` is detected on PATH, the
 absolute path of that bin is preferred over `npx` (faster cold-start).
 Existing user values that point at agentline are upgraded in place;
 foreign values are left alone unless you also pass `--force` to the
@@ -116,7 +116,7 @@ the target is not writable or not creatable. No fix.
 ### D07 — update check
 
 Reads the cached npm-registry probe (refreshed by `agentline install`
-and `agentline edit`). Surfaces a hint when a newer `@agentline/cli`
+and `agentline edit`). Surfaces a hint when a newer `@odere-pro/agentline`
 is available. Never fetches from inside the check; a missing or
 unreachable cache is reported as `pass`. No fix.
 
@@ -184,7 +184,7 @@ silently shipping.
 ## When to run
 
 - After `scripts/install.sh` — sanity check the wiring.
-- After upgrading `@agentline/cli` — verify migrations.
+- After upgrading `@odere-pro/agentline` — verify migrations.
 - When the statusline shows the fallback line — the failing check
   tells you which layer to look at.
 - In CI, with `--strict`, against a representative config.

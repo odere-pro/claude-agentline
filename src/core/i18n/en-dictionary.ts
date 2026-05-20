@@ -84,7 +84,7 @@ export const EN_DICTIONARY = {
   "cmd.doctor.d02.settings-not-object": "Claude Code settings file is not a JSON object",
   "cmd.doctor.d02.hint-fix-d01": "fix D01 first, then run `agentline doctor --fix`",
   "cmd.doctor.d02.no-statusline": "settings.json has no `statusLine` entry",
-  "cmd.doctor.d02.hint-wire": "run `agentline doctor --fix` to wire `npx -y @agentline/cli render`",
+  "cmd.doctor.d02.hint-wire": "run `agentline doctor --fix` to wire `npx -y @odere-pro/agentline render`",
   "cmd.doctor.d02.no-command": "`statusLine.command` is missing or not a string",
   "cmd.doctor.d02.hint-overwrite":
     "run `agentline doctor --fix` to overwrite with a working invocation",
@@ -120,7 +120,7 @@ export const EN_DICTIONARY = {
     "run `agentline install` or `agentline edit` to populate the cache",
   "cmd.doctor.d07.last-failed": "last probe failed; running {current}",
   "cmd.doctor.d07.available": "update available: {current} → {latest}",
-  "cmd.doctor.d07.hint-available": "npm i -g @agentline/cli",
+  "cmd.doctor.d07.hint-available": "npm i -g @odere-pro/agentline",
   "cmd.doctor.d07.up-to-date": "up to date ({current})",
 
   "cmd.doctor.d08.title": "Render dry-run matches snapshot",
@@ -145,7 +145,7 @@ export const EN_DICTIONARY = {
   "cmd.doctor.d09.hint-mismatch": "run `agentline doctor --fix` to sync it from your config",
 
   // ── cmd.install.*, cmd.uninstall.*, cmd.reset.* — verb help blocks ────
-  "cmd.install.help": `agentline install — wire @agentline/cli into Claude Code's statusline
+  "cmd.install.help": `agentline install — wire @odere-pro/agentline into Claude Code's statusline
 
 Usage:
   agentline install [--from-source] [--force] [--dry-run]
@@ -159,7 +159,7 @@ Options:
   -h, --help      Show this message.
 
 Steps performed:
-  1. Install @agentline/cli globally (or npm link with --from-source).
+  1. Install @odere-pro/agentline globally (or npm link with --from-source).
   2. Seed user config from the default template (preserves existing).
   3. Seed shipped themes into the user themes directory.
   4. Install agentline skill files into $HOME/.claude/agents/.
@@ -177,7 +177,7 @@ Options:
   -h, --help  Show this message.
 
 Steps performed:
-  1. npm uninstall -g @agentline/cli.
+  1. npm uninstall -g @odere-pro/agentline.
   2. Remove shipped themes that are byte-identical to the bundled originals.
   3. Remove seeded user config if unchanged (or always with --purge).
   4. Remove agentline skill files from $HOME/.claude/agents/ if unchanged.

@@ -1,5 +1,5 @@
 # .github/workflows/release.yml
-# Release pipeline for `@agentline/cli`.
+# Release pipeline for `@odere-pro/agentline`.
 #
 # Triggers on pushes of annotated `v*` tags. The job:
 #   1. Refuses to publish unless the tag (`vX.Y.Z`) matches
@@ -23,7 +23,7 @@
 #   - All shell steps use `bash` explicitly.
 #
 # Required repository secret: `NPM_TOKEN` (npm Automation or granular
-# token with publish rights for `@agentline/cli`). The token is consumed
+# token with publish rights for `@odere-pro/agentline`). The token is consumed
 # only by the publish step; provenance still requires the workflow to
 # run on the public GitHub-hosted runners.
 

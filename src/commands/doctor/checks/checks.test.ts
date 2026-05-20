@@ -86,7 +86,7 @@ describe("runChecks", () => {
     expect(d07?.status).toBe("pass");
     expect(d07?.message).toMatch(/update available/);
     expect(d07?.message).toContain("9.9.9");
-    expect(d07?.hint).toMatch(/npm i -g @agentline\/cli/);
+    expect(d07?.hint).toMatch(/npm i -g @odere-pro\/agentline/);
   });
 
   it("D07 reports `up to date` when the cached latest equals the current build", async () => {
@@ -142,7 +142,7 @@ describe("runChecks", () => {
     await fs.mkdir(join(home, ".claude"), { recursive: true });
     await fs.writeFile(
       join(home, ".claude", "settings.json"),
-      JSON.stringify({ statusLine: "npx -y @agentline/cli" }),
+      JSON.stringify({ statusLine: "npx -y @odere-pro/agentline" }),
     );
     const results = await runChecks({
       fix: false,

@@ -90,7 +90,7 @@ Wires agentline into Claude Code. Delegates to `scripts/install.sh`; flags are f
 
 **Steps performed (in order):**
 
-1. Install `@agentline/cli` globally (or `npm link` with `--from-source`).
+1. Install `@odere-pro/agentline` globally (or `npm link` with `--from-source`).
 2. Seed user config from the default template (preserves existing).
 3. Seed shipped themes into the user themes directory (preserves existing).
 4. Copy agentline skill files (`agentline*.md`) into `$HOME/.claude/agents/` (skips existing).
@@ -127,7 +127,7 @@ Removes agentline from the host. Idempotent — safe to re-run. Delegates to `sc
 
 **Steps performed (in order):**
 
-1. Run `npm uninstall -g @agentline/cli` (skipped if not installed globally).
+1. Run `npm uninstall -g @odere-pro/agentline` (skipped if not installed globally).
 2. Remove shipped themes that are byte-identical to the bundled originals (user-edited themes are preserved, unless `--purge`).
 3. Remove the seeded user config if its bytes still match the original template (preserved unless `--purge`).
 4. Remove agentline skill files from `$HOME/.claude/agents/` if their bytes still match the source (preserved unless `--purge`).

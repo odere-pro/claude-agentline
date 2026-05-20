@@ -160,6 +160,22 @@ A signed attestation linking a published artefact to the source commit it was bu
 
 ---
 
+## Skill terms
+
+### `skill file`
+
+A markdown file under the repo's `agents/` directory with YAML frontmatter; copied by the installer into the host's agents directory so the host's existing subagent-dispatch system can route natural-language requests to the product. Five files ship with the product (`<product>.md`, `<product>-onboarding.md`, `<product>-configure.md`, `<product>-themes.md`, `<product>-troubleshoot.md`). **Distinct from** the stdin `skills` field in `06-data-contracts`, which is the host's per-session list of loaded subagents.
+
+### `host skill system`
+
+The host application's existing mechanism for discovering and dispatching to subagent markdown files in its agents directory, keyed by frontmatter `description:`. The product **uses** this system but does not implement or extend it. **Distinct from** the host's plugin system.
+
+### `subagent`
+
+A host concept: a markdown-defined sub-assistant the host can dispatch to inside a session, scoped by its frontmatter `description:`. The product ships five subagent skill files; how the host implements subagent dispatch is out of scope.
+
+---
+
 ## Anti-terms
 
 Terms the cookbook deliberately does **not** define because they would mislead.
