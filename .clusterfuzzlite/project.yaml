@@ -4,5 +4,9 @@ primary_contact: "odere.pub@gmail.com"
 main_repo: "https://github.com/odere-pro/claude-agentline"
 fuzzing_engines:
   - libfuzzer
+# `none` is the OSS-Fuzz default for JavaScript (Jazzer.js) — address/memory/
+# undefined are rejected for JS. This file feeds OSS-Fuzz proper, which accepts
+# `none`; the ClusterFuzzLite PR workflow instead pins `coverage` because its
+# cifuzz config validator rejects `none` (see .github/workflows/cflite-pr.yml).
 sanitizers:
-  - address
+  - none

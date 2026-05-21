@@ -12,8 +12,11 @@ cd "$SRC/agentline"
 corepack enable
 pnpm install --frozen-lockfile
 
-# Bundle the fuzz entry (ESM TypeScript) into CommonJS so the Jazzer.js
-# targets can `require("./bundle.cjs")`. esbuild ships with tsup (a dep).
+# Bundle the fuzz entry (ESM TypeScript) into a self-contained CommonJS
+# module so the Jazzer.js targets can `require("./bundle.cjs")` from $OUT
+# without node_modules present. esbuild is a direct devDependency: pnpm's
+# isolated store does not expose tsup's transitive esbuild binary to
+# `pnpm exec`, so it must be declared explicitly.
 pnpm exec esbuild .clusterfuzzlite/fuzz/entry.ts \
   --bundle \
   --platform=node \

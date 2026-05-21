@@ -30,7 +30,13 @@ jobs:
         uses: google/clusterfuzzlite/actions/build_fuzzers@82652fb49e77bc29c35da1167bb286e93c6bcc05 # v1
         with:
           language: javascript
-          sanitizer: address
+          # JavaScript can only build under `coverage` here. The OSS-Fuzz
+          # base-builder compile guard rejects every code sanitizer for JS
+          # ("JavaScript projects cannot be fuzzed with sanitizers", allowing
+          # only `coverage`/`none`), while ClusterFuzzLite's cifuzz config
+          # validator rejects `none` (SANITIZERS = address/memory/undefined/
+          # coverage). `coverage` is the only value that passes both.
+          sanitizer: coverage
 
       - name: Run fuzzers
         uses: google/clusterfuzzlite/actions/run_fuzzers@82652fb49e77bc29c35da1167bb286e93c6bcc05 # v1
@@ -38,4 +44,5 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           fuzz-seconds: 600
           mode: code-change
-          sanitizer: address
+          # Must match the build sanitizer; see the build step note above.
+          sanitizer: coverage
