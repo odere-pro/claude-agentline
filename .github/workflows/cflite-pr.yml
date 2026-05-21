@@ -30,7 +30,9 @@ jobs:
         uses: google/clusterfuzzlite/actions/build_fuzzers@82652fb49e77bc29c35da1167bb286e93c6bcc05 # v1
         with:
           language: javascript
-          sanitizer: address
+          # Jazzer.js (JS) targets carry no native instrumentation, so
+          # ClusterFuzzLite rejects any sanitizer other than `none`.
+          sanitizer: none
 
       - name: Run fuzzers
         uses: google/clusterfuzzlite/actions/run_fuzzers@82652fb49e77bc29c35da1167bb286e93c6bcc05 # v1
@@ -38,4 +40,4 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           fuzz-seconds: 600
           mode: code-change
-          sanitizer: address
+          sanitizer: none
