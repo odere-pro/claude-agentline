@@ -92,6 +92,9 @@ From a clean `main` with the changes you want to ship already merged:
   the release.
 - Lint, type-check, tests, and the full `tests/gates/run-all.sh` suite must
   all pass.
+- Tags are SSH-signed (`tag.gpgsign` is enabled locally) and the `v*`
+  namespace is protected by a repository ruleset — only maintainers can
+  create release tags.
 
 ## If something goes wrong
 
