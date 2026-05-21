@@ -1,0 +1,3 @@
+# CI installs this driver into $RUNNER_TEMP, never here; ignore any local
+# `npm ci` output so it can't be committed.
+node_modules/

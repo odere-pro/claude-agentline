@@ -12,6 +12,19 @@ updates:
       prefix: chore
       include: scope
 
+  # CI-only Jazzer.js fuzzing driver — a standalone npm project kept out of the
+  # root pnpm tree (see .github/workflows/cflite-pr.yml). Its lockfile is what
+  # hash-pins the fuzzer for `npm ci`, so Dependabot must refresh it here too.
+  - package-ecosystem: npm
+    directory: "/.clusterfuzzlite/jazzer"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    commit-message:
+      prefix: ci
+      include: scope
+
   # GitHub Actions — Dependabot bumps the SHA pin and refreshes the trailing
   # version comment, so actions stay pinned-by-hash while still being updated.
   - package-ecosystem: github-actions
