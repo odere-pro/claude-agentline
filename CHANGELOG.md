@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-05-21
+
+### Added
+
+- `601cf79` — Friendlier setup experience: colourise `agentline install` / `reset` output (green successes, yellow warnings, red errors, a bold-cyan brand prefix) and render file paths and URLs as underlined, OSC 8 clickable links — all gated on a TTY plus `NO_COLOR`, so piped or non-interactive output stays byte-for-byte unchanged; and print a short greeting at the end of the install flow that introduces agentline, links the author's GitHub/LinkedIn/Medium, and signs off with "Happy Agentic Engineering". No `postinstall` or other lifecycle script is used (pnpm does not run them by default and they widen the supply-chain surface).
+
+### Changed
+
+- `fdf89e1` — Cookbook reflects shipped subagent skill files end-to-end: cookbook chapters 00, 04, 06, 07, 08, 10, 11, 12, 13, 15, 16, 18 + `docs/GLOSSARY.md` now cover install-time seeding into the host's agents directory, byte-match-checked uninstall, and the dual meaning of `skills` vs `skill file`; chapter 14 catches up by documenting gates 23–26; new `SOFTWARE-3-0.md` at repo root names the agent-operability thesis in Karpathy's vocabulary and points at the code that makes it concrete.
+- `64a535d` — Harden the release pipeline: bump `softprops/action-gh-release` to v3 (Node 24 runtime), pack and publish via pnpm, and require SSH-signed, ruleset-protected `v*` tags.
+- `dca8d97` — README reorganisation and Highlights restyle: lead with a four-step `Get started` quickstart (`npm install` → `agentline install` → `agentline doctor` → `agentline edit`) followed by a single statusline example image, then rewrite the Highlights section into one consistent `**label** — sentence` bullet style with a per-family table, surfacing in-session agent configuration, the plan-link widget, picker search, per-family colour grouping, widget previews, the single global config, and reversible uninstall.
+
+### Fixed
+
+- `c2abd7f` — Fix red PR-time CI: ClusterFuzzLite now builds the Jazzer.js targets — the `coverage` sanitizer is the only value accepted by both cifuzz config validation and the JavaScript compile guard (which reject `none` and `address` respectively), and `esbuild` is now a direct devDependency so the fuzz bundle step resolves it under pnpm's isolated store. The gitleaks step also passes `GITHUB_TOKEN` so pull-request scans run instead of erroring out.
+- `6f19df5` — Security runbook accuracy: correct the branch-protection example in `docs/SECURITY-CHECKLIST.md` to require the real matrixed check-run names (`gates / <os> / node <v>`, `analyze (javascript-typescript)`, `dependency review`) instead of placeholders that never report — and explicitly exclude `scorecard`, which only runs on push/schedule and would wedge every PR; add a `workflow_dispatch` trigger to `scorecard.yml` so the runbook's documented manual re-grade command actually works.
+- `9ab460b` — Fix PR-time fuzzing: drive Jazzer.js directly over the `.clusterfuzzlite/fuzz` targets instead of the `google/clusterfuzzlite` build/run wrapper (its v1 image is structurally unusable for pure-JS projects — it rejects every sanitizer for JavaScript yet refuses to accept `none`), pin `esbuild` so the bundle step resolves, mark `.clusterfuzzlite/fuzz` as CommonJS so the harnesses load, and pass `GITHUB_TOKEN` to the gitleaks PR scan.
+
+### Security
+
+- `33cdcef` — Pin the PR-time Jazzer.js fuzzer so OpenSSF Scorecard's Pinned-Dependencies check stops flagging it: the CI-only driver now lives in a standalone `.clusterfuzzlite/jazzer/` manifest installed with `npm ci` against a committed, hash-pinned lockfile instead of `npm install @jazzer.js/core@^2`. The fuzzer is pinned to `@jazzer.js/core@4.0.0`, whose `cmake-js@8` build toolchain pulls a patched `tar@7.x` (the old `^2` line dragged in `tar@6.2.1`, which the dependency-review check rejected for six high-severity advisories), and Dependabot now tracks the lockfile so the pin stays current.
+
 ## [0.1.0] — 2026-05-21
 
 ### Chapter 1 — 2026-05-03
