@@ -8,7 +8,9 @@
 # - `permissions: read-all` at the workflow level; the job widens only to
 #   `security-events: write` (SARIF upload) + `id-token: write`
 #   (publish_results attestation) + `contents: read`.
-# - `branch_protection_rule` + scheduled + main-push triggers only.
+# - `branch_protection_rule` + scheduled + main-push + manual-dispatch
+#   triggers (manual dispatch lets a maintainer re-grade on demand after a
+#   settings change — see docs/SECURITY-CHECKLIST.md).
 
 name: scorecard
 
@@ -18,6 +20,7 @@ on:
     - cron: "0 8 * * 1"
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions: read-all
 
