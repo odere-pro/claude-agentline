@@ -14,10 +14,63 @@ the workflow files under `.github/workflows/` for those.
 
 ---
 
+> **Solo-maintainer mode (current).** `scorecard.yml` no longer imports its
+> SARIF into GitHub code scanning — several checks (Code-Review, the review
+> tiers of Branch-Protection) are structurally unsatisfiable for a single
+> maintainer, so mirroring them into the Security tab only yields un-actionable
+> alerts. The workflow still runs with `publish_results: true`, so the public
+> score and the README badge keep updating. Read the full Scorecard report at
+> the [scorecard.dev viewer](https://scorecard.dev/viewer/?uri=github.com/odere-pro/claude-agentline),
+> not the Security tab.
+
 ## 1. Branch protection on `main` (Scorecard: Branch-Protection, Code-Review)
 
-Enable a protection rule that requires review, blocks force-push, blocks
-deletion, dismisses stale approvals, and enforces the rule for admins too.
+### Solo-maintainer config (active)
+
+While this is a single-maintainer project, protect history without gating your
+own work: block force-push and deletion, leave admins un-enforced (so you can
+always recover), and require no reviews. This earns Scorecard Branch-Protection
+**Tier 1** and never blocks a direct push or a self-merge.
+
+```bash
+gh api -X PUT repos/odere-pro/claude-agentline/branches/main/protection \
+  --input - <<'JSON'
+{
+  "required_status_checks": null,
+  "enforce_admins": false,
+  "required_pull_request_reviews": null,
+  "restrictions": null,
+  "required_linear_history": false,
+  "allow_force_pushes": false,
+  "allow_deletions": false,
+  "required_conversation_resolution": false,
+  "block_creations": false
+}
+JSON
+```
+
+Verify (force-push and deletions `false`, admins `false`, reviews `null`):
+
+```bash
+gh api repos/odere-pro/claude-agentline/branches/main/protection | jq '{
+  force_push: .allow_force_pushes.enabled,
+  deletions: .allow_deletions.enabled,
+  admins: .enforce_admins.enabled,
+  reviews: .required_pull_request_reviews
+}'
+```
+
+**Code-Review (Scorecard: Code-Review) cannot pass with one maintainer.**
+Scorecard credits only reviews by someone _other than_ the commit author, and
+GitHub forbids approving your own PRs. That alert is dismissed in the Security
+tab (`won't fix`) rather than chased — revisit it once a second maintainer
+joins (see below).
+
+### When you add a second maintainer (Tier 2+)
+
+Once another reviewer is available (ideally from a different organization),
+upgrade to a review-required rule. **This config blocks solo merges**, so do
+not apply it before there is a second person to approve PRs:
 
 ```bash
 gh api -X PUT repos/odere-pro/claude-agentline/branches/main/protection \
@@ -66,18 +119,7 @@ JSON
 >   --jq '.check_runs[].name' | sort -u
 > ```
 
-Verify:
-
-```bash
-gh api repos/odere-pro/claude-agentline/branches/main/protection | jq '{
-  reviews: .required_pull_request_reviews,
-  force_push: .allow_force_pushes.enabled,
-  deletions: .allow_deletions.enabled,
-  admins: .enforce_admins.enabled
-}'
-```
-
-Scorecard tiers this check. The config above satisfies:
+Scorecard tiers this check. The review-required config above satisfies:
 
 - **Tier 1** — block force-push, block deletion.
 - **Tier 2** — ≥1 reviewer, PRs required for admins, up-to-date before merge
@@ -87,14 +129,8 @@ Scorecard tiers this check. The config above satisfies:
 
 To reach **Tier 4** raise `required_approving_review_count` to `2` once the
 project has enough reviewers (`require_code_owner_reviews` is already on, backed
-by `.github/CODEOWNERS`).
-
-### Mandatory code review (Scorecard: Code-Review)
-
-`required_approving_review_count: 1` + `enforce_admins: true` above makes review
-mandatory for everyone, including admins. To raise the bar further, recruit a
-second maintainer (ideally from a different organization) so two-person review
-becomes feasible, then bump the count to `2`.
+by `.github/CODEOWNERS`). Two-person review (a second maintainer, ideally from a
+different organization) is also what finally lets the Code-Review check pass.
 
 ---
 
@@ -145,6 +181,24 @@ gh workflow run scorecard.yml
 gh run watch
 ```
 
-Then open the repo's **Security → Code scanning** view to confirm the
-Branch-Protection, Code-Review, Pinned-Dependencies, Dependency-Update-Tool,
-and Fuzzing findings have improved.
+Then read the score at the
+[scorecard.dev viewer](https://scorecard.dev/viewer/?uri=github.com/odere-pro/claude-agentline)
+to confirm the Branch-Protection, Pinned-Dependencies, Dependency-Update-Tool,
+and Fuzzing checks have improved. The Security → Code scanning view no longer
+receives Scorecard SARIF (see "Solo-maintainer mode" above).
+
+### Clearing pre-existing Scorecard alerts
+
+Any Scorecard alerts already imported into code scanning before SARIF upload was
+removed stay open until dismissed. List and dismiss them once:
+
+```bash
+gh api repos/odere-pro/claude-agentline/code-scanning/alerts \
+  --jq '.[] | {number, rule: .rule.id, state}'
+
+# dismissed_reason ∈ "false positive" | "won't fix" | "used in tests"
+gh api -X PATCH repos/odere-pro/claude-agentline/code-scanning/alerts/<number> \
+  -f state=dismissed \
+  -f dismissed_reason="won't fix" \
+  -f dismissed_comment="Solo maintainer: Scorecard SARIF no longer imported (badge still published). See docs/SECURITY-CHECKLIST.md."
+```
