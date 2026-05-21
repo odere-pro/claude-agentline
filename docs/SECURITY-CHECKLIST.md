@@ -25,7 +25,16 @@ gh api -X PUT repos/odere-pro/claude-agentline/branches/main/protection \
 {
   "required_status_checks": {
     "strict": true,
-    "contexts": ["gates", "codeql", "dependency-review", "scorecard"]
+    "contexts": [
+      "gates / ubuntu-24.04 / node 20",
+      "gates / ubuntu-24.04 / node 22",
+      "gates / macos-14 / node 20",
+      "gates / macos-14 / node 22",
+      "gates / windows-2022 / node 20",
+      "gates / windows-2022 / node 22",
+      "analyze (javascript-typescript)",
+      "dependency review"
+    ]
   },
   "enforce_admins": true,
   "required_pull_request_reviews": {
@@ -43,6 +52,20 @@ gh api -X PUT repos/odere-pro/claude-agentline/branches/main/protection \
 JSON
 ```
 
+> **Contexts must match the real check-run names.** A required context that
+> never reports blocks every merge indefinitely. The names above are the
+> matrixed jobs that run on `pull_request`: the six `gates / <os> / node <v>`
+> legs (`gates.yml`), `analyze (javascript-typescript)` (`codeql.yml`), and
+> `dependency review` (`dependency-review.yml`). **Do not** add `scorecard` as
+> a required check — `scorecard.yml` runs on push/schedule/`branch_protection_rule`,
+> never on PRs, so requiring it would wedge every PR. Re-derive the list after
+> renaming a job or matrix axis:
+>
+> ```bash
+> gh api repos/odere-pro/claude-agentline/commits/main/check-runs \
+>   --jq '.check_runs[].name' | sort -u
+> ```
+
 Verify:
 
 ```bash
@@ -59,7 +82,7 @@ Scorecard tiers this check. The config above satisfies:
 - **Tier 1** — block force-push, block deletion.
 - **Tier 2** — ≥1 reviewer, PRs required for admins, up-to-date before merge
   (`strict: true`), require approval of the most recent push.
-- **Tier 3** — ≥1 status check (`gates`, `codeql`, …).
+- **Tier 3** — ≥1 status check (the `gates / …` legs, `analyze (javascript-typescript)`, …).
 - **Tier 5** — dismiss stale reviews, include administrators.
 
 To reach **Tier 4** raise `required_approving_review_count` to `2` once the
