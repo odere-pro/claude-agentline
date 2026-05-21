@@ -8,7 +8,7 @@
 #      build, lint, typecheck, tests, and `tests/gates/run-all.sh`. A
 #      failure aborts before any publish.
 #   3. Packs the canonical tarball, computes `SHA256SUMS`.
-#   4. `npm publish --provenance`. OIDC-based provenance attestation is
+#   4. `pnpm publish --provenance`. OIDC-based provenance attestation is
 #      issued by GitHub to npm; no manual key handling.
 #   5. Creates a GitHub Release whose body is the matching `[X.Y.Z]`
 #      block extracted from `CHANGELOG.md`, and attaches the tarball
@@ -75,7 +75,7 @@ jobs:
       - name: Install dependencies (pnpm)
         # corepack ships with Node ≥20 and pins pnpm via package.json's
         # `packageManager`. The shim persists across job steps, so the
-        # `npm publish` step's `prepublishOnly` (pnpm run build) still works.
+        # `pnpm publish` step's `prepublishOnly` (pnpm run build) still works.
         run: |
           corepack enable
           pnpm install --frozen-lockfile
@@ -99,10 +99,12 @@ jobs:
         id: pack
         run: |
           mkdir -p .release
-          tarball="$(npm pack --pack-destination=.release --json \
-            | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{const a=JSON.parse(d);process.stdout.write(a[0].filename)})')"
+          # `pnpm pack` has no `--json`; the freshly-created .release/ holds
+          # exactly one .tgz, so glob it rather than parse stdout.
+          pnpm pack --pack-destination=.release
+          tarball="$(cd .release && ls -1 *.tgz | head -1)"
           if [ -z "${tarball}" ] || [ ! -f ".release/${tarball}" ]; then
-            echo "::error::npm pack did not produce a tarball"
+            echo "::error::pnpm pack did not produce a tarball"
             exit 1
           fi
           echo "tarball=${tarball}" >> "$GITHUB_OUTPUT"
@@ -138,7 +140,9 @@ jobs:
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --provenance --access public
+        # --no-git-checks: the job runs from a detached tag ref, which pnpm's
+        # clean-branch guard would otherwise reject.
+        run: pnpm publish --provenance --access public --no-git-checks
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
