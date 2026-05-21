@@ -64,7 +64,6 @@
   },
   "scripts": {
     "build": "tsup",
-    "postinstall": "node scripts/postinstall.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint \"src/**/*.ts\"",

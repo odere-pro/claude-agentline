@@ -496,6 +496,23 @@ JS
   al_log_ok "wrote manifest: ${manifest_file}"
 }
 
+# A friendly sign-off shown once at the end of install. Reuses the colour
+# palette and link emphasis from lib/common.sh (all empty / pass-through in
+# plain mode, so non-TTY output stays clean). Printed to stderr like the rest.
+print_greeting() {
+  printf '\n' >&2
+  printf '%sagentline%s — a fast, themeable statusline for Claude Code.\n' \
+    "${AL_C_BRAND}" "${AL_C_RESET}" >&2
+  printf '  %sGitHub:  %s %s\n' "${AL_C_DIM}" "${AL_C_RESET}" \
+    "$(__al_emph "https://github.com/odere-pro")" >&2
+  printf '  %sLinkedIn:%s %s\n' "${AL_C_DIM}" "${AL_C_RESET}" \
+    "$(__al_emph "https://www.linkedin.com/in/oleksander-derechei/")" >&2
+  printf '  %sMedium:  %s %s\n' "${AL_C_DIM}" "${AL_C_RESET}" \
+    "$(__al_emph "https://medium.com/@odere.pub")" >&2
+  printf '\n' >&2
+  printf '%sHappy Agentic Engineering ✨%s\n' "${AL_C_SIGN}" "${AL_C_RESET}" >&2
+}
+
 # ---------------- run ----------------
 
 install_or_link_package
@@ -507,3 +524,4 @@ write_manifest
 
 al_log_ok "install complete"
 al_log_info "run \`agentline doctor\` to verify the wiring"
+print_greeting
