@@ -11,23 +11,48 @@
 
 A fast, themeable statusline for Claude Code. Reads the stdin payload Claude Code's statusline contract sends, writes an ANSI-styled line, exits. No network. No native modules. No plugin scaffolding.
 
-![agentline statusline rendering: model, thinking effort, account, branch, context %, weekly usage, reset timers, cwd, permissions mode](./docs/assets/statusline-example.png)
-
 > **Built for Software 3.0.** Agentline is shaped so an LLM agent — not just a human — can install, configure, theme, and troubleshoot it through natural language. The stable stdin contract, the flat scriptable CLI, the seeded subagent skill files, and the per-group `CLAUDE.md` briefings are one coherent design choice, not a feature list. See [SOFTWARE-3-0.md](./SOFTWARE-3-0.md) for the thesis, the five pillars, and a worked example.
+
+---
+
+## Get started
+
+```bash
+npm install -g @odere-pro/agentline   # 1. install the CLI
+agentline install                     # 2. wire into Claude Code (statusLine + skills + themes)
+agentline doctor                      # 3. verify the wiring
+agentline edit                        # 4. customise widgets, theme, and layout (TUI)
+```
+
+Restart Claude Code after `install` — the statusline appears at the bottom of the prompt. Later config changes apply on the next render, no restart needed.
+
+![agentline statusline rendering: model, thinking effort, account, branch, context %, weekly usage, reset timers, cwd, permissions mode](./docs/assets/statusline-example.png)
 
 ---
 
 ## Highlights
 
-- **27 widgets** across 5 families — `session` · `tokens` · `context` · `rate-limits` · `git`
-- **Powerline-ready** rendering with arrayed chevrons & caps that cycle per line
-- **Theme engine** — truecolor / 256-colour / 16-colour graceful degradation
-- **Configure in-session** — five skills wired into Claude Code let you say _"add a context widget"_ and the agent edits your config
-- **TUI editor** with live preview and widget picker (`agentline edit`)
-- **Scriptable layout** — `agentline config widget <add|remove|move|replace|set-option|list|catalog>`
-- **`agentline doctor --fix`** — auto-repairs settings wiring, config defaults, and missing themes
-- **Reversible** — `install` backs up your prior `statusLine`; `uninstall` restores it byte-for-byte
-- **Zero render-time I/O** — themes and the widget registry are all embedded
+**27 widgets across 5 families**, each covering one slice of session status:
+
+| Family        | What it shows                                                           |
+| ------------- | ----------------------------------------------------------------------- |
+| `session`     | model, version, thinking effort, plan, account — from the stdin payload |
+| `tokens`      | input / output token counts and throughput                              |
+| `context`     | context-window usage and a fill bar                                     |
+| `rate-limits` | session & weekly quota usage and reset timers                           |
+| `git`         | branch, SHA, worktree, change counts, upstream, PR                      |
+
+- **Agent-friendly** — `install` adds five agentline skills to your Claude Code session, so you can install, configure, theme, troubleshoot, and update agentline by asking the agent — without leaving Claude Code.
+- **Comfortable, intuitive TUI** — `agentline edit` opens a live-preview editor with a widget picker.
+- **Search to your widget** — press `/` in the picker for a flat, searchable list across every widget.
+- **Previews, grouped by colour & family** — every widget shows a live preview in the picker, colour-coded and grouped by family so the statusline is faster to read at a glance.
+- **Plan-link widget** — the `plan` widget links to the plan generated in your Claude Code session, so you never lose it when you clear or compact context.
+- **One global config** — a single source of truth at `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json`; no per-project config to drift.
+- **Reversible** — `agentline uninstall` restores your previous `statusLine` byte-for-byte and removes the installed skills (`--purge` also wipes user config and custom themes).
+- **Powerline-ready** — arrayed chevrons & caps that cycle per line.
+- **Theme engine** — graceful truecolor → 256-colour → 16-colour degradation.
+- **Self-repairing** — `agentline doctor --fix` auto-repairs settings wiring, config defaults, and missing themes.
+- **Zero render-time I/O** — themes and the widget registry are embedded; no network on the hot path.
 
 ---
 
