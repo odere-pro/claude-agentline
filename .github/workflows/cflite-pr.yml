@@ -1,10 +1,20 @@
 # .github/workflows/cflite-pr.yml
-# ClusterFuzzLite — PR-time fuzzing. Builds the Jazzer.js fuzz targets in
-# .clusterfuzzlite/ and runs a short fuzzing session against the diff so a
-# regression in the stdin / config / transcript parsers is caught before
-# merge. Earns the OpenSSF Scorecard Fuzzing check.
+# PR-time fuzzing — drives the Jazzer.js targets in .clusterfuzzlite/fuzz/
+# directly (libFuzzer engine) against every PR so a regression in the
+# stdin / config / transcript parsers is caught before merge.
 #
-# Hard invariants (Implementation Plan 3): actions pinned by full commit SHA.
+# Why not google/clusterfuzzlite/actions/build_fuzzers? Its v1 image
+# refuses to fuzz JavaScript projects with a native sanitizer
+# ("JavaScript projects cannot be fuzzed with sanitizers") and refuses to
+# accept `none` through its config validator ("Invalid SANITIZER: none"),
+# so the wrapper is structurally unusable for a pure-JS project as of 2026.
+# We invoke Jazzer.js directly instead; `.clusterfuzzlite/` remains the
+# canonical OSS-Fuzz integration spec — its build.sh mirrors the bundle
+# step below, and the wrapper re-engages on the OSS-Fuzz side at registration.
+#
+# Hard invariants (Implementation Plan 3): actions pinned by full commit
+# SHA; no native runtime deps (@jazzer.js/core is installed --no-save and
+# never enters the shipped package).
 
 name: cflite-pr
 
@@ -22,27 +32,76 @@ jobs:
   fuzzing:
     name: clusterfuzzlite fuzzing
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - fuzz_stdin_json
+          - fuzz_config_validate
+          - fuzz_transcript
     steps:
-      - name: Build fuzzers
-        id: build
-        uses: google/clusterfuzzlite/actions/build_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
-        with:
-          language: javascript
-          # JavaScript can only build under `coverage` here. The OSS-Fuzz
-          # base-builder compile guard rejects every code sanitizer for JS
-          # ("JavaScript projects cannot be fuzzed with sanitizers", allowing
-          # only `coverage`/`none`), while ClusterFuzzLite's cifuzz config
-          # validator rejects `none` (SANITIZERS = address/memory/undefined/
-          # coverage). `coverage` is the only value that passes both.
-          sanitizer: coverage
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Run fuzzers
-        uses: google/clusterfuzzlite/actions/run_fuzzers@884713a6c30a92e5e8544c39945cd7cb630abcd1 # v1
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          fuzz-seconds: 600
-          mode: code-change
-          # Must match the build sanitizer; see the build step note above.
-          sanitizer: coverage
+          node-version: 20
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Bundle fuzz entry
+        # Mirror .clusterfuzzlite/build.sh: bundle the ESM/TypeScript parsers
+        # into a CommonJS module the Jazzer.js targets require("./bundle.cjs").
+        run: |
+          pnpm exec esbuild .clusterfuzzlite/fuzz/entry.ts \
+            --bundle \
+            --platform=node \
+            --target=node20 \
+            --format=cjs \
+            --outfile=.clusterfuzzlite/fuzz/bundle.cjs
+
+      - name: Install Jazzer.js (isolated from the pnpm tree)
+        # @jazzer.js/core is a CI-only fuzzing driver. Installing it into the
+        # pnpm-managed node_modules corrupts that tree, so install it into an
+        # isolated npm project and run its bin against the in-repo harnesses.
+        run: |
+          mkdir -p "$RUNNER_TEMP/jazzer"
+          cd "$RUNNER_TEMP/jazzer"
+          npm init -y >/dev/null
+          npm install @jazzer.js/core@^2
+
+      - name: Fuzz ${{ matrix.target }}
+        env:
+          # Per-target budget on PRs. A deeper scheduled run can layer on
+          # later; this budget is the regression tripwire on the diff.
+          FUZZ_TIME: "60"
+        run: |
+          set -e
+          # `--sync`: the harnesses return synchronously (matches build.sh's
+          # `compile_javascript_fuzzer ... --sync`), so synchronous mode is
+          # both correct and faster.
+          "$RUNNER_TEMP/jazzer/node_modules/.bin/jazzer" \
+            ".clusterfuzzlite/fuzz/${{ matrix.target }}.js" \
+            --sync \
+            -- \
+            -max_total_time="$FUZZ_TIME" \
+            -error_exitcode=1 \
+            -timeout=30
+
+      - name: Upload crash artifact
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fuzz-crash-${{ matrix.target }}
+          path: |
+            crash-*
+            leak-*
+            timeout-*
+          if-no-files-found: ignore
