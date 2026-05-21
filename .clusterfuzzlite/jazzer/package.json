@@ -1,0 +1,9 @@
+{
+  "name": "agentline-fuzz-driver",
+  "version": "0.0.0",
+  "private": true,
+  "description": "CI-only Jazzer.js fuzzing driver. Kept out of the root pnpm tree on purpose (its native agent corrupts pnpm's isolated store); installed standalone via `npm ci` so the dependency is hash-pinned by package-lock.json — see .github/workflows/cflite-pr.yml.",
+  "dependencies": {
+    "@jazzer.js/core": "4.0.0"
+  }
+}

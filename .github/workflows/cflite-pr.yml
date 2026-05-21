@@ -69,13 +69,18 @@ jobs:
 
       - name: Install Jazzer.js (isolated from the pnpm tree)
         # @jazzer.js/core is a CI-only fuzzing driver. Installing it into the
-        # pnpm-managed node_modules corrupts that tree, so install it into an
-        # isolated npm project and run its bin against the in-repo harnesses.
+        # pnpm-managed node_modules corrupts that tree, so it lives in a
+        # standalone manifest at .clusterfuzzlite/jazzer/. Copy that manifest +
+        # its committed lockfile to an isolated dir and `npm ci`: the lockfile
+        # hash-pins @jazzer.js/core and every transitive dep. Scorecard's
+        # Pinned-Dependencies check only treats `npm ci` (or a commit-pinned git
+        # URL) as pinned — a bare `npm install <pkg>@<range>` is always flagged.
         run: |
           mkdir -p "$RUNNER_TEMP/jazzer"
-          cd "$RUNNER_TEMP/jazzer"
-          npm init -y >/dev/null
-          npm install @jazzer.js/core@^2
+          cp .clusterfuzzlite/jazzer/package.json \
+             .clusterfuzzlite/jazzer/package-lock.json \
+             "$RUNNER_TEMP/jazzer/"
+          ( cd "$RUNNER_TEMP/jazzer" && npm ci --no-audit --no-fund )
 
       - name: Fuzz ${{ matrix.target }}
         env:
