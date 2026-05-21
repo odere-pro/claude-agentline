@@ -1,5 +1,5 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "ignore": ["scripts/bench/cold-start.mjs"],
-  "ignoreDependencies": ["ajv-formats"]
+  "ignoreDependencies": ["ajv-formats", "esbuild"]
 }
