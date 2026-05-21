@@ -172,7 +172,7 @@ install_or_link_package() {
     if [ -z "${__bin}" ] || [ ! -x "${__bin}" ]; then
       al_die "agentline binary not found after npm link; check npm global bin is on PATH"
     fi
-    al_log_info "linked: ${__bin}"
+    al_log_ok "linked: ${__bin}"
     return 0
   fi
   # PATH check: only skip if the binary actually exists at the resolved path.
@@ -194,7 +194,7 @@ install_or_link_package() {
   if [ -z "${__bin}" ] || [ ! -x "${__bin}" ]; then
     al_die "agentline binary not found after npm install -g; check npm global bin is on PATH"
   fi
-  al_log_info "installed: ${__bin}"
+  al_log_ok "installed: ${__bin}"
 }
 
 # Step 2: seed user config from templates/default.config.json.
@@ -213,7 +213,7 @@ seed_user_config() {
     fi
   fi
   atomic_copy_via_node "${__template}" "${config_file}"
-  [ "${DRY_RUN}" = "1" ] || al_log_info "seeded ${config_file}"
+  [ "${DRY_RUN}" = "1" ] || al_log_ok "seeded ${config_file}"
 }
 
 # Step 3: copy themes/*.json into config dir's themes subfolder.
@@ -235,7 +235,7 @@ seed_themes() {
     __copied=$((__copied + 1))
   done
   if [ "${__copied}" -gt 0 ]; then
-    [ "${DRY_RUN}" = "1" ] || al_log_info "seeded ${__copied} theme(s) into ${themes_dir}"
+    [ "${DRY_RUN}" = "1" ] || al_log_ok "seeded ${__copied} theme(s) into ${themes_dir}"
   else
     al_log_info "all themes already present in ${themes_dir}"
   fi
@@ -262,7 +262,7 @@ seed_skills() {
     __copied=$((__copied + 1))
   done
   if [ "${__copied}" -gt 0 ]; then
-    [ "${DRY_RUN}" = "1" ] || al_log_info "installed ${__copied} skill(s) into ${__agents_dir}"
+    [ "${DRY_RUN}" = "1" ] || al_log_ok "installed ${__copied} skill(s) into ${__agents_dir}"
   else
     al_log_info "agentline skills already present in ${__agents_dir}"
   fi
@@ -315,7 +315,7 @@ wire_statusline() {
 
   __new_settings_json="$(merge_statusline_into_settings "${__target_file}" "${__cmd}")"
   atomic_write_via_node "${__target_file}" "${__new_settings_json}"
-  [ "${DRY_RUN}" = "1" ] || al_log_info "wired statusLine into ${__target_file}"
+  [ "${DRY_RUN}" = "1" ] || al_log_ok "wired statusLine into ${__target_file}"
 }
 
 # Resolve which command to wire. Verifies the binary exists as an executable
@@ -493,7 +493,24 @@ try {
 }
 fs.renameSync(tmp, manifestFile);
 JS
-  al_log_info "wrote manifest: ${manifest_file}"
+  al_log_ok "wrote manifest: ${manifest_file}"
+}
+
+# A friendly sign-off shown once at the end of install. Reuses the colour
+# palette and link emphasis from lib/common.sh (all empty / pass-through in
+# plain mode, so non-TTY output stays clean). Printed to stderr like the rest.
+print_greeting() {
+  printf '\n' >&2
+  printf '%sagentline%s — a fast, themeable statusline for Claude Code.\n' \
+    "${AL_C_BRAND}" "${AL_C_RESET}" >&2
+  printf '  %sGitHub:  %s %s\n' "${AL_C_DIM}" "${AL_C_RESET}" \
+    "$(__al_emph "https://github.com/odere-pro")" >&2
+  printf '  %sLinkedIn:%s %s\n' "${AL_C_DIM}" "${AL_C_RESET}" \
+    "$(__al_emph "https://www.linkedin.com/in/oleksander-derechei/")" >&2
+  printf '  %sMedium:  %s %s\n' "${AL_C_DIM}" "${AL_C_RESET}" \
+    "$(__al_emph "https://medium.com/@odere.pub")" >&2
+  printf '\n' >&2
+  printf '%sHappy Agentic Engineering ✨%s\n' "${AL_C_SIGN}" "${AL_C_RESET}" >&2
 }
 
 # ---------------- run ----------------
@@ -505,4 +522,6 @@ seed_skills
 wire_statusline "${settings_file}" "${settings_backup}"
 write_manifest
 
-al_log_info "install complete"
+al_log_ok "install complete"
+al_log_info "run \`agentline doctor\` to verify the wiring"
+print_greeting

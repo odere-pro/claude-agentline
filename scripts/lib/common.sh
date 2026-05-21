@@ -85,11 +85,113 @@ AL_STATE_DIR="${AL_CONFIG_DIR}/state"
 # shellcheck disable=SC2034 # consumed by sourced install.sh / uninstall.sh
 AL_STATUS_LINE_BACKUP="${AL_STATE_DIR}/settings-backup.json"
 
+# Colour palette — populated by __al_colour_init only when stderr is a TTY and
+# the user has not opted out. Every value stays empty in plain mode, so the
+# logging helpers below emit byte-for-byte the same text they always have.
+AL_USE_COLOR=0
+AL_ESC=""
+AL_C_RESET=""
+AL_C_BRAND=""
+AL_C_OK=""
+AL_C_WARN=""
+AL_C_ERR=""
+AL_C_DIM=""
+AL_C_SIGN=""
+AL_C_ULON=""
+AL_C_ULOFF=""
+AL_OSC_OPEN=""
+AL_OSC_ST_SED=""
+AL_SED_D=""
+
+# Decide once whether to style log output. Honours the https://no-color.org
+# convention (any non-empty NO_COLOR), a dumb terminal, and a non-TTY stderr
+# (all logging goes to fd 2). Mirrors the colour gate in the TS doctor formatter.
+__al_colour_init() {
+  if [ -n "${NO_COLOR:-}" ]; then return 0; fi
+  if [ "${TERM:-}" = "dumb" ]; then return 0; fi
+  if [ ! -t 2 ]; then return 0; fi
+  AL_ESC="$(printf '\033')"
+  AL_USE_COLOR=1
+  AL_C_RESET="${AL_ESC}[0m"
+  AL_C_BRAND="${AL_ESC}[1;36m" # bold cyan
+  AL_C_OK="${AL_ESC}[32m"      # green
+  AL_C_WARN="${AL_ESC}[33m"    # yellow
+  AL_C_ERR="${AL_ESC}[31m"     # red
+  # shellcheck disable=SC2034 # consumed by install.sh print_greeting
+  AL_C_DIM="${AL_ESC}[2m" # dim (greeting link labels)
+  # shellcheck disable=SC2034 # consumed by install.sh print_greeting
+  AL_C_SIGN="${AL_ESC}[1;35m" # bold magenta (greeting sign-off)
+  AL_C_ULON="${AL_ESC}[4m"     # underline on
+  AL_C_ULOFF="${AL_ESC}[24m"   # underline off (keeps any active colour)
+  AL_OSC_OPEN="${AL_ESC}]8;;"  # OSC 8 hyperlink open
+  # OSC 8 String Terminator (ESC \) as it must appear inside a sed replacement:
+  # the trailing backslash is doubled so sed emits a single literal backslash.
+  AL_OSC_ST_SED="${AL_ESC}\\\\"
+  # SOH delimiter for the sed below — never appears in a path or URL, so the
+  # match text can contain any of /, :, #, &, | without breaking the s command.
+  AL_SED_D="$(printf '\001')"
+}
+__al_colour_init
+
+# Underline + OSC 8 hyperlink every file path and URL in a message so modern
+# terminals render them clickable (file:// for paths). No-op unless colour is
+# active; the path branch anchors on a leading / or ~/ so it never matches a
+# package name like @odere-pro/agentline.
+__al_emph() {
+  if [ "${AL_USE_COLOR}" != "1" ]; then
+    printf '%s' "$1"
+    return 0
+  fi
+  printf '%s' "$1" | sed -E \
+    -e "s${AL_SED_D}(https?://[^[:space:]]+)${AL_SED_D}${AL_OSC_OPEN}\1${AL_OSC_ST_SED}${AL_C_ULON}\1${AL_C_ULOFF}${AL_OSC_OPEN}${AL_OSC_ST_SED}${AL_SED_D}g" \
+    -e "s${AL_SED_D}(^|[[:space:]])(~?/[^[:space:]]+)${AL_SED_D}\1${AL_OSC_OPEN}file://\2${AL_OSC_ST_SED}${AL_C_ULON}\2${AL_C_ULOFF}${AL_OSC_OPEN}${AL_OSC_ST_SED}${AL_SED_D}g"
+}
+
+# Render the `[agentline]` brand prefix (bold cyan when styled, plain otherwise).
+__al_brand() {
+  if [ "${AL_USE_COLOR}" = "1" ]; then
+    printf '%s[agentline]%s' "${AL_C_BRAND}" "${AL_C_RESET}"
+  else
+    printf '[agentline]'
+  fi
+}
+
 # Logging — every line goes to stderr so stdout stays clean for tools that
-# pipe `agentline` output.
-al_log_info() { printf '[agentline] %s\n' "$*" >&2; }
-al_log_warn() { printf '[agentline][warn] %s\n' "$*" >&2; }
-al_log_error() { printf '[agentline][error] %s\n' "$*" >&2; }
+# pipe `agentline` output. Plain-mode output is identical to the historic
+# format; colour mode only adds SGR/OSC sequences around the same text.
+al_log_info() {
+  if [ "${AL_USE_COLOR}" = "1" ]; then
+    printf '%s %s\n' "$(__al_brand)" "$(__al_emph "$*")" >&2
+  else
+    printf '[agentline] %s\n' "$*" >&2
+  fi
+}
+
+# Success variant — green message, same prefix as al_log_info (so plain output
+# is indistinguishable from an info line and call-site swaps are safe).
+al_log_ok() {
+  if [ "${AL_USE_COLOR}" = "1" ]; then
+    printf '%s %s%s%s\n' "$(__al_brand)" "${AL_C_OK}" "$(__al_emph "$*")" "${AL_C_RESET}" >&2
+  else
+    printf '[agentline] %s\n' "$*" >&2
+  fi
+}
+
+al_log_warn() {
+  if [ "${AL_USE_COLOR}" = "1" ]; then
+    printf '%s%s[warn]%s %s%s%s\n' "$(__al_brand)" "${AL_C_WARN}" "${AL_C_RESET}" "${AL_C_WARN}" "$(__al_emph "$*")" "${AL_C_RESET}" >&2
+  else
+    printf '[agentline][warn] %s\n' "$*" >&2
+  fi
+}
+
+al_log_error() {
+  if [ "${AL_USE_COLOR}" = "1" ]; then
+    printf '%s%s[error]%s %s%s%s\n' "$(__al_brand)" "${AL_C_ERR}" "${AL_C_RESET}" "${AL_C_ERR}" "$(__al_emph "$*")" "${AL_C_RESET}" >&2
+  else
+    printf '[agentline][error] %s\n' "$*" >&2
+  fi
+}
 
 # Exit with a structured message. Second arg is the exit code (default 1).
 al_die() {
