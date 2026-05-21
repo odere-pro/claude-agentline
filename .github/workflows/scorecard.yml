@@ -1,13 +1,18 @@
 # .github/workflows/scorecard.yml
 # OpenSSF Scorecard — continuously grades this repo's supply-chain
 # posture (branch protection, pinned deps, token permissions, SAST, …)
-# and publishes the result to the GitHub code-scanning dashboard.
+# and publishes the score to the public OpenSSF API that backs the README
+# badge (https://scorecard.dev/viewer/?uri=github.com/odere-pro/claude-agentline).
+#
+# The SARIF result is NOT imported into GitHub code scanning: several checks
+# (Code-Review, Branch-Protection review tiers) are structurally unsatisfiable
+# for a solo maintainer, so mirroring them into the Security tab only produces
+# un-actionable alerts. See docs/SECURITY-CHECKLIST.md for the rationale.
 #
 # Hard invariants (Implementation Plan 3):
 # - Actions pinned by full commit SHA.
 # - `permissions: read-all` at the workflow level; the job widens only to
-#   `security-events: write` (SARIF upload) + `id-token: write`
-#   (publish_results attestation) + `contents: read`.
+#   `id-token: write` (publish_results attestation) + `contents: read`.
 # - `branch_protection_rule` + scheduled + main-push + manual-dispatch
 #   triggers (manual dispatch lets a maintainer re-grade on demand after a
 #   settings change — see docs/SECURITY-CHECKLIST.md).
@@ -33,7 +38,6 @@ jobs:
     name: scorecard analysis
     runs-on: ubuntu-24.04
     permissions:
-      security-events: write
       id-token: write
       contents: read
     steps:
@@ -55,8 +59,3 @@ jobs:
           name: scorecard-results
           path: results.sarif
           retention-days: 14
-
-      - name: Upload SARIF to code scanning
-        uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4.35.5
-        with:
-          sarif_file: results.sarif
