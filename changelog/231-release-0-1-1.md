@@ -1,0 +1,1 @@
+- Cut the 0.1.1 release: aggregate the pending changelog fragments into the `[0.1.1]` section and bump the package and bin version to 0.1.1.
