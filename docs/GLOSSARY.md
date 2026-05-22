@@ -123,14 +123,14 @@ All types are kebab-case strings. Source of truth: `src/widgets/families/catalog
 
 ### Session family (6)
 
-| Type              | Description                                     |
-| ----------------- | ----------------------------------------------- |
-| `model`           | Active model id (e.g. Sonnet 4.6)               |
-| `version`         | Claude Code version                             |
-| `thinking-effort` | Thinking-effort tier: low, medium, or high      |
-| `plan`            | Active plan name (newest file in the plans dir) |
-| `session-id`      | Short session id                                |
-| `account-email`   | Logged-in account email                         |
+| Type              | Description                                |
+| ----------------- | ------------------------------------------ |
+| `model`           | Active model id (e.g. Sonnet 4.6)          |
+| `version`         | Claude Code version                        |
+| `thinking-effort` | Thinking-effort tier: low, medium, or high |
+| `plan`            | Active plan for the current session        |
+| `session-id`      | Short session id                           |
+| `account-email`   | Logged-in account email                    |
 
 ### Tokens family (3)
 

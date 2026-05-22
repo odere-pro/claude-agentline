@@ -4,12 +4,13 @@
 
 ## Scope
 
-Four sibling on-disk caches under `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/`:
+Five sibling on-disk caches under `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/`:
 
 - `stdin-cache/` — most recent stdin payload; the editor preview reads it when the real transcript is absent.
 - `render-cache/` — last-rendered ANSI; debug + preview fallback.
 - `backup/` — host-state backup written by `agentline install`; restored byte-for-byte by `agentline uninstall`.
 - `version-check-cache/` — latest-version hint refreshed by `update-check`; never consulted on the render hot path as a blocking read.
+- `session-plan-cache/` — `session_id` → its latest plan; the `plan` widget's per-session store and a fallback when the transcript is momentarily unreadable. Written best-effort on the live render path under a file lock; only on a real change.
 
 Pipeline position: orthogonal to the render path. Reads are synchronous snapshots; writes go through the atomic helper.
 
@@ -20,7 +21,8 @@ src/data/state/
 ├── stdin-cache/         most recent stdin payload (read by TUI preview)
 ├── render-cache/        last-rendered ANSI (debug + preview fallback)
 ├── backup/              host-state backup for agentline install / uninstall
-└── version-check-cache/ latest-version hint (refreshed by update-check)
+├── version-check-cache/ latest-version hint (refreshed by update-check)
+└── session-plan-cache/  session_id → its latest plan (read by the plan widget)
 
   All writes: write-temp → fsync → rename via src/core/lib/atomic-write/.
   All reads: synchronous snapshot, exactly once per render tick.
