@@ -2,7 +2,7 @@
 
 ## Scope
 
-The Claude Code **skill files** that ship with `agentline`. On `agentline install`, every `.md` in this directory is copied into `~/.claude/agents/` so Claude Code can load them as assistant skills. `agentline uninstall` reverses the copy (byte-for-byte, by SHA256 checksum).
+The Claude Code **skill files** that ship with `agentline`. On `agentline install`, every `agentline*.md` in this directory is copied into `~/.claude/agents/` so Claude Code can load them as assistant skills — but only when Claude Code is installed (its `~/.claude/` directory exists); otherwise the step is skipped. `agentline uninstall` reverses the copy (byte-for-byte, by SHA256 checksum).
 
 - `agentline.md` — main briefing; loaded first.
 - `agentline-onboarding.md` — first-time-user flow.

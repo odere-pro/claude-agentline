@@ -7,10 +7,13 @@ set -Eeuo pipefail
 # exact stdout. The CI matrix in `.github/workflows/install-matrix.yml`
 # runs the same recipe across every {OS} × {Node 20, Node 22} cell; this
 # gate is the local equivalent so contributors can validate before push.
+# It also asserts the packed tarball ships the agents/agentline*.md skill
+# files (regression guard: they were once absent from package.json#files,
+# so `agentline install` had nothing to seed).
 # Spec: §1.2 N1, §11.2 G15
 #
-# Pass: tarball installs cleanly, render smoke matches expected bytes.
-# Fail: pack/install/render fails or output bytes differ.
+# Pass: tarball ships the skill files, installs cleanly, render smoke matches.
+# Fail: skill files missing, or pack/install/render fails, or bytes differ.
 # Skip: `npm` not on PATH (host can't pack).
 
 # shellcheck source=lib/common.sh
@@ -21,6 +24,9 @@ if ! have_cmd npm; then
 fi
 if ! have_cmd node; then
   skip_gate "node not on PATH"
+fi
+if ! have_cmd tar; then
+  skip_gate "tar not on PATH"
 fi
 
 work_root="${GATES_TMP_DIR}/gate-15"
@@ -46,6 +52,18 @@ if [ -z "${tarball_name}" ] || [ ! -f "${work_root}/${tarball_name}" ]; then
   fail_gate "npm pack did not produce a tarball"
 fi
 tarball="${work_root}/${tarball_name}"
+
+# Assert the published tarball actually ships the skill files. npm nests
+# every entry under `package/`, so the seeded skills live at
+# `package/agents/agentline*.md`. >=5 keeps this forward-compatible when a
+# sixth skill is added.
+log_info "verifying tarball ships skill files"
+skill_count="$(tar -tzf "${tarball}" | grep -c -E '^package/agents/agentline[^/]*\.md$' || true)"
+if [ "${skill_count}" -lt 5 ]; then
+  log_info "tarball entries under agents/:"
+  tar -tzf "${tarball}" | grep -E '^package/agents/' | sed 's/^/    /' >&2 || true
+  fail_gate "tarball missing skill files (expected >=5 agents/agentline*.md, found ${skill_count})"
+fi
 
 prefix="${work_root}/prefix"
 mkdir -p "${prefix}"

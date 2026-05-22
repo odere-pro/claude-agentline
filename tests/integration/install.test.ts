@@ -147,6 +147,34 @@ describe("scripts/install.sh", () => {
     expect(settings.statusLine?.command).toMatch(/\brender\b/);
   });
 
+  const SHIPPED_SKILLS = [
+    "agentline.md",
+    "agentline-onboarding.md",
+    "agentline-configure.md",
+    "agentline-themes.md",
+    "agentline-troubleshoot.md",
+  ] as const;
+
+  it("seeds the shipped skill files into the global agents dir when Claude is installed", async () => {
+    // `~/.claude/` present ⇒ Claude Code is installed ⇒ seed the skills.
+    await fs.mkdir(join(sb.home, ".claude"), { recursive: true });
+
+    await runScript(installSh, [], sb.env, sb.root);
+
+    for (const skill of SHIPPED_SKILLS) {
+      expect(await exists(join(sb.home, ".claude", "agents", skill))).toBe(true);
+    }
+  });
+
+  it("skips skill seeding when Claude is not installed (no ~/.claude/)", async () => {
+    // Fresh host: no `~/.claude/` at seed time. The statusLine step later
+    // creates `~/.claude/settings.json`, but `seed_skills` ran first and
+    // skipped, so the agents dir must never be created.
+    await runScript(installSh, [], sb.env, sb.root);
+
+    expect(await exists(join(sb.home, ".claude", "agents"))).toBe(false);
+  });
+
   it("migrates a legacy bare-form `agentline` entry to the explicit `render` form", async () => {
     await fs.mkdir(join(sb.home, ".claude"), { recursive: true });
     const settingsPath = join(sb.home, ".claude", "settings.json");
@@ -187,6 +215,11 @@ describe("scripts/install.sh", () => {
   });
 
   it("is idempotent — second run yields the same on-disk tree", async () => {
+    // Model a Claude-installed host so skill seeding is exercised on both
+    // runs (run 1 seeds, run 2 finds them present) — otherwise the first
+    // run would create ~/.claude/ via statusLine wiring and flip the skill
+    // gate on for the second run, perturbing the tree.
+    await fs.mkdir(join(sb.home, ".claude"), { recursive: true });
     await runScript(installSh, [], sb.env, sb.root);
     const tree1 = await snapshotTree(sb.root);
     const settings1 = await fs.readFile(join(sb.home, ".claude", "settings.json"), "utf8");
@@ -336,6 +369,9 @@ describe("scripts/install.sh --reset", () => {
   });
 
   it("is idempotent — second --reset run yields the same on-disk tree", async () => {
+    // Claude-installed host (see the install idempotency test) so skill
+    // seeding is stable across both runs.
+    await fs.mkdir(join(sb.home, ".claude"), { recursive: true });
     await runScript(installSh, ["--reset"], sb.env, sb.root);
     const tree1 = await snapshotTree(sb.root);
     await runScript(installSh, ["--reset"], sb.env, sb.root);

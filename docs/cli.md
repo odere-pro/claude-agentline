@@ -93,7 +93,7 @@ Wires agentline into Claude Code. Delegates to `scripts/install.sh`; flags are f
 1. Install `@odere-pro/agentline` globally (or `npm link` with `--from-source`).
 2. Seed user config from the default template (preserves existing).
 3. Seed shipped themes into the user themes directory (preserves existing).
-4. Copy agentline skill files (`agentline*.md`) into `$HOME/.claude/agents/` (skips existing).
+4. Copy agentline skill files (`agentline*.md`) into `$HOME/.claude/agents/` (skips existing; skipped entirely when Claude Code is not installed, i.e. `$HOME/.claude/` does not exist).
 5. Wire `statusLine` into `~/.claude/settings.json`, backing up any foreign prior value.
 
 **Existing `statusLine` preservation:** if `statusLine` already contains a foreign value, it is backed up to `${CLAUDE_CONFIG_DIR:-~/.config/agentline}/state/settings-backup.json` before being overwritten. `agentline uninstall` reads this backup to restore the original value.

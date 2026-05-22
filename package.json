@@ -38,6 +38,7 @@
     "scripts/",
     "themes/",
     "templates/",
+    "agents/agentline*.md",
     "LICENSE",
     "README.md",
     "CHANGELOG.md"

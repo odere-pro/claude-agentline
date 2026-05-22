@@ -22,7 +22,8 @@ state**. Both run the same `scripts/install.sh`, which:
    or `npm install -g @odere-pro/agentline`),
 2. seeds `~/.config/agentline/config.json` (preserved if present),
 3. seeds shipped themes,
-4. installs skill files into `~/.claude/agents/`,
+4. installs skill files into `~/.claude/agents/` (only when Claude Code is
+   installed — i.e. `~/.claude/` exists; skipped otherwise),
 5. wires `statusLine` into `~/.claude/settings.json`,
 6. writes the install manifest.
 

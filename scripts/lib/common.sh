@@ -26,10 +26,14 @@ if [ -z "${AL_HOME_DIR}" ]; then
   exit 1
 fi
 
+# The dir Claude Code reads its settings and agents from. Its presence
+# is how we detect Claude Code state before seeding skill files.
+# shellcheck disable=SC2034 # consumed by sourced install.sh / uninstall.sh
+AL_CLAUDE_DIR="${AL_HOME_DIR}/.claude"
 # Where Claude Code reads its settings. The spec wires `statusLine` here.
-AL_CLAUDE_SETTINGS="${AL_HOME_DIR}/.claude/settings.json"
+AL_CLAUDE_SETTINGS="${AL_CLAUDE_DIR}/settings.json"
 # Where the host runtime loads agent/skill markdown files at startup.
-AL_AGENTS_DIR="${AL_HOME_DIR}/.claude/agents"
+AL_AGENTS_DIR="${AL_CLAUDE_DIR}/agents"
 
 # Where agentline persists merged user config. Honours XDG-ish overrides.
 AL_CONFIG_DIR_DEFAULT="${AL_HOME_DIR}/.config/agentline"

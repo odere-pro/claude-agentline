@@ -241,11 +241,17 @@ seed_themes() {
   fi
 }
 
-# Step 4: copy agents/agentline*.md skill files to $HOME/.claude/agents/.
+# Step 4: copy agents/agentline*.md skill files into the host's agents
+# dir ($HOME/.claude/agents). Only seeds when Claude Code state exists
+# (the $HOME/.claude dir is present); never creates that dir itself.
 seed_skills() {
   __src_dir="${REPO_ROOT}/agents"
   if [ ! -d "${__src_dir}" ]; then
-    al_log_warn "agents/ not present in repo; skipping skill seed"
+    al_log_warn "skill files not found at ${__src_dir}; skipping skill seed (statusline is unaffected)"
+    return 0
+  fi
+  if [ ! -d "${AL_CLAUDE_DIR}" ]; then
+    al_log_info "no Claude Code settings dir at ${AL_CLAUDE_DIR}; skipping skill seed"
     return 0
   fi
   __agents_dir="${AL_AGENTS_DIR}"
