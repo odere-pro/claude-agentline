@@ -17,11 +17,14 @@
 
 import { promises as fs } from "node:fs";
 import { Readable } from "node:stream";
+import { fileURLToPath } from "node:url";
 
 import { isHelpFlag, requestHelp } from "../../../core/lib/help/help.js";
 import { loadConfig } from "../../../data/config/load/load.js";
 import { resolveConfigPaths } from "../../../data/config/paths/paths.js";
 import { pathExists } from "../../../core/lib/fs/fs.js";
+import { type PlanSnapshot } from "../../../data/session/plan/plan.js";
+import { recordSessionPlan } from "../../../data/state/session-plan-cache/session-plan-cache.js";
 import { saveLastRender } from "../../../data/state/render-cache/render-cache.js";
 import { saveLastStdin } from "../../../data/state/stdin-cache/stdin-cache.js";
 import { readStdinPayload } from "../../../core/stdin/index.js";
@@ -129,6 +132,9 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
         lineCount: out === "" ? 0 : out.split("\n").length,
       },
     });
+    if ("plan" in liveSnapshots && liveSnapshots.plan) {
+      await recordSessionPlanFromRender(payload, liveSnapshots.plan);
+    }
   }
   return 0;
 }
@@ -178,6 +184,21 @@ async function persistLastStdin(rawJson: string): Promise<void> {
      * Cache write is best-effort; a malformed payload here would already
      * have failed the render, and the user can't see this error.
      */
+  }
+}
+
+/**
+ * Record this session's active plan in the session→plan map. Best-effort
+ * and live-path only, mirroring the stdin / render caches. Lets the `plan`
+ * widget fall back to the stored plan when the transcript is momentarily
+ * unreadable, and is the durable per-session store.
+ */
+async function recordSessionPlanFromRender(rawJson: string, plan: PlanSnapshot): Promise<void> {
+  try {
+    const parsed = await readStdinPayload(Readable.from([Buffer.from(rawJson, "utf8")]));
+    await recordSessionPlan(parsed.sessionId, fileURLToPath(plan.href), plan.name);
+  } catch {
+    /* Best-effort — a malformed payload already failed the render. */
   }
 }
 

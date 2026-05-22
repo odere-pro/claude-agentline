@@ -54,14 +54,25 @@ export function loadLiveSnapshots(
   options: LoadLiveSnapshotsOptions = {},
 ): LiveSnapshots {
   const env = options.env ?? process.env;
+  const now = options.now ?? Date.now();
   const session = loadSessionFields(payload, { env });
   const tokens = loadTokensSnapshot({
     transcriptPath: payload.transcriptPath,
     modelId: payload.model,
-    now: options.now ?? Date.now(),
+    now,
   });
   const git = loadGitSnapshot({ cwd: payload.cwd, env });
-  const plan = loadPlanSnapshot({ env });
+  /*
+   * Plan resolves per session from the same transcript the token snapshot
+   * just read (cached this tick — no extra read). Order matters: tokens
+   * before plan so the shared transcript cache is already warm.
+   */
+  const plan = loadPlanSnapshot({
+    env,
+    now,
+    ...(payload.sessionId !== undefined ? { sessionId: payload.sessionId } : {}),
+    ...(payload.transcriptPath !== undefined ? { transcriptPath: payload.transcriptPath } : {}),
+  });
   return { session, tokens, git, ...(plan !== null ? { plan } : {}) };
 }
 

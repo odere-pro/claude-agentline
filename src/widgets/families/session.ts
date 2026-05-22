@@ -13,7 +13,7 @@ export const SESSION_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.free
     "Thinking-effort tier: low, medium, or high",
     "session",
   ),
-  plan: entry("Plan", "Active plan name (newest file in the plans dir)", "session"),
+  plan: entry("Plan", "Active plan for the current session", "session"),
   "session-id": entry("Session id", "Short session id", "session"),
   "account-email": entry("Account email", "Logged-in account email", "session", [
     v("full", "Full address", { mask: "none" }),

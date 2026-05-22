@@ -144,7 +144,11 @@ function buildReal(
     modelId: payload.model,
     now: Date.now(),
   });
-  const plan = loadPlanSnapshot({ env });
+  const plan = loadPlanSnapshot({
+    env,
+    ...(payload.sessionId !== undefined ? { sessionId: payload.sessionId } : {}),
+    ...(payload.transcriptPath !== undefined ? { transcriptPath: payload.transcriptPath } : {}),
+  });
   return {
     source,
     payload,

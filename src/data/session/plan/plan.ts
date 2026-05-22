@@ -1,26 +1,33 @@
 /**
- * Active-plan resolver (§7.2-adjacent).
+ * Per-session active-plan resolver (§7.2-adjacent).
  *
- * Discovers the most-recently-modified `*.md` under the `plans/`
- * directory (`${CLAUDE_CONFIG_DIR:-~/.claude}/plans`) and exposes its
- * basename (sans `.md`) as the active plan name. Resolution happens
- * once per render tick alongside the session/tokens/git snapshots —
- * the `plan` widget does no filesystem I/O during `render()` (§1.2 N3
- * budget, §7.1).
+ * Resolves the plan for THIS session — not the globally newest plan file,
+ * which is wrong whenever several sessions / worktrees are open. The
+ * session→plan link lives in the session's transcript, where each
+ * `type:"attachment"` line whose `attachment.type` is `"plan_mode"` —
+ * recorded by Claude Code each time plan mode is entered — carries the
+ * active plan file. We take the last such (non-subagent) attachment and
+ * expose its basename as the plan name plus a clickable `file://` href.
  *
- * Read-only, bounded (one directory listing + a stat per entry), and
- * never throws: a missing directory, an unreadable entry, or an empty
- * directory yields `null` so the widget hides cleanly.
+ * Resolution order (read-only, bounded, never throws — the widget hides
+ * on `null`):
+ *   1. The session transcript's latest `plan_mode` attachment
+ *      (authoritative; reuses the token resolver's cached read this tick,
+ *      so no extra file read — §1.2 N3 budget).
+ *   2. The persisted session→plan map (fallback for a momentarily
+ *      unreadable transcript; also the durable per-session store).
+ *   3. `null` — this session has no plan, so the widget hides.
  */
 
-import { readdirSync, statSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { resolveClaudeConfigDir, type AuthLookupSource } from "../auth-file/auth-file.js";
+import { readTranscriptRecords } from "../../../core/lib/transcript/transcript.js";
+import { readSessionPlanEntrySync } from "../../state/session-plan-cache/session-plan-cache.js";
 
 export interface PlanSnapshot {
-  /** Active plan name = basename of the newest plan file, sans `.md`. */
+  /** Active plan name = basename of the plan file, sans `.md`. */
   readonly name: string;
   /**
    * `file://` URL of the active plan file. The `plan` widget passes it
@@ -30,38 +37,59 @@ export interface PlanSnapshot {
   readonly href: string;
 }
 
-/** `${CLAUDE_CONFIG_DIR:-~/.claude}/plans`. */
-export function resolvePlansDir(source: AuthLookupSource): string {
-  return path.join(resolveClaudeConfigDir(source), "plans");
+export interface PlanLookupSource {
+  readonly env: NodeJS.ProcessEnv;
+  /** The current session id (from stdin `session_id`). */
+  readonly sessionId?: string;
+  /** The current session's transcript path (from stdin `transcript_path`). */
+  readonly transcriptPath?: string;
+  /** Wall-clock for the shared transcript cache; defaults to `Date.now()`. */
+  readonly now?: number;
 }
 
 /**
- * Resolve the active plan: the newest `*.md` file directly under the
- * plans directory. Returns `null` when the directory is absent, empty,
- * holds no readable `.md` file, or any filesystem call fails — the
- * widget then hides.
+ * Resolve the active plan for the current session, or `null` when the
+ * session has no plan (so the widget hides). Never throws.
  */
-export function loadPlanSnapshot(source: AuthLookupSource): PlanSnapshot | null {
-  const dir = resolvePlansDir(source);
-  let entries: string[];
-  try {
-    entries = readdirSync(dir).filter((f) => f.endsWith(".md"));
-  } catch {
-    return null;
+export function loadPlanSnapshot(source: PlanLookupSource): PlanSnapshot | null {
+  const fromTranscript = latestPlanFromTranscript(source.transcriptPath, source.now ?? Date.now());
+  if (fromTranscript) {
+    const snap = snapshotForExisting(fromTranscript);
+    if (snap) return snap;
   }
-  let newest: { file: string; mtimeMs: number } | null = null;
-  for (const file of entries) {
-    try {
-      const st = statSync(path.join(dir, file));
-      if (!st.isFile()) continue;
-      if (newest === null || st.mtimeMs > newest.mtimeMs) {
-        newest = { file, mtimeMs: st.mtimeMs };
-      }
-    } catch {
-      /* skip an unreadable entry — never throw on the render path */
-    }
+  const cached = readSessionPlanEntrySync(source.sessionId, source.env);
+  if (cached) {
+    const snap = snapshotForExisting(cached.planFilePath);
+    if (snap) return snap;
   }
-  if (newest === null) return null;
-  const full = path.join(dir, newest.file);
-  return { name: path.basename(newest.file, ".md"), href: pathToFileURL(full).href };
+  return null;
+}
+
+/**
+ * The plan file of the last non-subagent `plan_mode` attachment in the
+ * session's transcript, or `null`. Subagent / sidechain plan attachments
+ * are ignored so the top-level statusline never flips to a subagent's
+ * plan.
+ */
+function latestPlanFromTranscript(
+  transcriptPath: string | undefined,
+  now: number,
+): string | null {
+  if (!transcriptPath) return null;
+  const records = readTranscriptRecords(transcriptPath, now);
+  let planFilePath: string | null = null;
+  for (const record of records) {
+    const attachment = record.planAttachment;
+    if (attachment && !attachment.isSubAgent) planFilePath = attachment.planFilePath;
+  }
+  return planFilePath;
+}
+
+/** Build a snapshot only when the plan file still exists on disk. */
+function snapshotForExisting(planFilePath: string): PlanSnapshot | null {
+  if (!existsSync(planFilePath)) return null;
+  return {
+    name: path.basename(planFilePath, ".md"),
+    href: pathToFileURL(planFilePath).href,
+  };
 }
