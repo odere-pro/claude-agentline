@@ -13,13 +13,25 @@
  * idempotent, dry-run parity) until those gate scripts ship.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+
+/*
+ * Each round-trip test drives two real shell scripts back-to-back
+ * (install.sh + uninstall.sh), and each script spawns several node
+ * subprocesses for the atomic copies/writes. On the Windows CI leg those
+ * spawns are slow and the whole file runs ~80s under parallel-file
+ * contention, so the global 30s budget in vitest.config.ts is too tight
+ * for the two-script tests and they intermittently time out. Give this
+ * suite a realistic per-test/hook budget; unit tests keep the strict
+ * global default.
+ */
+vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });
 
 const execFileP = promisify(execFile);
 const repoRoot = (() => {
