@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] — 2026-05-22
+
+### Changed
+
+- `b0ef73e` — Solo-maintainer Scorecard hygiene: stop importing Scorecard SARIF into GitHub code scanning (the `Upload SARIF to code scanning` step is removed and the job's `security-events` permission dropped) while keeping `publish_results` so the public OpenSSF Scorecard badge still updates; and rewrite `docs/SECURITY-CHECKLIST.md` so the solo-safe branch-protection config (block force-push + deletion, no required reviews) is the active path, with the review-required config demoted to a "second maintainer" note. Branch-Protection, Code-Review, Maintained, and CII findings are no longer surfaced as un-actionable Security-tab alerts.
+
+### Fixed
+
+- `1b94c87` — Ship the five `agentline*.md` skill files in the npm tarball (`agents/agentline*.md` added to `package.json` `files`) and seed them into the host's global agents directory, gated on that host config directory already existing; reword the install-time skip message so it is accurate instead of warning about a missing repo.
+
 ## [0.1.1] — 2026-05-21
 
 ### Added
