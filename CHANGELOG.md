@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-05-22
+
+### Fixed
+
+- `302cec3` — Stop a recurring Windows-only CI flake: give the install/uninstall integration suite a realistic per-test and per-hook timeout so the two-script round-trip tests no longer intermittently time out on the slow Windows gates leg.
+- `5b74a62` — Make the `plan` widget track the current session's plan: resolve it from the session transcript's latest plan-mode attachment and persist a `session_id` → plan map, so concurrent sessions and worktrees each show their own plan instead of whichever plan file was touched last globally.
+
 ## [0.1.2] — 2026-05-22
 
 ### Changed
