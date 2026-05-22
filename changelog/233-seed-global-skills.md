@@ -1,1 +1,0 @@
-- Ship the five `agentline*.md` skill files in the npm tarball (`agents/agentline*.md` added to `package.json` `files`) and seed them into the global `~/.claude/agents/` only when Claude Code is installed (its `~/.claude/` directory exists); reword the install-time skip message so it is accurate instead of warning about a missing repo.
