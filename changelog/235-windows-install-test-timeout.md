@@ -1,0 +1,1 @@
+- Stop a recurring Windows-only CI flake: give the install/uninstall integration suite a realistic per-test and per-hook timeout so the two-script round-trip tests no longer intermittently time out on the slow Windows gates leg.
