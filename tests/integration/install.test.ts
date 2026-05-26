@@ -20,6 +20,7 @@ import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { rmrf } from "../../src/test-helpers/index.js";
 
 /*
  * Each round-trip test drives two real shell scripts back-to-back
@@ -88,7 +89,9 @@ async function setupSandbox(): Promise<Sandbox> {
 }
 
 async function teardown(sb: Sandbox): Promise<void> {
-  await fs.rm(sb.root, { recursive: true, force: true });
+  // `rmrf` retries the Windows `EBUSY` rmdir race the shell scripts'
+  // node subprocesses can leave behind; see src/test-helpers/sandbox.
+  await Promise.all([rmrf(sb.root), rmrf(sb.npmCache)]);
 }
 
 async function runScript(script: string, args: string[], env: NodeJS.ProcessEnv, cwd?: string) {

@@ -24,4 +24,4 @@ export {
   makeWidgetContext,
 } from "./factories/factories.js";
 
-export { withSandbox, withTmpDir } from "./sandbox/sandbox.js";
+export { rmrf, withSandbox, withTmpDir } from "./sandbox/sandbox.js";

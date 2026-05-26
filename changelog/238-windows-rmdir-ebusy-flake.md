@@ -1,0 +1,1 @@
+- Stabilise the Windows gates run: route the install integration suite's temp-dir cleanup through a shared `rmrf` helper that retries the `EBUSY`/`EPERM` rmdir race a lingering subprocess handle can trigger, and stop leaking the sibling npm-cache tmpdir.
