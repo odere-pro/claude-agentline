@@ -1,0 +1,1 @@
+- Attach a SLSA build-provenance attestation (`<tarball>.intoto.jsonl`) to each GitHub Release alongside the existing cosign signatures, so OpenSSF Scorecard's Signed-Releases check scores provenance — taking the next signed release from 8 to 10.

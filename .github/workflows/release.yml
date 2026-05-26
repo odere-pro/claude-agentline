@@ -9,17 +9,23 @@
 #      failure aborts before any publish.
 #   3. Packs the canonical tarball, computes `SHA256SUMS`, and cosign-signs
 #      both with keyless Sigstore (a `.sig` + `.pem` per artifact).
-#   4. `pnpm publish --provenance`. OIDC-based provenance attestation is
+#   4. Generates a SLSA build-provenance attestation for the tarball and
+#      stages it as `<tarball>.intoto.jsonl` (OpenSSF Scorecard's
+#      Signed-Releases check credits a `.intoto.jsonl` asset as provenance,
+#      lifting cosign's signature score from 8 to 10).
+#   5. `pnpm publish --provenance`. OIDC-based provenance attestation is
 #      issued by GitHub to npm; no manual key handling.
-#   5. Creates a GitHub Release whose body is the matching `[X.Y.Z]`
+#   6. Creates a GitHub Release whose body is the matching `[X.Y.Z]`
 #      block extracted from `CHANGELOG.md`, and attaches the tarball,
-#      `SHA256SUMS`, and their cosign `.sig`/`.pem` signatures as assets.
+#      `SHA256SUMS`, their cosign `.sig`/`.pem` signatures, and the
+#      `.intoto.jsonl` provenance as assets.
 #
 # Hard invariants (per spec §11.1):
 #   - SHA-pinned actions.
-#   - Repo-default `permissions: read-all`; the job re-grants the two
+#   - Repo-default `permissions: read-all`; the job re-grants the three
 #     write scopes it actually needs (`contents` for the GitHub Release,
-#     `id-token` for npm provenance OIDC and cosign keyless signing).
+#     `id-token` for npm provenance OIDC and cosign keyless signing, and
+#     `attestations` for the SLSA build-provenance attestation).
 #   - Concurrency keyed to the tag so a re-pushed tag cancels stale runs.
 #   - All shell steps use `bash` explicitly.
 #
@@ -47,6 +53,7 @@ jobs:
     permissions:
       contents: write
       id-token: write
+      attestations: write
     defaults:
       run:
         shell: bash
@@ -138,6 +145,24 @@ jobs:
           done
           ls -1
 
+      - name: Attest build provenance (SLSA)
+        id: provenance
+        # Keyless Sigstore attestation over the packed tarball, recorded in the
+        # GitHub attestations store (verifiable with `gh attestation verify`).
+        # Uses the job's id-token + attestations write scopes; no stored key.
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: ${{ steps.pack.outputs.tarball_path }}
+
+      - name: Stage provenance as a release asset
+        # Copy the attestation bundle next to the tarball with the
+        # `.intoto.jsonl` name OpenSSF Scorecard's Signed-Releases check
+        # recognises as provenance (taking cosign's 8 up to 10).
+        run: |
+          cp "${{ steps.provenance.outputs.bundle-path }}" \
+            ".release/${{ steps.pack.outputs.tarball }}.intoto.jsonl"
+          ls -1 .release
+
       - name: Extract release notes from CHANGELOG.md
         id: notes
         run: |
@@ -177,6 +202,7 @@ jobs:
             .release/${{ steps.pack.outputs.tarball }}.pem
             .release/SHA256SUMS.sig
             .release/SHA256SUMS.pem
+            .release/${{ steps.pack.outputs.tarball }}.intoto.jsonl
           fail_on_unmatched_files: true
           make_latest: true
 
