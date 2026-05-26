@@ -1,0 +1,1 @@
+- Apply `main` branch protection to administrators too (`enforce_admins: true`, reviews still none) so OpenSSF Scorecard credits the admin-enforcement tier of Branch-Protection; the solo workflow is unchanged beyond requiring a green PR to merge.
