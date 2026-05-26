@@ -1,0 +1,1 @@
+- Install Windows `shellcheck` from a fixed release URL with SHA-256 verification instead of `choco install`, which OpenSSF Scorecard does not treat as pinned — lifting the Pinned-Dependencies check.
