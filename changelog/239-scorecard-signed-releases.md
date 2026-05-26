@@ -1,1 +1,0 @@
-- Harden the release supply chain for OpenSSF Scorecard: cosign-sign the release tarball and `SHA256SUMS` with keyless Sigstore (`.sig`/`.pem` assets on each GitHub Release), pin the ClusterFuzzLite base image by digest, and document the solo-safe required-status-checks branch-protection config — lifting the Signed-Releases, Pinned-Dependencies, and Branch-Protection checks.

@@ -1,1 +1,0 @@
-- Document the OpenSSF Best Practices passing-level self-assessment under `docs/openssf-badge.md`, recording the Met/N/A answer and supporting evidence for every criterion.
