@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] — 2026-05-27
+
+### Added
+
+- `3b2fea3` — Add the OpenSSF Best Practices badge (project 12995) to the README beside the existing Scorecard badge.
+- `c9c0afa` — Document the OpenSSF Best Practices passing-level self-assessment under `docs/openssf-badge.md`, recording the Met/N/A answer and supporting evidence for every criterion.
+
+### Changed
+
+- `2dd2270` — Harden the release supply chain for OpenSSF Scorecard: cosign-sign the release tarball and `SHA256SUMS` with keyless Sigstore (`.sig`/`.pem` assets on each GitHub Release), pin the ClusterFuzzLite base image by digest, and document the solo-safe required-status-checks branch-protection config.
+- `e8d28d2` — Install Windows `shellcheck` from a fixed release URL with SHA-256 verification instead of `choco install`, which OpenSSF Scorecard does not treat as pinned.
+- `31fa278` — Attach a SLSA build-provenance attestation (`<tarball>.intoto.jsonl`) to each GitHub Release alongside the cosign signatures, so OpenSSF Scorecard's Signed-Releases check scores provenance.
+- `7c6acc1` — Apply `main` branch protection to administrators too (`enforce_admins: true`, reviews still none) so OpenSSF Scorecard credits the admin-enforcement tier of Branch-Protection.
+
+### Fixed
+
+- `e73cf2d` — Stabilise the Windows gates run: route the install integration suite's temp-dir cleanup through a shared `rmrf` helper that retries the `EBUSY`/`EPERM` rmdir race a lingering subprocess handle can trigger, and stop leaking the sibling npm-cache tmpdir.
+
 ## [0.1.3] — 2026-05-22
 
 ### Fixed

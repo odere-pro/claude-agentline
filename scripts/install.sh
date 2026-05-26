@@ -183,7 +183,7 @@ install_or_link_package() {
   fi
   # Pin the install to an explicit version (OpenSSF Scorecard Pinned-Dependencies).
   # Override with AGENTLINE_VERSION=x.y.z; the default tracks package.json#version.
-  : "${AGENTLINE_VERSION:=0.1.0}"
+  : "${AGENTLINE_VERSION:=0.1.4}"
   al_log_info "installing @odere-pro/agentline@${AGENTLINE_VERSION} globally via npm"
   if [ "${DRY_RUN}" = "1" ]; then
     al_log_info "would run: npm install -g @odere-pro/agentline@${AGENTLINE_VERSION}"
