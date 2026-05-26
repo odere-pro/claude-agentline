@@ -28,13 +28,15 @@ the workflow files under `.github/workflows/` for those.
 ### Solo-maintainer config (active)
 
 While this is a single-maintainer project, protect history and require the PR
-check matrix to pass without gating your own work: block force-push and
-deletion, require the status checks below (`strict: true`), but leave admins
-un-enforced and require no reviews. With `enforce_admins: false` a red or flaky
-required check never wedges your own merge — you keep the admin bypass — while
-Scorecard still credits the configured status-check requirement. This earns
-Branch-Protection **Tier 1 plus the status-check tier** and never blocks a
-self-merge.
+check matrix to pass: block force-push and deletion, require the status checks
+below (`strict: true`), enforce the rules for admins too, and require no
+reviews. `enforce_admins: true` is what Scorecard credits for "rules apply to
+administrators" — it lifts Branch-Protection a tier without blocking solo work,
+because with `required_pull_request_reviews: null` there is no approval to
+collect: you still self-merge once the required checks are green. The only
+behavioural change is that every change must land via a green PR — direct pushes
+to `main` and pre-green merges are blocked for admins too. Reverting is a single
+call: `gh api -X DELETE repos/odere-pro/claude-agentline/branches/main/protection/enforce_admins`.
 
 ```bash
 gh api -X PUT repos/odere-pro/claude-agentline/branches/main/protection \
@@ -53,7 +55,7 @@ gh api -X PUT repos/odere-pro/claude-agentline/branches/main/protection \
       "dependency review"
     ]
   },
-  "enforce_admins": false,
+  "enforce_admins": true,
   "required_pull_request_reviews": null,
   "restrictions": null,
   "required_linear_history": false,
@@ -77,7 +79,7 @@ JSON
 >   --jq '.check_runs[].name' | sort -u
 > ```
 
-Verify (force-push and deletions `false`, admins `false`, reviews `null`,
+Verify (force-push and deletions `false`, admins `true`, reviews `null`,
 status checks populated):
 
 ```bash
