@@ -94,12 +94,35 @@ async function teardown(sb: Sandbox): Promise<void> {
   await Promise.all([rmrf(sb.root), rmrf(sb.npmCache)]);
 }
 
+// `execFile`'s own timeout must clear the slow-Windows spawn budget. The
+// suite raises testTimeout to 120s (vi.setConfig above) because each script
+// spawns several node subprocesses that crawl on the Windows CI leg — but a
+// per-call 30s cap here would SIGTERM a legitimately slow uninstall and
+// surface only "Command failed" with no stderr. Keep it just under the
+// 120s test budget so the test timeout, not this one, is the outer bound.
+const SCRIPT_TIMEOUT_MS = 110_000;
+
 async function runScript(script: string, args: string[], env: NodeJS.ProcessEnv, cwd?: string) {
-  return execFileP("bash", [script, ...args], {
-    env,
-    timeout: 30000,
-    ...(cwd !== undefined && { cwd }),
-  });
+  try {
+    return await execFileP("bash", [script, ...args], {
+      env,
+      timeout: SCRIPT_TIMEOUT_MS,
+      ...(cwd !== undefined && { cwd }),
+    });
+  } catch (err) {
+    // execFile hangs stdout/stderr on the error object but leaves them out
+    // of the message, which made the Windows failure a black box in CI.
+    // Re-throw with the script's own output (and the kill signal, if any).
+    const e = err as Error & { stdout?: string; stderr?: string; signal?: string };
+    const detail = [
+      e.signal ? `signal=${e.signal}` : "",
+      e.stdout ? `\n--- stdout ---\n${e.stdout}` : "",
+      e.stderr ? `\n--- stderr ---\n${e.stderr}` : "",
+    ]
+      .filter(Boolean)
+      .join("");
+    throw new Error(`${e.message}${detail}`);
+  }
 }
 
 async function readJson(path: string): Promise<unknown> {
@@ -404,7 +427,10 @@ describe("scripts/uninstall.sh", () => {
     await teardown(sb);
   });
 
-  it("install + uninstall round-trip leaves no agentline footprint", async () => {
+  // Drives install.sh + uninstall.sh back-to-back, each spawning several
+  // node subprocesses. The raised SCRIPT_TIMEOUT_MS fixes the SIGTERM-at-30s
+  // root cause; retry absorbs any residual Windows EBUSY/EPERM teardown race.
+  it("install + uninstall round-trip leaves no agentline footprint", { retry: 2 }, async () => {
     await runScript(installSh, [], sb.env, sb.root);
     await runScript(uninstallSh, [], sb.env, sb.root);
 

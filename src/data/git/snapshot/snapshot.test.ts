@@ -28,6 +28,13 @@ function makeRepo(): RepoFixture {
   const path = mkdtempSync(join(tmpdir(), "agentline-git-"));
   git(path, ["init", "-q", "-b", "main"]);
   git(path, ["config", "commit.gpgsign", "false"]);
+  // Windows defaults `core.autocrlf` to true, which lets `git diff
+  // --numstat` report 0 insertions for an LF-written change (the working
+  // tree and index disagree only on line endings) — the file/stage counts
+  // stay right but the insertion count flakes to 0. Pin LF semantics so
+  // diff stats are deterministic across platforms.
+  git(path, ["config", "core.autocrlf", "false"]);
+  git(path, ["config", "core.safecrlf", "false"]);
   return { path };
 }
 
