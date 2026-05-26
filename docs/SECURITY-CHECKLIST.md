@@ -27,16 +27,32 @@ the workflow files under `.github/workflows/` for those.
 
 ### Solo-maintainer config (active)
 
-While this is a single-maintainer project, protect history without gating your
-own work: block force-push and deletion, leave admins un-enforced (so you can
-always recover), and require no reviews. This earns Scorecard Branch-Protection
-**Tier 1** and never blocks a direct push or a self-merge.
+While this is a single-maintainer project, protect history and require the PR
+check matrix to pass without gating your own work: block force-push and
+deletion, require the status checks below (`strict: true`), but leave admins
+un-enforced and require no reviews. With `enforce_admins: false` a red or flaky
+required check never wedges your own merge — you keep the admin bypass — while
+Scorecard still credits the configured status-check requirement. This earns
+Branch-Protection **Tier 1 plus the status-check tier** and never blocks a
+self-merge.
 
 ```bash
 gh api -X PUT repos/odere-pro/claude-agentline/branches/main/protection \
   --input - <<'JSON'
 {
-  "required_status_checks": null,
+  "required_status_checks": {
+    "strict": true,
+    "contexts": [
+      "gates / ubuntu-24.04 / node 20",
+      "gates / ubuntu-24.04 / node 22",
+      "gates / macos-14 / node 20",
+      "gates / macos-14 / node 22",
+      "gates / windows-2022 / node 20",
+      "gates / windows-2022 / node 22",
+      "analyze (javascript-typescript)",
+      "dependency review"
+    ]
+  },
   "enforce_admins": false,
   "required_pull_request_reviews": null,
   "restrictions": null,
@@ -49,14 +65,28 @@ gh api -X PUT repos/odere-pro/claude-agentline/branches/main/protection \
 JSON
 ```
 
-Verify (force-push and deletions `false`, admins `false`, reviews `null`):
+> **Contexts must match the real check-run names** — a required context that
+> never reports blocks every merge. The list above is the matrixed jobs that
+> run on `pull_request`: the six `gates / <os> / node <v>` legs (`gates.yml`),
+> `analyze (javascript-typescript)` (`codeql.yml`), and `dependency review`
+> (`dependency-review.yml`). **Do not** require `scorecard` — it never runs on
+> PRs. Re-derive after renaming a job or matrix axis:
+>
+> ```bash
+> gh api repos/odere-pro/claude-agentline/commits/main/check-runs \
+>   --jq '.check_runs[].name' | sort -u
+> ```
+
+Verify (force-push and deletions `false`, admins `false`, reviews `null`,
+status checks populated):
 
 ```bash
 gh api repos/odere-pro/claude-agentline/branches/main/protection | jq '{
   force_push: .allow_force_pushes.enabled,
   deletions: .allow_deletions.enabled,
   admins: .enforce_admins.enabled,
-  reviews: .required_pull_request_reviews
+  reviews: .required_pull_request_reviews,
+  status_checks: .required_status_checks.contexts
 }'
 ```
 
@@ -169,6 +199,39 @@ The repository already ships an in-repo ClusterFuzzLite harness
 (`.clusterfuzzlite/`) and `fast-check` property tests (`tests/fuzz/`), which
 earn Scorecard fuzzing credit. To additionally register the project with the
 hosted OSS-Fuzz service, follow `docs/oss-fuzz-application.md`.
+
+---
+
+## 5. Signed releases (Scorecard: Signed-Releases)
+
+Wired in code — no settings step. `release.yml` cosign-signs the release
+tarball and `SHA256SUMS` with **keyless Sigstore** (the job's `id-token: write`
+OIDC token; Fulcio cert + Rekor transparency log, no long-lived key) and
+attaches a `.sig` + `.pem` per artifact to the GitHub Release. Scorecard
+inspects **GitHub release assets** (not npm), so the existing
+`pnpm publish --provenance` does not satisfy this check on its own.
+
+The score realises **only on the next tagged release** and improves further as
+the older unsigned releases (`v0.1.0`–`v0.1.3`) age out of Scorecard's
+recent-release window. Verify a signed release with:
+
+```bash
+cosign verify-blob \
+  --certificate <asset>.pem \
+  --signature <asset>.sig \
+  --certificate-identity-regexp 'https://github.com/odere-pro/claude-agentline/.+' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  <asset>
+```
+
+---
+
+## 6. Contributors (Scorecard: Contributors)
+
+No action available solo. The check counts contributing companies/organizations
+across recent commits and needs contributors from multiple orgs to score —
+structurally unreachable for a single maintainer. Like Code-Review, it resolves
+on its own once additional contributors join; do not chase it.
 
 ---
 
