@@ -8,6 +8,7 @@
 [![gates](https://github.com/odere-pro/claude-agentline/actions/workflows/gates.yml/badge.svg?branch=main)](https://github.com/odere-pro/claude-agentline/actions/workflows/gates.yml)
 [![install-matrix](https://github.com/odere-pro/claude-agentline/actions/workflows/install-matrix.yml/badge.svg?branch=main)](https://github.com/odere-pro/claude-agentline/actions/workflows/install-matrix.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/odere-pro/claude-agentline/badge)](https://scorecard.dev/viewer/?uri=github.com/odere-pro/claude-agentline)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12995/badge)](https://www.bestpractices.dev/projects/12995)
 
 A fast, themeable statusline for Claude Code. Reads the stdin payload Claude Code's statusline contract sends, writes an ANSI-styled line, exits. No network. No native modules. No plugin scaffolding.
 

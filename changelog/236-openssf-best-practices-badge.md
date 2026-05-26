@@ -1,1 +1,1 @@
-- Surface security posture: add the OpenSSF Best Practices badge to the README beside the existing Scorecard badge (project-ID placeholder until registration completes at bestpractices.dev).
+- Surface security posture: add the OpenSSF Best Practices badge (project 12995, passing) to the README beside the existing Scorecard badge — earning the CII-Best-Practices Scorecard check.
