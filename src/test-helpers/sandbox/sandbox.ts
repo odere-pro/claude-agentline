@@ -12,6 +12,25 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 /**
+ * Remove a path recursively, tolerating the Windows handle-release race.
+ *
+ * On Windows a just-spawned subprocess (npm, or one of the atomic-write
+ * node children the install scripts fork) can still hold a handle inside
+ * `path` when cleanup runs, surfacing as `EBUSY`/`EPERM`/`ENOTEMPTY` from
+ * `rmdir`. `fs.rm`'s `maxRetries`/`retryDelay` retries exactly those with
+ * linear backoff — the canonical fix for the flake the install
+ * integration suite intermittently hit on the `windows / node 20` leg.
+ */
+export function rmrf(path: string): Promise<void> {
+  return fs.rm(path, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 100,
+  });
+}
+
+/**
  * Allocate a tmpdir under the OS temp root, run `fn(dir)`, and remove
  * the directory afterwards. `prefix` is the agentline-conventional
  * `agentline-<purpose>-` so stragglers are greppable on disk if cleanup
@@ -25,7 +44,7 @@ export async function withTmpDir<T>(
   try {
     return await fn(dir);
   } finally {
-    await fs.rm(dir, { recursive: true, force: true });
+    await rmrf(dir);
   }
 }
 
@@ -44,10 +63,6 @@ export async function withSandbox<T>(
   try {
     return await fn({ home, cfgDir, cwd });
   } finally {
-    await Promise.all([
-      fs.rm(home, { recursive: true, force: true }),
-      fs.rm(cfgDir, { recursive: true, force: true }),
-      fs.rm(cwd, { recursive: true, force: true }),
-    ]);
+    await Promise.all([rmrf(home), rmrf(cfgDir), rmrf(cwd)]);
   }
 }
