@@ -7,18 +7,19 @@
 #   2. Re-runs the full local quality bar: `pnpm install --frozen-lockfile`,
 #      build, lint, typecheck, tests, and `tests/gates/run-all.sh`. A
 #      failure aborts before any publish.
-#   3. Packs the canonical tarball, computes `SHA256SUMS`.
+#   3. Packs the canonical tarball, computes `SHA256SUMS`, and cosign-signs
+#      both with keyless Sigstore (a `.sig` + `.pem` per artifact).
 #   4. `pnpm publish --provenance`. OIDC-based provenance attestation is
 #      issued by GitHub to npm; no manual key handling.
 #   5. Creates a GitHub Release whose body is the matching `[X.Y.Z]`
-#      block extracted from `CHANGELOG.md`, and attaches the tarball
-#      plus `SHA256SUMS` as release assets.
+#      block extracted from `CHANGELOG.md`, and attaches the tarball,
+#      `SHA256SUMS`, and their cosign `.sig`/`.pem` signatures as assets.
 #
 # Hard invariants (per spec §11.1):
 #   - SHA-pinned actions.
 #   - Repo-default `permissions: read-all`; the job re-grants the two
 #     write scopes it actually needs (`contents` for the GitHub Release,
-#     `id-token` for npm provenance OIDC).
+#     `id-token` for npm provenance OIDC and cosign keyless signing).
 #   - Concurrency keyed to the tag so a re-pushed tag cancels stale runs.
 #   - All shell steps use `bash` explicitly.
 #
@@ -118,6 +119,25 @@ jobs:
           shasum -a 256 "${{ steps.pack.outputs.tarball }}" > SHA256SUMS
           cat SHA256SUMS
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
+
+      - name: Sign release artifacts (cosign keyless)
+        # Keyless Sigstore signing via the job's OIDC token (id-token: write):
+        # Fulcio issues a short-lived cert, the signature is logged in Rekor,
+        # no long-lived key is handled. Emit a .sig + .pem per artifact so
+        # OpenSSF Scorecard's Signed-Releases check recognises the GitHub
+        # release assets as signed.
+        working-directory: .release
+        run: |
+          for f in "${{ steps.pack.outputs.tarball }}" SHA256SUMS; do
+            cosign sign-blob --yes \
+              --output-signature "${f}.sig" \
+              --output-certificate "${f}.pem" \
+              "${f}"
+          done
+          ls -1
+
       - name: Extract release notes from CHANGELOG.md
         id: notes
         run: |
@@ -153,6 +173,10 @@ jobs:
           files: |
             ${{ steps.pack.outputs.tarball_path }}
             .release/SHA256SUMS
+            .release/${{ steps.pack.outputs.tarball }}.sig
+            .release/${{ steps.pack.outputs.tarball }}.pem
+            .release/SHA256SUMS.sig
+            .release/SHA256SUMS.pem
           fail_on_unmatched_files: true
           make_latest: true
 
