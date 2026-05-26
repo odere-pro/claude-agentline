@@ -68,14 +68,48 @@ jobs:
 
       - name: Install shellcheck (windows)
         if: runner.os == 'Windows'
-        # `choco install shellcheck` is the canonical Git-Bash-friendly path.
-        # Fall back gracefully — gate-03 will mark itself skipped if the
-        # binary is unavailable, keeping the workflow honest about coverage.
+        # Runs in PowerShell: the bash step's `tar` is Git for Windows' GNU tar,
+        # which treats the drive-letter colon as a remote host and cannot read
+        # .zip archives. `Expand-Archive` handles the zip natively.
+        #
+        # Windows runners don't ship shellcheck. `choco install` is not treated
+        # as pinned by OpenSSF Scorecard's Pinned-Dependencies check, so fetch a
+        # fixed release by URL and verify its SHA-256 before use — a verified
+        # download is pinned and not flagged. A SHA-256 mismatch fails loudly
+        # (tampering); a download miss is best-effort and leaves shellcheck off
+        # PATH so gate-03 marks itself skipped, keeping the workflow honest
+        # about coverage.
+        shell: pwsh
+        env:
+          SHELLCHECK_VERSION: "0.11.0"
+          SHELLCHECK_SHA256: "8a4e35ab0b331c85d73567b12f2a444df187f483e5079ceffa6bda1faa2e740e"
         run: |
-          if ! command -v shellcheck >/dev/null 2>&1; then
-            # Pinned per OpenSSF Scorecard Pinned-Dependencies check.
-            choco install shellcheck --version=0.10.0 -y --no-progress || true
-          fi
+          if (Get-Command shellcheck -ErrorAction SilentlyContinue) { exit 0 }
+          $ErrorActionPreference = 'Stop'
+          $url = "https://github.com/koalaman/shellcheck/releases/download/v$env:SHELLCHECK_VERSION/shellcheck-v$env:SHELLCHECK_VERSION.zip"
+          $work = Join-Path $env:RUNNER_TEMP 'shellcheck'
+          $bin = Join-Path $work 'bin'
+          New-Item -ItemType Directory -Force -Path $bin | Out-Null
+          $zip = Join-Path $work 'shellcheck.zip'
+          try {
+            Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+          } catch {
+            Write-Output "::warning::shellcheck download failed; gate-03 will skip on Windows"
+            exit 0
+          }
+          $actual = (Get-FileHash -Path $zip -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne $env:SHELLCHECK_SHA256) {
+            Write-Output "::error::shellcheck.zip SHA-256 mismatch — refusing to install"
+            exit 1
+          }
+          Expand-Archive -LiteralPath $zip -DestinationPath $work -Force
+          $exe = Get-ChildItem -Path $work -Recurse -Filter 'shellcheck*.exe' | Select-Object -First 1
+          if (-not $exe) {
+            Write-Output "::warning::shellcheck binary not found in archive; gate-03 will skip"
+            exit 0
+          }
+          Copy-Item -Path $exe.FullName -Destination (Join-Path $bin 'shellcheck.exe') -Force
+          Add-Content -Path $env:GITHUB_PATH -Value $bin
 
       - name: Install dependencies (pnpm)
         # gate-01 invokes scripts/doctor.sh which needs a runnable bin.
