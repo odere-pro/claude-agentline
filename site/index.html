@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>agentline — a powerline statusline for Claude Code</title>
+    <meta
+      name="description"
+      content="agentline is a fast, themeable powerline statusline for Claude Code. It shows git, tokens, context window, rate limits, and session info across 27 configurable widgets, with a live TUI editor and zero render-time network calls."
+    />
+    <link rel="canonical" href="https://odere-pro.github.io/claude-agentline/" />
+    <meta name="theme-color" content="#1c1714" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="application-name" content="agentline" />
+    <meta name="author" content="agentline maintainers" />
+    <meta
+      name="keywords"
+      content="claude code statusline, powerline statusline, claude code status bar, statusline cli, ansi statusline, git statusline, token usage, context window, rate limits, terminal theme, tui editor, nerd font"
+    />
+    <meta
+      name="robots"
+      content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+    />
+
+    <link
+      rel="alternate"
+      hreflang="en"
+      href="https://odere-pro.github.io/claude-agentline/"
+    />
+    <link
+      rel="alternate"
+      hreflang="x-default"
+      href="https://odere-pro.github.io/claude-agentline/"
+    />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="agentline" />
+    <meta property="og:locale" content="en_US" />
+    <meta
+      property="og:title"
+      content="agentline — a powerline statusline for Claude Code"
+    />
+    <meta
+      property="og:description"
+      content="Fast, themeable powerline statusline for Claude Code: git, tokens, context window, rate limits, themes, and a live TUI editor."
+    />
+    <meta property="og:url" content="https://odere-pro.github.io/claude-agentline/" />
+    <meta
+      property="og:image"
+      content="https://odere-pro.github.io/claude-agentline/assets/statusline-example.png"
+    />
+    <meta property="og:image:width" content="2000" />
+    <meta property="og:image:height" content="422" />
+    <meta property="og:image:type" content="image/png" />
+    <meta
+      property="og:image:alt"
+      content="A three-line agentline statusline in a terminal showing model, thinking effort, account, git branch, context-window percentage, weekly usage, and reset timers, styled with powerline chevrons in the claude-code-dark theme."
+    />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="agentline — a powerline statusline for Claude Code"
+    />
+    <meta
+      name="twitter:description"
+      content="Fast, themeable powerline statusline for Claude Code: git, tokens, context window, rate limits, themes, and a live TUI editor."
+    />
+    <meta
+      name="twitter:image"
+      content="https://odere-pro.github.io/claude-agentline/assets/statusline-example.png"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="A three-line agentline statusline in a terminal showing model, git branch, context-window percentage, weekly usage, and reset timers, styled with powerline chevrons."
+    />
+
+    <!-- Structured data: helps search engines describe the package and
+         qualifies the FAQ for rich results. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://odere-pro.github.io/claude-agentline/#website",
+            "url": "https://odere-pro.github.io/claude-agentline/",
+            "name": "agentline",
+            "description": "A powerline statusline for Claude Code.",
+            "inLanguage": "en",
+            "publisher": {
+              "@id": "https://github.com/odere-pro#organization"
+            }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://github.com/odere-pro#organization",
+            "name": "agentline maintainers",
+            "url": "https://github.com/odere-pro/claude-agentline",
+            "sameAs": [
+              "https://github.com/odere-pro/claude-agentline",
+              "https://www.npmjs.com/package/@odere-pro/agentline"
+            ]
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://odere-pro.github.io/claude-agentline/#app",
+            "name": "agentline",
+            "applicationCategory": "DeveloperApplication",
+            "applicationSubCategory": "Command Line Tool",
+            "operatingSystem": "macOS, Linux, Windows (WSL)",
+            "description": "Fast, themeable powerline statusline for Claude Code: git, tokens, context window, rate limits, themes, and a live TUI editor.",
+            "url": "https://odere-pro.github.io/claude-agentline/",
+            "softwareHelp": "https://github.com/odere-pro/claude-agentline#readme",
+            "downloadUrl": "https://www.npmjs.com/package/@odere-pro/agentline",
+            "installUrl": "https://www.npmjs.com/package/@odere-pro/agentline",
+            "softwareVersion": "0.1.4",
+            "license": "https://opensource.org/licenses/MIT",
+            "image": "https://odere-pro.github.io/claude-agentline/assets/statusline-example.png",
+            "screenshot": "https://odere-pro.github.io/claude-agentline/assets/statusline-example.png",
+            "keywords": "claude code statusline, powerline, statusline cli, git, tokens, context window, rate limits, themes, tui editor",
+            "isAccessibleForFree": true,
+            "author": {
+              "@id": "https://github.com/odere-pro#organization"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://odere-pro.github.io/claude-agentline/#faq",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How do I customize the Claude Code statusline?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Run `agentline edit` for the live TUI editor, or ask the agent in any Claude Code session to add a widget or swap the theme. The scriptable `agentline config widget` subcommands (add, remove, move, set-option) cover the same ground from the shell."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I show my git branch, token usage, or context-window percentage with Claude Code?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. The git, tokens, and context families cover branch, SHA, worktree, change counts, upstream, pull-request status, input and output token counts, throughput, context-window usage, and a fill bar — 27 widgets across 5 families in total."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is there a powerline prompt or status bar for Claude Code?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "agentline renders a powerline-ready statusline with arrayed chevrons and caps, plus a theme engine that degrades gracefully from truecolor to 256-colour to 16-colour terminals."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does agentline make network calls or slow down the prompt?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. The render hot path makes zero network calls — themes and the widget registry are embedded — so the statusline draws from local state only."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <style>
+      :root {
+        --color-bg: oklch(22% 0.012 50);
+        --color-bg-raised: oklch(27% 0.016 52);
+        --color-surface: oklch(31% 0.02 54);
+        --color-text: oklch(92% 0.012 70);
+        --color-muted: oklch(72% 0.02 60);
+        --color-accent: oklch(70% 0.13 45);
+        --color-accent-soft: oklch(70% 0.13 45 / 0.16);
+        --color-line: oklch(40% 0.02 55);
+
+        --text-hero: clamp(2.6rem, 1.4rem + 5vw, 5.5rem);
+        --text-lead: clamp(1.1rem, 0.96rem + 0.6vw, 1.4rem);
+        --space-section: clamp(3.5rem, 2.5rem + 5vw, 7rem);
+
+        --radius: 14px;
+        --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+        --font-sans:
+          ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        --font-mono:
+          ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas,
+          monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(
+            120% 80% at 75% -10%,
+            var(--color-accent-soft),
+            transparent 60%
+          ),
+          var(--color-bg);
+        color: var(--color-text);
+        font-family: var(--font-sans);
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .wrap {
+        width: min(1100px, 92vw);
+        margin-inline: auto;
+      }
+
+      /* Header / nav */
+      header {
+        padding-block: 1.4rem;
+        border-bottom: 1px solid var(--color-line);
+      }
+
+      nav {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+      }
+
+      .brand {
+        font-family: var(--font-mono);
+        font-weight: 700;
+        font-size: 1.15rem;
+        letter-spacing: -0.02em;
+      }
+
+      .brand span {
+        color: var(--color-accent);
+      }
+
+      nav .spacer {
+        flex: 1;
+      }
+
+      nav a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding-inline: 0.35rem;
+        text-decoration: none;
+        color: var(--color-muted);
+        font-size: 0.95rem;
+        transition: color var(--ease) 200ms;
+      }
+
+      nav a:hover,
+      nav a:focus-visible {
+        color: var(--color-text);
+      }
+
+      /* Hero */
+      .hero {
+        padding-block: var(--space-section);
+      }
+
+      .eyebrow {
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--color-accent);
+        margin: 0 0 1.2rem;
+      }
+
+      h1 {
+        font-size: var(--text-hero);
+        line-height: 0.98;
+        letter-spacing: -0.03em;
+        margin: 0 0 1.4rem;
+        max-width: 16ch;
+      }
+
+      .lead {
+        font-size: var(--text-lead);
+        color: var(--color-muted);
+        max-width: 56ch;
+        margin: 0 0 2.2rem;
+      }
+
+      .cta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.9rem;
+        align-items: center;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.8rem 1.4rem;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 600;
+        transition:
+          transform var(--ease) 200ms,
+          background var(--ease) 200ms;
+      }
+
+      .btn-primary {
+        background: var(--color-accent);
+        color: oklch(20% 0.02 50);
+      }
+
+      .btn-primary:hover,
+      .btn-primary:focus-visible {
+        transform: translateY(-2px);
+      }
+
+      .btn-ghost {
+        border: 1px solid var(--color-line);
+        color: var(--color-text);
+      }
+
+      .btn-ghost:hover,
+      .btn-ghost:focus-visible {
+        background: var(--color-surface);
+        transform: translateY(-2px);
+      }
+
+      figure.shot {
+        margin: 2.8rem 0 0;
+        border: 1px solid var(--color-line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        background: var(--color-bg-raised);
+        box-shadow: 0 30px 80px -40px oklch(0% 0 0 / 0.8);
+      }
+
+      figure.shot img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      figure.shot figcaption {
+        padding: 0.7rem 1rem;
+        font-size: 0.85rem;
+        color: var(--color-muted);
+        border-top: 1px solid var(--color-line);
+      }
+
+      /* Features */
+      section.features {
+        padding-block: var(--space-section);
+        border-top: 1px solid var(--color-line);
+      }
+
+      .features h2,
+      .install h2 {
+        font-size: clamp(1.6rem, 1.2rem + 1.5vw, 2.4rem);
+        letter-spacing: -0.02em;
+        margin: 0 0 0.6rem;
+      }
+
+      .section-lead {
+        color: var(--color-muted);
+        max-width: 60ch;
+        margin: 0 0 2.6rem;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1px;
+        background: var(--color-line);
+        border: 1px solid var(--color-line);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      .card {
+        background: var(--color-bg-raised);
+        padding: 1.6rem 1.5rem;
+      }
+
+      .card h3 {
+        margin: 0 0 0.5rem;
+        font-size: 1.1rem;
+        font-family: var(--font-mono);
+        color: var(--color-accent);
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--color-muted);
+        font-size: 0.96rem;
+      }
+
+      /* Install */
+      section.install {
+        padding-block: var(--space-section);
+        border-top: 1px solid var(--color-line);
+      }
+
+      pre {
+        margin: 0;
+        padding: 1.4rem 1.5rem;
+        background: oklch(16% 0.01 50);
+        border: 1px solid var(--color-line);
+        border-radius: var(--radius);
+        overflow-x: auto;
+        font-family: var(--font-mono);
+        font-size: 0.95rem;
+        line-height: 1.7;
+        color: var(--color-text);
+      }
+
+      pre .cmt {
+        color: var(--color-muted);
+      }
+
+      /* FAQ */
+      section.faq {
+        padding-block: var(--space-section);
+        border-top: 1px solid var(--color-line);
+      }
+
+      section.faq h2 {
+        font-size: clamp(1.6rem, 1.2rem + 1.5vw, 2.4rem);
+        letter-spacing: -0.02em;
+        margin: 0 0 2rem;
+      }
+
+      .faq dl {
+        margin: 0;
+        display: grid;
+        gap: 1.6rem;
+      }
+
+      .faq dt {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .faq dd {
+        margin: 0;
+        color: var(--color-muted);
+        max-width: 70ch;
+      }
+
+      .faq code,
+      pre code,
+      .card code {
+        font-family: var(--font-mono);
+      }
+
+      /* Footer */
+      footer {
+        padding-block: 2.5rem;
+        border-top: 1px solid var(--color-line);
+        color: var(--color-muted);
+        font-size: 0.9rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+      }
+
+      footer .spacer {
+        flex: 1;
+      }
+
+      footer a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding-inline: 0.35rem;
+        color: var(--color-muted);
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        color: var(--color-text);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          scroll-behavior: auto !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <nav class="wrap" aria-label="Primary">
+        <span class="brand">agent<span>line</span></span>
+        <span class="spacer"></span>
+        <a href="#features">Features</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/odere-pro/claude-agentline">GitHub</a>
+        <a href="https://www.npmjs.com/package/@odere-pro/agentline">npm</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero wrap" aria-labelledby="hero-heading">
+        <p class="eyebrow">Statusline for Claude Code</p>
+        <h1 id="hero-heading">A powerline statusline for Claude Code.</h1>
+        <p class="lead">
+          Fast, themeable, and offline. agentline reads the stdin payload Claude
+          Code sends, renders git, tokens, context window, rate limits, and
+          session info across 27 configurable widgets, and exits. No network on
+          the render path. No native modules. No plugin scaffolding.
+        </p>
+        <div class="cta">
+          <a class="btn btn-primary" href="#install">Get started</a>
+          <a
+            class="btn btn-ghost"
+            href="https://github.com/odere-pro/claude-agentline"
+            >View on GitHub</a
+          >
+        </div>
+
+        <figure class="shot">
+          <img
+            src="assets/statusline-example.png"
+            width="2000"
+            height="422"
+            alt="agentline powerline statusline for Claude Code rendered in a terminal across three rows: model and thinking effort, account email and git branch, context-window percentage, weekly usage, session and week reset timers, working directory, and permissions mode, in the claude-code-dark theme"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+          />
+          <figcaption>
+            A three-line agentline statusline with the shipped claude-code-dark
+            theme and powerline chevrons.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section class="features wrap" id="features" aria-labelledby="features-heading">
+        <h2 id="features-heading">Everything your session status needs</h2>
+        <p class="section-lead">
+          27 widgets across 5 families, each covering one slice of session
+          status — composed into up to three statusline rows.
+        </p>
+        <div class="grid">
+          <article class="card">
+            <h3>git</h3>
+            <p>
+              Branch, SHA, worktree, change counts, untracked, conflicts,
+              ahead/behind, upstream, and pull-request status.
+            </p>
+          </article>
+          <article class="card">
+            <h3>tokens</h3>
+            <p>Input and output token counts, cached tokens, and throughput.</p>
+          </article>
+          <article class="card">
+            <h3>context</h3>
+            <p>Context-window length, percentage used, and a live fill bar.</p>
+          </article>
+          <article class="card">
+            <h3>rate-limits</h3>
+            <p>Session and weekly quota usage with countdown reset timers.</p>
+          </article>
+          <article class="card">
+            <h3>session</h3>
+            <p>
+              Model, version, thinking effort, plan link, and account — from the
+              stdin payload.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Powerline &amp; themes</h3>
+            <p>
+              Arrayed chevrons and caps, plus a theme engine that degrades from
+              truecolor to 256-colour to 16-colour terminals.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Live TUI editor</h3>
+            <p>
+              <code>agentline edit</code> opens a live-preview editor with a
+              searchable, family-grouped widget picker.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Agent-friendly</h3>
+            <p>
+              Install adds five agentline skills, so you can configure, theme,
+              and troubleshoot it by asking the agent — without leaving Claude
+              Code.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Reversible &amp; offline</h3>
+            <p>
+              Uninstall restores your previous statusline byte-for-byte. The
+              render hot path makes zero network calls.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="install wrap" id="install" aria-labelledby="install-heading">
+        <h2 id="install-heading">Install in four commands</h2>
+        <p class="section-lead">
+          Requires Node.js 20 LTS or newer, and Claude Code run at least once.
+        </p>
+        <pre><code><span class="cmt"># 1. install the CLI</span>
+npm install -g @odere-pro/agentline
+
+<span class="cmt"># 2. wire into Claude Code (statusLine + skills + themes)</span>
+agentline install
+
+<span class="cmt"># 3. verify the wiring</span>
+agentline doctor
+
+<span class="cmt"># 4. customise widgets, theme, and layout (TUI)</span>
+agentline edit</code></pre>
+      </section>
+
+      <section class="faq wrap" id="faq" aria-labelledby="faq-heading">
+        <h2 id="faq-heading">Frequently asked questions</h2>
+        <dl>
+          <dt>How do I customize the Claude Code statusline?</dt>
+          <dd>
+            Run <code>agentline edit</code> for the live TUI editor, or ask the
+            agent in any Claude Code session to add a widget or swap the theme.
+            The scriptable <code>agentline config widget</code> subcommands
+            (<code>add</code>, <code>remove</code>, <code>move</code>,
+            <code>set-option</code>) cover the same ground from the shell.
+          </dd>
+
+          <dt>
+            Can I show my git branch, token usage, or context-window percentage
+            with Claude Code?
+          </dt>
+          <dd>
+            Yes. The <code>git</code>, <code>tokens</code>, and
+            <code>context</code> families cover branch, SHA, worktree, change
+            counts, upstream, pull-request status, input and output token
+            counts, throughput, context-window usage, and a fill bar — 27
+            widgets across 5 families in total.
+          </dd>
+
+          <dt>Is there a powerline prompt or status bar for Claude Code?</dt>
+          <dd>
+            agentline renders a powerline-ready statusline with arrayed chevrons
+            and caps, plus a theme engine that degrades gracefully from
+            truecolor to 256-colour to 16-colour terminals.
+          </dd>
+
+          <dt>Does agentline make network calls or slow down the prompt?</dt>
+          <dd>
+            No. The render hot path makes zero network calls — themes and the
+            widget registry are embedded — so the statusline draws from local
+            state only.
+          </dd>
+        </dl>
+      </section>
+    </main>
+
+    <footer class="wrap">
+      <span
+        >MIT-licensed ·
+        <a href="https://github.com/odere-pro/claude-agentline">odere-pro/claude-agentline</a></span
+      >
+      <span class="spacer"></span>
+      <a href="https://github.com/odere-pro/claude-agentline#readme">Docs</a>
+      <a href="https://www.npmjs.com/package/@odere-pro/agentline">npm package</a>
+      <a href="https://github.com/odere-pro/claude-agentline/issues">Issues</a>
+    </footer>
+  </body>
+</html>
