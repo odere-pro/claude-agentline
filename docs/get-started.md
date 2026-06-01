@@ -91,7 +91,7 @@ The prior `statusLine` was backed up at install time and is restored from `~/.co
 | ------------------------------------- | ------------------------------------------ |
 | Change widgets or layout              | [config.md](./config.md)                   |
 | Pick or author a theme                | [themes.md](./themes.md)                   |
-| Browse all 27 available widgets       | [widgets.md](./widgets.md)                 |
+| Browse all 28 available widgets       | [widgets.md](./widgets.md)                 |
 | Use the interactive TUI config editor | [keymap.md](./keymap.md)                   |
 | Understand health checks in detail    | [doctor.md](./doctor.md)                   |
 | Something is broken                   | [troubleshooting.md](./troubleshooting.md) |

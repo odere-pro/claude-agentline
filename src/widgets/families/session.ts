@@ -1,6 +1,6 @@
 /**
  * Identity + per-session signals — `model`, `version`, `thinking-effort`,
- * `plan`, `session-id`, `account-email`.
+ * `plan`, `project`, `session-id`, `account-email`.
  */
 
 import { entry, v, type WidgetMeta } from "./catalog-types.js";
@@ -14,6 +14,7 @@ export const SESSION_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.free
     "session",
   ),
   plan: entry("Plan", "Active plan for the current session", "session"),
+  project: entry("Project", "Project name — git repo or working-directory folder", "session"),
   "session-id": entry("Session id", "Short session id", "session"),
   "account-email": entry("Account email", "Logged-in account email", "session", [
     v("full", "Full address", { mask: "none" }),

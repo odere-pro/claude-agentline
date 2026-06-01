@@ -14,6 +14,7 @@
  */
 import { describe, expect, it } from "vitest";
 
+import { makeGitSnapshot } from "../../test-helpers/index.js";
 import { DEFAULT_CONFIG } from "../../data/config/index.js";
 import type { ResolvedSessionFields } from "../../data/session/index.js";
 import type { StdinPayload } from "../../core/stdin/index.js";
@@ -27,6 +28,7 @@ import { renderWidget } from "../render-widget/render-widget.js";
 import { accountEmailWidget, maskEmail } from "./account-email.js";
 import { modelDisplayName, modelWidget } from "./model.js";
 import { planWidget } from "./plan.js";
+import { pathBasename, projectWidget } from "./project.js";
 import { sessionIdWidget } from "./session-id.js";
 import { thinkingEffortWidget } from "./thinking-effort.js";
 import { versionWidget } from "./version.js";
@@ -54,12 +56,13 @@ const registry = new WidgetRegistry();
 registerSessionWidgets(registry);
 
 describe("registerSessionWidgets", () => {
-  it("registers exactly the 6 session widgets", () => {
-    expect(registry.size()).toBe(6);
+  it("registers exactly the 7 session widgets", () => {
+    expect(registry.size()).toBe(7);
     expect(registry.list()).toEqual([
       "account-email",
       "model",
       "plan",
+      "project",
       "session-id",
       "thinking-effort",
       "version",
@@ -68,7 +71,7 @@ describe("registerSessionWidgets", () => {
 
   it("SESSION_WIDGETS is a frozen array", () => {
     expect(Object.isFrozen(SESSION_WIDGETS)).toBe(true);
-    expect(SESSION_WIDGETS).toHaveLength(6);
+    expect(SESSION_WIDGETS).toHaveLength(7);
   });
 });
 
@@ -458,5 +461,94 @@ describe("renderWidget integration", () => {
       makeCtx({ thinkingEffort: "high" }),
     );
     expect(cell.fg).toBe("#abcdef");
+  });
+});
+
+// ── pathBasename ───────────────────────────────────────────────────────────
+
+describe("pathBasename", () => {
+  it("returns the last segment of a posix path", () => {
+    expect(pathBasename("/srv/me/Git/claude-agentline")).toBe("claude-agentline");
+  });
+
+  it("returns the last segment of a windows path", () => {
+    expect(pathBasename("C:\\projects\\me\\agentline")).toBe("agentline");
+  });
+
+  it("ignores trailing separators", () => {
+    expect(pathBasename("/srv/me/demo/")).toBe("demo");
+  });
+
+  it("returns empty string for the filesystem root", () => {
+    expect(pathBasename("/")).toBe("");
+  });
+
+  it("returns empty string for an empty input", () => {
+    expect(pathBasename("")).toBe("");
+  });
+});
+
+// ── project ────────────────────────────────────────────────────────────────
+
+describe("projectWidget", () => {
+  it("shows the origin remote's repo name when the git snapshot has one", () => {
+    const cell = projectWidget.render(
+      makeCtx({}, { cwd: "/repo/worktrees/feature" }, {
+        git: makeGitSnapshot({ origin: { owner: "acme", repo: "claude-agentline" } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toBe("claude-agentline");
+    expect(cell.hidden).toBeFalsy();
+  });
+
+  it("falls back to the upstream remote's repo name when origin is null", () => {
+    const cell = projectWidget.render(
+      makeCtx({}, {}, {
+        git: makeGitSnapshot({
+          origin: null,
+          upstreamRemote: { owner: "upstream-org", repo: "upstream-repo" },
+        }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toBe("upstream-repo");
+  });
+
+  it("falls back to the git cwd basename when no remote is configured", () => {
+    const cell = projectWidget.render(
+      makeCtx({}, {}, { git: makeGitSnapshot({ cwd: "/srv/me/local-only-project" }) }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toBe("local-only-project");
+  });
+
+  it("falls back to the stdin cwd basename when git is unavailable", () => {
+    const cell = projectWidget.render(
+      makeCtx({}, { cwd: "/srv/me/no-git-here" }, { git: { available: false } }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toBe("no-git-here");
+  });
+
+  it("honours the label option and rawValue", () => {
+    const ctx = makeCtx({}, {}, {
+      git: makeGitSnapshot({ origin: { owner: "acme", repo: "widget-lab" } }),
+    });
+    expect(projectWidget.render(ctx, { options: { label: "📁 " }, rawValue: false }).text).toBe(
+      "📁 widget-lab",
+    );
+    expect(projectWidget.render(ctx, { options: { label: "📁 " }, rawValue: true }).text).toBe(
+      "widget-lab",
+    );
+  });
+
+  it("hides when neither git nor stdin resolves a name", () => {
+    const cell = projectWidget.render(makeCtx({}, {}, { git: { available: false } }), {
+      options: {},
+      rawValue: false,
+    });
+    expect(cell.hidden).toBe(true);
+    expect(cell.text).toBe("");
   });
 });
