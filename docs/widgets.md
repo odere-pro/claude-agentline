@@ -46,22 +46,23 @@ widget instances with different `reset` axes.
 
 ## Built-in widgets
 
-27 widgets ship with v0.1.0, organised into five families. The
+28 widgets ship with v0.1.0, organised into five families. The
 authoritative registry is `src/widgets/registry/registry.ts`; this page tracks
 it.
 
-### Session (6)
+### Session (7)
 
 Surface state from the stdin payload that Claude Code emits.
 
-| Type              | Renders                                     |
-| ----------------- | ------------------------------------------- |
-| `model`           | the active model id (e.g. `Sonnet 4.6`)     |
-| `version`         | Claude Code version                         |
-| `session-id`      | short session id                            |
-| `account-email`   | logged-in account email                     |
-| `thinking-effort` | thinking-effort tier (low / medium / high)  |
-| `plan`            | active plan name (newest file in plans dir) |
+| Type              | Renders                                                |
+| ----------------- | ------------------------------------------------------ |
+| `model`           | the active model id (e.g. `Sonnet 4.6`)                |
+| `version`         | Claude Code version                                    |
+| `session-id`      | short session id                                       |
+| `account-email`   | logged-in account email                                |
+| `thinking-effort` | thinking-effort tier (low / medium / high)             |
+| `plan`            | active plan name (newest file in plans dir)            |
+| `project`         | project name — git repo (origin) or working-dir folder |
 
 Auth-file fallback: when the stdin payload omits the account email,
 `account-email` transparently re-reads `${CLAUDE_CONFIG_DIR}/.credentials.json`

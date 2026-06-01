@@ -1,0 +1,1 @@
+- Add a `project` session widget: shows the git repository name (origin remote), falling back to the working-directory folder name.
