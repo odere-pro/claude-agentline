@@ -16,16 +16,18 @@
 import type { GitState } from "../../data/git/index.js";
 import type { ResolvedSessionFields } from "../../data/session/index.js";
 import type { PlanSnapshot } from "../../data/session/plan/plan.js";
+import type { ClaudeHealthState } from "../../data/state/claude-health-cache/snapshot.js";
 import type { StdinPayload } from "../../core/stdin/index.js";
 import { contextWindowFor, type TokensSnapshot } from "../../data/tokens/index.js";
 
-/** The five snapshots `previewWidget` threads into `buildWidgetContext`. */
+/** The snapshots `previewWidget` threads into `buildWidgetContext`. */
 export interface MockPreview {
   readonly payload: StdinPayload;
   readonly session: ResolvedSessionFields;
   readonly tokens: TokensSnapshot;
   readonly git: GitState;
   readonly plan: PlanSnapshot;
+  readonly claudeHealth: ClaudeHealthState;
 }
 
 /** Fallback model id/label used by discovered mode when a transcript carries none. */
@@ -122,5 +124,13 @@ export function buildMockPreview(now: number = Date.now()): MockPreview {
     pr: null,
   };
 
-  return { payload, session, tokens, git, plan };
+  const claudeHealth: ClaudeHealthState = {
+    available: true,
+    cliVersion: "2.0.10",
+    latestVersion: "2.0.14",
+    needsUpdate: true,
+    doctor: { status: "warn", issues: 0, warnings: 2 },
+  };
+
+  return { payload, session, tokens, git, plan, claudeHealth };
 }

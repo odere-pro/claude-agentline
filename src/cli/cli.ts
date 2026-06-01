@@ -182,6 +182,20 @@ async function runEditor(): Promise<number> {
   return 0;
 }
 
+/**
+ * Internal maintenance verb — refresh the claude-health cache.
+ *
+ * Not user-facing (hidden from `runHelp`); it is what the live render path
+ * spawns as a detached process when the cache is stale, and what doctor's
+ * D10 exercises. Lazy-imports the refresher so the network/subprocess code
+ * never lands in the render cold-start graph.
+ */
+async function runRefreshClaudeHealth(): Promise<number> {
+  const { maybeRefreshClaudeHealth } = await import("../commands/claude-health/index.js");
+  await maybeRefreshClaudeHealth();
+  return 0;
+}
+
 async function dispatch(exec: () => Promise<number>, errorPrefix?: string): Promise<number> {
   try {
     return await exec();
@@ -232,6 +246,9 @@ export const COMMANDS: Readonly<Record<string, Subcommand>> = Object.freeze({
   uninstall: (rest) =>
     dispatch(() => runUninstallCommand(parseUninstallArgs(rest)), "agentline uninstall"),
   config: (rest) => dispatch(() => runConfig(rest), "agentline config"),
+  // Internal/hidden — refresh the claude-health cache off the render path.
+  "__refresh-claude-health": () =>
+    dispatch(runRefreshClaudeHealth, "agentline __refresh-claude-health"),
 });
 
 async function main(): Promise<number> {

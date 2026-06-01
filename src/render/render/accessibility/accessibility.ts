@@ -59,6 +59,7 @@ const ASCII_FALLBACKS: ReadonlyMap<string, string> = new Map([
   ["↓", "v"],
   ["✓", "v"],
   ["✗", "x"],
+  ["⚠", "!"],
   ["⚡", "!"],
   ["█", "#"],
   ["▓", "#"],

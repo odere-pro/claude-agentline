@@ -138,6 +138,80 @@ describe("runChecks", () => {
     expect(d07?.message).toMatch(/last probe failed/);
   });
 
+  const seedClaudeHealth = async (entry: Record<string, unknown>): Promise<void> => {
+    await fs.mkdir(join(cfgDir, "state"), { recursive: true });
+    await fs.writeFile(
+      join(cfgDir, "state", "claude-health.json"),
+      JSON.stringify({ version: 1, savedAt: "2026-05-14T00:00:00.000Z", ...entry }),
+    );
+  };
+
+  const runD10 = async () =>
+    (
+      await runChecks({
+        fix: false,
+        json: false,
+        strict: false,
+        home,
+        env: { CLAUDE_CONFIG_DIR: cfgDir },
+        cwd: cfgDir,
+      })
+    ).find((r) => r.id === "D10");
+
+  it("D10 passes with `not detected` when the claude-health cache is missing", async () => {
+    const d10 = await runD10();
+    expect(d10?.status).toBe("pass");
+    expect(d10?.message).toMatch(/not detected/);
+  });
+
+  it("D10 reports `update available` when the cache says a newer CLI exists", async () => {
+    await seedClaudeHealth({
+      cliVersion: "2.0.10",
+      latestVersion: "2.0.14",
+      needsUpdate: true,
+      doctor: { status: "ok", issues: 0, warnings: 0 },
+    });
+    const d10 = await runD10();
+    expect(d10?.status).toBe("pass");
+    expect(d10?.message).toMatch(/update available: 2\.0\.10 → 2\.0\.14/);
+  });
+
+  it("D10 warns when claude doctor reported warnings", async () => {
+    await seedClaudeHealth({
+      cliVersion: "2.0.14",
+      latestVersion: "2.0.14",
+      needsUpdate: false,
+      doctor: { status: "warn", issues: 0, warnings: 2 },
+    });
+    const d10 = await runD10();
+    expect(d10?.status).toBe("warn");
+    expect(d10?.message).toMatch(/2 warning/);
+  });
+
+  it("D10 fails when claude doctor reported issues", async () => {
+    await seedClaudeHealth({
+      cliVersion: "2.0.14",
+      latestVersion: "2.0.14",
+      needsUpdate: false,
+      doctor: { status: "fail", issues: 1, warnings: 0 },
+    });
+    const d10 = await runD10();
+    expect(d10?.status).toBe("fail");
+    expect(d10?.message).toMatch(/1 issue/);
+  });
+
+  it("D10 passes `up to date` when the CLI is current and healthy", async () => {
+    await seedClaudeHealth({
+      cliVersion: "2.0.14",
+      latestVersion: "2.0.14",
+      needsUpdate: false,
+      doctor: { status: "ok", issues: 0, warnings: 0 },
+    });
+    const d10 = await runD10();
+    expect(d10?.status).toBe("pass");
+    expect(d10?.message).toMatch(/up to date/);
+  });
+
   it("D02 returns pass when statusLine is a plain string referencing agentline", async () => {
     await fs.mkdir(join(home, ".claude"), { recursive: true });
     await fs.writeFile(

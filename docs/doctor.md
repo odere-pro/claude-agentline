@@ -36,6 +36,7 @@ wrapper around the bin is read-only by construction — it never passes
 | D07 | update-check cache (read-only) reports a newer release                                          | none; reports                                                            |
 | D08 | render dry-run on an embedded fixture matches the stored snapshot                               | none; reports                                                            |
 | D09 | `~/.claude/settings.json` `statusLine.refreshInterval` matches the configured `refreshInterval` | re-sync from config                                                      |
+| D10 | Claude CLI health (read-only): update available and `claude doctor` issues/warnings             | none; reports                                                            |
 
 `--fix` touches D01–D04 and D09. Everything else is reported and left
 to you, on the principle that doctor never acts on host state it does
@@ -136,6 +137,19 @@ Warns on a mismatch, or when the field is missing while a non-zero
 interval is configured. With `--fix`, re-syncs the settings field from
 config — writing the interval through, or removing the field when the
 configured value is `0`.
+
+### D10 — Claude CLI health
+
+Reports on the host `claude` CLI from an off-render-path cache: whether a
+newer Claude Code CLI is available, and the issue/warning counts from
+`claude doctor`. Read-only — like D07 it never spawns `claude` or fetches
+from inside the check. The cache is refreshed lazily by the live render
+path (the first `agentline` render, and once per ~24h thereafter, spawns a
+detached probe). A `claude doctor` failure reports `fail`; a warning reports
+`warn`; an available update or a clean, current CLI reports `pass` (an
+update hint is informational). A missing CLI or an unpopulated cache reports
+`pass` with an explanation. The `claude-update` and `claude-doctor` widgets
+read the same cache. No fix.
 
 ## Output formats
 

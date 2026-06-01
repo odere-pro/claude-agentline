@@ -17,12 +17,19 @@
 
 import { isPlainObject } from "../../../core/lib/object/object.js";
 
-const NPM_REGISTRY_URL = "https://registry.npmjs.org/@odere-pro/agentline/latest";
+const DEFAULT_PACKAGE = "@odere-pro/agentline";
 const FETCH_TIMEOUT_MS = 3000;
+
+function registryUrl(pkg: string): string {
+  return `https://registry.npmjs.org/${pkg}/latest`;
+}
 
 export interface FetchLatestVersionOptions {
   readonly timeoutMs?: number;
+  /** Explicit URL override (wins over `package`). */
   readonly url?: string;
+  /** npm package to query; defaults to `@odere-pro/agentline`. */
+  readonly package?: string;
   /** Test seam — defaults to global `fetch`. */
   readonly fetchImpl?: typeof fetch;
 }
@@ -31,7 +38,7 @@ export async function fetchLatestVersion(
   options: FetchLatestVersionOptions = {},
 ): Promise<string | null> {
   const fetchImpl = options.fetchImpl ?? fetch;
-  const url = options.url ?? NPM_REGISTRY_URL;
+  const url = options.url ?? registryUrl(options.package ?? DEFAULT_PACKAGE);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? FETCH_TIMEOUT_MS);
   try {

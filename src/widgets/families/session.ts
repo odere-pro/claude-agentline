@@ -21,4 +21,14 @@ export const SESSION_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.free
     v("domain", "Domain only (@example.com)", { mask: "domain" }),
     v("localpart", "Local part only (user)", { mask: "localpart" }),
   ]),
+  "claude-update": entry(
+    "Claude CLI update",
+    "Shows the latest Claude Code CLI when an update is available",
+    "session",
+  ),
+  "claude-doctor": entry(
+    "Claude doctor",
+    "Issue and warning counts from the host `claude doctor`",
+    "session",
+  ),
 });

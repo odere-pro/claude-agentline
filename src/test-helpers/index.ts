@@ -17,6 +17,7 @@ export {
 
 export {
   makeCell,
+  makeClaudeHealth,
   makeGitSnapshot,
   makeStdinPayload,
   makeTokensSnapshot,
