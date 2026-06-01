@@ -1,1 +1,0 @@
-- Surface host Claude CLI health: add the `claude-update` and `claude-doctor` session widgets plus doctor check D10, fed by an off-render-path `claude-health` cache that probes `claude --version` / `claude doctor` and npm, refreshed lazily by the live render via a detached `__refresh-claude-health` verb.
