@@ -1,0 +1,1 @@
+- Tidy the root README: drop the redundant FAQ section, reconcile drift (stale widget count, `update-check`-as-verb, and the CLI surface list), and add an npm version badge linking to the package; correct the `package.json` description to 30 widgets and drop the theming claim.
