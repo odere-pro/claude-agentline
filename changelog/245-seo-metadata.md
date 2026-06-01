@@ -1,0 +1,1 @@
+- Improve discoverability: broaden `package.json` keywords (6 → 21) and rewrite the package description to name the feature surface, and add a keyword subtitle plus an FAQ section to the README so npm and search engines match the tool's name and capabilities.
