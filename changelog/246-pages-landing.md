@@ -1,1 +1,0 @@
-- Add an indexable landing page: a standalone `site/index.html` (semantic HTML with Open Graph/Twitter meta and SoftwareApplication structured data) published to GitHub Pages by a new `pages` workflow, and point `package.json` `homepage` plus a README link at it — giving the project a crawlable marketing surface distinct from the GitHub repo chrome.
