@@ -37,15 +37,15 @@ Restart Claude Code after `install` — the statusline appears at the bottom of 
 
 ## Highlights
 
-**28 widgets across 5 families**, each covering one slice of session status:
+**30 widgets across 5 families**, each covering one slice of session status:
 
-| Family        | What it shows                                                                    |
-| ------------- | -------------------------------------------------------------------------------- |
-| `session`     | model, version, thinking effort, plan, project, account — from the stdin payload |
-| `tokens`      | input / output token counts and throughput                                       |
-| `context`     | context-window usage and a fill bar                                              |
-| `rate-limits` | session & weekly quota usage and reset timers                                    |
-| `git`         | branch, SHA, worktree, change counts, upstream, PR                               |
+| Family        | What it shows                                                                              |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| `session`     | model, version, thinking effort, plan, project, account, Claude CLI update + doctor health |
+| `tokens`      | input / output token counts and throughput                                                 |
+| `context`     | context-window usage and a fill bar                                                        |
+| `rate-limits` | session & weekly quota usage and reset timers                                              |
+| `git`         | branch, SHA, worktree, change counts, upstream, PR                                         |
 
 - **Agent-friendly** — `install` adds five agentline skills to your Claude Code session, so you can install, configure, theme, troubleshoot, and update agentline by asking the agent — without leaving Claude Code.
 - **Comfortable, intuitive TUI** — `agentline edit` opens a live-preview editor with a widget picker.
@@ -123,7 +123,7 @@ agentline doctor --fix       # auto-repair settings + config wiring
 | CLI reference    | [docs/cli.md](./docs/cli.md)                         |
 | Install          | [docs/install.md](./docs/install.md)                 |
 | Configure        | [docs/config.md](./docs/config.md)                   |
-| Widgets (all 28) | [docs/widgets.md](./docs/widgets.md)                 |
+| Widgets (all 30) | [docs/widgets.md](./docs/widgets.md)                 |
 | Themes           | [docs/themes.md](./docs/themes.md)                   |
 | TUI editor keys  | [docs/keymap.md](./docs/keymap.md)                   |
 | Doctor checks    | [docs/doctor.md](./docs/doctor.md)                   |
@@ -191,7 +191,7 @@ The render hot path stays `ink`/`react`/`src/tui/`-free (gate-19). See [docs/coo
 Run `agentline edit` for the live TUI editor, or ask the agent in any Claude Code session to add a widget or swap the theme. The scriptable `agentline config widget` subcommands (`add`, `remove`, `move`, `set-option`) cover the same ground from the shell.
 
 **Can I show my git branch, token usage, or context-window percentage with Claude Code?**
-Yes. The `git`, `tokens`, and `context` families cover branch, SHA, worktree, change counts, upstream, PR, input/output token counts, throughput, context-window usage, and a fill bar — 28 widgets across 5 families in total.
+Yes. The `git`, `tokens`, and `context` families cover branch, SHA, worktree, change counts, upstream, PR, input/output token counts, throughput, context-window usage, and a fill bar — 30 widgets across 5 families in total.
 
 **Is there a powerline prompt or status bar for Claude Code?**
 agentline renders a powerline-ready statusline with arrayed chevrons and caps, plus a theme engine that degrades gracefully from truecolor to 256-colour to 16-colour terminals.

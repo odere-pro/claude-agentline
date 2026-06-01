@@ -117,21 +117,23 @@ user-facing term **family**.
 
 ---
 
-## Built-in widget types (28 total)
+## Built-in widget types (30 total)
 
 All types are kebab-case strings. Source of truth: `src/widgets/families/catalog.ts`.
 
-### Session family (7)
+### Session family (9)
 
-| Type              | Description                                         |
-| ----------------- | --------------------------------------------------- |
-| `model`           | Active model id (e.g. Sonnet 4.6)                   |
-| `version`         | Claude Code version                                 |
-| `thinking-effort` | Thinking-effort tier: low, medium, or high          |
-| `plan`            | Active plan for the current session                 |
-| `project`         | Project name — git repo or working-directory folder |
-| `session-id`      | Short session id                                    |
-| `account-email`   | Logged-in account email                             |
+| Type              | Description                                                  |
+| ----------------- | ------------------------------------------------------------ |
+| `model`           | Active model id (e.g. Sonnet 4.6)                            |
+| `version`         | Claude Code version                                          |
+| `thinking-effort` | Thinking-effort tier: low, medium, or high                   |
+| `plan`            | Active plan for the current session                          |
+| `project`         | Project name — git repo or working-directory folder          |
+| `session-id`      | Short session id                                             |
+| `account-email`   | Logged-in account email                                      |
+| `claude-update`   | Shows the latest Claude Code CLI when an update is available |
+| `claude-doctor`   | Issue and warning counts from the host `claude doctor`       |
 
 ### Tokens family (3)
 

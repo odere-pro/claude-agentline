@@ -144,6 +144,21 @@ export const EN_DICTIONARY = {
     "config sets refreshInterval={expected} but settings.json has {actual}",
   "cmd.doctor.d09.hint-mismatch": "run `agentline doctor --fix` to sync it from your config",
 
+  "cmd.doctor.d10.title": "Claude CLI health",
+  "cmd.doctor.d10.not-detected": "claude CLI not detected — no cached probe yet",
+  "cmd.doctor.d10.hint-not-detected":
+    "ensure `claude` is on PATH; the widgets populate after the next render",
+  "cmd.doctor.d10.cli-missing": "claude CLI not found on PATH",
+  "cmd.doctor.d10.hint-cli-missing":
+    "install the Claude Code CLI, or ignore if you run it elsewhere",
+  "cmd.doctor.d10.update-available": "Claude CLI update available: {current} → {latest}",
+  "cmd.doctor.d10.hint-update": "run `claude update` (or your package manager) to upgrade",
+  "cmd.doctor.d10.up-to-date": "Claude CLI up to date ({current})",
+  "cmd.doctor.d10.doctor-healthy": "claude doctor: healthy",
+  "cmd.doctor.d10.doctor-warn": "claude doctor: {warnings} warning(s)",
+  "cmd.doctor.d10.doctor-fail": "claude doctor: {issues} issue(s), {warnings} warning(s)",
+  "cmd.doctor.d10.hint-doctor": "run `claude doctor` for details",
+
   // ── cmd.install.*, cmd.uninstall.*, cmd.reset.* — verb help blocks ────
   "cmd.install.help": `agentline install — wire @odere-pro/agentline into Claude Code's statusline
 

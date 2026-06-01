@@ -9,6 +9,7 @@ The non-render verbs and host-wiring lifecycle:
 - `reset/` — the user/agent-facing entry point: install steps plus a forced config reseed.
 - `doctor/` — diagnose host wiring, with `--fix` repair and a `--json` report.
 - `update-check/` — an out-of-render-path helper that refreshes a cached latest-version hint; **not** a user-facing command.
+- `claude-health/` — an out-of-render-path helper that probes the host `claude` CLI (`claude --version`, `claude doctor`) and npm, writing the claude-health cache that feeds the `claude-update` / `claude-doctor` widgets and doctor D10. Reached via the hidden `__refresh-claude-health` verb (spawned detached by the live render when the cache is stale); **not** a user-facing command.
 
 The CLI dispatch entry lives at `src/cli/cli.ts`; per-subcommand help utilities are in `src/core/lib/help/help.ts` so the data-layer config verbs can consume them without crossing the "data imports from core only" boundary.
 

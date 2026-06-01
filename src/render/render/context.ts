@@ -22,6 +22,10 @@ import { loadGitSnapshot, type GitState } from "../../data/git/snapshot/snapshot
 import { createTranslator } from "../../core/i18n/index.js";
 import { loadSessionFields, type ResolvedSessionFields } from "../../data/session/index.js";
 import { loadPlanSnapshot, type PlanSnapshot } from "../../data/session/plan/plan.js";
+import {
+  loadClaudeHealthSnapshot,
+  type ClaudeHealthState,
+} from "../../data/state/claude-health-cache/snapshot.js";
 import type { StdinPayload } from "../../core/stdin/index.js";
 import { loadTokensSnapshot, type TokensSnapshot } from "../../data/tokens/index.js";
 import type { Clock } from "../../widgets/clock/clock.js";
@@ -35,6 +39,8 @@ export interface LiveSnapshots {
   readonly git: GitState;
   /** Omitted when there is no active plan (keeps the bag key-absent). */
   readonly plan?: PlanSnapshot;
+  /** Claude-CLI health read from the off-path cache (`{ available: false }` when unpopulated). */
+  readonly claudeHealth: ClaudeHealthState;
 }
 
 export interface LoadLiveSnapshotsOptions {
@@ -73,12 +79,18 @@ export function loadLiveSnapshots(
     ...(payload.sessionId !== undefined ? { sessionId: payload.sessionId } : {}),
     ...(payload.transcriptPath !== undefined ? { transcriptPath: payload.transcriptPath } : {}),
   });
-  return { session, tokens, git, ...(plan !== null ? { plan } : {}) };
+  /*
+   * Cheap synchronous read of the off-path claude-health cache. The render
+   * never refreshes it (no `claude` spawn here); the live render command
+   * triggers a detached refresh after writing stdout.
+   */
+  const claudeHealth = loadClaudeHealthSnapshot({ env });
+  return { session, tokens, git, claudeHealth, ...(plan !== null ? { plan } : {}) };
 }
 
 export interface BuildWidgetContextInput extends Pick<
   RenderInputs,
-  "config" | "theme" | "tokens" | "git" | "session" | "plan"
+  "config" | "theme" | "tokens" | "git" | "session" | "plan" | "claudeHealth"
 > {
   readonly payload: StdinPayload;
   readonly clock: Clock;
@@ -104,5 +116,6 @@ export function buildWidgetContext(input: BuildWidgetContextInput): WidgetContex
     ...(input.git !== undefined ? { git: input.git } : {}),
     ...(input.session !== undefined ? { session: input.session } : {}),
     ...(input.plan !== undefined ? { plan: input.plan } : {}),
+    ...(input.claudeHealth !== undefined ? { claudeHealth: input.claudeHealth } : {}),
   };
 }

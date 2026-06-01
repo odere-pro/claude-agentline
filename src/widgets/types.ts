@@ -14,6 +14,7 @@ import type { Translator } from "../core/i18n/index.js";
 import type { GitState } from "../data/git/index.js";
 import type { ResolvedSessionFields } from "../data/session/index.js";
 import type { PlanSnapshot } from "../data/session/plan/plan.js";
+import type { ClaudeHealthState } from "../data/state/claude-health-cache/snapshot.js";
 import type { StdinPayload } from "../core/stdin/index.js";
 import type { Theme } from "../data/theme/index.js";
 import type { TokensSnapshot } from "../data/tokens/index.js";
@@ -117,6 +118,13 @@ export interface WidgetContext {
    * during `render()`. Absent when there is no active plan.
    */
   readonly plan?: PlanSnapshot;
+  /**
+   * Claude-CLI health snapshot (update-available + `claude doctor`), read
+   * from the off-path claude-health cache. Widgets MUST NOT spawn `claude`
+   * or hit the network during `render()`; the cache is refreshed out of
+   * band. `available: false` (or absent) hides the dependent widgets.
+   */
+  readonly claudeHealth?: ClaudeHealthState;
 }
 
 // ─── Widget contract ────────────────────────────────────────────────────────

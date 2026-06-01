@@ -27,6 +27,9 @@ const EXPECTED_COMMANDS = [
   "version",
   "--version",
   "-v",
+  // Internal/hidden — refreshes the claude-health cache off the render
+  // path; spawned detached by the live render and invoked by no human.
+  "__refresh-claude-health",
 ] as const;
 
 const DROPPED_COMMANDS = ["theme", "themes", "widget", "schema", "init", "keys"] as const;

@@ -1,12 +1,12 @@
 /**
- * Doctor checks D01–D09 — orchestrator. Each check has its own file
+ * Doctor checks D01–D10 — orchestrator. Each check has its own file
  * under `./checks/`; this module builds the shared `CheckCtx` (env,
  * home, cwd, eagerly-loaded config + loader error) and dispatches them
  * sequentially in numeric order.
  *
  * Reporting and repair are split: a check NEVER mutates the host;
  * `--fix` calls the matching `fixD0N` helper in `fix.ts` separately
- * (D01–D04 and D09 have fixers; D05–D08 are reporting-only).
+ * (D01–D04 and D09 have fixers; D05–D08 and D10 are reporting-only).
  *
  * On a missing-but-expected file (e.g. no themes directory when no
  * theme is referenced) the check returns `pass` with an explanatory
@@ -29,6 +29,7 @@ import { checkD06 } from "./d06-config-writable.js";
 import { checkD07 } from "./d07-update-check.js";
 import { checkD08 } from "./d08-render-fixture.js";
 import { checkD09 } from "./d09-refresh-interval.js";
+import { checkD10 } from "./d10-claude-health.js";
 import type { CheckResult, RunOptions } from "../types.js";
 
 export async function runChecks(opts: RunOptions): Promise<CheckResult[]> {
@@ -58,5 +59,6 @@ export async function runChecks(opts: RunOptions): Promise<CheckResult[]> {
     await checkD07(ctx),
     await checkD08(ctx),
     await checkD09(ctx),
+    await checkD10(ctx),
   ];
 }

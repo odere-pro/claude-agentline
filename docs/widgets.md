@@ -46,23 +46,33 @@ widget instances with different `reset` axes.
 
 ## Built-in widgets
 
-28 widgets ship with v0.1.0, organised into five families. The
+30 widgets ship with v0.1.0, organised into five families. The
 authoritative registry is `src/widgets/registry/registry.ts`; this page tracks
 it.
 
-### Session (7)
+### Session (9)
 
 Surface state from the stdin payload that Claude Code emits.
 
-| Type              | Renders                                                |
-| ----------------- | ------------------------------------------------------ |
-| `model`           | the active model id (e.g. `Sonnet 4.6`)                |
-| `version`         | Claude Code version                                    |
-| `session-id`      | short session id                                       |
-| `account-email`   | logged-in account email                                |
-| `thinking-effort` | thinking-effort tier (low / medium / high)             |
-| `plan`            | active plan name (newest file in plans dir)            |
-| `project`         | project name — git repo (origin) or working-dir folder |
+| Type              | Renders                                                          |
+| ----------------- | ---------------------------------------------------------------- |
+| `model`           | the active model id (e.g. `Sonnet 4.6`)                          |
+| `version`         | Claude Code version                                              |
+| `session-id`      | short session id                                                 |
+| `account-email`   | logged-in account email                                          |
+| `thinking-effort` | thinking-effort tier (low / medium / high)                       |
+| `plan`            | active plan name (newest file in plans dir)                      |
+| `project`         | project name — git repo (origin) or working-dir folder           |
+| `claude-update`   | latest Claude Code CLI when an update is available (else hidden) |
+| `claude-doctor`   | issue/warning counts from `claude doctor` (else hidden)          |
+
+`claude-update` and `claude-doctor` read an off-render-path cache of the
+host `claude` CLI's health. The cache is refreshed lazily — the first live
+`agentline` render (and once per ~24h thereafter) spawns a detached
+`claude --version` + `claude doctor` probe and an npm latest-version check,
+then writes the result for the next render to read. Both widgets hide until
+that cache is populated, when the CLI is current, or when `claude doctor` is
+clean. See doctor check [D10](./doctor.md#d10--claude-cli-health).
 
 Auth-file fallback: when the stdin payload omits the account email,
 `account-email` transparently re-reads `${CLAUDE_CONFIG_DIR}/.credentials.json`
