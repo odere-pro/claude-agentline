@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-06-01
+
+### Security
+
+- `d23f79c` — Bump the CI-only Jazzer.js fuzzing driver's transitive `tmp` dependency to 0.2.7 (>= 0.2.6), clearing GHSA-ph9p-34f9-6g65 (path traversal via unsanitised prefix/postfix); the published package never bundled `tmp` and is unaffected.
+
 ## [0.2.0] — 2026-06-01
 
 ### Added

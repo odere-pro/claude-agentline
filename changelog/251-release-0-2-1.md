@@ -1,0 +1,1 @@
+- Release v0.2.1: promote the pending fragments into `CHANGELOG.md` and bump the package and bundled bin version to 0.2.1.

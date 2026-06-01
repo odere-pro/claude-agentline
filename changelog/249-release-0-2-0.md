@@ -1,1 +1,0 @@
-- Release v0.2.0: aggregate the pending changelog fragments into the shipped `CHANGELOG.md` and bump the package and bundled bin version to 0.2.0.
