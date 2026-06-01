@@ -8,8 +8,8 @@
 # - Least-privilege: `permissions: {}` at the workflow level; each job
 #   widens only to what it needs (Pages deploy needs `pages: write` +
 #   `id-token: write`).
-# - Triggered by changes to the site sources, the shared screenshot asset,
-#   or this workflow — plus manual dispatch for on-demand republish.
+# - Triggered by changes to the self-contained `site/` tree or this
+#   workflow — plus manual dispatch for on-demand republish.
 # - `site/` is NOT in the npm `files` allowlist, so it never ships in the
 #   published tarball.
 
@@ -20,7 +20,6 @@ on:
     branches: [main]
     paths:
       - "site/**"
-      - "docs/assets/statusline-example.png"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -41,11 +40,6 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-
-      - name: Stage shared screenshot into site/
-        run: |
-          mkdir -p site/assets
-          cp docs/assets/statusline-example.png site/assets/statusline-example.png
 
       - name: Configure Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
