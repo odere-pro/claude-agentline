@@ -186,6 +186,6 @@ The render hot path stays `ink`/`react`/`src/tui/`-free (gate-19). See [docs/coo
 
 ---
 
-## License
-
-[MIT](./LICENSE).
+<p align="center">
+  <a href="https://odere-pro.github.io/claude-agentline/">Landing page</a> · <a href="./LICENSE">MIT</a>
+</p>
