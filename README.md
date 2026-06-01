@@ -2,6 +2,8 @@
 
 _A powerline statusline for Claude Code — git, tokens, context window, rate limits, themes, and a live TUI editor._
 
+**[Website](https://odere-pro.github.io/claude-agentline/)** · **[npm](https://www.npmjs.com/package/@odere-pro/agentline)** · **[Docs](./docs/get-started.md)**
+
 [![for Claude Code](https://img.shields.io/badge/for-Claude%20Code-cc785c?logo=anthropic&logoColor=white)](https://docs.anthropic.com/claude/docs/claude-code)
 [![type: CLI](https://img.shields.io/badge/type-CLI-5b8def?logo=gnubash&logoColor=white)](#use)
 [![node ≥20](https://img.shields.io/badge/node-%E2%89%A520-43853d?logo=node.js&logoColor=white)](https://nodejs.org/)

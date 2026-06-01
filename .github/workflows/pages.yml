@@ -1,0 +1,71 @@
+# .github/workflows/pages.yml
+# Publishes the standalone landing page in `site/` to GitHub Pages.
+# The page is an indexable marketing/SEO surface, kept isolated from the
+# Markdown docs so GitHub's Jekyll pipeline never processes `docs/*.md`.
+#
+# Hard invariants (mirrors the repo's other workflows):
+# - Actions pinned by full commit SHA (not by tag/branch).
+# - Least-privilege: `permissions: {}` at the workflow level; each job
+#   widens only to what it needs (Pages deploy needs `pages: write` +
+#   `id-token: write`).
+# - Triggered by changes to the site sources, the shared screenshot asset,
+#   or this workflow — plus manual dispatch for on-demand republish.
+# - `site/` is NOT in the npm `files` allowlist, so it never ships in the
+#   published tarball.
+
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "docs/assets/statusline-example.png"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build site
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Stage shared screenshot into site/
+        run: |
+          mkdir -p site/assets
+          cp docs/assets/statusline-example.png site/assets/statusline-example.png
+
+      - name: Configure Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+        with:
+          path: site
+
+  deploy:
+    name: deploy to Pages
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
