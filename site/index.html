@@ -9,7 +9,7 @@
     </title>
     <meta
       name="description"
-      content="agentline is a fast, themeable powerline statusline for Claude Code. It shows git, tokens, context window, rate limits, and session info across 28 configurable widgets, with a live TUI editor, zero render-time network calls, and a Software 3.0 design any agent can install, configure, and theme by itself."
+      content="agentline is a fast, powerline statusline for Claude Code. It shows git, tokens, context window, rate limits, and session info across 30 configurable widgets, with a live TUI editor, zero render-time network calls, and a Software 3.0 design any agent can install, configure, and theme by itself."
     />
     <link rel="canonical" href="https://odere-pro.github.io/claude-agentline/" />
     <meta name="theme-color" content="#1c1714" />
@@ -47,7 +47,7 @@
     />
     <meta
       property="og:description"
-      content="Fast, themeable powerline statusline for Claude Code: git, tokens, context window, rate limits, themes, and a live TUI editor — built so an agent can drive it."
+      content="Fast, powerline statusline for Claude Code: git, tokens, context window, rate limits, and a live TUI editor — built so an agent can drive it."
     />
     <meta property="og:url" content="https://odere-pro.github.io/claude-agentline/" />
     <meta
@@ -70,7 +70,7 @@
     />
     <meta
       name="twitter:description"
-      content="Fast, themeable powerline statusline for Claude Code: git, tokens, context window, rate limits, themes, and a live TUI editor — built so an agent can drive it."
+      content="Fast, powerline statusline for Claude Code: git, tokens, context window, rate limits, and a live TUI editor — built so an agent can drive it."
     />
     <meta
       name="twitter:image"
@@ -115,18 +115,18 @@
             "applicationCategory": "DeveloperApplication",
             "applicationSubCategory": "Command Line Tool",
             "operatingSystem": "macOS, Linux, Windows (WSL)",
-            "description": "Fast, themeable powerline statusline for Claude Code: git, tokens, context window, rate limits, themes, and a live TUI editor — designed so an LLM agent can install, configure, theme, and troubleshoot it through natural language.",
+            "description": "Fast, powerline statusline for Claude Code: git, tokens, context window, rate limits, and a live TUI editor — designed so an LLM agent can install, configure, theme, and troubleshoot it through natural language.",
             "url": "https://odere-pro.github.io/claude-agentline/",
             "softwareHelp": "https://github.com/odere-pro/claude-agentline#readme",
             "downloadUrl": "https://www.npmjs.com/package/@odere-pro/agentline",
             "installUrl": "https://www.npmjs.com/package/@odere-pro/agentline",
-            "softwareVersion": "0.1.4",
+            "softwareVersion": "0.3.0",
             "license": "https://opensource.org/licenses/MIT",
             "image": "https://odere-pro.github.io/claude-agentline/assets/statusline-example.png",
             "screenshot": "https://odere-pro.github.io/claude-agentline/assets/statusline-example.png",
             "keywords": "claude code statusline, powerline, statusline cli, git, tokens, context window, rate limits, themes, tui editor, agent-operable, software 3.0",
             "featureList": [
-              "28 configurable widgets across 5 families: session, tokens, context, rate-limits, git",
+              "30 configurable widgets across 5 families: session, tokens, context, rate-limits, git",
               "Live TUI editor with a searchable, family-grouped widget picker",
               "Powerline rendering with chevrons and caps",
               "Theme engine that degrades from truecolor to 256-colour to 16-colour terminals",
@@ -229,7 +229,7 @@
                 "name": "Can I show my git branch, token usage, or context-window percentage with Claude Code?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Yes. The git, tokens, and context families cover branch, SHA, worktree, change counts, upstream, pull-request status, input and output token counts, throughput, context-window usage, and a fill bar — 28 widgets across 5 families in total."
+                  "text": "Yes. The git, tokens, and context families cover branch, SHA, worktree, change counts, upstream, pull-request status, input and output token counts, throughput, context-window usage, and a fill bar — 30 widgets across 5 families in total."
                 }
               },
               {
@@ -963,11 +963,11 @@
         <p class="lead">
           Fast, themeable, and offline. agentline reads the stdin payload Claude
           Code sends, renders git, tokens, context window, rate limits, and
-          session info across 28 configurable widgets, and exits. No network on
+          session info across 30 configurable widgets, and exits. No network on
           the render path. No native modules. No plugin scaffolding.
         </p>
         <ul class="pills" aria-label="At a glance">
-          <li>28 widgets</li>
+          <li>30 widgets</li>
           <li>5 families</li>
           <li>agent-operable</li>
           <li>zero render-time network</li>
@@ -1005,7 +1005,7 @@
           Everything your session status needs
         </h2>
         <p class="section-lead">
-          28 widgets across 5 families, each covering one slice of session
+          30 widgets across 5 families, each covering one slice of session
           status — composed into up to three statusline rows, then styled by a
           theme engine that degrades gracefully on any terminal.
         </p>
@@ -1172,7 +1172,7 @@
         aria-labelledby="widgets-heading"
       >
         <p class="kicker">The catalogue</p>
-        <h2 class="h2" id="widgets-heading">All 28 widgets, one slice each</h2>
+        <h2 class="h2" id="widgets-heading">All 30 widgets, one slice each</h2>
         <p class="section-lead">
           Pick a family to filter, or browse the whole set. Widgets accumulating
           tokens or quota declare an explicit reset axis — session, block, day,
@@ -1190,8 +1190,8 @@
 
         <fieldset class="filter" aria-label="Filter widgets by family">
           <legend class="vh">Filter widgets by family</legend>
-          <label for="f-all">All <span class="count">28</span></label>
-          <label for="f-session">session <span class="count">7</span></label>
+          <label for="f-all">All <span class="count">30</span></label>
+          <label for="f-session">session <span class="count">9</span></label>
           <label for="f-tokens">tokens <span class="count">3</span></label>
           <label for="f-context">context <span class="count">3</span></label>
           <label for="f-rate">rate-limits <span class="count">5</span></label>
@@ -1243,6 +1243,20 @@
               <li>domain</li>
               <li>localpart</li>
             </ul>
+          </article>
+          <article class="wcard fam-session">
+            <div class="wtop">
+              <h3>Claude CLI update</h3><span class="fam">session</span>
+            </div>
+            <p class="type">claude-update</p>
+            <p>Shows the latest Claude Code CLI when an update is available.</p>
+          </article>
+          <article class="wcard fam-session">
+            <div class="wtop">
+              <h3>Claude doctor</h3><span class="fam">session</span>
+            </div>
+            <p class="type">claude-doctor</p>
+            <p>Issue and warning counts from the host claude doctor.</p>
           </article>
 
           <!-- tokens -->

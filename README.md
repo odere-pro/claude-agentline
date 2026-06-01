@@ -1,9 +1,10 @@
 # agentline
 
-_A powerline statusline for Claude Code — git, tokens, context window, rate limits, themes, and a live TUI editor._
+_A powerline statusline for Claude Code — git, tokens, context window, rate limits, and a live TUI editor._
 
 **[Website](https://odere-pro.github.io/claude-agentline/)** · **[npm](https://www.npmjs.com/package/@odere-pro/agentline)** · **[Docs](./docs/get-started.md)**
 
+[![npm](https://img.shields.io/npm/v/@odere-pro/agentline?logo=npm&color=cb3837)](https://www.npmjs.com/package/@odere-pro/agentline)
 [![for Claude Code](https://img.shields.io/badge/for-Claude%20Code-cc785c?logo=anthropic&logoColor=white)](https://docs.anthropic.com/claude/docs/claude-code)
 [![type: CLI](https://img.shields.io/badge/type-CLI-5b8def?logo=gnubash&logoColor=white)](#use)
 [![node ≥20](https://img.shields.io/badge/node-%E2%89%A520-43853d?logo=node.js&logoColor=white)](https://nodejs.org/)
@@ -63,7 +64,7 @@ Restart Claude Code after `install` — the statusline appears at the bottom of 
 
 ## Use
 
-The CLI is intentionally small: `install` · `uninstall` · `doctor` · `edit` · `config`.
+The CLI is intentionally small: `reset` · `uninstall` · `doctor` · `edit` · `config`.
 
 ### Install
 
@@ -179,28 +180,12 @@ Core modules live under `src/`, organised into six groups plus the CLI entry. Ea
 | `src/widgets/`  | Per-family widget folders + `families/` catalogue + plumbing (`cell`, `clock`, `registry`, `render-widget`, `separator`). |
 | `src/render/`   | Line composer + Powerline transform (`render`, `powerline`).                                                              |
 | `src/tui/`      | Lazy-imported TUI editor: `tui/` shell + `picker`, `preview`, `state`, `keys` siblings.                                   |
-| `src/commands/` | Verb implementations (`install`, `uninstall`, `reset`, `doctor`, `update-check`).                                         |
+| `src/commands/` | Verb implementations (`reset`, `install`, `uninstall`, `doctor`) plus the internal `update-check` cache helper.           |
 
 The render hot path stays `ink`/`react`/`src/tui/`-free (gate-19). See [docs/cookbook/04-architecture.md](./docs/cookbook/04-architecture.md) for the hot-path / cold-path boundary and [SOFTWARE-3-0.md](./SOFTWARE-3-0.md) for the design thesis.
 
 ---
 
-## FAQ
-
-**How do I customize the Claude Code statusline?**
-Run `agentline edit` for the live TUI editor, or ask the agent in any Claude Code session to add a widget or swap the theme. The scriptable `agentline config widget` subcommands (`add`, `remove`, `move`, `set-option`) cover the same ground from the shell.
-
-**Can I show my git branch, token usage, or context-window percentage with Claude Code?**
-Yes. The `git`, `tokens`, and `context` families cover branch, SHA, worktree, change counts, upstream, PR, input/output token counts, throughput, context-window usage, and a fill bar — 30 widgets across 5 families in total.
-
-**Is there a powerline prompt or status bar for Claude Code?**
-agentline renders a powerline-ready statusline with arrayed chevrons and caps, plus a theme engine that degrades gracefully from truecolor to 256-colour to 16-colour terminals.
-
-**How do I change the theme or colours?**
-Pick a shipped theme or author your own; ask the agent to "swap the theme", use `agentline edit`, or drop a theme file under `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/themes/`. See [docs/themes.md](./docs/themes.md).
-
----
-
-## License
-
-[MIT](./LICENSE).
+<p align="center">
+  <a href="https://odere-pro.github.io/claude-agentline/">Landing page</a> · <a href="./LICENSE">MIT</a>
+</p>
