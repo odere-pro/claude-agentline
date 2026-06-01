@@ -4,10 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>agentline — a powerline statusline for Claude Code</title>
+    <title>
+      agentline — an agent-operable powerline statusline for Claude Code
+    </title>
     <meta
       name="description"
-      content="agentline is a fast, themeable powerline statusline for Claude Code. It shows git, tokens, context window, rate limits, and session info across 28 configurable widgets, with a live TUI editor and zero render-time network calls."
+      content="agentline is a fast, themeable powerline statusline for Claude Code. It shows git, tokens, context window, rate limits, and session info across 28 configurable widgets, with a live TUI editor, zero render-time network calls, and a Software 3.0 design any agent can install, configure, and theme by itself."
     />
     <link rel="canonical" href="https://odere-pro.github.io/claude-agentline/" />
     <meta name="theme-color" content="#1c1714" />
@@ -16,7 +18,7 @@
     <meta name="author" content="agentline maintainers" />
     <meta
       name="keywords"
-      content="claude code statusline, powerline statusline, claude code status bar, statusline cli, ansi statusline, git statusline, token usage, context window, rate limits, terminal theme, tui editor, nerd font"
+      content="claude code statusline, powerline statusline, claude code status bar, statusline cli, ansi statusline, git statusline, token usage, context window percentage, rate limit timer, terminal theme, tui statusline editor, nerd font, agentic engineering, software 3.0, agent-operable, claude code widget, claude code theme"
     />
     <meta
       name="robots"
@@ -41,11 +43,11 @@
     <meta property="og:locale" content="en_US" />
     <meta
       property="og:title"
-      content="agentline — a powerline statusline for Claude Code"
+      content="agentline — an agent-operable powerline statusline for Claude Code"
     />
     <meta
       property="og:description"
-      content="Fast, themeable powerline statusline for Claude Code: git, tokens, context window, rate limits, themes, and a live TUI editor."
+      content="Fast, themeable powerline statusline for Claude Code: git, tokens, context window, rate limits, themes, and a live TUI editor — built so an agent can drive it."
     />
     <meta property="og:url" content="https://odere-pro.github.io/claude-agentline/" />
     <meta
@@ -64,11 +66,11 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta
       name="twitter:title"
-      content="agentline — a powerline statusline for Claude Code"
+      content="agentline — an agent-operable powerline statusline for Claude Code"
     />
     <meta
       name="twitter:description"
-      content="Fast, themeable powerline statusline for Claude Code: git, tokens, context window, rate limits, themes, and a live TUI editor."
+      content="Fast, themeable powerline statusline for Claude Code: git, tokens, context window, rate limits, themes, and a live TUI editor — built so an agent can drive it."
     />
     <meta
       name="twitter:image"
@@ -80,7 +82,7 @@
     />
 
     <!-- Structured data: helps search engines describe the package and
-         qualifies the FAQ for rich results. -->
+         qualifies the FAQ and install steps for rich results. -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -90,7 +92,7 @@
             "@id": "https://odere-pro.github.io/claude-agentline/#website",
             "url": "https://odere-pro.github.io/claude-agentline/",
             "name": "agentline",
-            "description": "A powerline statusline for Claude Code.",
+            "description": "An agent-operable powerline statusline for Claude Code.",
             "inLanguage": "en",
             "publisher": {
               "@id": "https://github.com/odere-pro#organization"
@@ -113,7 +115,7 @@
             "applicationCategory": "DeveloperApplication",
             "applicationSubCategory": "Command Line Tool",
             "operatingSystem": "macOS, Linux, Windows (WSL)",
-            "description": "Fast, themeable powerline statusline for Claude Code: git, tokens, context window, rate limits, themes, and a live TUI editor.",
+            "description": "Fast, themeable powerline statusline for Claude Code: git, tokens, context window, rate limits, themes, and a live TUI editor — designed so an LLM agent can install, configure, theme, and troubleshoot it through natural language.",
             "url": "https://odere-pro.github.io/claude-agentline/",
             "softwareHelp": "https://github.com/odere-pro/claude-agentline#readme",
             "downloadUrl": "https://www.npmjs.com/package/@odere-pro/agentline",
@@ -122,7 +124,17 @@
             "license": "https://opensource.org/licenses/MIT",
             "image": "https://odere-pro.github.io/claude-agentline/assets/statusline-example.png",
             "screenshot": "https://odere-pro.github.io/claude-agentline/assets/statusline-example.png",
-            "keywords": "claude code statusline, powerline, statusline cli, git, tokens, context window, rate limits, themes, tui editor",
+            "keywords": "claude code statusline, powerline, statusline cli, git, tokens, context window, rate limits, themes, tui editor, agent-operable, software 3.0",
+            "featureList": [
+              "28 configurable widgets across 5 families: session, tokens, context, rate-limits, git",
+              "Live TUI editor with a searchable, family-grouped widget picker",
+              "Powerline rendering with chevrons and caps",
+              "Theme engine that degrades from truecolor to 256-colour to 16-colour terminals",
+              "Accessibility fallbacks: --no-color, --no-unicode, --ascii",
+              "Zero network calls on the render hot path",
+              "Reversible install that restores your previous statusline byte-for-byte",
+              "Agent-operable: five Claude Code skills for natural-language configuration"
+            ],
             "isAccessibleForFree": true,
             "author": {
               "@id": "https://github.com/odere-pro#organization"
@@ -134,6 +146,73 @@
             }
           },
           {
+            "@type": "HowTo",
+            "@id": "https://odere-pro.github.io/claude-agentline/#install",
+            "name": "Install agentline for Claude Code",
+            "description": "Install the agentline statusline CLI and wire it into Claude Code in four commands.",
+            "totalTime": "PT2M",
+            "tool": [
+              { "@type": "HowToTool", "name": "Node.js 20 LTS or newer" },
+              { "@type": "HowToTool", "name": "Claude Code (run at least once)" }
+            ],
+            "step": [
+              {
+                "@type": "HowToStep",
+                "position": 1,
+                "name": "Install the CLI",
+                "text": "Run: npm install -g @odere-pro/agentline"
+              },
+              {
+                "@type": "HowToStep",
+                "position": 2,
+                "name": "Wire into Claude Code",
+                "text": "Run: agentline install — this backs up your current statusLine, then wires the statusLine plus skills and themes."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 3,
+                "name": "Verify the wiring",
+                "text": "Run: agentline doctor — diagnose host wiring; add --fix to self-repair."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 4,
+                "name": "Customise the statusline",
+                "text": "Run: agentline edit — open the live TUI editor to add widgets, switch themes, and arrange the layout."
+              }
+            ]
+          },
+          {
+            "@type": "BreadcrumbList",
+            "@id": "https://odere-pro.github.io/claude-agentline/#breadcrumbs",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://odere-pro.github.io/claude-agentline/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Widgets",
+                "item": "https://odere-pro.github.io/claude-agentline/#widgets"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Software 3.0",
+                "item": "https://odere-pro.github.io/claude-agentline/#software-3-0"
+              },
+              {
+                "@type": "ListItem",
+                "position": 4,
+                "name": "Install",
+                "item": "https://odere-pro.github.io/claude-agentline/#install"
+              }
+            ]
+          },
+          {
             "@type": "FAQPage",
             "@id": "https://odere-pro.github.io/claude-agentline/#faq",
             "mainEntity": [
@@ -142,7 +221,7 @@
                 "name": "How do I customize the Claude Code statusline?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Run `agentline edit` for the live TUI editor, or ask the agent in any Claude Code session to add a widget or swap the theme. The scriptable `agentline config widget` subcommands (add, remove, move, set-option) cover the same ground from the shell."
+                  "text": "Run `agentline edit` for the live TUI editor, or ask the agent in any Claude Code session to add a widget or swap the theme. The scriptable `agentline config widget` subcommands (add, remove, move, replace, set-option) cover the same ground from the shell."
                 }
               },
               {
@@ -151,6 +230,30 @@
                 "acceptedAnswer": {
                   "@type": "Answer",
                   "text": "Yes. The git, tokens, and context families cover branch, SHA, worktree, change counts, upstream, pull-request status, input and output token counts, throughput, context-window usage, and a fill bar — 28 widgets across 5 families in total."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What is Software 3.0 and why is agentline agent-operable?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Software 3.0 means the product is reachable by an LLM agent without a human in the loop. agentline has no language model on its render path; instead it ships a stable stdin contract, a flat scriptable CLI, a programmable config-mutation API, five seeded Claude Code skills, and an authoritative glossary — so an agent can install, configure, theme, and troubleshoot it using only natural language and the terminal."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How do I uninstall agentline and restore my previous statusline?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Run `agentline uninstall` to restore your previous statusLine byte-for-byte and remove the installed skills. Add `agentline uninstall --purge` to also wipe your agentline config and custom themes. Install takes a backup first, so the round-trip leaves no trace."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does agentline support no-color, ASCII, or accessible terminals?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Pass `--no-color` for plain text, `--no-unicode` or `--ascii` to replace separators and glyphs with ASCII, and the theme engine auto-degrades from truecolor to 256-colour to 16-colour terminals. NO_COLOR is honoured as well."
                 }
               },
               {
@@ -166,7 +269,7 @@
                 "name": "Does agentline make network calls or slow down the prompt?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "No. The render hot path makes zero network calls — themes and the widget registry are embedded — so the statusline draws from local state only."
+                  "text": "No. The render hot path makes zero network calls — themes and the widget registry are embedded — so the statusline draws from local state only. The TUI editor and its dependencies are lazy-imported and never touch the render path."
                 }
               }
             ]
@@ -181,16 +284,19 @@
         --color-bg-raised: oklch(27% 0.016 52);
         --color-surface: oklch(31% 0.02 54);
         --color-text: oklch(92% 0.012 70);
-        --color-muted: oklch(72% 0.02 60);
+        --color-muted: oklch(76% 0.022 62);
         --color-accent: oklch(70% 0.13 45);
         --color-accent-soft: oklch(70% 0.13 45 / 0.16);
+        --color-accent-line: oklch(70% 0.13 45 / 0.4);
         --color-line: oklch(40% 0.02 55);
 
         --text-hero: clamp(2.6rem, 1.4rem + 5vw, 5.5rem);
         --text-lead: clamp(1.1rem, 0.96rem + 0.6vw, 1.4rem);
+        --text-h2: clamp(1.6rem, 1.2rem + 1.5vw, 2.4rem);
         --space-section: clamp(3.5rem, 2.5rem + 5vw, 7rem);
 
         --radius: 14px;
+        --radius-sm: 9px;
         --ease: cubic-bezier(0.16, 1, 0.3, 1);
 
         --font-sans:
@@ -207,6 +313,8 @@
 
       html {
         scroll-behavior: smooth;
+        /* keep anchored sections clear of the sticky header */
+        scroll-padding-top: 5rem;
       }
 
       body {
@@ -228,21 +336,66 @@
         color: inherit;
       }
 
+      :focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 3px;
+        border-radius: 4px;
+      }
+
       .wrap {
         width: min(1100px, 92vw);
         margin-inline: auto;
       }
 
+      /* Visually hidden but still focusable / announced */
+      .vh {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      /* Skip link */
+      .skip-link {
+        position: absolute;
+        left: 0.5rem;
+        top: 0.5rem;
+        z-index: 50;
+        transform: translateY(-160%);
+        background: var(--color-accent);
+        color: oklch(20% 0.02 50);
+        padding: 0.6rem 1rem;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        text-decoration: none;
+        transition: transform var(--ease) 200ms;
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
       /* Header / nav */
       header {
-        padding-block: 1.4rem;
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        background: oklch(22% 0.012 50 / 0.82);
+        backdrop-filter: saturate(140%) blur(10px);
         border-bottom: 1px solid var(--color-line);
       }
 
       nav {
         display: flex;
         align-items: center;
-        gap: 1.5rem;
+        flex-wrap: wrap;
+        gap: 0.4rem 1.2rem;
+        padding-block: 0.9rem;
       }
 
       .brand {
@@ -250,6 +403,7 @@
         font-weight: 700;
         font-size: 1.15rem;
         letter-spacing: -0.02em;
+        text-decoration: none;
       }
 
       .brand span {
@@ -260,7 +414,7 @@
         flex: 1;
       }
 
-      nav a {
+      nav a:not(.brand) {
         display: inline-flex;
         align-items: center;
         min-height: 44px;
@@ -271,8 +425,8 @@
         transition: color var(--ease) 200ms;
       }
 
-      nav a:hover,
-      nav a:focus-visible {
+      nav a:not(.brand):hover,
+      nav a:not(.brand):focus-visible {
         color: var(--color-text);
       }
 
@@ -295,14 +449,34 @@
         line-height: 0.98;
         letter-spacing: -0.03em;
         margin: 0 0 1.4rem;
-        max-width: 16ch;
+        max-width: 18ch;
       }
 
       .lead {
         font-size: var(--text-lead);
         color: var(--color-muted);
-        max-width: 56ch;
-        margin: 0 0 2.2rem;
+        max-width: 58ch;
+        margin: 0 0 1.8rem;
+      }
+
+      /* Pill row */
+      .pills {
+        list-style: none;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin: 0 0 2rem;
+        padding: 0;
+      }
+
+      .pills li {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        color: var(--color-text);
+        background: var(--color-surface);
+        border: 1px solid var(--color-line);
+        border-radius: 999px;
+        padding: 0.35rem 0.85rem;
       }
 
       .cta {
@@ -368,28 +542,38 @@
         border-top: 1px solid var(--color-line);
       }
 
-      /* Features */
-      section.features {
+      /* Shared section chrome */
+      section.band {
         padding-block: var(--space-section);
         border-top: 1px solid var(--color-line);
       }
 
-      .features h2,
-      .install h2 {
-        font-size: clamp(1.6rem, 1.2rem + 1.5vw, 2.4rem);
+      .h2 {
+        font-size: var(--text-h2);
         letter-spacing: -0.02em;
         margin: 0 0 0.6rem;
       }
 
       .section-lead {
         color: var(--color-muted);
-        max-width: 60ch;
+        max-width: 62ch;
         margin: 0 0 2.6rem;
+        font-size: 1.02rem;
       }
 
+      .kicker {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--color-accent);
+        margin: 0 0 0.8rem;
+      }
+
+      /* Generic card grid */
       .grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
         gap: 1px;
         background: var(--color-line);
         border: 1px solid var(--color-line);
@@ -415,18 +599,236 @@
         font-size: 0.96rem;
       }
 
-      /* Install */
-      section.install {
-        padding-block: var(--space-section);
-        border-top: 1px solid var(--color-line);
+      /* Software 3.0 pillars */
+      .pillars {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+        gap: 1rem;
+        margin: 0 0 2.4rem;
       }
 
+      .pillar {
+        background: var(--color-bg-raised);
+        border: 1px solid var(--color-line);
+        border-radius: var(--radius);
+        padding: 1.5rem 1.45rem;
+      }
+
+      .pillar .num {
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        color: var(--color-accent);
+        border: 1px solid var(--color-accent-line);
+        border-radius: 999px;
+        padding: 0.1rem 0.6rem;
+      }
+
+      .pillar h3 {
+        margin: 0.9rem 0 0.5rem;
+        font-size: 1.08rem;
+        letter-spacing: -0.01em;
+      }
+
+      .pillar p {
+        margin: 0;
+        color: var(--color-muted);
+        font-size: 0.95rem;
+      }
+
+      .pillar code {
+        font-family: var(--font-mono);
+        color: var(--color-text);
+      }
+
+      /* Worked example */
+      .worked {
+        background: var(--color-bg-raised);
+        border: 1px solid var(--color-line);
+        border-left: 3px solid var(--color-accent);
+        border-radius: var(--radius);
+        padding: 1.6rem 1.6rem 1.4rem;
+      }
+
+      .worked p {
+        margin: 0 0 1rem;
+        color: var(--color-text);
+      }
+
+      .worked ol {
+        margin: 0;
+        padding-left: 1.2rem;
+        color: var(--color-muted);
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .worked code,
+      .themes code,
+      .install-note code {
+        font-family: var(--font-mono);
+        color: var(--color-text);
+      }
+
+      /* Widget catalogue */
+      .filter {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        border: 0;
+        padding: 0;
+        margin: 0 0 1.8rem;
+      }
+
+      .filter label {
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        color: var(--color-muted);
+        background: var(--color-surface);
+        border: 1px solid var(--color-line);
+        border-radius: 999px;
+        padding: 0.4rem 0.9rem;
+        cursor: pointer;
+        user-select: none;
+        transition:
+          color var(--ease) 160ms,
+          background var(--ease) 160ms,
+          border-color var(--ease) 160ms;
+      }
+
+      .filter label:hover {
+        color: var(--color-text);
+        border-color: var(--color-accent-line);
+      }
+
+      .filter label .count {
+        opacity: 0.7;
+      }
+
+      /* Active chip + focus ring driven by the hidden radios */
+      #f-all:checked ~ .filter label[for="f-all"],
+      #f-session:checked ~ .filter label[for="f-session"],
+      #f-tokens:checked ~ .filter label[for="f-tokens"],
+      #f-context:checked ~ .filter label[for="f-context"],
+      #f-rate:checked ~ .filter label[for="f-rate"],
+      #f-git:checked ~ .filter label[for="f-git"] {
+        color: oklch(20% 0.02 50);
+        background: var(--color-accent);
+        border-color: var(--color-accent);
+      }
+
+      #f-all:focus-visible ~ .filter label[for="f-all"],
+      #f-session:focus-visible ~ .filter label[for="f-session"],
+      #f-tokens:focus-visible ~ .filter label[for="f-tokens"],
+      #f-context:focus-visible ~ .filter label[for="f-context"],
+      #f-rate:focus-visible ~ .filter label[for="f-rate"],
+      #f-git:focus-visible ~ .filter label[for="f-git"] {
+        outline: 2px solid var(--color-text);
+        outline-offset: 2px;
+      }
+
+      .catalog {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+        gap: 1rem;
+      }
+
+      .wcard {
+        background: var(--color-bg-raised);
+        border: 1px solid var(--color-line);
+        border-radius: var(--radius);
+        padding: 1.15rem 1.2rem;
+      }
+
+      .wcard .wtop {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.6rem;
+        margin-bottom: 0.4rem;
+      }
+
+      .wcard h3 {
+        margin: 0;
+        font-size: 1rem;
+        letter-spacing: -0.01em;
+      }
+
+      .wcard .fam {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        text-transform: lowercase;
+        color: var(--color-accent);
+        white-space: nowrap;
+      }
+
+      .wcard .type {
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        color: var(--color-muted);
+        margin: 0 0 0.5rem;
+      }
+
+      .wcard p {
+        margin: 0;
+        color: var(--color-muted);
+        font-size: 0.92rem;
+      }
+
+      .variants {
+        list-style: none;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin: 0.7rem 0 0;
+        padding: 0;
+      }
+
+      .variants li {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: var(--color-text);
+        background: var(--color-surface);
+        border: 1px solid var(--color-line);
+        border-radius: 6px;
+        padding: 0.12rem 0.45rem;
+      }
+
+      /* CSS-only family filtering: hide non-matching cards */
+      #f-session:checked ~ .catalog .wcard:not(.fam-session),
+      #f-tokens:checked ~ .catalog .wcard:not(.fam-tokens),
+      #f-context:checked ~ .catalog .wcard:not(.fam-context),
+      #f-rate:checked ~ .catalog .wcard:not(.fam-rate),
+      #f-git:checked ~ .catalog .wcard:not(.fam-git) {
+        display: none;
+      }
+
+      /* Themes / rendering */
+      .themes .grid {
+        margin-bottom: 1.6rem;
+      }
+
+      .swatches {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.9rem;
+      }
+
+      .swatch {
+        width: 1.4rem;
+        height: 1.4rem;
+        border-radius: 5px;
+        border: 1px solid oklch(100% 0 0 / 0.15);
+      }
+
+      /* Install */
       pre {
         margin: 0;
         padding: 1.4rem 1.5rem;
         background: oklch(16% 0.01 50);
         border: 1px solid var(--color-line);
         border-radius: var(--radius);
+        max-width: 100%;
         overflow-x: auto;
         font-family: var(--font-mono);
         font-size: 0.95rem;
@@ -438,18 +840,39 @@
         color: var(--color-muted);
       }
 
+      .stack {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1.2rem;
+      }
+
+      .stack > * {
+        min-width: 0;
+      }
+
+      .install-note {
+        background: var(--color-accent-soft);
+        border: 1px solid var(--color-accent-line);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.3rem;
+        color: var(--color-text);
+        font-size: 0.96rem;
+      }
+
+      .install-note strong {
+        color: var(--color-accent);
+      }
+
+      .sub {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--color-muted);
+        margin: 0 0 0.7rem;
+      }
+
       /* FAQ */
-      section.faq {
-        padding-block: var(--space-section);
-        border-top: 1px solid var(--color-line);
-      }
-
-      section.faq h2 {
-        font-size: clamp(1.6rem, 1.2rem + 1.5vw, 2.4rem);
-        letter-spacing: -0.02em;
-        margin: 0 0 2rem;
-      }
-
       .faq dl {
         margin: 0;
         display: grid;
@@ -465,12 +888,11 @@
       .faq dd {
         margin: 0;
         color: var(--color-muted);
-        max-width: 70ch;
+        max-width: 72ch;
       }
 
       .faq code,
-      pre code,
-      .card code {
+      pre code {
         font-family: var(--font-mono);
       }
 
@@ -482,7 +904,7 @@
         font-size: 0.9rem;
         display: flex;
         flex-wrap: wrap;
-        gap: 1rem;
+        gap: 0.4rem 1rem;
         align-items: center;
       }
 
@@ -504,42 +926,56 @@
       }
 
       @media (prefers-reduced-motion: reduce) {
-        * {
-          scroll-behavior: auto !important;
+        html {
+          scroll-behavior: auto;
+        }
+        *,
+        *::before,
+        *::after {
           transition: none !important;
+          animation: none !important;
         }
       }
     </style>
   </head>
   <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
     <header>
       <nav class="wrap" aria-label="Primary">
-        <span class="brand">agent<span>line</span></span>
+        <a class="brand" href="#main">agent<span>line</span></a>
         <span class="spacer"></span>
         <a href="#features">Features</a>
+        <a href="#widgets">Widgets</a>
+        <a href="#software-3-0">Software 3.0</a>
         <a href="#install">Install</a>
         <a href="https://github.com/odere-pro/claude-agentline">GitHub</a>
         <a href="https://www.npmjs.com/package/@odere-pro/agentline">npm</a>
       </nav>
     </header>
 
-    <main>
+    <main id="main">
       <section class="hero wrap" aria-labelledby="hero-heading">
-        <p class="eyebrow">Statusline for Claude Code</p>
-        <h1 id="hero-heading">A powerline statusline for Claude Code.</h1>
+        <p class="eyebrow">Statusline for Claude Code · built for Software 3.0</p>
+        <h1 id="hero-heading">
+          A powerline statusline your agent can drive.
+        </h1>
         <p class="lead">
           Fast, themeable, and offline. agentline reads the stdin payload Claude
           Code sends, renders git, tokens, context window, rate limits, and
           session info across 28 configurable widgets, and exits. No network on
           the render path. No native modules. No plugin scaffolding.
         </p>
+        <ul class="pills" aria-label="At a glance">
+          <li>28 widgets</li>
+          <li>5 families</li>
+          <li>agent-operable</li>
+          <li>zero render-time network</li>
+          <li>reversible install</li>
+        </ul>
         <div class="cta">
           <a class="btn btn-primary" href="#install">Get started</a>
-          <a
-            class="btn btn-ghost"
-            href="https://github.com/odere-pro/claude-agentline"
-            >View on GitHub</a
-          >
+          <a class="btn btn-ghost" href="#widgets">Browse the widgets</a>
         </div>
 
         <figure class="shot">
@@ -559,18 +995,26 @@
         </figure>
       </section>
 
-      <section class="features wrap" id="features" aria-labelledby="features-heading">
-        <h2 id="features-heading">Everything your session status needs</h2>
+      <section
+        class="band features wrap"
+        id="features"
+        aria-labelledby="features-heading"
+      >
+        <p class="kicker">Why agentline</p>
+        <h2 class="h2" id="features-heading">
+          Everything your session status needs
+        </h2>
         <p class="section-lead">
           28 widgets across 5 families, each covering one slice of session
-          status — composed into up to three statusline rows.
+          status — composed into up to three statusline rows, then styled by a
+          theme engine that degrades gracefully on any terminal.
         </p>
         <div class="grid">
           <article class="card">
             <h3>git</h3>
             <p>
               Branch, SHA, worktree, change counts, untracked, conflicts,
-              ahead/behind, upstream, and pull-request status.
+              ahead/behind, upstream, origin repo, and pull-request status.
             </p>
           </article>
           <article class="card">
@@ -588,8 +1032,8 @@
           <article class="card">
             <h3>session</h3>
             <p>
-              Model, version, thinking effort, plan link, and account — from the
-              stdin payload.
+              Model, version, thinking effort, plan link, project, session id,
+              and account — straight from the stdin payload.
             </p>
           </article>
           <article class="card">
@@ -624,26 +1068,445 @@
         </div>
       </section>
 
-      <section class="install wrap" id="install" aria-labelledby="install-heading">
-        <h2 id="install-heading">Install in four commands</h2>
+      <section
+        class="band wrap"
+        id="software-3-0"
+        aria-labelledby="s30-heading"
+      >
+        <p class="kicker">Software 3.0 · agentic engineering</p>
+        <h2 class="h2" id="s30-heading">Agent-operable, not "AI-powered"</h2>
+        <p class="section-lead">
+          In Andrej Karpathy's framing, Software 3.0 is the era where an LLM is
+          the runtime and natural language is the program — so the interesting
+          design surface is the set of
+          <strong>interfaces an agent can drive</strong>. agentline has no
+          language model on its render path. It earns the label a different way:
+          every interface is shaped so an agent can install, configure, theme,
+          and troubleshoot it on its own.
+        </p>
+
+        <div class="pillars">
+          <article class="pillar">
+            <span class="num">01</span>
+            <h3>Stable input contract</h3>
+            <p>
+              The renderer reads a versioned, bounded JSON envelope on stdin and
+              writes ANSI bytes on stdout. One adapter absorbs host drift; the
+              agent's mental model of "what comes in" stays valid.
+            </p>
+          </article>
+          <article class="pillar">
+            <span class="num">02</span>
+            <h3>Scriptable CLI verbs</h3>
+            <p>
+              A deliberately flat verb table — <code>render</code>,
+              <code>edit</code>, <code>doctor</code>, <code>reset</code>,
+              <code>uninstall</code>, <code>config</code> — every verb reachable
+              from a single <code>--help</code> view.
+            </p>
+          </article>
+          <article class="pillar">
+            <span class="num">03</span>
+            <h3>Programmable config API</h3>
+            <p>
+              The whole layout is editable via
+              <code>agentline config widget</code> (add, remove, move, replace,
+              set-option). Every mutation is pure, schema-validated, and written
+              atomically — a broken config is rejected before it reaches disk.
+            </p>
+          </article>
+          <article class="pillar">
+            <span class="num">04</span>
+            <h3>Seeded subagent skills</h3>
+            <p>
+              Install copies five skill files into Claude Code. Each file's
+              description is its dispatch contract, so the host routes
+              natural-language requests to the right runbook — the docs are the
+              agent's import path.
+            </p>
+          </article>
+          <article class="pillar">
+            <span class="num">05</span>
+            <h3>Briefings &amp; glossary</h3>
+            <p>
+              Per-directory <code>CLAUDE.md</code> briefings plus an
+              authoritative glossary keep vocabulary stable release over
+              release. Gates enforce parity, so prompts that cite a term keep
+              working.
+            </p>
+          </article>
+        </div>
+
+        <div class="worked">
+          <p>
+            <strong>Worked example.</strong> You ask Claude Code: <em>"switch
+            agentline to a high-contrast theme."</em>
+          </p>
+          <ol>
+            <li>The request matches the themes skill via its description.</li>
+            <li>
+              The skill reads the current layout with
+              <code>agentline config widget list --json</code>.
+            </li>
+            <li>
+              It picks a theme and mutates your config — through the TUI or by
+              writing schema-valid JSON — saved atomically.
+            </li>
+            <li><code>agentline doctor</code> confirms the wiring is intact.</li>
+            <li>The next prompt cycle re-renders with the new theme.</li>
+          </ol>
+        </div>
+
+        <p class="section-lead" style="margin-top: 2rem">
+          No new endpoint, no agent framework, no eval harness — five small
+          steps, each backed by an explicit contract.
+          <a href="https://github.com/odere-pro/claude-agentline/blob/main/SOFTWARE-3-0.md"
+            >Read the full thesis →</a
+          >
+        </p>
+      </section>
+
+      <section
+        class="band wrap"
+        id="widgets"
+        aria-labelledby="widgets-heading"
+      >
+        <p class="kicker">The catalogue</p>
+        <h2 class="h2" id="widgets-heading">All 28 widgets, one slice each</h2>
+        <p class="section-lead">
+          Pick a family to filter, or browse the whole set. Widgets accumulating
+          tokens or quota declare an explicit reset axis — session, block, day,
+          week, model, or effort — so totals never mix boundaries.
+        </p>
+
+        <!-- Hidden radios drive the CSS-only filter; "All" is checked so every
+             widget is in the DOM and visible by default for crawlers. -->
+        <input class="vh" type="radio" name="ff" id="f-all" checked />
+        <input class="vh" type="radio" name="ff" id="f-session" />
+        <input class="vh" type="radio" name="ff" id="f-tokens" />
+        <input class="vh" type="radio" name="ff" id="f-context" />
+        <input class="vh" type="radio" name="ff" id="f-rate" />
+        <input class="vh" type="radio" name="ff" id="f-git" />
+
+        <fieldset class="filter" aria-label="Filter widgets by family">
+          <legend class="vh">Filter widgets by family</legend>
+          <label for="f-all">All <span class="count">28</span></label>
+          <label for="f-session">session <span class="count">7</span></label>
+          <label for="f-tokens">tokens <span class="count">3</span></label>
+          <label for="f-context">context <span class="count">3</span></label>
+          <label for="f-rate">rate-limits <span class="count">5</span></label>
+          <label for="f-git">git <span class="count">10</span></label>
+        </fieldset>
+
+        <div class="catalog">
+          <!-- session -->
+          <article class="wcard fam-session">
+            <div class="wtop"><h3>Model</h3><span class="fam">session</span></div>
+            <p class="type">model</p>
+            <p>Active model id (e.g. Sonnet 4.6).</p>
+          </article>
+          <article class="wcard fam-session">
+            <div class="wtop"><h3>Version</h3><span class="fam">session</span></div>
+            <p class="type">version</p>
+            <p>Claude Code version.</p>
+          </article>
+          <article class="wcard fam-session">
+            <div class="wtop">
+              <h3>Thinking effort</h3><span class="fam">session</span>
+            </div>
+            <p class="type">thinking-effort</p>
+            <p>Thinking-effort tier: low, medium, or high.</p>
+          </article>
+          <article class="wcard fam-session">
+            <div class="wtop"><h3>Plan</h3><span class="fam">session</span></div>
+            <p class="type">plan</p>
+            <p>Active plan for the current session.</p>
+          </article>
+          <article class="wcard fam-session">
+            <div class="wtop"><h3>Project</h3><span class="fam">session</span></div>
+            <p class="type">project</p>
+            <p>Project name — git repo or working-directory folder.</p>
+          </article>
+          <article class="wcard fam-session">
+            <div class="wtop"><h3>Session id</h3><span class="fam">session</span></div>
+            <p class="type">session-id</p>
+            <p>Short session id.</p>
+          </article>
+          <article class="wcard fam-session">
+            <div class="wtop">
+              <h3>Account email</h3><span class="fam">session</span>
+            </div>
+            <p class="type">account-email</p>
+            <p>Logged-in account email.</p>
+            <ul class="variants" aria-label="Variants">
+              <li>full</li>
+              <li>domain</li>
+              <li>localpart</li>
+            </ul>
+          </article>
+
+          <!-- tokens -->
+          <article class="wcard fam-tokens">
+            <div class="wtop"><h3>Tokens</h3><span class="fam">tokens</span></div>
+            <p class="type">tokens</p>
+            <p>Input + output token subtotals for the chosen reset axis.</p>
+          </article>
+          <article class="wcard fam-tokens">
+            <div class="wtop">
+              <h3>Tokens (cached)</h3><span class="fam">tokens</span>
+            </div>
+            <p class="type">tokens-cached</p>
+            <p>Cached-token subtotal (prompt-cache hits).</p>
+          </article>
+          <article class="wcard fam-tokens">
+            <div class="wtop"><h3>Token speed</h3><span class="fam">tokens</span></div>
+            <p class="type">token-speed</p>
+            <p>Input + output tokens per second over the active window.</p>
+          </article>
+
+          <!-- context -->
+          <article class="wcard fam-context">
+            <div class="wtop">
+              <h3>Context length</h3><span class="fam">context</span>
+            </div>
+            <p class="type">context-length</p>
+            <p>Tokens currently in the context window.</p>
+          </article>
+          <article class="wcard fam-context">
+            <div class="wtop"><h3>Context %</h3><span class="fam">context</span></div>
+            <p class="type">context-percentage</p>
+            <p>Percentage of the model's context window used.</p>
+          </article>
+          <article class="wcard fam-context">
+            <div class="wtop"><h3>Context bar</h3><span class="fam">context</span></div>
+            <p class="type">context-bar</p>
+            <p>Tiny inline bar approximating context fill.</p>
+          </article>
+
+          <!-- rate-limits -->
+          <article class="wcard fam-rate">
+            <div class="wtop">
+              <h3>Session + weekly usage</h3><span class="fam">rate-limits</span>
+            </div>
+            <p class="type">session-weekly-usage</p>
+            <p>Live session + weekly usage % from Claude Code's /usage.</p>
+          </article>
+          <article class="wcard fam-rate">
+            <div class="wtop">
+              <h3>Current session reset timer</h3>
+              <span class="fam">rate-limits</span>
+            </div>
+            <p class="type">current-session-reset-timer</p>
+            <p>Time remaining until the current session resets.</p>
+            <ul class="variants" aria-label="Variants">
+              <li>short</li>
+              <li>long</li>
+              <li>clock</li>
+            </ul>
+          </article>
+          <article class="wcard fam-rate">
+            <div class="wtop">
+              <h3>Current session reset at</h3>
+              <span class="fam">rate-limits</span>
+            </div>
+            <p class="type">current-session-reset-at</p>
+            <p>Wall-clock time of the next session reset.</p>
+            <ul class="variants" aria-label="Variants">
+              <li>time-24h</li>
+              <li>time-12h</li>
+              <li>seconds</li>
+            </ul>
+          </article>
+          <article class="wcard fam-rate">
+            <div class="wtop">
+              <h3>Week limit timer</h3><span class="fam">rate-limits</span>
+            </div>
+            <p class="type">week-limit-timer</p>
+            <p>Time remaining until the weekly limit resets.</p>
+            <ul class="variants" aria-label="Variants">
+              <li>short</li>
+              <li>long</li>
+              <li>clock</li>
+            </ul>
+          </article>
+          <article class="wcard fam-rate">
+            <div class="wtop">
+              <h3>Weekly reset at</h3><span class="fam">rate-limits</span>
+            </div>
+            <p class="type">weekly-reset-at</p>
+            <p>Day + time of the next weekly reset.</p>
+            <ul class="variants" aria-label="Variants">
+              <li>day-time</li>
+              <li>day-only</li>
+              <li>time-24h</li>
+              <li>time-12h</li>
+            </ul>
+          </article>
+
+          <!-- git -->
+          <article class="wcard fam-git">
+            <div class="wtop"><h3>Git branch</h3><span class="fam">git</span></div>
+            <p class="type">git-branch</p>
+            <p>Current branch, or short SHA when detached.</p>
+          </article>
+          <article class="wcard fam-git">
+            <div class="wtop"><h3>Git SHA</h3><span class="fam">git</span></div>
+            <p class="type">git-sha</p>
+            <p>Short commit SHA of HEAD.</p>
+          </article>
+          <article class="wcard fam-git">
+            <div class="wtop"><h3>Git worktree</h3><span class="fam">git</span></div>
+            <p class="type">git-worktree</p>
+            <p>Basename of the current worktree.</p>
+          </article>
+          <article class="wcard fam-git">
+            <div class="wtop"><h3>Git changes</h3><span class="fam">git</span></div>
+            <p class="type">git-changes</p>
+            <p>Staged, unstaged, and untracked file counts.</p>
+          </article>
+          <article class="wcard fam-git">
+            <div class="wtop"><h3>Git untracked</h3><span class="fam">git</span></div>
+            <p class="type">git-untracked</p>
+            <p>Untracked-file count.</p>
+          </article>
+          <article class="wcard fam-git">
+            <div class="wtop"><h3>Git conflicts</h3><span class="fam">git</span></div>
+            <p class="type">git-conflicts</p>
+            <p>Merge-conflict file count.</p>
+          </article>
+          <article class="wcard fam-git">
+            <div class="wtop">
+              <h3>Git ahead/behind</h3><span class="fam">git</span>
+            </div>
+            <p class="type">git-ahead-behind</p>
+            <p>Commits ahead of and behind upstream.</p>
+          </article>
+          <article class="wcard fam-git">
+            <div class="wtop"><h3>Git upstream</h3><span class="fam">git</span></div>
+            <p class="type">git-upstream</p>
+            <p>Upstream branch, e.g. origin/main.</p>
+          </article>
+          <article class="wcard fam-git">
+            <div class="wtop">
+              <h3>Git origin repo</h3><span class="fam">git</span>
+            </div>
+            <p class="type">git-origin-repo</p>
+            <p>Repo segment of the origin remote URL.</p>
+          </article>
+          <article class="wcard fam-git">
+            <div class="wtop">
+              <h3>Git pull request</h3><span class="fam">git</span>
+            </div>
+            <p class="type">git-pr</p>
+            <p>PR for HEAD's branch (opt-in network).</p>
+            <ul class="variants" aria-label="Variants">
+              <li>number</li>
+              <li>url</li>
+              <li>title</li>
+              <li>number-title</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section
+        class="band themes wrap"
+        id="themes"
+        aria-labelledby="themes-heading"
+      >
+        <p class="kicker">Themes &amp; rendering</p>
+        <h2 class="h2" id="themes-heading">Looks sharp everywhere it lands</h2>
+        <p class="section-lead">
+          Colour is semantic, not decorative: every widget resolves its colour
+          from a named role, so a theme is a small JSON file you can swap or
+          author yourself.
+        </p>
+        <div class="grid">
+          <article class="card">
+            <h3>powerline</h3>
+            <p>
+              Optional chevrons and caps stitch adjacent segments together, with
+              colour transitions computed between neighbours.
+            </p>
+          </article>
+          <article class="card">
+            <h3>graceful colour</h3>
+            <p>
+              The engine degrades automatically: truecolor → 256-colour →
+              16-colour → none, matching whatever the terminal advertises.
+            </p>
+            <div class="swatches" aria-hidden="true">
+              <span class="swatch" style="background: oklch(70% 0.13 45)"></span>
+              <span class="swatch" style="background: oklch(72% 0.11 150)"></span>
+              <span class="swatch" style="background: oklch(74% 0.12 240)"></span>
+              <span class="swatch" style="background: oklch(78% 0.13 90)"></span>
+              <span class="swatch" style="background: oklch(64% 0.15 25)"></span>
+            </div>
+          </article>
+          <article class="card">
+            <h3>accessible by flag</h3>
+            <p>
+              <code>--no-color</code> for plain text, <code>--no-unicode</code> or
+              <code>--ascii</code> to swap glyphs for ASCII. <code>NO_COLOR</code>
+              is honoured too.
+            </p>
+          </article>
+          <article class="card">
+            <h3>shipped &amp; custom</h3>
+            <p>
+              <code>claude-code-dark</code> ships in the box; drop your own
+              theme JSON into your agentline config directory and reference it by
+              name.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section
+        class="band install wrap"
+        id="install"
+        aria-labelledby="install-heading"
+      >
+        <p class="kicker">Get started</p>
+        <h2 class="h2" id="install-heading">Install in four commands</h2>
         <p class="section-lead">
           Requires Node.js 20 LTS or newer, and Claude Code run at least once.
         </p>
-        <pre><code><span class="cmt"># 1. install the CLI</span>
+
+        <div class="stack">
+          <pre><code><span class="cmt"># 1. install the CLI</span>
 npm install -g @odere-pro/agentline
 
 <span class="cmt"># 2. wire into Claude Code (statusLine + skills + themes)</span>
 agentline install
 
-<span class="cmt"># 3. verify the wiring</span>
+<span class="cmt"># 3. verify the wiring (add --fix to self-repair)</span>
 agentline doctor
 
 <span class="cmt"># 4. customise widgets, theme, and layout (TUI)</span>
 agentline edit</code></pre>
+
+          <p class="install-note">
+            <strong>Your settings are safe.</strong> <code>agentline install</code>
+            backs up your existing <code>statusLine</code> before wiring its own.
+            Run <code>agentline uninstall</code> any time to restore it
+            byte-for-byte and remove the installed skills.
+          </p>
+
+          <div>
+            <p class="sub">Uninstall</p>
+            <pre><code><span class="cmt"># restore the previous statusLine, remove installed skills</span>
+agentline uninstall
+
+<span class="cmt"># also wipe agentline config and any custom themes</span>
+agentline uninstall --purge</code></pre>
+          </div>
+        </div>
       </section>
 
-      <section class="faq wrap" id="faq" aria-labelledby="faq-heading">
-        <h2 id="faq-heading">Frequently asked questions</h2>
+      <section class="band faq wrap" id="faq" aria-labelledby="faq-heading">
+        <p class="kicker">Questions</p>
+        <h2 class="h2" id="faq-heading">Frequently asked questions</h2>
         <dl>
           <dt>How do I customize the Claude Code statusline?</dt>
           <dd>
@@ -651,7 +1514,8 @@ agentline edit</code></pre>
             agent in any Claude Code session to add a widget or swap the theme.
             The scriptable <code>agentline config widget</code> subcommands
             (<code>add</code>, <code>remove</code>, <code>move</code>,
-            <code>set-option</code>) cover the same ground from the shell.
+            <code>replace</code>, <code>set-option</code>) cover the same ground
+            from the shell.
           </dd>
 
           <dt>
@@ -666,18 +1530,41 @@ agentline edit</code></pre>
             widgets across 5 families in total.
           </dd>
 
-          <dt>Is there a powerline prompt or status bar for Claude Code?</dt>
+          <dt>What is Software 3.0 and why is agentline agent-operable?</dt>
           <dd>
-            agentline renders a powerline-ready statusline with arrayed chevrons
-            and caps, plus a theme engine that degrades gracefully from
-            truecolor to 256-colour to 16-colour terminals.
+            Software 3.0 means the product is reachable by an LLM agent without a
+            human in the loop. agentline has no language model on its render
+            path; instead it ships a stable stdin contract, a flat scriptable
+            CLI, a programmable config-mutation API, five seeded Claude Code
+            skills, and an authoritative glossary — so an agent can install,
+            configure, theme, and troubleshoot it using only natural language
+            and the terminal.
+          </dd>
+
+          <dt>How do I uninstall agentline and restore my previous statusline?</dt>
+          <dd>
+            Run <code>agentline uninstall</code> to restore your previous
+            <code>statusLine</code> byte-for-byte and remove the installed
+            skills. Add <code>agentline uninstall --purge</code> to also wipe
+            your agentline config and custom themes. Install takes a backup
+            first, so the round-trip leaves no trace.
+          </dd>
+
+          <dt>Does agentline support no-color, ASCII, or accessible terminals?</dt>
+          <dd>
+            Yes. Pass <code>--no-color</code> for plain text,
+            <code>--no-unicode</code> or <code>--ascii</code> to replace
+            separators and glyphs with ASCII, and the theme engine auto-degrades
+            from truecolor to 256-colour to 16-colour terminals.
+            <code>NO_COLOR</code> is honoured as well.
           </dd>
 
           <dt>Does agentline make network calls or slow down the prompt?</dt>
           <dd>
             No. The render hot path makes zero network calls — themes and the
             widget registry are embedded — so the statusline draws from local
-            state only.
+            state only. The TUI editor and its dependencies are lazy-imported
+            and never touch the render path.
           </dd>
         </dl>
       </section>
@@ -686,10 +1573,16 @@ agentline edit</code></pre>
     <footer class="wrap">
       <span
         >MIT-licensed ·
-        <a href="https://github.com/odere-pro/claude-agentline">odere-pro/claude-agentline</a></span
+        <a href="https://github.com/odere-pro/claude-agentline"
+          >odere-pro/claude-agentline</a
+        ></span
       >
       <span class="spacer"></span>
       <a href="https://github.com/odere-pro/claude-agentline#readme">Docs</a>
+      <a
+        href="https://github.com/odere-pro/claude-agentline/blob/main/SOFTWARE-3-0.md"
+        >Software 3.0</a
+      >
       <a href="https://www.npmjs.com/package/@odere-pro/agentline">npm package</a>
       <a href="https://github.com/odere-pro/claude-agentline/issues">Issues</a>
     </footer>
