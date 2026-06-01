@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-06-01
+
+### Added
+
+- `5495772` — Surface host Claude CLI health: add the `claude-update` and `claude-doctor` session widgets plus doctor check D10, fed by an off-render-path `claude-health` cache that probes `claude --version` / `claude doctor` and npm, refreshed lazily by the live render via a detached `__refresh-claude-health` verb.
+
 ## [0.2.1] — 2026-06-01
 
 ### Security
