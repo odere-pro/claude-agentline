@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-06-01
+
+### Added
+
+- `a78ea09` — Add an indexable landing page: a standalone `site/index.html` (semantic HTML with Open Graph/Twitter meta and SoftwareApplication structured data) published to GitHub Pages by a new `pages` workflow, and point `package.json` `homepage` plus a README link at it — giving the project a crawlable marketing surface distinct from the GitHub repo chrome.
+- `1dd2cb6` — Add a `project` session widget: shows the git repository name (origin remote), falling back to the working-directory folder name.
+
+### Changed
+
+- `f779928` — Improve discoverability: broaden `package.json` keywords (6 → 21) and rewrite the package description to name the feature surface, and add a keyword subtitle plus an FAQ section to the README so npm and search engines match the tool's name and capabilities.
+- `072e2cf` — Expand the GitHub Pages landing page: document every one of the 28 widgets in a zero-JS, CSS-only filterable catalogue, add a Software 3.0 / agentic-engineering section with the five pillars and a worked example, a themes-and-accessible-rendering section, and an uninstall flow that highlights the byte-for-byte statusline restore; layer in `HowTo` and `BreadcrumbList` structured data, expanded FAQ and keywords, a skip link, visible focus rings, and WCAG-AA contrast tuning, while keeping the warm palette and fixing horizontal overflow down to narrow mobile widths.
+
+### Fixed
+
+- `9e26387` — Kill the last two Windows-only `gates` flakes: pin `core.autocrlf`/`core.safecrlf` to false in the git-snapshot test fixture so `git diff --numstat` reports insertions deterministically, and raise the install-integration `runScript` execFile budget (it stayed at 30s while the suite already allowed 120s) so a slow Windows uninstall is no longer SIGTERM'd — now surfacing the script's stderr on failure.
+
 ## [0.1.4] — 2026-05-27
 
 ### Added
