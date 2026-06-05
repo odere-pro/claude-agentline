@@ -119,7 +119,7 @@
 | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `.github/`                                                   | CI configuration and contribution templates.                                                                                                   |
 | `docs/`                                                      | User-facing documentation.                                                                                                                     |
-| `docs/plan/`                                                 | Engineering documents the user does not read.                                                                                                  |
+| `docs/cookbook/`                                             | Engineering documents the user does not read; decisions in `10-tradeoffs-and-decisions.md`.                                                    |
 | `examples/`                                                  | Configs maintainers use; updated when defaults change.                                                                                         |
 | `schemas/`                                                   | The single source of truth for on-disk JSON shapes.                                                                                            |
 | `scripts/`                                                   | Shell entry points wrapping the bin's verbs.                                                                                                   |
@@ -151,7 +151,6 @@
 | `src/tui/preview/`                                           | Live-preview waterfall + preview-live parity guard.                                                                                            |
 | `src/tui/state/`                                             | Reducer-style state machine (`state`, `state-core`, `state-mutations`, `state-picker`).                                                        |
 | `src/tui/keys/`                                              | Keymap registry; gate scans this for coverage.                                                                                                 |
-| `src/commands/cli/`                                          | CLI help-string utilities.                                                                                                                     |
 | `src/commands/doctor/`                                       | D01–D08 checks; documented repairs.                                                                                                            |
 | `src/commands/install/`                                      | Wires `statusLine`; seeds config; copies themes; copies shipped subagent skill files into the host's agents dir; writes backup.                |
 | `src/commands/uninstall/`                                    | Restores backup; removes seeded files (skill files only when bytes still match the shipped originals); verifies checksum.                      |

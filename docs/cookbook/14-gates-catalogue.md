@@ -65,8 +65,8 @@ Exit contract for every gate: `0` pass, `1` fail, `2` skipped (with a printed re
 
 ## gate-12 · render determinism
 
-- **Probes.** Iterates every scenario under `tests/golden/`; runs `<bin> render --fixture <scenario>`; diffs against `expected.ansi`.
-- **Pass criterion.** All scenarios match byte-exactly.
+- **Probes.** Iterates every scenario under `tests/golden/`; replays each through the published `dist/cli.mjs` (`render --fixture <scenario> --config … --frozen-clock … --no-color --width 80`) **twice** under a hermetic `env -i`; compares the two runs to each other and to `expected.ansi`.
+- **Pass criterion.** Each scenario is byte-identical run-to-run **and** matches `expected.ansi`. Skips cleanly (exit 2) when `dist/` is unbuilt.
 
 ## gate-13 · cold-start budget
 
@@ -119,9 +119,11 @@ These gates may be added per-implementation; the IDs are kept stable.
 - **Probes.** Glossary terms used inside source comments use the canonical spelling.
 - **Pass criterion.** No mismatches.
 
-## gate-22 · _retired_
+## gate-22 · glossary self-consistency
 
-Slot retired with the pricing/cost feature. There is no embedded pricing table to keep fresh; token widgets cover counts and speed only. Per the stable-ID rule, the slot is not reused.
+- **Probes.** Derives every count, table row, and type-path the glossary claims and compares each against the code it documents. Six sub-checks: (1) the `## Built-in widget types (N total)` heading in `docs/GLOSSARY.md` matches the widget total from the catalog; (2) each per-family heading count (`### Session family (N)`, etc.) matches the catalog count for that family; (3) no literal gate-count claim survives in the glossary prose; (4) every file path in the `## TypeScript types` table resolves on disk and contains the canonical `export` declaration for that type; (5) every kebab-case widget type listed in a glossary family table has a matching entry in `src/widgets/families/<family>.ts`, and vice versa; (6) any `<!-- agentline:count name="<key>" -->N<!-- /agentline:count -->` marker present in `SOFTWARE-3-0.md` (opt-in; silently skipped when absent) matches the derived value — currently `agents-skills` (count of files under `agents/`) and `claude-md` (count of `CLAUDE.md` files in the repo).
+- **Pass criterion.** Every derived count and type-path matches the doc; a wrong count or missing file fails. Strict, offline.
+- **Debugging.** Do not hand-edit counts in the glossary. Fix the code or the glossary entry and re-run; the gate reports the claimed value, the derived value, and the source location for each mismatch.
 
 ## gate-23 · dependency audit
 
@@ -146,6 +148,12 @@ Slot retired with the pricing/cost feature. There is no embedded pricing table t
 - **Probes.** Every translator call in the source tree against `src/core/i18n/ids.ts` (registered prefixes) and `src/core/i18n/en-dictionary.ts` (authored English). Three sub-checks: (a) literal ids start with a registered prefix, (b) every dictionary-form id is a key in `EN_DICTIONARY`, (c) no id appears with two different literal-en fallbacks.
 - **Pass criterion.** All three sub-checks clean.
 - **Debugging.** A missing entry: add it to `EN_DICTIONARY`. A duplicate fallback: pick one canonical English and update the other call site. A typo in a prefix: rename to one of the registered prefixes (or add a new prefix in `ids.ts` and document why).
+
+## gate-27 · citation existence
+
+- **Probes.** Extracts every repo-path citation (`src/…`, `docs/…`, `tests/…`, `agents/…`, `scripts/…`, `templates/…`, `themes/…`, `changelog/…`), gate-id reference (`gate-NN`), and markdown link (`[text](path)`) from `docs/`, `CLAUDE.md`, and `SOFTWARE-3-0.md`. For each extracted path, asserts that the target resolves on disk (file or directory). Implemented in `tests/gates/gate-27-citation-existence.sh`.
+- **Pass criterion.** Every cited path resolves; exit `0`. Strict: no partial passes. Offline (no network access required).
+- **Debugging.** The gate prints each failing citation with its source file and line number. Either fix the path in the doc to point to the correct existing target, or (for intentional non-existence explanations) reword to remove the path literal. Do not introduce new path literals that do not exist.
 
 ---
 

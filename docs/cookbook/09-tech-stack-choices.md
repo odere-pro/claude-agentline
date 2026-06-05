@@ -3,7 +3,7 @@
 > **Intent:** For each engineering role the implementation must fill, state the **capability** the tool must provide, the **constraints** it must satisfy, and the **tradeoffs** to weigh. **No recommended stack** — the reader picks.
 > **Reads-with:** `03-non-functional-requirements`, `10-tradeoffs-and-decisions`.
 
-The reference repository fills these roles with one specific stack (TypeScript / Node ≥20 / Ink / Vitest / AJV / tsup / ESLint+Prettier / GitHub Actions). That choice is documented in the repo's `docs/plan/SPEC-vX.Y.Z.md`. **Do not copy it without checking that the same tradeoffs apply to your context.** The cookbook below is the basis for choosing.
+The reference repository fills these roles with one specific stack (TypeScript / Node ≥20 / Ink / Vitest / AJV / tsup / ESLint+Prettier / GitHub Actions). The rationale for that choice is in `docs/cookbook/10-tradeoffs-and-decisions.md`. **Do not copy it without checking that the same tradeoffs apply to your context.** The cookbook below is the basis for choosing.
 
 ---
 

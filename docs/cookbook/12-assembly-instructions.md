@@ -16,7 +16,7 @@ Group IDs (Gn) are stable. A group ends when its exit criteria are met; the gate
 ## G1 · Specs and plan
 
 - **Prereq.** G0.
-- **Produces.** `docs/plan/SPEC-vX.Y.Z`, `docs/plan/PR-PLAN`, `docs/plan/PR-CONVENTIONS`. The cookbook lives outside the repo or under `tmp/cookbook/` as a reference; the spec is the stack-locked instantiation of the cookbook.
+- **Produces.** A stack-locked spec, a PR roadmap, and contribution conventions. In this repo these live at `docs/cookbook/10-tradeoffs-and-decisions.md` (decisions + rationale) and `docs/PR-CONVENTIONS.md` (branch / commit / PR rules). The cookbook is the abstract parent; the tradeoffs doc is its stack-locked instantiation.
 - **Exit.** Spec exists, PR roadmap exists, conventions exist. Gate 05 (markdown lint + format) passes on these files.
 
 ## G2 · Gates orchestrator + first three gates

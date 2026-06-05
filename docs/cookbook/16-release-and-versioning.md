@@ -145,7 +145,7 @@ The shipped subagent skill files under `agents/` (see `04 · State surfaces` and
 
 ### Why byte-match, not a manifest
 
-A manifest (`agents/manifest.json` listing every shipped skill file) would let `uninstall` delete files that no longer exist in `agents/`. We avoided it for two reasons: it doubles the chances of drift (now the manifest can disagree with the directory), and it tempts the installer into deleting **edited** user content. Byte-matching is conservative: it preserves anything the user touched, at the cost of leaving stale files on disk after a `Removed` release.
+A manifest file listing every shipped skill file would let `uninstall` delete files that no longer exist in `agents/`. We avoided it for two reasons: it doubles the chances of drift (now the manifest can disagree with the directory), and it tempts the installer into deleting **edited** user content. Byte-matching is conservative: it preserves anything the user touched, at the cost of leaving stale files on disk after a `Removed` release.
 
 ### Future gate (out of scope at v0.1)
 

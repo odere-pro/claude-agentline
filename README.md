@@ -17,7 +17,7 @@ _A powerline statusline for Claude Code — git, tokens, context window, rate li
 
 A fast, themeable statusline for Claude Code. Reads the stdin payload Claude Code's statusline contract sends, writes an ANSI-styled line, exits. No network. No native modules. No plugin scaffolding.
 
-> **Built for Software 3.0.** Agentline is shaped so an LLM agent — not just a human — can install, configure, theme, and troubleshoot it through natural language. The stable stdin contract, the flat scriptable CLI, the seeded subagent skill files, and the per-group `CLAUDE.md` briefings are one coherent design choice, not a feature list. See [SOFTWARE-3-0.md](./SOFTWARE-3-0.md) for the thesis, the five pillars, and a worked example.
+> **Built for Software 3.0.** Agentline is shaped so an LLM agent — not just a human — can install, configure, theme, and troubleshoot it through natural language. The stable stdin contract, the flat scriptable CLI, the seeded subagent skill files, and the per-group `CLAUDE.md` briefings are one coherent design choice, not a feature list. See [SOFTWARE-3-0.md](./SOFTWARE-3-0.md) for the thesis, the dual-audience surface map, and a worked example.
 
 ---
 
@@ -25,12 +25,12 @@ A fast, themeable statusline for Claude Code. Reads the stdin payload Claude Cod
 
 ```bash
 npm install -g @odere-pro/agentline   # 1. install the CLI
-agentline install                     # 2. wire into Claude Code (statusLine + skills + themes)
+agentline reset                       # 2. wire into Claude Code (statusLine + skills + themes)
 agentline doctor                      # 3. verify the wiring
 agentline edit                        # 4. customise widgets, theme, and layout (TUI)
 ```
 
-Restart Claude Code after `install` — the statusline appears at the bottom of the prompt. Later config changes apply on the next render, no restart needed.
+Restart Claude Code after `reset` — the statusline appears at the bottom of the prompt. Later config changes apply on the next render, no restart needed.
 
 ![agentline statusline rendering: model, thinking effort, account, branch, context %, weekly usage, reset timers, cwd, permissions mode](./docs/assets/statusline-example.png)
 
@@ -66,25 +66,27 @@ Restart Claude Code after `install` — the statusline appears at the bottom of 
 
 The CLI is intentionally small: `reset` · `uninstall` · `doctor` · `edit` · `config`.
 
-### Install
+### Install and first-time setup
 
 ```bash
 # From source (today)
 git clone https://github.com/odere-pro/claude-agentline && cd claude-agentline
 corepack enable && pnpm install && pnpm run build
-node dist/cli.mjs install --from-source
+node dist/cli.mjs reset --from-source
 
 # From npm (when published)
 npm install -g @odere-pro/agentline
-agentline install
+agentline reset
 ```
 
-Both paths produce identical runtime state — same `settings.json`,
-`config.json`, themes, and manifest. Only the bytes inside the bin
-differ (local checkout vs. published tarball). See
-[install equivalence](./docs/install.md#install-paths-are-equivalent).
+**`reset` is the canonical setup verb** — it wires `statusLine` into Claude Code's settings,
+seeds `agentline/config.json` under `$CLAUDE_CONFIG_DIR`, copies shipped themes, and installs
+five `agentline*.md` skills. It also performs first-time wiring on a fresh host, making it
+safe to run whether agentline is new or already set up. The lower-level `agentline install`
+verb is still available (it preserves an existing user config rather than reseeding it) but
+is hidden from `agentline help` — `reset` is the entry point for users and agents alike.
 
-Install wires `statusLine` into Claude Code's settings, seeds `agentline/config.json` under `$CLAUDE_CONFIG_DIR`, copies shipped themes, and installs five `agentline*.md` skills wired into Claude Code. Backs up any prior `statusLine` so `uninstall` restores it.
+Backs up any prior `statusLine` so `uninstall` restores it byte-for-byte.
 
 Restart Claude Code — the statusline appears at the bottom of the prompt.
 

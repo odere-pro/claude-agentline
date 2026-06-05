@@ -48,6 +48,25 @@ Each cache takes an explicit base-path argument; tests use a tmp dir and never t
 - **Version-check is off the hot path.** `version-check-cache/` is refreshed only by `agentline update-check` (a maintainer concern). The render path may _read_ it as a synchronous snapshot but must never _refresh_ it.
 - **Caches are advisory.** Deleting any cache file is safe — the next render rebuilds what it needs from the live snapshot sources.
 
+## Render cache freshness contract
+
+The **render cache** (`src/data/state/render-cache/`) stores the last successful stdout bytes as
+`last-render.json` under `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/state/`. Key properties,
+grounded in `src/data/state/render-cache/render-cache.ts`:
+
+- **Written** only on the live render path — `--fixture` and `--config` invocations are excluded,
+  keeping replay and golden runs deterministic. Writes are async and best-effort: errors (permission
+  denied, read-only home) are silently swallowed so a broken cache dir never surfaces to the user.
+- **Read back** synchronously by `agentline uninstall` (to show the user a parting view) and by
+  diagnostic surfaces that need the current output without re-running the pipeline.
+- **Invalid/absent** — `readLastRenderSync` returns `null` when the file is missing, unreadable,
+  contains malformed JSON, carries an unknown `version` integer (anything other than
+  `RENDER_CACHE_VERSION = 1`), or lacks a string `rendered` field. There is no TTL or time-based
+  expiry; the only staleness signal is structural validity.
+- **Agent-operable** — because the read is synchronous and path-scoped to `$CLAUDE_CONFIG_DIR`, an
+  agent can answer "what is the statusline currently showing?" by calling `readLastRenderSync`
+  without touching the render pipeline.
+
 ## Applied patterns
 
 - **Atomic file write** — torn cache files would mislead the editor preview or the uninstall.
