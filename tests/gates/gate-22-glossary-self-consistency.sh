@@ -157,10 +157,45 @@ ${missing_in_catalog}
 EOF
 fi
 
+# ── 6. Surface-map counts (opt-in — marker must be present to be checked) ────
+#
+# SOFTWARE-3-0.md may declare counts using HTML-comment markers on one line:
+#   <!-- agentline:count name="<key>" -->INTEGER<!-- /agentline:count -->
+#
+# Keys and their derivers:
+#   agents-skills  →  agents_skill_count()
+#   claude-md      →  claude_md_count()
+#
+# If a marker is absent the check is silently skipped (opt-in contract).
+# If a marker is present its integer must equal the derived value.
+
+SOFTWARE3="${REPO_ROOT}/SOFTWARE-3-0.md"
+
+check_surface_count() {
+  __key="$1"
+  __derived="$2"
+  if [ ! -f "${SOFTWARE3}" ]; then
+    return
+  fi
+  __doc_val=$(grep -oE \
+    "<!-- agentline:count name=\"${__key}\" -->[0-9]+<!-- /agentline:count -->" \
+    "${SOFTWARE3}" \
+    | grep -oE '[0-9]+' | head -1 || true)
+  if [ -z "${__doc_val}" ]; then
+    return
+  fi
+  if [ "${__doc_val}" != "${__derived}" ]; then
+    fail_check "surface-map count '${__key}' says ${__doc_val}, code has ${__derived}"
+  fi
+}
+
+check_surface_count "agents-skills" "$(agents_skill_count)"
+check_surface_count "claude-md"     "$(claude_md_count)"
+
 # ── Result ───────────────────────────────────────────────────────────────────
 
 if [ "${FAIL}" -eq 1 ]; then
   fail_gate "glossary self-consistency check failed (see errors above)"
 fi
 
-pass_gate "${actual_total} widgets · family counts aligned · type-table paths verified · no stale gate count"
+pass_gate "${actual_total} widgets · family counts aligned · type-table paths verified · no stale gate count · surface-map counts verified"

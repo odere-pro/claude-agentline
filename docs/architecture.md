@@ -36,7 +36,7 @@ When invoked as `agentline config` (edit mode), the TUI loads `ink` and React to
 agentline config → TUI (Ink + React) → config mutation → file write
 ```
 
-The TUI reads the existing config, mutates it via reducer, and persists via atomic write (same path as render-time `src/data/config/atomic.ts`).
+The TUI reads the existing config, mutates it via reducer, and persists via atomic write (same helper as render-time: `src/core/lib/atomic-write/atomic-write.ts`).
 
 ## Widget System (§7)
 

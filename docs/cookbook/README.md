@@ -47,7 +47,7 @@ You do **not** need prior knowledge of the reference implementation. If you find
 
 ## Relation to the reference implementation's spec
 
-The reference repo carries a normative, stack-locked spec at `docs/plan/SPEC-v0.1.0.md` (TypeScript, Node ≥20, Ink). This cookbook is the **abstract parent** of that spec. Section numbers are kept compatible (F1–F15, §-numbering) so existing spec citations still resolve when you rebuild in a different stack.
+This cookbook is the **abstract parent** of the reference implementation. Section numbers (F1–F15, §-numbering) are stable so spec citations survive a stack rebuild. Engineering decisions and tradeoffs are recorded in `docs/cookbook/10-tradeoffs-and-decisions.md` and the per-PR changelog fragments under `changelog/`.
 
 ## What this cookbook deliberately does not contain
 

@@ -173,6 +173,74 @@ A scenario directory contains:
 
 ---
 
+## Machine-readable output envelope (`--json`)
+
+**Purpose.** The agent on-ramp for the scriptable CLI verbs — a stable JSON shape on stdout
+suitable for `jq`, CI pipelines, and in-session skill scripts.
+
+**Verbs that emit it.**
+
+| Verb                                     | Top-level key      | Shape                                                                                                                                |
+| ---------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `agentline config widget list --json`    | `lines`            | Array of `{ line: N, widgets: [{ at: N, type: string, …widget-shape fields }] }`. The merged config is shown — exactly what renders. |
+| `agentline config widget catalog --json` | `widgets`          | Array of `{ type: string, name: string, description: string, family: string }`. One entry per registered widget type.                |
+| `agentline doctor --json`                | `worst` + `checks` | See "Doctor JSON shape" below.                                                                                                       |
+
+The `set-option` subcommand accepts `--json` as an **input** flag (parse the `<value>` argument as a
+JSON literal rather than a plain string); it does not emit a JSON envelope.
+
+**Envelope rule.** Each envelope is a single JSON object whose top-level key names the noun (`lines`,
+`widgets`, `checks`). The shape is strict — no extra top-level keys are added unless documented here.
+
+Sources: `src/data/config/widget/list/list.ts` (`formatJson`),
+`src/data/config/widget/catalog/catalog.ts` (`formatJson`),
+`src/commands/doctor/format/format.ts` (`formatJson`).
+
+---
+
+### Doctor JSON shape
+
+```text
+{
+  "worst":  "<status>",
+  "checks": [
+    {
+      "id":      "D01",
+      "title":   string,
+      "status":  "pass" | "warn" | "fail" | "fixed" | "skip",
+      "message": string,
+      "hint":    string   // present only when status is "warn" or "fail"
+      "fixed":   true     // present only when --fix repaired this check
+    },
+    …
+  ]
+}
+```
+
+`worst` is the highest-severity `status` value across all checks after any `--fix` pass
+(`fail` > `warn` > `fixed` > `skip` > `pass`). Source: `src/commands/doctor/types.ts`
+(`CheckResult`, `RunReport`) and `src/commands/doctor/run/run.ts`.
+
+---
+
+## Exit-code convention
+
+**Source:** `src/cli/cli.ts` (dispatch wrapper and per-verb returns) and
+`src/commands/doctor/run/run.ts` (`decideExit`).
+
+| Code | Meaning                                                                                                                                                                          |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`  | Success. For `doctor` (without `--strict`): always `0` regardless of check results — the check detail is in the output, not the exit code.                                       |
+| `1`  | Render error. Stdin parse failure or an unhandled exception on the render path.                                                                                                  |
+| `2`  | Argument or dispatch error. Bad flag, unknown subcommand, or any exception thrown by a non-render verb and caught by the dispatch wrapper.                                       |
+| `3`  | Doctor strict failure. Only when `agentline doctor --strict` is passed **and** at least one check finished as `warn` or `fail` (i.e. `worst` is not `pass`, `skip`, or `fixed`). |
+
+The `--strict` flag is used by CI gates (see `tests/gates/gate-01-doctor.sh`) to make the exit
+code machine-checkable. Without it, `doctor` always exits `0` so it is safe to use in pipelines
+that inspect the JSON payload rather than the exit code.
+
+---
+
 ## Universal forbidden keys
 
 At **every JSON parse boundary** in this product (user config, env-var-encoded JSON, theme files, fixture stdin), drop own keys named:

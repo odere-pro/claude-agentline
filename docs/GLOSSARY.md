@@ -45,11 +45,39 @@ update the other artefact, not this one.
 
 ---
 
+### `one-syscall write`
+
+> The render path accumulates the complete ANSI frame into a single buffer and
+> emits it with exactly one `write` syscall before exiting — implemented by
+> `writeOnce` in `src/render/render/write/write.ts`. No incremental writes are
+> permitted; interleaved partial writes produce torn lines in the host UI.
+
+**Used in:** `src/render/render/write/write.ts`, `src/render/render/CLAUDE.md`,
+`SOFTWARE-3-0.md` (§ "Powerline, adapted for agents"), gate-pass contract for
+the render path.
+
+---
+
 ### `cold start`
 
 > Process-start-to-first-byte latency. Must be ≤ 120 ms p95.
 
 **Used in:** gate-13, spec §1.2 N2.
+
+---
+
+### `agent-operable`
+
+> The Software 3.0 property of the product: an LLM agent can install,
+> configure, theme, and troubleshoot agentline using only natural language,
+> the user's terminal, and the artefacts the repo ships — without a human
+> in the loop. The product achieves this not by containing an agent but by
+> providing stable input contracts, scriptable CLI verbs, seeded skill files,
+> per-group `CLAUDE.md` briefings, and authoritative vocabulary.
+
+**Used in:** `SOFTWARE-3-0.md` (thesis definition), `CLAUDE.md`.  
+**Distinct from:** "contains an agent" — agentline's hot path contains no LLM;
+the property is about what an external agent can _do with_ the product.
 
 ---
 
@@ -457,7 +485,7 @@ Host stdin contract`). It tells the renderer which subagents the
 > a cycled view of it. Not a path, not a file — purely the inbound
 > session metadata.
 
-**Used in:** `src/core/stdin/index.ts`, `src/widgets/session/skills/`,
+**Used in:** `src/core/stdin/index.ts`, `src/data/session/index.ts`,
 `docs/cookbook/06-data-contracts.md`.  
 **Distinct from:** `skill file` (the shipped markdown files the
 installer seeds).
@@ -505,7 +533,7 @@ deliberately does not use — see `agentline` is not a `plugin`).
 > A render output snapshot stored in `tests/golden/<scenario>/`.
 > Any output change must be deliberate and committed with the snapshot update.
 
-**Used in:** `tests/golden/`, gate-12 (planned).
+**Used in:** `tests/golden/`, `tests/gates/gate-12-render-determinism.sh`.
 
 ---
 
@@ -519,10 +547,138 @@ deliberately does not use — see `agentline` is not a `plugin`).
 
 ### `integration test`
 
-> A test under `tests/integration/` or `tests/tui/` that exercises
+> A test under `tests/integration/` or co-located under `src/tui/` that exercises
 > multiple modules together.
 
-**Used in:** `tests/integration/`, `tests/tui/`.
+**Used in:** `tests/integration/`, `src/tui/`.
+
+---
+
+### `frozen clock`
+
+> A deterministic `Clock` implementation that returns a fixed instant rather
+> than the wall clock, making renders byte-reproducible across time zones and
+> CI runners. In-process: `frozenClock(iso)` exported from
+> `src/test-helpers/clock/clock.ts` (which re-exports from
+> `src/widgets/clock/clock.ts`). On the bin: `--frozen-clock <iso>` flag
+> accepted by `agentline render` via `src/render/render/fixture/fixture-command.ts`.
+
+**Used in:** `src/test-helpers/clock/clock.ts`,
+`src/render/render/fixture/fixture-runner.ts`,
+`src/render/render/fixture/fixture-command.ts`, golden tests,
+`src/render/render/CLAUDE.md` (D-006).  
+**Distinct from:** `realClock` (returns `Date.now()`).
+
+---
+
+### `render cache`
+
+> The on-disk record of the last successful stdout bytes, stored at
+> `src/data/state/render-cache/`. An agent or diagnostic tool can read the
+> current statusline output without re-running the render; the `agentline doctor`
+> command uses it for introspection.
+
+**Used in:** `src/data/state/render-cache/render-cache.ts`,
+`SOFTWARE-3-0.md` (§ "Powerline, adapted for agents"), `src/data/state/CLAUDE.md`.
+
+---
+
+### `cold-start budget`
+
+> The process-start-to-first-byte ceiling enforced by gate-13. The default
+> ceiling is `${AGENTLINE_BENCH_BUDGET_MS:-120}` ms p95 on the reference
+> host; do not hard-code a number here — the authoritative value lives in
+> `tests/gates/gate-13-cold-start-budget.sh` and the bench harness at
+> `scripts/bench/cold-start.mjs`. Gate-13 defaults to informational mode on
+> shared CI runners; it is strict only when `AGENTLINE_BENCH_STRICT=1`.
+
+**Used in:** `tests/gates/gate-13-cold-start-budget.sh`,
+`scripts/bench/cold-start.mjs`, `docs/cookbook/14-gates-catalogue.md`.  
+**Distinct from:** `cold start` (the latency metric itself, defined above with
+its ≤ 120 ms p95 target); `cold-start budget` is the gate-enforced ceiling
+on that metric.
+
+---
+
+## Agentic engineering terms
+
+### `surface map`
+
+> The parity-checked `| Surface | Human on-ramp | Agent on-ramp |` table in
+> `SOFTWARE-3-0.md`. Each row names one operable surface of the product and
+> documents the canonical entry path for a human contributor and for an LLM
+> agent. A row is complete when both on-ramps are filled in; a missing
+> on-ramp is treated as a defect (see `parity rule`).
+
+**Used in:** `SOFTWARE-3-0.md`.
+
+---
+
+### `human on-ramp`
+
+> The entry path a human contributor follows to reach and operate a
+> product surface — typically a prose doc, a CLI `--help` flag, or a TUI
+> overlay. Documented in the `Human on-ramp` column of the surface map.
+
+**Used in:** `SOFTWARE-3-0.md` surface map.  
+**Distinct from:** `agent on-ramp` (the machine-readable counterpart).
+
+---
+
+### `agent on-ramp`
+
+> The entry path an LLM agent follows to reach and operate a product
+> surface — typically a machine-readable artefact such as a `--json` verb,
+> a skill file `description:` frontmatter, or a `CLAUDE.md` briefing.
+> Documented in the `Agent on-ramp` column of the surface map.
+
+**Used in:** `SOFTWARE-3-0.md` surface map, `agents/CLAUDE.md`.  
+**Distinct from:** `human on-ramp` (the prose counterpart).
+
+---
+
+### `parity rule`
+
+> The surface-map invariant: a surface row is a defect if either its
+> `human on-ramp` or its `agent on-ramp` is absent. Both on-ramps must be
+> defined for the surface to be considered complete.
+
+**Used in:** `SOFTWARE-3-0.md` surface map.  
+**Distinct from:** the gate-20/21/22 "parity" checks (README↔catalogue widget
+count parity and glossary self-consistency) — those are vocabulary and count
+alignment checks; this rule governs surface completeness in the agentic
+engineering sense.
+
+---
+
+### `context-planner`
+
+> A hand-authored table that maps each task in a roadmap item to the repo
+> paths that must be read before the task begins. Acceptance criterion: every
+> cited path exists, is non-empty, and has been reviewed. The word "minimum"
+> is intentionally absent — the table is a reads-pointer, not a reads-lower-
+> bound (which would be unfalsifiable per plan D9).
+
+**Used in:** `.claude/` dev tooling, team-brief planning artefacts.  
+**Distinct from:** a task list (which lists _what_ to do) and a design doc
+(which explains _why_); the context-planner records _what to read first_.
+
+---
+
+### `dispatch contract`
+
+> The `description:` field in the YAML frontmatter of a shipped skill file
+> (`agents/*.md`). Claude Code's host skill system reads this field to route
+> natural-language user requests to the matching file; the field is therefore
+> both documentation and a functional routing key. Changes to a skill file's
+> `description:` change which requests the host dispatches to it.
+
+**Used in:** `agents/agentline*.md` frontmatter, `agents/CLAUDE.md`,
+`docs/cookbook/08-feature-catalogue.md`,
+`docs/cookbook/15-documentation-set.md`,
+`docs/cookbook/16-release-and-versioning.md`.  
+**Distinct from:** the `name:` frontmatter field (human label, not used for
+dispatch) and the body of the skill file (the runbook text).
 
 ---
 

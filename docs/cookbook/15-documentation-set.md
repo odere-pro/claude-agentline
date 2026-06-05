@@ -116,22 +116,22 @@ A doc is a contract with its reader. Length envelopes prevent docs from rotting 
 
 ---
 
-## `docs/plan/SPEC-vX.Y.Z`
+## `docs/cookbook/10-tradeoffs-and-decisions.md`
 
 - **Reader.** A current-maintainer engineer authoring a PR.
-- **Length.** As long as needed; the reference implementation runs about 750 lines.
-- **MUST contain.** Normative, stack-locked requirements for the current version. Section numbers stable across revisions. Forbidden behaviours called out explicitly.
+- **Length.** As long as needed; the reference implementation carries D-001 through D-013.
+- **MUST contain.** Normative, stack-locked decisions for the current version. Decision IDs stable across revisions. Forbidden behaviours called out explicitly.
 
 ---
 
-## `docs/plan/PR-PLAN`
+## `changelog/`
 
 - **Reader.** A maintainer planning the work for this version.
-- **MUST contain.** Numbered PR roadmap mapping spec sections to PRs; dependencies; parallel-safe flags; critical path.
+- **MUST contain.** Per-PR fragment files; one bullet per PR; consumed by the release process to build `CHANGELOG.md`.
 
 ---
 
-## `docs/plan/PR-CONVENTIONS`
+## `docs/PR-CONVENTIONS.md`
 
 - **Reader.** A maintainer opening a PR.
 - **MUST contain.** Branch naming convention; commit format (Conventional Commits, scopes list); PR title shape; PR body template; merge rules; author maintenance expectations; forbidden actions (`--no-verify`, etc.).

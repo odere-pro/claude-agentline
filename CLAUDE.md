@@ -1,6 +1,6 @@
 # CLAUDE.md — `agentline`
 
-This file is the agent's entry-point briefing for the `agentline` repository. It is loaded into every Claude Code session opened from this repo.
+This file is the agent's entry-point briefing for the `agentline` repository (what the product is, where things live, house rules). It is loaded into every Claude Code session opened from this repo. For the thesis — why agentline is shaped to be [agent-operable](docs/GLOSSARY.md) — see `SOFTWARE-3-0.md` (dev-time only; not shipped).
 
 ## What agentline is
 
@@ -80,28 +80,30 @@ Source files live in feature folders with their test as a sibling: `src/<area>/<
 
 Lookup table — full spec lives in `docs/cookbook/14-gates-catalogue.md`. Run `bash tests/gates/run-all.sh` before opening a PR.
 
-| Gate    | Protects                        | Typical failure                                                                               |
-| ------- | ------------------------------- | --------------------------------------------------------------------------------------------- |
-| gate-01 | doctor smoke                    | Host wiring missing on a fresh bootstrap                                                      |
-| gate-02 | no absolute paths in artefacts  | A `/Users/` / `/home/` / `~/.claude/` literal in a shipped file                               |
-| gate-03 | shellcheck                      | Shell-script lint regressions under `tests/gates/` or `scripts/`                              |
-| gate-05 | markdown formatting             | Unformatted markdown — run `npx prettier --write`                                             |
-| gate-06 | trademark / brand strings       | Restricted brand string introduced into shipped text                                          |
-| gate-11 | schema ↔ template round-trip    | Schema drift from `templates/default.config.json`                                             |
-| gate-13 | cold-start budget               | Process-start to first byte over the budget in `docs/GLOSSARY.md`                             |
-| gate-14 | no network at render time       | Outbound request added to a render-reachable module                                           |
-| gate-15 | platform matrix                 | macOS / Linux / WSL parity regression                                                         |
-| gate-16 | accessibility fallbacks         | `--no-color` / `--no-unicode` / `--ascii` regression                                          |
-| gate-17 | keymap coverage                 | Documented editor action missing / malformed in `dist/keys.mjs`                               |
-| gate-18 | changelog fragment present      | PR missing a `changelog/<branch>.md` fragment                                                 |
-| gate-19 | no TUI/ink/react in render path | **Most load-bearing:** static import of ink / react / `src/tui/` from a render-reachable file |
-| gate-20 | docs glossary parity            | README widget count out of sync with catalogue, or retired term in docs                       |
-| gate-21 | source-comment glossary parity  | Retired term in a source comment                                                              |
-| gate-22 | glossary self-consistency       | Glossary count or type-table path out of sync with code                                       |
-| gate-23 | dependency audit                | New runtime dep unpinned or with a known advisory                                             |
-| gate-24 | secret scan                     | Credential-shaped literal in a tracked file                                                   |
-| gate-25 | layer import direction          | Reverse import (e.g. `core` → `data`)                                                         |
-| gate-26 | i18n dictionary contract        | Unknown id prefix, or two different English fallbacks for one id                              |
+| Gate    | Protects                        | Typical failure                                                                                |
+| ------- | ------------------------------- | ---------------------------------------------------------------------------------------------- |
+| gate-01 | doctor smoke                    | Host wiring missing on a fresh bootstrap                                                       |
+| gate-02 | no absolute paths in artefacts  | A `/Users/` / `/home/` / `~/.claude/` literal in a shipped file                                |
+| gate-03 | shellcheck                      | Shell-script lint regressions under `tests/gates/` or `scripts/`                               |
+| gate-05 | markdown formatting             | Unformatted markdown — run `npx prettier --write`                                              |
+| gate-06 | trademark / brand strings       | Restricted brand string introduced into shipped text                                           |
+| gate-11 | schema ↔ template round-trip    | Schema drift from `templates/default.config.json`                                              |
+| gate-12 | render determinism              | Published bin replays a golden twice — bytes differ run-to-run, or don't match `expected.ansi` |
+| gate-13 | cold-start budget               | Process-start to first byte over the budget in `docs/GLOSSARY.md`                              |
+| gate-14 | no network at render time       | Outbound request added to a render-reachable module                                            |
+| gate-15 | platform matrix                 | macOS / Linux / WSL parity regression                                                          |
+| gate-16 | accessibility fallbacks         | `--no-color` / `--no-unicode` / `--ascii` regression                                           |
+| gate-17 | keymap coverage                 | Documented editor action missing / malformed in `dist/keys.mjs`                                |
+| gate-18 | changelog fragment present      | PR missing a `changelog/<branch>.md` fragment                                                  |
+| gate-19 | no TUI/ink/react in render path | **Most load-bearing:** static import of ink / react / `src/tui/` from a render-reachable file  |
+| gate-20 | docs glossary parity            | README widget count out of sync with catalogue, or retired term in docs                        |
+| gate-21 | source-comment glossary parity  | Retired term in a source comment                                                               |
+| gate-22 | glossary self-consistency       | Glossary count or type-table path out of sync with code                                        |
+| gate-23 | dependency audit                | New runtime dep unpinned or with a known advisory                                              |
+| gate-24 | secret scan                     | Credential-shaped literal in a tracked file                                                    |
+| gate-25 | layer import direction          | Reverse import (e.g. `core` → `data`)                                                          |
+| gate-26 | i18n dictionary contract        | Unknown id prefix, or two different English fallbacks for one id                               |
+| gate-27 | doc citation existence          | A dangling repo-path, gate-id, or md-link citation in `docs/` or `SOFTWARE-3-0.md`             |
 
 ## When you need to know X, read Y
 
