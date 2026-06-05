@@ -5,26 +5,32 @@
 
 ## High-level diagram
 
-```text
-                    ┌─────────── render hot path ────────────┐
-                    │                                         │
-host stdin (JSON) ──┼──> parser ──> resolvers ──> widgets ──> compose ──> powerline transform ──> ANSI encoder ──> stdout
-                    │                  ▲              ▲
-                    │                  │              │
-                    │           ┌──────┴──────┐  ┌────┴────┐
-                    │           │ config      │  │ theme   │
-                    │           │ (layered)   │  │ palette │
-                    │           └──────┬──────┘  └─────────┘
-                    │                  │
-                    │           ┌──────┴────────┐
-                    │           │ token / git   │  read-once-per-tick, frozen snapshot
-                    │           │ resolvers     │
-                    │           └───────────────┘
-                    └─────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    stdin["host stdin (JSON)"]
+    stdout["ANSI to stdout"]
 
-                    ┌─────── editor cold path (rare) ─────────┐
-        verb ──────>│  TUI app  ──> reducer ──> atomic write  │──> user config file
-                    └─────────────────────────────────────────┘
+    subgraph hot["render hot path — cold-start budgeted"]
+        direction LR
+        core["`src/core/` parse · schema · i18n"]
+        data["`src/data/` resolvers · snapshots"]
+        widgets["`src/widgets/` pure cells"]
+        render["`src/render/` compose · ANSI"]
+        core --> data --> widgets --> render
+    end
+
+    subgraph cold["editor cold path — lazy, rare"]
+        tui["`src/tui/` editor (lazy)"]
+    end
+
+    cli["`src/cli/cli.ts` dispatch"]
+    commands["`src/commands/` install · doctor · reset"]
+
+    stdin --> cli
+    cli -. render .-> core
+    render --> stdout
+    cli -. dispatch .-> commands
+    cli -. "lazy URL import" .-> tui
 ```
 
 ## The hot-path / cold-path boundary
