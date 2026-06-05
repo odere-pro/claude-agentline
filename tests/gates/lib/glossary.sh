@@ -41,6 +41,26 @@ catalog_family_count() {
     | awk '{print $1+0}'
 }
 
+# Echo the count of shipped agent skill files in agents/ (top-level *.md,
+# excluding CLAUDE.md). Used by gate-22 check-6 and gate-20.
+agents_skill_count() {
+  find "${REPO_ROOT}/agents" -maxdepth 1 -name '*.md' ! -name 'CLAUDE.md' \
+    | wc -l | tr -d ' '
+}
+
+# Echo the count of CLAUDE.md files in the repo, excluding generated/vendor
+# directories (node_modules, .claude, tmp, coverage, dist).
+claude_md_count() {
+  find "${REPO_ROOT}" -name 'CLAUDE.md' \
+    -not -path '*/node_modules/*' \
+    -not -path '*/.claude/*' \
+    -not -path '*/tmp/*' \
+    -not -path '*/.tmp/*' \
+    -not -path '*/coverage/*' \
+    -not -path '*/dist/*' \
+    | wc -l | tr -d ' '
+}
+
 # Echo every kebab-case widget type found in the catalogue, one per line,
 # sorted. Used for catalogue↔glossary parity checks.
 catalog_widget_types() {

@@ -16,7 +16,7 @@ run-all.sh ──▶ for each gate-NN-*.sh in numeric order:
    ┌─ source lib/common.sh           (log_fail, skip_gate, repo_path)
    ├─ collect inputs                 (rg/grep over src/, dist/, docs/)
    ├─ assert invariant ─── pass:     exit 0
-   │                        skip:    exit 77   (informational; e.g. gate-13 outside tag time)
+   │                        skip:    exit 2    (informational; e.g. gate-13 outside tag time)
    └─                        fail:   log_fail + exit 1
 
   Gate numbers are unique and monotonically allocated; gaps are fine (e.g. no gate-04).
@@ -38,7 +38,7 @@ Most gates have no prerequisites. Gates that scan compiled output (e.g. `gate-13
 
 - **Numbering is monotone and unique.** Pick the next free `NN`. Do not renumber existing gates — downstream tooling and PR descriptions reference numbers.
 - **Filename pattern is `gate-NN-<slug>.sh`.** Lower-case kebab-case slug, descriptive of the invariant.
-- **Exit codes are load-bearing.** `0` = pass, `1` = fail, `77` = skip (informational, e.g. environment lacks the prerequisite). Never use other exit codes.
+- **Exit codes are load-bearing.** `0` = pass, `1` = fail, `2` = skip (informational, e.g. environment lacks the prerequisite). Never use other exit codes.
 - **Idempotent and order-independent.** A gate must not depend on another gate's side effects. Two gates must produce the same result whether run together or alone, in any order.
 - **Sources `lib/common.sh` for output.** Use `log_fail`, `skip_gate`, and the colour helpers — direct `echo`/`printf` to stderr from a gate breaks the suite's unified output format.
 - **Owning cookbook chapter cited in the gate header comment.** Each gate's top-of-file comment cites the owning section of `docs/cookbook/` (e.g. `§4.7`, `§14`). This is the only durable link between the assertion and its rationale.
