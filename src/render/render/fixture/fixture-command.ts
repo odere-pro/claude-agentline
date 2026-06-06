@@ -30,7 +30,6 @@ import { saveLastRender } from "../../../data/state/render-cache/render-cache.js
 import { saveLastStdin } from "../../../data/state/stdin-cache/stdin-cache.js";
 import { readStdinPayload } from "../../../core/stdin/index.js";
 import { parseAccessibilityArgs, type AccessibilityFlags } from "../accessibility/accessibility.js";
-import { maybeSpawnClaudeHealthRefresh } from "../claude-health/trigger.js";
 import { loadLiveSnapshots } from "../context.js";
 import { renderForFixture, type RenderForFixtureOptions } from "./fixture-runner.js";
 
@@ -137,13 +136,6 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     if ("plan" in liveSnapshots && liveSnapshots.plan) {
       await recordSessionPlanFromRender(payload, liveSnapshots.plan);
     }
-    /*
-     * Lazily refresh the claude-health cache the first time agentline
-     * renders (and once per TTL thereafter). Detached + unref'd, so this
-     * never blocks the statusline already written above and the render
-     * process itself stays network-free (gate 14).
-     */
-    maybeSpawnClaudeHealthRefresh();
   }
   return 0;
 }
@@ -203,7 +195,7 @@ function maybeEmitConfigInvalidHint(err: unknown): void {
 async function loadLiveSnapshotsForRender(
   rawJson: string,
   config: import("../../../data/config/types.js").AgentlineConfig | undefined,
-): Promise<Pick<RenderForFixtureOptions, "session" | "tokens" | "git" | "plan" | "claudeHealth">> {
+): Promise<Pick<RenderForFixtureOptions, "session" | "tokens" | "git" | "plan">> {
   let parsed;
   try {
     parsed = await readStdinPayload(Readable.from([Buffer.from(rawJson, "utf8")]));

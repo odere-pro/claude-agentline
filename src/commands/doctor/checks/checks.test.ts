@@ -146,6 +146,14 @@ describe("runChecks", () => {
     );
   };
 
+  /*
+   * D10 self-refreshes the claude-health cache via a lazy import of the
+   * real refresher. In tests the cache is pre-seeded; pass a no-op
+   * refresher so the actual `claude` probe is suppressed and the seeded
+   * cache file is read verbatim.
+   */
+  const noopRefresh = async () => {};
+
   const runD10 = async () =>
     (
       await runChecks({
@@ -155,6 +163,7 @@ describe("runChecks", () => {
         home,
         env: { CLAUDE_CONFIG_DIR: cfgDir },
         cwd: cfgDir,
+        claudeHealthRefresh: noopRefresh,
       })
     ).find((r) => r.id === "D10");
 

@@ -54,7 +54,6 @@ export async function triggerBackgroundRerender(
       git: snapshots.git,
       tokens: snapshots.tokens,
       session: snapshots.session,
-      claudeHealth: snapshots.claudeHealth,
       env,
     });
     await saveLastRender(rendered, { env });

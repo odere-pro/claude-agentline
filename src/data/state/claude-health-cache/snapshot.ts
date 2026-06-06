@@ -1,9 +1,9 @@
 /**
- * Frozen Claude-CLI health snapshot consumed by the widget context.
+ * Frozen Claude-CLI health snapshot.
  *
  * A thin wrapper over `readClaudeHealthSync` that maps an absent / unreadable
- * cache to `{ available: false }`, so the `claude-update` / `claude-doctor`
- * widgets hide cleanly until the off-path refresher has populated the cache.
+ * cache to `{ available: false }`, matching the "unpopulated cache → pass"
+ * behaviour in doctor D10.
  * Pattern: **Frozen snapshot for I/O resolvers** (`docs/cookbook/05-design-patterns.md`).
  */
 

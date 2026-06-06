@@ -17,7 +17,6 @@ import { DEFAULT_CONFIG } from "../../data/config/index.js";
 import type { GitSnapshot } from "../../data/git/index.js";
 import type { StdinPayload } from "../../core/stdin/index.js";
 import type { TokensSnapshot, TranscriptEvent } from "../../data/tokens/index.js";
-import type { ClaudeHealthState } from "../../data/state/claude-health-cache/snapshot.js";
 import type { Cell, WidgetContext } from "../../widgets/types.js";
 
 import { canonicalClock } from "../clock/clock.js";
@@ -114,28 +113,6 @@ export function makeWidgetContext(overrides: Partial<WidgetContext> = {}): Widge
     env: {},
     ...overrides,
   };
-}
-
-/**
- * Available claude-health snapshot, defaulting to "update available + two
- * doctor warnings". Used by doctor-check D10 and the claude-health
- * infrastructure tests. Pass `{ available: false }`-shaped overrides,
- * `needsUpdate: false`, or `doctor: null` to exercise the hidden paths.
- *
- * Note: `claude-update` and `claude-doctor` widgets were removed in PR #258;
- * this factory is retained for the claude-health subsystem tests.
- */
-export function makeClaudeHealth(
-  overrides: Partial<Extract<ClaudeHealthState, { available: true }>> = {},
-): ClaudeHealthState {
-  return Object.freeze({
-    available: true,
-    cliVersion: "2.0.10",
-    latestVersion: "2.0.14",
-    needsUpdate: true,
-    doctor: { status: "warn" as const, issues: 0, warnings: 2 },
-    ...overrides,
-  });
 }
 
 /** Minimal `Cell` builder — `text: ""` by default. */

@@ -13,6 +13,7 @@ import { dirname, join } from "node:path";
 import type { DictTranslator } from "../../../core/i18n/index.js";
 import { isPlainObject } from "../../../core/lib/object/object.js";
 import type { AgentlineConfig } from "../../../data/config/index.js";
+import type { MaybeRefreshClaudeHealthOptions } from "../../claude-health/index.js";
 import type { CheckResult } from "../types.js";
 
 /**
@@ -34,6 +35,13 @@ export interface CheckCtx {
    * translator when config is unavailable).
    */
   t: DictTranslator;
+  /**
+   * Test seam: override the claude-health refresh used by D10. When
+   * provided, D10 calls this instead of lazily importing the real
+   * refresher. Allows tests to suppress the actual `claude` probe and
+   * read only the pre-seeded cache file.
+   */
+  claudeHealthRefresh?: (options?: MaybeRefreshClaudeHealthOptions) => Promise<unknown>;
 }
 
 export const EXEC_TIMEOUTS = {

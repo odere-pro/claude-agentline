@@ -38,10 +38,6 @@ import type { GitState } from "../../data/git/index.js";
 import { buildWidgetContext, loadLiveSnapshots } from "../../render/render/context.js";
 import { loadSessionFields, type ResolvedSessionFields } from "../../data/session/index.js";
 import { loadPlanSnapshot, type PlanSnapshot } from "../../data/session/plan/plan.js";
-import {
-  loadClaudeHealthSnapshot,
-  type ClaudeHealthState,
-} from "../../data/state/claude-health-cache/snapshot.js";
 import { readLastStdinSync } from "../../data/state/stdin-cache/stdin-cache.js";
 import type { StdinPayload } from "../../core/stdin/index.js";
 import type { Theme } from "../../data/theme/index.js";
@@ -65,12 +61,6 @@ export interface PreviewMode {
   readonly git: GitState;
   /** Absent when there is no active plan (mock always supplies one). */
   readonly plan?: PlanSnapshot;
-  /**
-   * Claude-CLI health read from the off-path cache. Optional so minimal
-   * test fixtures may omit it; absence hides the claude widgets, matching
-   * an unpopulated cache.
-   */
-  readonly claudeHealth?: ClaudeHealthState;
 }
 
 export interface PreviewOptions {
@@ -141,7 +131,6 @@ function buildReal(
       session: snap.session,
       tokens: snap.tokens,
       git: snap.git,
-      claudeHealth: snap.claudeHealth,
       ...(snap.plan !== undefined ? { plan: snap.plan } : {}),
     };
   }
@@ -160,7 +149,6 @@ function buildReal(
     ...(payload.sessionId !== undefined ? { sessionId: payload.sessionId } : {}),
     ...(payload.transcriptPath !== undefined ? { transcriptPath: payload.transcriptPath } : {}),
   });
-  const claudeHealth = loadClaudeHealthSnapshot({ env });
   return {
     source,
     payload,
@@ -168,7 +156,6 @@ function buildReal(
     tokens,
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     git: _gitCache.get(cwd)!,
-    claudeHealth,
     ...(plan !== null ? { plan } : {}),
   };
 }
@@ -271,7 +258,6 @@ export function previewWidget(
     tokens: mode.tokens,
     git: mode.git,
     session: mode.session,
-    ...(mode.claudeHealth !== undefined ? { claudeHealth: mode.claudeHealth } : {}),
     ...(mode.plan !== undefined ? { plan: mode.plan } : {}),
   });
   const cell = renderWidget(builtinRegistry(), config, ctx);

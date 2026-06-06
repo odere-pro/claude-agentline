@@ -11,7 +11,7 @@ Six sibling on-disk caches under `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/`:
 - `backup/` — host-state backup written by `agentline install`; restored byte-for-byte by `agentline uninstall`.
 - `version-check-cache/` — latest-version hint refreshed by `update-check`; never consulted on the render hot path as a blocking read.
 - `session-plan-cache/` — `session_id` → its latest plan; the `plan` widget's per-session store and a fallback when the transcript is momentarily unreadable. Written best-effort on the live render path under a file lock; only on a real change.
-- `claude-health-cache/` — host `claude` CLI health (update-available + `claude doctor` summary) feeding the `claude-update` / `claude-doctor` widgets and doctor D10. Refreshed only by the off-path `claude-health` refresher (the live render spawns it detached when stale); the render path only ever reads it as a synchronous snapshot.
+- `claude-health-cache/` — host `claude` CLI health (update-available + `claude doctor` summary) feeding doctor D10. Refreshed by `doctor` inline when it runs (best-effort, via lazy import); no render-path involvement.
 
 Pipeline position: orthogonal to the render path. Reads are synchronous snapshots; writes go through the atomic helper.
 
@@ -24,7 +24,7 @@ src/data/state/
 ├── backup/              host-state backup for agentline install / uninstall
 ├── version-check-cache/ latest-version hint (refreshed by update-check)
 ├── session-plan-cache/  session_id → its latest plan (read by the plan widget)
-└── claude-health-cache/ host claude CLI health (read by claude-* widgets + doctor D10)
+└── claude-health-cache/ host claude CLI health (read by doctor D10; refreshed by doctor inline)
 
   All writes: write-temp → fsync → rename via src/core/lib/atomic-write/.
   All reads: synchronous snapshot, exactly once per render tick.

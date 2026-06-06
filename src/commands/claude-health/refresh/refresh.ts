@@ -4,10 +4,9 @@
  * npm for the latest `@anthropic-ai/claude-code`, then writes a frozen
  * summary to the cache.
  *
- * Called off the render path: by doctor's D10 check (awaited, for an
- * accurate report) and by the detached `__refresh-claude-health` process
- * the live render spawns when the cache is stale. **Never** runs on the
- * render hot path itself (gate 13 / gate 14).
+ * Called off the render path: by doctor's D10 check (awaited inline, via
+ * lazy import, for an accurate report). **Never** runs on the render hot
+ * path itself (gate 13 / gate 14).
  *
  * Cache TTL is 24h, mirroring update-check: a probe that completed within
  * the last day is trusted; a failed probe is also held for the TTL window

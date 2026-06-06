@@ -85,7 +85,6 @@ export function renderFromInputs(inputs: RenderInputs): string {
     git: inputs.git,
     session: inputs.session,
     plan: inputs.plan,
-    claudeHealth: inputs.claudeHealth,
   });
 
   const registry = defaultRegistry();
