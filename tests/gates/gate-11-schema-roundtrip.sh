@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Gate 11: schema-roundtrip — the shipped JSON Schema validates the default
-# config template without manual fix-up.
+# Gate 11: schema-roundtrip — the shipped JSON Schema validates all preset
+# config templates (default, minimal, power) without manual fix-up.
 # Spec: §4.7, §11.2 G11
-# Pass: ajv validates `templates/default.config.json` against
+# Pass: ajv validates every `templates/*.config.json` against
 #       `schemas/config.schema.json` without errors.
-# Fail: schema fails to compile, or the template fails validation.
+# Fail: schema fails to compile, or any template fails validation.
 # Skip: `dist/cli.mjs` is absent (CI builds first; local trees may not have).
 
 # shellcheck source=lib/common.sh
@@ -14,6 +14,8 @@ set -Eeuo pipefail
 
 bin="$(repo_path dist/cli.mjs)"
 default_tmpl="$(repo_path templates/default.config.json)"
+minimal_tmpl="$(repo_path templates/minimal.config.json)"
+power_tmpl="$(repo_path templates/power.config.json)"
 schema_src="$(repo_path schemas/config.schema.json)"
 
 if [ ! -f "${bin}" ]; then
@@ -83,7 +85,7 @@ node \
       process.exit(2);
     });
   ' \
-  "${schema_src}" "${report_file}" "${default_tmpl}" \
+  "${schema_src}" "${report_file}" "${default_tmpl}" "${minimal_tmpl}" "${power_tmpl}" \
   >"${work_dir}/validate.stdout" 2>"${work_dir}/validate.stderr"
 rc=$?
 set -e
@@ -97,7 +99,7 @@ if [ "${rc}" -ne 0 ]; then
     log_info "validator stderr:"
     sed 's/^/    /' "${work_dir}/validate.stderr" >&2
   fi
-  fail_gate "schema rejected the shipped default template"
+  fail_gate "schema rejected one or more shipped preset templates (see report above)"
 fi
 
-pass_gate "schema validates default template"
+pass_gate "schema validates all preset templates (default, minimal, power)"
