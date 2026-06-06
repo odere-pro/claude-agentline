@@ -168,9 +168,9 @@ Each component entry has: **Responsibility**, **Public surface**, **Inputs**, **
 ## Update-check
 
 - **Responsibility.** Compare local version against the package registry's latest stable release. Cache the result.
-- **Public surface.** `<bin> update-check` (its own verb). Render path MUST NOT invoke this.
+- **Internal helper — not a user-facing verb.** `update-check` is an out-of-render-path cache helper (see `src/commands/CLAUDE.md`); running `<bin> update-check` as a CLI command is not supported and is not part of the public surface. Remote update checks are also a stated non-goal at v0.1.0 (see `docs/cookbook/01-vision-and-goals.md`). The render path MUST NOT invoke this helper.
 - **Invariants.** Never run from the render path. Cached result has a TTL; the cache file is the only state.
-- **Failure mode.** Network failure → cache stays; user sees the last known result with a "stale" indicator.
+- **Failure mode.** Network failure → cache stays; stale indicator reported via doctor D07.
 
 ---
 

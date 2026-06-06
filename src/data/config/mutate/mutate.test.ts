@@ -279,3 +279,21 @@ describe("disk wrappers", () => {
     expect(await fs.readFile(userCfg, "utf8")).toBe(before);
   });
 });
+
+describe("ConfigMutationError message prefix", () => {
+  it("does NOT embed an 'agentline: ' prefix in the error message", () => {
+    // The dispatch() wrapper in cli.ts prepends its own 'agentline config:'
+    // prefix. If ConfigMutationError also embeds 'agentline: ' the user sees
+    // 'agentline config: agentline: unknown widget type' — a double prefix.
+    // The message must be bare so dispatch is the sole prefix.
+    let caught: Error | undefined;
+    try {
+      addWidget(baseline(), { line: 0, widget: { type: "totally-made-up" } });
+    } catch (err) {
+      caught = err as Error;
+    }
+    expect(caught).toBeInstanceOf(ConfigMutationError);
+    expect(caught!.message).not.toMatch(/^agentline:/);
+    expect(caught!.message).toContain("unknown widget type");
+  });
+});

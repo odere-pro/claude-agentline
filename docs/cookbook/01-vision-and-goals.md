@@ -28,7 +28,7 @@ Anything not on this list is not part of the v0.1.0 contract.
 
 - **Plugin distribution.** Not a plugin of the host. No manifest, no slash commands, no hook bindings.
 - **Telemetry.** Of any kind. Including anonymous usage stats.
-- **Remote update checks** on the render path. An explicit `update-check` verb may exist; it does not run implicitly.
+- **Remote update checks** on the render path. The `update-check` module is an internal cache helper; it is not a user-facing verb and does not run on the render path.
 - **Native binaries.** The runtime is single-language at v0.1. Native distribution is a v0.3+ topic.
 - **Package-manager taps** (Homebrew, etc.) at v0.1; primary channel is the language's package registry.
 - **`curl … | sh` installer.** Refused for supply-chain hygiene.
