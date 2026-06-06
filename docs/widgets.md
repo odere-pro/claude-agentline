@@ -46,35 +46,38 @@ widget instances with different `reset` axes.
 
 ## Built-in widgets
 
-22 widgets ship with v0.1.x, organised into five families. The
+25 widgets ship in v0.3.x, organised into five families. The
 authoritative registry is `src/widgets/registry/registry.ts`; this page tracks
 it.
 
-### Session (7)
+### Session (9)
 
 Surface state from the stdin payload that Claude Code emits.
 
-| Type              | Renders                                                |
-| ----------------- | ------------------------------------------------------ |
-| `model`           | the active model id (e.g. `Sonnet 4.6`)                |
-| `version`         | Claude Code version                                    |
-| `session-id`      | short session id                                       |
-| `account-email`   | logged-in account email                                |
-| `thinking-effort` | thinking-effort tier (low / medium / high)             |
-| `plan`            | active plan name (newest file in plans dir)            |
-| `project`         | project name — git repo (origin) or working-dir folder |
+| Type               | Renders                                                              |
+| ------------------ | -------------------------------------------------------------------- |
+| `model`            | the active model id (e.g. `Sonnet 4.6`)                              |
+| `version`          | Claude Code version                                                  |
+| `session-id`       | short session id                                                     |
+| `account-email`    | logged-in account email                                              |
+| `thinking-effort`  | thinking-effort tier (low / medium / high)                           |
+| `plan`             | active plan name (newest file in plans dir)                          |
+| `project`          | project name — git repo (origin) or working-dir folder               |
+| `session-duration` | host-reported session elapsed time (e.g. `12m 30s`)                  |
+| `lines-changed`    | host-reported lines added and removed this session (e.g. `+156 −23`) |
 
 Auth-file fallback: when the stdin payload omits the account email,
 `account-email` transparently re-reads `${CLAUDE_CONFIG_DIR}/.credentials.json`
 so the line is never blank for an authenticated user.
 
-### Tokens (3)
+### Tokens (4)
 
 | Type            | Renders                                           | Required `options.reset` |
 | --------------- | ------------------------------------------------- | ------------------------ |
 | `tokens`        | input ↓ and output ↑ subtotals (`↓<in> · ↑<out>`) | yes                      |
 | `tokens-cached` | cached-token subtotal (prompt-cache hits)         | yes                      |
 | `token-speed`   | input ↓ and output ↑ tokens per second (rolling)  | no — uses `windowSec`    |
+| `cost-usd`      | host-reported session cost in USD (e.g. `$1.23`)  | no                       |
 
 `tokens` and `token-speed` take optional `inputGlyph` / `outputGlyph`
 (defaults `↓` / `↑`). `token-speed` takes `windowSec` (default 60,
