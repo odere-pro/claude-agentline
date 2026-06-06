@@ -14,7 +14,7 @@
     {
       "widgets": [
         { "type": "context-percentage" },
-        { "type": "context-bar" },
+        { "type": "token-speed" },
         { "type": "tokens", "options": { "reset": "block" } }
       ]
     },

@@ -56,7 +56,7 @@ describe("shipped config template", () => {
     const layout = cfg.lines.map((l) => l.widgets.map((w) => w.type));
     expect(layout).toEqual([
       ["model", "thinking-effort", "git-branch", "git-changes"],
-      ["context-percentage", "context-bar", "tokens"],
+      ["context-percentage", "token-speed", "tokens"],
       ["session-weekly-usage", "current-session-reset-timer", "week-limit-timer"],
     ]);
     const tokens = cfg.lines[1]!.widgets.find((w) => w.type === "tokens");

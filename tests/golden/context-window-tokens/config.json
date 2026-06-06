@@ -5,9 +5,9 @@
   "lines": [
     {
       "widgets": [
-        { "type": "context-length" },
+        { "type": "model" },
         { "type": "context-percentage" },
-        { "type": "context-bar" }
+        { "type": "tokens", "options": { "reset": "block" } }
       ]
     }
   ],

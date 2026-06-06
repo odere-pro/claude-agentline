@@ -148,8 +148,7 @@ path (the first `agentline` render, and once per ~24h thereafter, spawns a
 detached probe). A `claude doctor` failure reports `fail`; a warning reports
 `warn`; an available update or a clean, current CLI reports `pass` (an
 update hint is informational). A missing CLI or an unpopulated cache reports
-`pass` with an explanation. The `claude-update` and `claude-doctor` widgets
-read the same cache. No fix.
+`pass` with an explanation. No fix.
 
 ## Output formats
 

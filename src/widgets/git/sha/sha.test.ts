@@ -7,7 +7,7 @@ import type { StdinPayload } from "../../../core/stdin/index.js";
 import { frozenClock } from "../../clock/clock.js";
 import type { WidgetContext } from "../../types.js";
 
-import { gitShaWidget, gitWorktreeWidget } from "./sha.js";
+import { gitWorktreeWidget } from "./sha.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
 
@@ -44,71 +44,6 @@ function makeCtx(git: GitState | undefined, overrides: Partial<WidgetContext> = 
     ...overrides,
   };
 }
-
-describe("git-sha widget", () => {
-  it("hides when ctx.git is absent", () => {
-    const cell = gitShaWidget.render(makeCtx(undefined), { options: {}, rawValue: false });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("hides when ctx.git.available is false", () => {
-    const cell = gitShaWidget.render(makeCtx({ available: false }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.hidden).toBe(true);
-  });
-
-  it("renders the 7-character short SHA by default", () => {
-    const cell = gitShaWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false });
-    expect(cell.text).toBe("abcdef0");
-    expect(cell.text.length).toBe(7);
-  });
-
-  it("respects options.length up to 40", () => {
-    const cell = gitShaWidget.render(makeCtx(makeSnapshot()), {
-      options: { length: 12 },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("abcdef012345");
-    expect(cell.text.length).toBe(12);
-  });
-
-  it("clamps options.length to 40", () => {
-    const cell = gitShaWidget.render(makeCtx(makeSnapshot()), {
-      options: { length: 100 },
-      rawValue: false,
-    });
-    expect(cell.text.length).toBe(40);
-  });
-
-  it("falls back to 7 for invalid options.length", () => {
-    const cellNeg = gitShaWidget.render(makeCtx(makeSnapshot()), {
-      options: { length: -1 },
-      rawValue: false,
-    });
-    expect(cellNeg.text.length).toBe(7);
-
-    const cellZero = gitShaWidget.render(makeCtx(makeSnapshot()), {
-      options: { length: 0 },
-      rawValue: false,
-    });
-    expect(cellZero.text.length).toBe(7);
-  });
-
-  it("suppresses label when rawValue: true", () => {
-    const withLabel = gitShaWidget.render(makeCtx(makeSnapshot()), {
-      options: { label: "sha:" },
-      rawValue: false,
-    });
-    const noLabel = gitShaWidget.render(makeCtx(makeSnapshot()), {
-      options: { label: "sha:" },
-      rawValue: true,
-    });
-    expect(withLabel.text).toMatch(/^sha:/);
-    expect(noLabel.text).not.toMatch(/^sha:/);
-  });
-});
 
 describe("git-worktree widget", () => {
   it("hides when not in a worktree", () => {

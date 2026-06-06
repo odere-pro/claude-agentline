@@ -4,14 +4,14 @@
  * Exports each widget def for direct import (tests, custom registries)
  * and a `registerSessionWidgets(registry)` helper for the default
  * registry bootstrap.
+ *
+ * `claude-doctor` and `claude-update` were removed in v0.1.x (PR #258).
  */
 
 import type { WidgetDef } from "../widget.js";
 import type { WidgetRegistry } from "../registry/registry.js";
 
 import { accountEmailWidget } from "./account-email.js";
-import { claudeDoctorWidget } from "./claude-doctor.js";
-import { claudeUpdateWidget } from "./claude-update.js";
 import { modelWidget } from "./model.js";
 import { planWidget } from "./plan.js";
 import { projectWidget } from "./project.js";
@@ -21,8 +21,6 @@ import { versionWidget } from "./version.js";
 
 export const SESSION_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   accountEmailWidget,
-  claudeDoctorWidget,
-  claudeUpdateWidget,
   modelWidget,
   planWidget,
   projectWidget,

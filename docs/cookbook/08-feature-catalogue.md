@@ -32,31 +32,27 @@ Surface state from the host stdin payload.
 | `tokens-cached` | Cached subtotal (prompt-cache hits)                 |
 | `token-speed`   | Input ↓ + output ↑ tokens/sec over a rolling window |
 
-### Context (3 widgets)
+### Context (1 widget)
 
-Token usage against the model's context window. Each widget appends the
+Token usage against the model's context window. The widget appends the
 model's context-window size as a postfix (e.g. `200k`, `1M`).
 
 | Type                 | Renders                                                                 |
 | -------------------- | ----------------------------------------------------------------------- |
-| `context-length`     | Raw token count + window (`45.2k · 200k`).                              |
 | `context-percentage` | Used / window, colour-graded green→yellow→red, + window (`37% · 200k`). |
-| `context-bar`        | Visual bar in the context family accent + window (`████░░░░ · 200k`).   |
 
-### Rate limits (~5 widgets)
+### Rate limits (~3 widgets)
 
 Track the host's current-session / weekly quota, mirroring the host's
 usage-limits screen.
 
-| Type                          | Renders                                  |
-| ----------------------------- | ---------------------------------------- |
-| `session-weekly-usage`        | Session + weekly % — `52% · weekly 33%`. |
-| `current-session-reset-timer` | Countdown to next session reset.         |
-| `current-session-reset-at`    | Wall-clock of next session reset.        |
-| `week-limit-timer`            | Countdown to next weekly reset.          |
-| `weekly-reset-at`             | Wall-clock of next weekly reset.         |
+| Type                          | Renders                                                                                              |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `session-weekly-usage`        | Session + weekly % — `52% · weekly 33%`.                                                             |
+| `current-session-reset-timer` | Countdown to next session reset. Variants `at-24h`, `at-12h`, `at-seconds` show the wall-clock time. |
+| `week-limit-timer`            | Countdown to next weekly reset. Variants `at-day-time`, `at-24h`, `at-12h` show the wall-clock time. |
 
-### Git (~10 widgets)
+### Git (~8 widgets)
 
 Read the working tree implied by stdin `cwd`.
 
@@ -64,10 +60,8 @@ Read the working tree implied by stdin `cwd`.
 | ------------------ | ------------------------------------------------ |
 | `git-branch`       | Branch name (detached HEAD shows short SHA).     |
 | `git-changes`      | `+N · -M` aggregate.                             |
-| `git-untracked`    | Untracked file count.                            |
 | `git-ahead-behind` | `↑N · ↓M`; hidden when even.                     |
 | `git-conflicts`    | Conflict count; hidden at zero.                  |
-| `git-sha`          | Short SHA.                                       |
 | `git-worktree`     | Worktree name when inside one.                   |
 | `git-origin-repo`  | Remote repo identifier.                          |
 | `git-upstream`     | Upstream ref.                                    |
@@ -133,7 +127,7 @@ capacity → budget:
 
 ```text
 line 1  model · thinking-effort · git-branch · git-changes
-line 2  context-percentage · context-bar · tokens
+line 2  context-percentage · token-speed · tokens
 line 3  session-weekly-usage · current-session-reset-timer · week-limit-timer
 ```
 

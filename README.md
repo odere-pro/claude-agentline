@@ -38,15 +38,15 @@ Restart Claude Code after `reset` — the statusline appears at the bottom of th
 
 ## Highlights
 
-**30 widgets across 5 families**, each covering one slice of session status:
+**22 widgets across 5 families**, each covering one slice of session status:
 
-| Family        | What it shows                                                                              |
-| ------------- | ------------------------------------------------------------------------------------------ |
-| `session`     | model, version, thinking effort, plan, project, account, Claude CLI update + doctor health |
-| `tokens`      | input / output token counts and throughput                                                 |
-| `context`     | context-window usage and a fill bar                                                        |
-| `rate-limits` | session & weekly quota usage and reset timers                                              |
-| `git`         | branch, SHA, worktree, change counts, upstream, PR                                         |
+| Family        | What it shows                                                       |
+| ------------- | ------------------------------------------------------------------- |
+| `session`     | model, version, thinking effort, plan, project, account             |
+| `tokens`      | input / output token counts and throughput                          |
+| `context`     | context-window usage percentage                                     |
+| `rate-limits` | session & weekly quota usage and reset timers (countdown + at-time) |
+| `git`         | branch, worktree, change counts, upstream, PR                       |
 
 - **Agent-friendly** — `install` adds five agentline skills to your Claude Code session, so you can install, configure, theme, troubleshoot, and update agentline by asking the agent — without leaving Claude Code.
 - **Comfortable, intuitive TUI** — `agentline edit` opens a live-preview editor with a widget picker.
@@ -126,7 +126,7 @@ agentline doctor --fix       # auto-repair settings + config wiring
 | CLI reference    | [docs/cli.md](./docs/cli.md)                         |
 | Install          | [docs/install.md](./docs/install.md)                 |
 | Configure        | [docs/config.md](./docs/config.md)                   |
-| Widgets (all 30) | [docs/widgets.md](./docs/widgets.md)                 |
+| Widgets (all 22) | [docs/widgets.md](./docs/widgets.md)                 |
 | Themes           | [docs/themes.md](./docs/themes.md)                   |
 | TUI editor keys  | [docs/keymap.md](./docs/keymap.md)                   |
 | Doctor checks    | [docs/doctor.md](./docs/doctor.md)                   |

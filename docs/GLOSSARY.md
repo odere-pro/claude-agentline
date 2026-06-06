@@ -118,7 +118,7 @@ user-facing term **family**.
 ### `variant`
 
 > A named preset of widget `options` that switches a widget's display style.
-> Example: `current-session-reset-at` has variants `time-24h`, `time-12h`, `seconds`.
+> Example: `current-session-reset-timer` has variants `at-24h`, `at-12h`, `at-seconds`.
 
 **Used in:** `WidgetVariant`, picker step 3, `agentline config widget` update verb.  
 **Distinct from:** `widget type` (what the widget is) and `options` (raw config).
@@ -145,23 +145,21 @@ user-facing term **family**.
 
 ---
 
-## Built-in widget types (30 total)
+## Built-in widget types (22 total)
 
 All types are kebab-case strings. Source of truth: `src/widgets/families/catalog.ts`.
 
-### Session family (9)
+### Session family (7)
 
-| Type              | Description                                                  |
-| ----------------- | ------------------------------------------------------------ |
-| `model`           | Active model id (e.g. Sonnet 4.6)                            |
-| `version`         | Claude Code version                                          |
-| `thinking-effort` | Thinking-effort tier: low, medium, or high                   |
-| `plan`            | Active plan for the current session                          |
-| `project`         | Project name — git repo or working-directory folder          |
-| `session-id`      | Short session id                                             |
-| `account-email`   | Logged-in account email                                      |
-| `claude-update`   | Shows the latest Claude Code CLI when an update is available |
-| `claude-doctor`   | Issue and warning counts from the host `claude doctor`       |
+| Type              | Description                                         |
+| ----------------- | --------------------------------------------------- |
+| `model`           | Active model id (e.g. Sonnet 4.6)                   |
+| `version`         | Claude Code version                                 |
+| `thinking-effort` | Thinking-effort tier: low, medium, or high          |
+| `plan`            | Active plan for the current session                 |
+| `project`         | Project name — git repo or working-directory folder |
+| `session-id`      | Short session id                                    |
+| `account-email`   | Logged-in account email                             |
 
 ### Tokens family (3)
 
@@ -171,33 +169,27 @@ All types are kebab-case strings. Source of truth: `src/widgets/families/catalog
 | `tokens-cached` | Cached-token subtotal (prompt-cache hits)              |
 | `token-speed`   | Input ↓ + output ↑ tokens per second (rolling window)  |
 
-### Context family (3)
+### Context family (1)
 
 | Type                 | Description                                                                   |
 | -------------------- | ----------------------------------------------------------------------------- |
-| `context-length`     | Tokens used, plus the model window (`45.2k / 200k`)                           |
 | `context-percentage` | Percentage of the model's context window used, plus the window (`37% · 200k`) |
-| `context-bar`        | Inline fill bar, plus the model window (`████░░░░ 200k`)                      |
 
-### Rate-limits family (5)
+### Rate-limits family (3)
 
-| Type                          | Description                                     |
-| ----------------------------- | ----------------------------------------------- |
-| `session-weekly-usage`        | Combined session + weekly usage % from the host |
-| `current-session-reset-timer` | Time remaining until the current session resets |
-| `current-session-reset-at`    | Wall-clock time of the next session reset       |
-| `week-limit-timer`            | Time remaining until the weekly limit resets    |
-| `weekly-reset-at`             | Wall-clock time of the next weekly reset        |
+| Type                          | Description                                                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `session-weekly-usage`        | Combined session + weekly usage % from the host                                                                  |
+| `current-session-reset-timer` | Countdown to the next session reset; wall-clock variants (`at-24h`, `at-12h`, `at-seconds`) via `options.format` |
+| `week-limit-timer`            | Countdown to the next weekly reset; wall-clock variants (`at-day-time`, `at-24h`, `at-12h`) via `options.format` |
 
-### Git family (10)
+### Git family (8)
 
 | Type               | Description                                 |
 | ------------------ | ------------------------------------------- |
 | `git-branch`       | Current branch, or short SHA when detached  |
-| `git-sha`          | Short commit SHA of HEAD                    |
 | `git-worktree`     | Basename of the current worktree            |
 | `git-changes`      | Staged, unstaged, and untracked file counts |
-| `git-untracked`    | Untracked-file count                        |
 | `git-conflicts`    | Merge-conflict file count                   |
 | `git-ahead-behind` | Commits ahead of and behind upstream        |
 | `git-upstream`     | Upstream branch, e.g. `origin/main`         |

@@ -56,12 +56,10 @@ const registry = new WidgetRegistry();
 registerSessionWidgets(registry);
 
 describe("registerSessionWidgets", () => {
-  it("registers exactly the 9 session widgets", () => {
-    expect(registry.size()).toBe(9);
+  it("registers exactly the 7 session widgets", () => {
+    expect(registry.size()).toBe(7);
     expect(registry.list()).toEqual([
       "account-email",
-      "claude-doctor",
-      "claude-update",
       "model",
       "plan",
       "project",
@@ -73,7 +71,7 @@ describe("registerSessionWidgets", () => {
 
   it("SESSION_WIDGETS is a frozen array", () => {
     expect(Object.isFrozen(SESSION_WIDGETS)).toBe(true);
-    expect(SESSION_WIDGETS).toHaveLength(9);
+    expect(SESSION_WIDGETS).toHaveLength(7);
   });
 });
 

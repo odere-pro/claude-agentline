@@ -14,18 +14,17 @@ import { gitAheadBehindWidget, gitConflictsWidget } from "./ahead-behind/ahead-b
 import { gitBranchWidget } from "./branch.js";
 import { gitChangesWidget } from "./changes.js";
 import { gitOriginRepoWidget, gitUpstreamWidget } from "./remote/remote.js";
-import { gitShaWidget, gitWorktreeWidget } from "./sha/sha.js";
-import { gitUntrackedWidget } from "./status/status.js";
+import { gitWorktreeWidget } from "./sha/sha.js";
 import { GIT_WIDGETS, registerGitWidgets } from "./index.js";
 
 const makeCtx = (git: GitState | undefined, overrides: Partial<WidgetContext> = {}) =>
   makeWidgetContext({ git, ...overrides });
 
 describe("registerGitWidgets", () => {
-  it("ships exactly 10 widgets in sorted order", () => {
+  it("ships exactly 8 widgets in sorted order", () => {
     const r = new WidgetRegistry();
     registerGitWidgets(r);
-    expect(r.size()).toBe(10);
+    expect(r.size()).toBe(8);
     expect(r.list()).toEqual([
       "git-ahead-behind",
       "git-branch",
@@ -33,13 +32,11 @@ describe("registerGitWidgets", () => {
       "git-conflicts",
       "git-origin-repo",
       "git-pr",
-      "git-sha",
-      "git-untracked",
       "git-upstream",
       "git-worktree",
     ]);
     expect(Object.isFrozen(GIT_WIDGETS)).toBe(true);
-    expect(GIT_WIDGETS).toHaveLength(10);
+    expect(GIT_WIDGETS).toHaveLength(8);
   });
 
   it("hides every widget when ctx.git is missing", () => {
@@ -166,23 +163,6 @@ describe("git-changes widget", () => {
   });
 });
 
-describe("git-untracked widget", () => {
-  const dirty = makeSnapshot({
-    status: { staged: 2, unstaged: 1, untracked: 3, conflicts: 0, modified: 1, added: 1 },
-  });
-
-  it("count widget renders its number", () => {
-    expect(gitUntrackedWidget.render(makeCtx(dirty), { options: {}, rawValue: false }).text).toBe(
-      "3",
-    );
-  });
-
-  it("count widget hides at zero by default", () => {
-    expect(
-      gitUntrackedWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false }).hidden,
-    ).toBe(true);
-  });
-});
 
 describe("git-ahead-behind widget", () => {
   it("hides without an upstream ref", () => {
@@ -243,22 +223,6 @@ describe("git-conflicts widget", () => {
     );
     expect(cell.text).toBe("⚡2");
     expect(cell.fg).toBe(DEFAULT_PALETTE.danger);
-  });
-});
-
-describe("git-sha widget", () => {
-  it("renders the 7-char short SHA by default", () => {
-    const cell = gitShaWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false });
-    expect(cell.text).toBe("abcdef0");
-  });
-
-  it("respects options.length up to 40", () => {
-    const cell = gitShaWidget.render(makeCtx(makeSnapshot()), {
-      options: { length: 12 },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("abcdef012345");
-    expect(cell.text.length).toBe(12);
   });
 });
 

@@ -4,7 +4,7 @@
 
 ## Scope
 
-The git widget family. Two widgets live at the root (`branch.ts` → `git-branch`, `changes.ts` → `git-changes`); the remaining five live in sub-folders. All consume the frozen snapshot from `src/data/git/snapshot/` — they never invoke `git` themselves.
+The git widget family. Two widgets live at the root (`branch.ts` → `git-branch`, `changes.ts` → `git-changes`); the remaining six live in sub-folders. All consume the frozen snapshot from `src/data/git/snapshot/` — they never invoke `git` themselves.
 
 ## Map
 
@@ -12,11 +12,10 @@ The git widget family. Two widgets live at the root (`branch.ts` → `git-branch
 src/widgets/git/
 ├── branch.ts        git-branch       current branch name
 ├── changes.ts       git-changes      working-tree change counters
-├── ahead-behind/    git-ahead-behind ahead / behind counters vs upstream
+├── ahead-behind/    git-ahead-behind ahead / behind counters vs upstream; also git-conflicts
 ├── pr/              git-pr           optional PR widget (absent ⇒ hidden cell)
-├── remote/          git-remote       remote-name display
-├── sha/             git-sha          short commit SHA
-└── status/          git-status       working-tree status summary
+├── remote/          git-remote       git-upstream + git-origin-repo
+└── sha/             git-worktree     worktree name when inside a worktree checkout
 
   All widgets consume data/git/snapshot/ (never invoke git themselves).
   Pure (ctx, settings) → Cell; absent snapshot ⇒ hidden cell.
