@@ -17,8 +17,6 @@ import { frozenClock } from "../clock/clock.js";
 import type { WidgetContext } from "../types.js";
 import { WidgetRegistry } from "../registry/registry.js";
 
-import { contextBarWidget } from "../context/context-bar/context-bar.js";
-import { contextLengthWidget } from "../context/context-length/context-length.js";
 import { contextPercentageWidget } from "../context/percentage/percentage.js";
 import { registerContextWidgets, CONTEXT_WIDGETS } from "../context/index.js";
 
@@ -234,17 +232,6 @@ describe("speed widgets", () => {
 });
 
 describe("context widgets", () => {
-  it("context-length sums input + cached for the session", () => {
-    const ctx = makeCtx(
-      makeSnapshot([
-        ev({ timestamp: 0, inputTokens: 1500, outputTokens: 9999, cachedTokens: 500 }),
-      ]),
-    );
-    expect(contextLengthWidget.render(ctx, { options: {}, rawValue: false }).text).toBe(
-      "2k · 200k",
-    );
-  });
-
   it("context-percentage divides by the model's window", () => {
     const ctx = makeCtx(
       makeSnapshot([ev({ timestamp: 0, inputTokens: 100_000 })], { contextWindow: 200_000 }),
@@ -265,21 +252,6 @@ describe("context widgets", () => {
     }
   });
 
-  it("context-bar renders the configured width plus the window postfix", () => {
-    const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 0, inputTokens: 50_000 })], { contextWindow: 200_000 }),
-    );
-    const cell = contextBarWidget.render(ctx, {
-      options: { width: 8, filled: "#", empty: "." },
-      rawValue: false,
-    });
-    expect(cell.text).toBe("##...... · 200k");
-  });
-
-  it("context-bar handles a missing snapshot", () => {
-    const cell = contextBarWidget.render(makeCtx(undefined), { options: {}, rawValue: false });
-    expect(cell.hidden).toBe(true);
-  });
 });
 
 describe("registries", () => {
@@ -290,11 +262,11 @@ describe("registries", () => {
     expect(r.list()).toEqual(["token-speed", "tokens", "tokens-cached"]);
   });
 
-  it("registerContextWidgets installs all three widgets", () => {
+  it("registerContextWidgets installs the context-percentage widget", () => {
     const r = new WidgetRegistry();
     registerContextWidgets(r);
-    expect(r.size()).toBe(3);
-    expect(r.list()).toEqual(["context-bar", "context-length", "context-percentage"]);
+    expect(r.size()).toBe(1);
+    expect(r.list()).toEqual(["context-percentage"]);
   });
 
   it("TOKEN_WIDGETS and CONTEXT_WIDGETS are frozen", () => {

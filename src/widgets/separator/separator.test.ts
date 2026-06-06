@@ -18,7 +18,7 @@ import type { WidgetContext } from "../types.js";
 import { joinValues, valueSeparator } from "./separator.js";
 
 import { tokensWidget } from "../tokens/fields.js";
-import { contextLengthWidget } from "../context/context-length/context-length.js";
+import { contextPercentageWidget } from "../context/percentage/percentage.js";
 import { sessionWeeklyUsageWidget } from "../rate-limits/usage.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
@@ -93,18 +93,18 @@ describe("widgets honour the configured separator", () => {
     expect(dflt.text).toBe("↓100 · ↑200");
   });
 
-  it("postfix widget (context-length) uses a custom separator", () => {
-    const snapshot = makeSnapshot([ev({ timestamp: 0, inputTokens: 150_000 })]);
-    const custom = contextLengthWidget.render(ctxWithSeparator("/", { tokens: snapshot }), {
+  it("postfix widget (context-percentage) uses a custom separator", () => {
+    const snapshot = makeSnapshot([ev({ timestamp: 0, inputTokens: 100_000 })]);
+    const custom = contextPercentageWidget.render(ctxWithSeparator("/", { tokens: snapshot }), {
       options: {},
       rawValue: false,
     });
-    const dflt = contextLengthWidget.render(ctxWithSeparator("·", { tokens: snapshot }), {
+    const dflt = contextPercentageWidget.render(ctxWithSeparator("·", { tokens: snapshot }), {
       options: {},
       rawValue: false,
     });
-    expect(custom.text).toBe("150k / 200k");
-    expect(dflt.text).toBe("150k · 200k");
+    expect(custom.text).toBe("50% / 200k");
+    expect(dflt.text).toBe("50% · 200k");
   });
 
   it("parts.join widget (session-weekly-usage) uses a custom separator", () => {

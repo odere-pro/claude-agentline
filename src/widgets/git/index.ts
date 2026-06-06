@@ -6,6 +6,8 @@
  *
  * All git widgets read from the `ctx.git` snapshot (loaded once per
  * render tick) — no widget shells out from `render()` itself.
+ *
+ * `git-sha` and `git-untracked` were removed in v0.1.x (PR #258).
  */
 
 import { eraseWidget, type WidgetDef } from "../widget.js";
@@ -16,15 +18,12 @@ import { gitBranchWidget } from "./branch.js";
 import { gitChangesWidget } from "./changes.js";
 import { gitPrWidget } from "./pr/pr.js";
 import { gitOriginRepoWidget, gitUpstreamWidget } from "./remote/remote.js";
-import { gitShaWidget, gitWorktreeWidget } from "./sha/sha.js";
-import { gitUntrackedWidget } from "./status/status.js";
+import { gitWorktreeWidget } from "./sha/sha.js";
 
 export const GIT_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   eraseWidget(gitBranchWidget),
-  eraseWidget(gitShaWidget),
   eraseWidget(gitWorktreeWidget),
   eraseWidget(gitChangesWidget),
-  eraseWidget(gitUntrackedWidget),
   eraseWidget(gitConflictsWidget),
   eraseWidget(gitAheadBehindWidget),
   eraseWidget(gitUpstreamWidget),

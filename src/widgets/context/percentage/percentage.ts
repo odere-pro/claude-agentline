@@ -1,11 +1,10 @@
 /**
  * `context-percentage` widget (§7.4). Used / window ratio, followed by
  * the model's context-window size (e.g. `37% · 200k`). Renders in the
- * context family accent — no per-widget colour, so every context widget
- * reads as one family.
+ * context family accent — no per-widget colour, so the family reads as
+ * one consistent surface.
  *
- * The `{ used, window }` resolution lives in `./usage.ts` and is shared
- * with `context-bar`.
+ * The `{ used, window }` resolution lives in `../usage.ts`.
  */
 
 import type { Cell } from "../../cell/cell.js";

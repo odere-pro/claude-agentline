@@ -45,7 +45,7 @@ See [install.md](./install.md) for `--force`, `--dry-run`, and `CLAUDE_CONFIG_DI
 
 ## Step 2 — See the default
 
-Restart your Claude Code session. The statusline appears at the bottom of the prompt with the default three-line layout (line 1: model, thinking-effort, git-branch, git-changes; line 2: context-percentage, context-bar, tokens; line 3: session-weekly-usage, current-session-reset-timer, week-limit-timer).
+Restart your Claude Code session. The statusline appears at the bottom of the prompt with the default three-line layout (line 1: model, thinking-effort, git-branch, git-changes; line 2: context-percentage, token-speed, tokens; line 3: session-weekly-usage, current-session-reset-timer, week-limit-timer).
 
 If it doesn't render:
 
@@ -96,7 +96,7 @@ The prior `statusLine` was backed up at install time and is restored from `~/.co
 | ------------------------------------- | ------------------------------------------ |
 | Change widgets or layout              | [config.md](./config.md)                   |
 | Pick or author a theme                | [themes.md](./themes.md)                   |
-| Browse all 30 available widgets       | [widgets.md](./widgets.md)                 |
+| Browse all 22 available widgets       | [widgets.md](./widgets.md)                 |
 | Use the interactive TUI config editor | [keymap.md](./keymap.md)                   |
 | Understand health checks in detail    | [doctor.md](./doctor.md)                   |
 | Something is broken                   | [troubleshooting.md](./troubleshooting.md) |

@@ -82,10 +82,10 @@ export interface StdinPayload {
   transcriptPath?: string;
   /**
    * Current-prompt context window snapshot Claude Code reports. The
-   * `context-percentage` / `context-bar` widgets read this directly so
-   * the value reflects the CURRENT turn's window usage (what the user
-   * sees in Claude Code) instead of a cumulative session sum, which can
-   * exceed the model's window many times over.
+   * `context-percentage` widget reads this directly so the value reflects
+   * the CURRENT turn's window usage (what the user sees in Claude Code)
+   * instead of a cumulative session sum, which can exceed the model's
+   * window many times over.
    *
    *   - `usedTokens`    `current_usage.input_tokens + cache_read + cache_creation`.
    *   - `windowSize`    `context_window_size` (the model's window).

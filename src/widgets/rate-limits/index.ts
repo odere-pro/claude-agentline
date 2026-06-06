@@ -6,25 +6,25 @@
  *
  * Widgets shipped:
  *   - session-weekly-usage        (combined session + weekly usage %)
- *   - current-session-reset-timer (countdown to the next session reset)
- *   - current-session-reset-at    (wall-clock of the next session reset)
- *   - week-limit-timer            (countdown to the next weekly reset)
- *   - weekly-reset-at             (wall-clock of the next weekly reset)
+ *   - current-session-reset-timer (countdown to the next session reset;
+ *                                  wall-clock variants via clock-format tokens)
+ *   - week-limit-timer            (countdown to the next weekly reset;
+ *                                  wall-clock variants via clock-format tokens)
+ *
+ * The former `current-session-reset-at` and `weekly-reset-at` widgets were
+ * folded into format variants of the corresponding timer widgets (PR #258).
  */
 
 import { eraseWidget, type WidgetDef } from "../widget.js";
 import type { WidgetRegistry } from "../registry/registry.js";
 
-import { currentSessionResetAtWidget, weeklyResetAtWidget } from "./reset-at.js";
 import { currentSessionResetTimerWidget, weekLimitTimerWidget } from "./timers.js";
 import { sessionWeeklyUsageWidget } from "./usage.js";
 
 export const RATE_LIMIT_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   eraseWidget(sessionWeeklyUsageWidget),
   eraseWidget(currentSessionResetTimerWidget),
-  eraseWidget(currentSessionResetAtWidget),
   eraseWidget(weekLimitTimerWidget),
-  eraseWidget(weeklyResetAtWidget),
 ]);
 
 export function registerRateLimitWidgets(registry: WidgetRegistry): void {

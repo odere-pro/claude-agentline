@@ -2,8 +2,6 @@
  * Shared formatting helpers for token widgets.
  */
 
-/** Upper bound on the rendered bar width — see clampWidth doc. */
-const MAX_BAR_WIDTH = 80;
 
 /** Magnitude breakpoints for count + rate formatting. */
 const KILO = 1_000;
@@ -18,15 +16,6 @@ const ROLE_THRESHOLDS = {
   low: 0.6,
   high: 0.8,
 } as const;
-
-/**
- * Clamp a bar-width option to a sane integer in [1, MAX_BAR_WIDTH].
- * Returns `fallback` when the value is absent, non-finite, or non-positive.
- */
-export function clampWidth(value: number | undefined, fallback: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return fallback;
-  return Math.min(Math.floor(value), MAX_BAR_WIDTH);
-}
 
 function trim1(value: number): string {
   const s = value.toFixed(1);

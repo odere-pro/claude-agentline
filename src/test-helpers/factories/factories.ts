@@ -118,9 +118,12 @@ export function makeWidgetContext(overrides: Partial<WidgetContext> = {}): Widge
 
 /**
  * Available claude-health snapshot, defaulting to "update available + two
- * doctor warnings" so the `claude-update` / `claude-doctor` widgets render.
- * Pass `{ available: false }`-shaped overrides, `needsUpdate: false`, or
- * `doctor: null` to exercise the hidden paths.
+ * doctor warnings". Used by doctor-check D10 and the claude-health
+ * infrastructure tests. Pass `{ available: false }`-shaped overrides,
+ * `needsUpdate: false`, or `doctor: null` to exercise the hidden paths.
+ *
+ * Note: `claude-update` and `claude-doctor` widgets were removed in PR #258;
+ * this factory is retained for the claude-health subsystem tests.
  */
 export function makeClaudeHealth(
   overrides: Partial<Extract<ClaudeHealthState, { available: true }>> = {},

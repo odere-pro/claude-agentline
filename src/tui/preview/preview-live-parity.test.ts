@@ -146,7 +146,7 @@ afterEach(() => {
 describe("preview↔live parity", () => {
   const env: NodeJS.ProcessEnv = { COLORTERM: "truecolor" };
   const widgets: WidgetConfig[] = [
-    { type: "context-length" }, // accepted resolveContextUsage path, family accent
+    { type: "context-percentage" }, // accepted resolveContextUsage path, family accent
     { type: "model" }, // non-signal family accent
     { type: "git-branch" }, // signal → theme role git-clean
     { type: "model", fg: "#ff0080" }, // per-widget override wins

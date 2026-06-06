@@ -28,9 +28,9 @@ describe("WIDGET_CATALOG", () => {
     expect({ missing, extra }).toEqual({ missing: [], extra: [] });
   });
 
-  it("covers all 30 shipped widgets", () => {
-    expect(Object.keys(WIDGET_CATALOG)).toHaveLength(30);
-    expect(builtinRegistry().size()).toBe(30);
+  it("covers all 22 shipped widgets", () => {
+    expect(Object.keys(WIDGET_CATALOG)).toHaveLength(22);
+    expect(builtinRegistry().size()).toBe(22);
   });
 
   it("every entry has a non-empty description of at most 80 chars", () => {
@@ -82,18 +82,17 @@ describe("WIDGET_CATALOG — variants", () => {
       "short",
       "long",
       "clock",
+      "at-24h",
+      "at-12h",
+      "at-seconds",
     ]);
-    expect(widgetVariants("current-session-reset-at").map((v) => v.id)).toEqual([
-      "time-24h",
-      "time-12h",
-      "seconds",
-    ]);
-    expect(widgetVariants("week-limit-timer").map((v) => v.id)).toEqual(["short", "long", "clock"]);
-    expect(widgetVariants("weekly-reset-at").map((v) => v.id)).toEqual([
-      "day-time",
-      "day-only",
-      "time-24h",
-      "time-12h",
+    expect(widgetVariants("week-limit-timer").map((v) => v.id)).toEqual([
+      "short",
+      "long",
+      "clock",
+      "at-day-time",
+      "at-24h",
+      "at-12h",
     ]);
   });
 
@@ -101,7 +100,7 @@ describe("WIDGET_CATALOG — variants", () => {
     expect(widgetVariants("git-branch")).toEqual([]);
     expect(widgetVariants("model")).toEqual([]);
     expect(widgetVariants("plan")).toEqual([]);
-    expect(widgetVariants("context-length")).toEqual([]);
+    expect(widgetVariants("context-percentage")).toEqual([]);
     expect(widgetVariants("session-weekly-usage")).toEqual([]);
     expect(widgetVariants("does-not-exist")).toEqual([]);
   });
@@ -126,8 +125,9 @@ describe("activeVariantId", () => {
   it("recognises the active variant from a widget's options", () => {
     expect(activeVariantId("account-email", { mask: "domain" })).toBe("domain");
     expect(activeVariantId("account-email", { mask: "none" })).toBe("full");
-    expect(activeVariantId("current-session-reset-at", { format: "h:mma" })).toBe("time-12h");
+    expect(activeVariantId("current-session-reset-timer", { format: "h:mma" })).toBe("at-12h");
     expect(activeVariantId("current-session-reset-timer", { format: "long" })).toBe("long");
+    expect(activeVariantId("week-limit-timer", { format: "EEE D HH:mm" })).toBe("at-day-time");
   });
 
   it("ignores extra keys when matching (variant only constrains the keys it declares)", () => {
@@ -139,7 +139,7 @@ describe("activeVariantId", () => {
   it("returns null when no variant matches", () => {
     expect(activeVariantId("account-email", { mask: "weird" })).toBeNull();
     expect(activeVariantId("account-email", undefined)).toBeNull(); // no variant key set
-    expect(activeVariantId("git-branch", {})).toBeNull(); // no variants defined
+    expect(activeVariantId("git-worktree", {})).toBeNull(); // no variants defined
   });
 });
 

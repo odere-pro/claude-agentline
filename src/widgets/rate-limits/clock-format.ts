@@ -1,7 +1,8 @@
 /**
- * Wall-clock token formatter shared by the reset-at widgets
- * (`current-session-reset-at`, `weekly-reset-at`). Renders a `Clock`'s
- * `now()` through a small strftime-like token vocabulary:
+ * Wall-clock token formatter used by the timer widgets
+ * (`current-session-reset-timer`, `week-limit-timer`) when an at-*
+ * clock-format variant is selected. Renders a `Clock`'s `now()` through
+ * a small strftime-like token vocabulary:
  *
  *   - `HH:mm`         (default) → 14:32
  *   - `HH:mm:ss`                  → 14:32:05

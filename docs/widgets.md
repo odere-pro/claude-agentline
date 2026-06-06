@@ -46,33 +46,23 @@ widget instances with different `reset` axes.
 
 ## Built-in widgets
 
-30 widgets ship with v0.1.0, organised into five families. The
+22 widgets ship with v0.1.x, organised into five families. The
 authoritative registry is `src/widgets/registry/registry.ts`; this page tracks
 it.
 
-### Session (9)
+### Session (7)
 
 Surface state from the stdin payload that Claude Code emits.
 
-| Type              | Renders                                                          |
-| ----------------- | ---------------------------------------------------------------- |
-| `model`           | the active model id (e.g. `Sonnet 4.6`)                          |
-| `version`         | Claude Code version                                              |
-| `session-id`      | short session id                                                 |
-| `account-email`   | logged-in account email                                          |
-| `thinking-effort` | thinking-effort tier (low / medium / high)                       |
-| `plan`            | active plan name (newest file in plans dir)                      |
-| `project`         | project name — git repo (origin) or working-dir folder           |
-| `claude-update`   | latest Claude Code CLI when an update is available (else hidden) |
-| `claude-doctor`   | issue/warning counts from `claude doctor` (else hidden)          |
-
-`claude-update` and `claude-doctor` read an off-render-path cache of the
-host `claude` CLI's health. The cache is refreshed lazily — the first live
-`agentline` render (and once per ~24h thereafter) spawns a detached
-`claude --version` + `claude doctor` probe and an npm latest-version check,
-then writes the result for the next render to read. Both widgets hide until
-that cache is populated, when the CLI is current, or when `claude doctor` is
-clean. See doctor check [D10](./doctor.md#d10--claude-cli-health).
+| Type              | Renders                                                |
+| ----------------- | ------------------------------------------------------ |
+| `model`           | the active model id (e.g. `Sonnet 4.6`)                |
+| `version`         | Claude Code version                                    |
+| `session-id`      | short session id                                       |
+| `account-email`   | logged-in account email                                |
+| `thinking-effort` | thinking-effort tier (low / medium / high)             |
+| `plan`            | active plan name (newest file in plans dir)            |
+| `project`         | project name — git repo (origin) or working-dir folder |
 
 Auth-file fallback: when the stdin payload omits the account email,
 `account-email` transparently re-reads `${CLAUDE_CONFIG_DIR}/.credentials.json`
@@ -90,25 +80,16 @@ so the line is never blank for an authenticated user.
 (defaults `↓` / `↑`). `token-speed` takes `windowSec` (default 60,
 clamped 1–3600) instead of a reset axis.
 
-### Context (3)
+### Context (1)
 
 | Type                 | Renders                                       |
 | -------------------- | --------------------------------------------- |
-| `context-length`     | tokens currently in the context window        |
 | `context-percentage` | percentage of the model's context window used |
-| `context-bar`        | tiny inline bar approximating context fill    |
 
-Each of these appends the current model's context-window size as a
-postfix — `context-length` → `45.2k · 200k`, `context-percentage` →
-`37% · 200k`, `context-bar` → `████░░░░ · 200k` (`1M` for the 1M-token
-model variants). The postfix is omitted when the window size is unknown
-(synthetic fallback). `context-bar` carries no usage-threshold colour;
-it renders in the `context` family accent like every other surface that
-shows the family.
-
-`context-percentage` and `context-bar` share one `{ used, window }`
-resolver in `src/widgets/context/usage.ts`, applying three sources in
-priority order:
+`context-percentage` appends the current model's context-window size as a
+postfix — e.g. `37% · 200k` (`1M` for the 1M-token model variants). The
+postfix is omitted when the window size is unknown (synthetic fallback).
+It resolves usage through three sources in priority order:
 
 1. **`context_window.current_usage` from stdin.** The sum
    `input_tokens + cache_read_input_tokens + cache_creation_input_tokens`
@@ -120,21 +101,19 @@ priority order:
    meaningful number (the synthetic window is too small to surface a
    size postfix, so that is dropped).
 3. **Local transcript aggregate.** Legacy fallback for hosts that
-   don't ship `context_window` on stdin. It sums every prompt's input
-   across the session and over-counts on long sessions (this is the
-   path that produced the old "999 %" display). Kept only so older
-   Claude Code versions and golden fixtures still render.
+   don't ship `context_window` on stdin.
 
-### Rate limits (5)
+### Rate limits (3)
 
 Mirrors the host's usage-limits screen: one combined current-session +
-weekly usage cell, and their resets. All five read Claude Code's own
+weekly usage cell, and two timer widgets that carry both countdown and
+wall-clock (absolute-time) variants. All three read Claude Code's own
 `rate_limits` block off stdin, so they match what you see on the host's
 `/usage` screen. The usage widget reads `used_percentage` and includes
 whichever window the host ships, hiding only when **neither** is present
 (older Claude Code, fixtures with no usage data) — there is no
 transcript-derived fallback, which would over-count and disagree with
-the host. The four reset widgets read `resets_at` and **fall back** to a
+the host. The timer widgets read `resets_at` and **fall back** to a
 local estimate when the host omits it, so they still render on older
 Claude Code.
 
@@ -142,9 +121,26 @@ Claude Code.
 | ----------------------------- | ------------------------------------------------------------------ |
 | `session-weekly-usage`        | combined session + weekly usage % — `52% · weekly 33%`             |
 | `current-session-reset-timer` | time to the next session reset (`rate_limits.five_hour.resets_at`) |
-| `current-session-reset-at`    | wall-clock of the next session reset (e.g. `resets 18:30`)         |
 | `week-limit-timer`            | time to the next weekly reset (`rate_limits.seven_day.resets_at`)  |
-| `weekly-reset-at`             | wall-clock of the next weekly reset (e.g. `week resets …`)         |
+
+**Wall-clock variants.** Both timer widgets double as wall-clock
+(absolute-time) widgets when `options.format` is set to a clock-format
+string — any format that is not a duration keyword (`short`, `long`,
+`clock`, `compact`). Set `format` to a wall-clock token string and the
+widget renders the absolute reset time instead of the countdown:
+
+| Widget                        | Format string   | Example output            |
+| ----------------------------- | --------------- | ------------------------- |
+| `current-session-reset-timer` | `"HH:mm"`       | `resets 18:30`            |
+| `current-session-reset-timer` | `"h:mma"`       | `resets 6:30pm`           |
+| `current-session-reset-timer` | `"HH:mm:ss"`    | `resets 18:30:45`         |
+| `week-limit-timer`            | `"EEE D HH:mm"` | `week resets Mon 5 00:00` |
+| `week-limit-timer`            | `"HH:mm"`       | `week resets 00:00`       |
+| `week-limit-timer`            | `"h:mma"`       | `week resets 12:00am`     |
+
+The picker lists these as pre-built variants (`at-24h`, `at-12h`,
+`at-seconds` for the session timer; `at-day-time`, `at-24h`, `at-12h`
+for the week timer).
 
 `session-weekly-usage` renders both windows as `52% · weekly 33%`,
 dropping a half when the host omits that window (session-only → `52%`,
@@ -153,7 +149,7 @@ host-provided `plan` field if Claude Code ever ships one, else the
 configured `options.plan` (e.g. `{ "plan": "Max" }` →
 `Max 52% · weekly 33%`). Out of the box there is no prefix.
 
-The reset widgets prefer the host's `rate_limits.*.resets_at` and only
+The timer widgets prefer the host's `rate_limits.*.resets_at` and only
 fall back to a local estimate when Claude Code doesn't ship it. The
 weekly fallback defaults to a local **Monday 00:00** reset;
 `options.resetWeekday` (`0`=Sunday … `6`=Saturday) and
@@ -161,22 +157,20 @@ weekly fallback defaults to a local **Monday 00:00** reset;
 fallback only** — when the host ships `resets_at`, it wins regardless.
 Example: `{ "resetWeekday": 4, "resetHour": 12 }` keeps a Thursday-12:00
 estimate for older Claude Code. A stale (past) host reset renders `0m`
-for the timers and the past wall-clock for the reset-at widgets,
+for the countdown variants and the past wall-clock for the at-\* variants,
 self-correcting on the next render.
 
-### Git (10)
+### Git (8)
 
 Git widgets activate only when the working directory is a git checkout;
 otherwise they hide themselves. They share a single per-render snapshot
-so a line with a dozen git widgets only spawns `git` once.
+so a line with several git widgets only spawns `git` once.
 
 | Type               | Renders                                                                |
 | ------------------ | ---------------------------------------------------------------------- |
 | `git-branch`       | current branch (or short SHA when detached)                            |
-| `git-sha`          | short commit SHA                                                       |
 | `git-worktree`     | basename of the current worktree                                       |
 | `git-changes`      | summary of insertions / deletions from `git diff --shortstat`          |
-| `git-untracked`    | untracked-file count                                                   |
 | `git-conflicts`    | merge-conflict file count                                              |
 | `git-ahead-behind` | commits ahead of and behind upstream                                   |
 | `git-upstream`     | upstream branch (`origin/main`)                                        |
@@ -211,7 +205,7 @@ A useful starting point is `templates/default.config.json`:
     { "type": "git-branch" }, { "type": "git-changes" }
   ] },
   { "widgets": [
-    { "type": "context-percentage" }, { "type": "context-bar" },
+    { "type": "context-percentage" },
     { "type": "tokens", "options": { "reset": "block" } }
   ] },
   { "widgets": [
