@@ -1,32 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/odere-pro/claude-agentline/schemas/config.schema.json",
+  "$id": "https://raw.githubusercontent.com/odere-pro/claude-agentline/main/schemas/config.schema.json",
   "title": "agentline configuration",
   "description": "Schema for agentline statusline configuration.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string" },
-    "version": { "type": "integer", "minimum": 1, "default": 1 },
+    "version": { "type": "integer", "enum": [1], "default": 1 },
     "theme": { "type": ["string", "null"], "default": null },
-    "lines": {
-      "type": "array",
-      "minItems": 1,
-      "items": { "$ref": "#/definitions/line" }
-    },
+    "lines": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/line" } },
     "global": { "$ref": "#/definitions/global" },
     "powerline": { "$ref": "#/definitions/powerline" },
     "terminalWidth": { "$ref": "#/definitions/terminalWidth" },
-    "keymap": {
-      "type": "object",
-      "additionalProperties": { "type": "string" },
-      "default": {}
-    },
-    "language": {
-      "type": "string",
-      "minLength": 1,
-      "default": "en"
-    },
+    "keymap": { "type": "object", "additionalProperties": { "type": "string" }, "default": {} },
+    "language": { "type": "string", "minLength": 1, "default": "en" },
     "refreshInterval": { "type": "integer", "minimum": 0, "default": 5 },
     "families": {
       "type": "object",
@@ -43,10 +31,7 @@
     "translations": {
       "type": "object",
       "default": {},
-      "additionalProperties": {
-        "type": "object",
-        "additionalProperties": { "type": "string" }
-      }
+      "additionalProperties": { "type": "object", "additionalProperties": { "type": "string" } }
     }
   },
   "required": ["version"],
@@ -81,9 +66,7 @@
         { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
       ]
     },
-    "colourOrNull": {
-      "oneOf": [{ "$ref": "#/definitions/colour" }, { "type": "null" }]
-    },
+    "colourOrNull": { "oneOf": [{ "$ref": "#/definitions/colour" }, { "type": "null" }] },
     "familyIdentity": {
       "type": "object",
       "additionalProperties": false,
@@ -104,11 +87,7 @@
       "additionalProperties": false,
       "required": ["widgets"],
       "properties": {
-        "widgets": {
-          "type": "array",
-          "minItems": 0,
-          "items": { "$ref": "#/definitions/widget" }
-        }
+        "widgets": { "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/widget" } }
       }
     },
     "widget": {
@@ -116,7 +95,40 @@
       "additionalProperties": false,
       "required": ["type"],
       "properties": {
-        "type": { "type": "string", "minLength": 1 },
+        "type": {
+          "type": "string",
+          "enum": [
+            "account-email",
+            "clock",
+            "context-percentage",
+            "cost-usd",
+            "current-session-reset-timer",
+            "cwd-path",
+            "git-ahead-behind",
+            "git-branch",
+            "git-changes",
+            "git-conflicts",
+            "git-origin-repo",
+            "git-pr",
+            "git-upstream",
+            "git-worktree",
+            "lines-changed",
+            "model",
+            "output-style",
+            "plan",
+            "project",
+            "session-duration",
+            "session-id",
+            "session-weekly-usage",
+            "thinking-effort",
+            "token-speed",
+            "tokens",
+            "tokens-cached",
+            "version",
+            "vim-mode",
+            "week-limit-timer"
+          ]
+        },
         "id": { "type": "string" },
         "fg": { "$ref": "#/definitions/colourOrNull" },
         "bg": { "$ref": "#/definitions/colourOrNull" },
@@ -129,7 +141,11 @@
           "default": "off"
         },
         "hidden": { "type": "boolean", "default": false },
-        "options": { "type": "object", "additionalProperties": true }
+        "options": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Per-widget option bag. `label` is the universal option (a prefix every widget reads via settings.options.label); other keys and their value ranges are validated against the widget catalogue by `agentline config widget add` / `set-option`."
+        }
       }
     },
     "global": {

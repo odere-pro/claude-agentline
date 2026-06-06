@@ -99,7 +99,7 @@ describe("shipped theme", () => {
     );
     const json = JSON.parse(raw) as { $id: string };
     expect(json.$id).toBe(
-      "https://github.com/odere-pro/claude-agentline/schemas/theme.schema.json",
+      "https://raw.githubusercontent.com/odere-pro/claude-agentline/main/schemas/theme.schema.json",
     );
   });
 });

@@ -11,7 +11,7 @@ const COLOUR_PATTERN =
   "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$";
 
 export const THEME_JSON_SCHEMA = {
-  $id: "https://github.com/odere-pro/claude-agentline/schemas/theme.schema.json",
+  $id: "https://raw.githubusercontent.com/odere-pro/claude-agentline/main/schemas/theme.schema.json",
   $schema: "https://json-schema.org/draft/2020-12/schema",
   title: "agentline theme",
   type: "object",

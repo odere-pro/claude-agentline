@@ -73,13 +73,13 @@ describe("runWidgetSetOptionCommand", () => {
   it("merges the option into the widget and confirms on stdout", async () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const code = await runWidgetSetOptionCommand({
-      args: { line: 0, at: 0, key: "format", value: "human" },
+      args: { line: 0, at: 0, key: "inputGlyph", value: ">" },
       env: { CLAUDE_CONFIG_DIR: claudeCfgDir },
     });
     expect(code).toBe(0);
-    expect(String(stdout.mock.calls[0]?.[0] ?? "")).toMatch(/set option 'format'/);
+    expect(String(stdout.mock.calls[0]?.[0] ?? "")).toMatch(/set option 'inputGlyph'/);
     const onDisk = JSON.parse(await fs.readFile(userCfg, "utf8")) as AgentlineConfig;
-    expect(onDisk.lines[0]?.widgets[0]?.options).toEqual({ reset: "block", format: "human" });
+    expect(onDisk.lines[0]?.widgets[0]?.options).toEqual({ reset: "block", inputGlyph: ">" });
   });
 
   it("propagates a forbidden-key error and leaves the file untouched", async () => {

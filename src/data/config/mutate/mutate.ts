@@ -27,6 +27,10 @@ import { writeJsonIdempotent } from "../../../core/lib/atomic-write/atomic-write
 import { resolveEnv } from "../../../core/lib/env/env.js";
 import { withFileLock } from "../../../core/lib/file-lock/file-lock.js";
 import { WIDGET_CATALOG } from "../../../widgets/families/catalog.js";
+import {
+  validateWidgetOption,
+  validateWidgetOptions,
+} from "../../../widgets/families/option-spec/option-spec.js";
 
 import {
   ConfigMutationError,
@@ -66,6 +70,7 @@ function assertValidLineIndex(index: number | undefined): void {
 /** Insert `widget` into `lines[line]` at `at` (or the end). */
 export function addWidget(cfg: AgentlineConfig, spec: AddWidgetSpec): AgentlineConfig {
   assertWidgetType(spec.widget.type);
+  assertWidgetOptions(spec.widget);
   assertLineWithinCap(spec.line, "add");
   const lines = cloneLines(cfg.lines, spec.line);
   const target = requireLine(lines, spec.line, "add");
@@ -87,6 +92,7 @@ export function removeWidget(cfg: AgentlineConfig, spec: RemoveWidgetSpec): Agen
 /** Replace the widget at `lines[line][at]` with `widget`. */
 export function replaceWidget(cfg: AgentlineConfig, spec: ReplaceWidgetSpec): AgentlineConfig {
   assertWidgetType(spec.widget.type);
+  assertWidgetOptions(spec.widget);
   const lines = cloneLines(cfg.lines);
   const target = requireLine(lines, spec.line, "replace");
   requireWidgetIndex(target.widgets.length, spec.at, spec.line);
@@ -121,6 +127,8 @@ export function setWidgetOption(cfg: AgentlineConfig, spec: SetWidgetOptionSpec)
   const lines = cloneLines(cfg.lines);
   const target = requireLine(lines, spec.line, "set-option");
   const widget = requireWidget(target, spec.at, spec.line);
+  const optionError = validateWidgetOption(widget.type, spec.key, spec.value);
+  if (optionError) throw new ConfigMutationError(optionError);
   const options = { ...(widget.options ?? {}), [spec.key]: spec.value };
   target.widgets[spec.at] = { ...widget, options };
   return { ...cfg, lines };
@@ -223,6 +231,17 @@ function assertWidgetType(type: unknown): void {
   if (!(type in WIDGET_CATALOG)) {
     throw new ConfigMutationError(`unknown widget type '${type}'`);
   }
+}
+
+/**
+ * Reject unknown option keys / out-of-range option values against the
+ * catalogue-derived option spec, so a typo in `--options` fails the
+ * mutation instead of being silently coerced at render time.
+ */
+function assertWidgetOptions(widget: WidgetConfig): void {
+  if (!widget.options) return;
+  const error = validateWidgetOptions(widget.type, widget.options);
+  if (error) throw new ConfigMutationError(error);
 }
 
 function assertLineWithinCap(line: number, op: string): void {

@@ -77,6 +77,26 @@ describe("addWidget", () => {
     );
   });
 
+  it("rejects an out-of-range option value passed via --options", () => {
+    expect(() =>
+      addWidget(baseline(), { line: 0, widget: { type: "tokens", options: { reset: "bad" } } }),
+    ).toThrow(/invalid value "bad" for option 'reset'/);
+  });
+
+  it("rejects an unknown option key passed via --options", () => {
+    expect(() =>
+      addWidget(baseline(), { line: 0, widget: { type: "clock", options: { notakey: 1 } } }),
+    ).toThrow(/unknown option 'notakey' for widget 'clock'/);
+  });
+
+  it("accepts a widget with valid options", () => {
+    const out = addWidget(baseline(), {
+      line: 0,
+      widget: { type: "tokens", options: { reset: "session" } },
+    });
+    expect(out.lines[0]?.widgets.at(-1)).toEqual({ type: "tokens", options: { reset: "session" } });
+  });
+
   it("rejects a line index at or beyond the cap", () => {
     expect(() => addWidget(baseline(), { line: MAX_LINES, widget: { type: "version" } })).toThrow(
       /exceeds the 3-line limit/,
@@ -180,8 +200,8 @@ describe("setWidgetOption", () => {
 
   it("merges into an existing option object without touching the original", () => {
     const input = cfgWith([[{ type: "tokens", options: { reset: "block" } }]]);
-    const out = setWidgetOption(input, { line: 0, at: 0, key: "format", value: "human" });
-    expect(out.lines[0]?.widgets[0]?.options).toEqual({ reset: "block", format: "human" });
+    const out = setWidgetOption(input, { line: 0, at: 0, key: "inputGlyph", value: ">" });
+    expect(out.lines[0]?.widgets[0]?.options).toEqual({ reset: "block", inputGlyph: ">" });
     expect(input.lines[0]?.widgets[0]?.options).toEqual({ reset: "block" });
   });
 
@@ -201,6 +221,33 @@ describe("setWidgetOption", () => {
     expect(() => setWidgetOption(baseline(), { line: 0, at: 9, key: "x", value: 1 })).toThrow(
       /no widget at index 9/,
     );
+  });
+
+  it("rejects an unknown option key for a widget with a known option set", () => {
+    const input = cfgWith([[{ type: "clock" }]]);
+    expect(() =>
+      setWidgetOption(input, { line: 0, at: 0, key: "notakey", value: "x" }),
+    ).toThrow(/unknown option 'notakey' for widget 'clock'/);
+  });
+
+  it("rejects an out-of-range value for a catalogued option", () => {
+    const input = cfgWith([[{ type: "clock" }]]);
+    expect(() =>
+      setWidgetOption(input, { line: 0, at: 0, key: "format", value: "bogus" }),
+    ).toThrow(/invalid value .* for option 'format' on widget 'clock'/);
+  });
+
+  it("rejects an out-of-axis reset value", () => {
+    const input = cfgWith([[{ type: "tokens", options: { reset: "session" } }]]);
+    expect(() =>
+      setWidgetOption(input, { line: 0, at: 0, key: "reset", value: "bad" }),
+    ).toThrow(/invalid value "bad" for option 'reset'/);
+  });
+
+  it("accepts a valid catalogued option value", () => {
+    const input = cfgWith([[{ type: "clock" }]]);
+    const out = setWidgetOption(input, { line: 0, at: 0, key: "format", value: "12h" });
+    expect(out.lines[0]?.widgets[0]?.options).toEqual({ format: "12h" });
   });
 });
 

@@ -83,14 +83,14 @@ describe("runWidgetReplaceCommand", () => {
   it("swaps the widget and carries options through", async () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const code = await runWidgetReplaceCommand({
-      args: { type: "session-weekly-usage", line: 0, at: 0, options: { reset: "block" } },
+      args: { type: "session-weekly-usage", line: 0, at: 0, options: { label: "wk:" } },
       env: { CLAUDE_CONFIG_DIR: claudeCfgDir },
     });
     expect(code).toBe(0);
     expect(String(stdout.mock.calls[0]?.[0] ?? "")).toMatch(/replaced the widget/);
     const onDisk = JSON.parse(await fs.readFile(userCfg, "utf8")) as AgentlineConfig;
     expect(onDisk.lines[0]?.widgets).toEqual([
-      { type: "session-weekly-usage", options: { reset: "block" } },
+      { type: "session-weekly-usage", options: { label: "wk:" } },
       { type: "version" },
     ]);
   });
