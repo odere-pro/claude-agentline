@@ -4,7 +4,27 @@ import { join } from "node:path";
 import { Readable } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ConfigValidationError } from "../../../data/config/validate/validate.js";
 import { parseRenderArgs, runRenderCommand } from "./fixture-command.js";
+
+// Module-level mock so vitest can hoist it. Only the "invalid-config
+// diagnostic" suite overrides the mock behaviour per-test; the
+// existing runRenderCommand suite benefits from the passthrough default
+// (calls the real implementation).
+vi.mock("../../../data/config/load/load.js", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../../../data/config/load/load.js")>();
+  return {
+    ...original,
+    loadConfig: vi.fn(original.loadConfig),
+  };
+});
+
+// Lazy reference acquired once at the describe level; valid after the
+// hoisted vi.mock resolves.
+const loadConfigMock = async () => {
+  const mod = await import("../../../data/config/load/load.js");
+  return vi.mocked(mod.loadConfig);
+};
 
 const NO_FLAGS = { noColor: false, noUnicode: false } as const;
 
@@ -110,5 +130,140 @@ describe("runRenderCommand", () => {
       stdin,
     });
     expect(code).toBe(1);
+  });
+});
+
+/**
+ * Tests for the invalid-config stderr diagnostic in `loadLiveConfig`.
+ *
+ * The invariant under test:
+ *   - `loadConfig` THROWS only when a config file EXISTS but is broken
+ *     (invalid JSON or schema-validation failure). A missing file is the
+ *     normal first-run state — `readJsonIfExists` returns `undefined` and
+ *     `loadConfig` resolves normally. This means a thrown error in
+ *     `loadLiveConfig` reliably indicates "user has a config and it is
+ *     broken" — the exact case worth surfacing.
+ *   - When a throw is caught, a single concise diagnostic must appear on
+ *     STDERR (never stdout), gated the same way as `maybeEmitFirstRunHint`:
+ *     suppressed for non-TTY stderr and `AGENTLINE_QUIET=1`.
+ *   - The render must still produce output (exit 0 / stdout non-empty);
+ *     the statusline is never blank.
+ */
+describe("loadLiveConfig invalid-config diagnostic", () => {
+  const VALID_STDIN = Buffer.from(JSON.stringify({ model: "claude-haiku-4-5" }));
+  const NO_COLOUR_FLAGS = { noColor: true, noUnicode: false } as const;
+
+  let stderrSpy: ReturnType<typeof vi.spyOn>;
+  let originalIsTTY: boolean | undefined;
+
+  beforeEach(() => {
+    originalIsTTY = process.stderr.isTTY;
+    stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+  });
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    if (originalIsTTY !== undefined) {
+      Object.defineProperty(process.stderr, "isTTY", {
+        value: originalIsTTY,
+        configurable: true,
+      });
+    }
+    delete process.env.AGENTLINE_QUIET;
+    // Reset the mock back to real implementation so other suites are unaffected.
+    (await loadConfigMock()).mockReset();
+  });
+
+  function setTTY(value: boolean): void {
+    Object.defineProperty(process.stderr, "isTTY", { value, configurable: true });
+  }
+
+  function stderrOutput(): string {
+    return stderrSpy.mock.calls.map((c: unknown[]) => String(c[0])).join("");
+  }
+
+  it("emits a diagnostic with 'invalid JSON' reason when config has bad JSON (TTY stderr)", async () => {
+    (await loadConfigMock()).mockRejectedValue(
+      new Error("agentline: config.json: invalid JSON — Unexpected token"),
+    );
+    setTTY(true);
+
+    const code = await runRenderCommand({
+      args: { accessibility: NO_COLOUR_FLAGS },
+      stdin: Readable.from([VALID_STDIN]),
+    });
+
+    expect(code).toBe(0);
+    const out = stderrOutput();
+    expect(out).toMatch(/agentline: config invalid \(invalid JSON/);
+    expect(out).toMatch(/agentline doctor/);
+  });
+
+  it("emits a diagnostic with 'schema' reason when config fails schema validation (TTY stderr)", async () => {
+    const schemaErr = new ConfigValidationError([
+      {
+        instancePath: "/lines",
+        schemaPath: "#/lines",
+        keyword: "type",
+        params: {},
+        message: "must be array",
+      },
+    ]);
+    (await loadConfigMock()).mockRejectedValue(schemaErr);
+    setTTY(true);
+
+    const code = await runRenderCommand({
+      args: { accessibility: NO_COLOUR_FLAGS },
+      stdin: Readable.from([VALID_STDIN]),
+    });
+
+    expect(code).toBe(0);
+    const out = stderrOutput();
+    expect(out).toMatch(/agentline: config invalid \(schema/);
+    expect(out).toMatch(/agentline doctor/);
+  });
+
+  it("suppresses the diagnostic when stderr is not a TTY", async () => {
+    (await loadConfigMock()).mockRejectedValue(new Error("bad JSON"));
+    setTTY(false);
+
+    await runRenderCommand({
+      args: { accessibility: NO_COLOUR_FLAGS },
+      stdin: Readable.from([VALID_STDIN]),
+    });
+
+    expect(stderrOutput()).not.toMatch(/config invalid/);
+  });
+
+  it("suppresses the diagnostic when AGENTLINE_QUIET=1", async () => {
+    process.env.AGENTLINE_QUIET = "1";
+    (await loadConfigMock()).mockRejectedValue(new Error("bad JSON"));
+    setTTY(true);
+
+    await runRenderCommand({
+      args: { accessibility: NO_COLOUR_FLAGS },
+      stdin: Readable.from([VALID_STDIN]),
+    });
+
+    expect(stderrOutput()).not.toMatch(/config invalid/);
+  });
+
+  it("does NOT emit the diagnostic when config file is absent (loadConfig resolves normally)", async () => {
+    // When the config file is missing, loadConfig resolves without throwing.
+    // That is the normal first-run state and must never trigger the broken-config warning.
+    (await loadConfigMock()).mockResolvedValue({
+      config: undefined as never,
+      paths: { userConfig: "/tmp/not-here.json", userDir: "/tmp" },
+      sources: { user: false },
+    });
+    setTTY(true);
+
+    await runRenderCommand({
+      args: { accessibility: NO_COLOUR_FLAGS },
+      stdin: Readable.from([VALID_STDIN]),
+    });
+
+    expect(stderrOutput()).not.toMatch(/config invalid/);
   });
 });
