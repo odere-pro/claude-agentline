@@ -54,7 +54,7 @@ export function formatLastRenderBanner(cache: CachedRender | null): string {
     "\nLast statusline:\n" +
     safe +
     trailingNewline +
-    `(cached ${cache.savedAt} — run \`agentline install\` to restore)\n\n`
+    `(cached ${cache.savedAt} — run \`agentline reset\` to restore)\n\n`
   );
 }
 

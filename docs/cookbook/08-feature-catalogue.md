@@ -99,7 +99,7 @@ The CLI surface is intentionally flat — there is no nested dispatcher. The def
 | `config schema` | Print or write the JSON Schema. `--write <dir>`.                                                                                                                                  |
 | `config widget` | Scriptable: `add`, `remove`, `move`, `replace`, `set-option`, `list`, `catalog`.                                                                                                  |
 | `version`       | Print version and build metadata.                                                                                                                                                 |
-| `update-check`  | Compare local version to registry; gated to its own verb.                                                                                                                         |
+| `update-check`  | Internal cache helper — compares local version to registry and caches the result. Not a user-facing verb; the render path must not invoke it.                                     |
 
 ---
 

@@ -118,6 +118,18 @@ function runHelp(): number {
   return 0;
 }
 
+const EDIT_HELP = `agentline edit — open the interactive TUI config editor
+
+Usage:
+  agentline edit
+
+Opens the full-screen TUI editor with a live preview of your statusline.
+Use the editor to add, remove, move, and configure widgets interactively.
+
+For scriptable (non-interactive) layout changes, use \`agentline config widget\`.
+For flag-driven reset to defaults, use \`agentline reset\`.
+`;
+
 const CONFIG_HELP = `agentline config — inspect or edit the user config without the TUI
 
 Usage:
@@ -239,7 +251,13 @@ export const COMMANDS: Readonly<Record<string, Subcommand>> = Object.freeze({
   "--help": async () => runHelp(),
   "-h": async () => runHelp(),
   doctor: (rest) => dispatch(() => runDoctorCommand(parseDoctorArgs([...rest]))),
-  edit: () => dispatch(runEditor, "agentline edit"),
+  edit: (rest) => {
+    if (isHelpFlag(rest[0])) {
+      process.stdout.write(EDIT_HELP);
+      return Promise.resolve(0);
+    }
+    return dispatch(runEditor, "agentline edit");
+  },
   reset: (rest) => dispatch(() => runResetCommand(parseResetArgs(rest)), "agentline reset"),
   // Hidden from `runHelp()` but still dispatched (see table JSDoc above).
   install: (rest) => dispatch(() => runInstallCommand(parseInstallArgs(rest)), "agentline install"),

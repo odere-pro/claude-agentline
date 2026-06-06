@@ -22,7 +22,6 @@ REPO_ROOT="$(cd "${THIS_DIR}/.." && pwd)"
 al_setup
 
 DRY_RUN=0
-FORCE=0
 FROM_SOURCE=0
 RESET=0
 
@@ -35,8 +34,8 @@ Usage:
 
 Options:
   --dry-run       Print the actions that would be taken; touch nothing.
-  --force         Overwrite an existing statusLine value if it does not
-                  already point at agentline.
+  --force         Back-compat alias; install always backs up and overwrites
+                  a foreign statusLine (uninstall restores it).
   --from-source   `npm link` from the current checkout instead of installing
                   the published tarball. Intended for repo contributors.
   --reset         Overwrite an existing user config with the default
@@ -53,7 +52,7 @@ EOF
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --dry-run) DRY_RUN=1 ;;
-    --force) FORCE=1 ;;
+    --force) ;; # back-compat alias; install always backs up + overwrites a foreign statusLine
     --from-source) FROM_SOURCE=1 ;;
     --reset) RESET=1 ;;
     -h | --help)
@@ -313,10 +312,8 @@ wire_statusline() {
     fi
   fi
 
-  if [ "${__action}" = "conflict" ] && [ "${FORCE}" != "1" ]; then
+  if [ "${__action}" = "conflict" ]; then
     al_log_info "backing up foreign statusLine before overwrite (uninstall will restore)"
-  elif [ "${__action}" = "conflict" ]; then
-    al_log_info "force: overwriting existing statusLine in ${__target_file}"
   fi
 
   __new_settings_json="$(merge_statusline_into_settings "${__target_file}" "${__cmd}")"

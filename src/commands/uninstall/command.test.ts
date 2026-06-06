@@ -59,7 +59,7 @@ describe("formatLastRenderBanner", () => {
     ).toBe("");
   });
 
-  it("frames the cached render with a restore hint", () => {
+  it("frames the cached render with a restore hint pointing at agentline reset", () => {
     const banner = formatLastRenderBanner({
       version: RENDER_CACHE_VERSION,
       savedAt: "2026-05-13T22:00:00Z",
@@ -69,7 +69,9 @@ describe("formatLastRenderBanner", () => {
     expect(banner).toContain("Last statusline:");
     expect(banner).toContain("hello\n");
     expect(banner).toContain("2026-05-13T22:00:00Z");
-    expect(banner).toContain("agentline install");
+    // Must point at the documented user-facing verb, not the hidden install verb.
+    expect(banner).toContain("agentline reset");
+    expect(banner).not.toContain("agentline install");
   });
 
   it("appends a trailing newline when the cached render lacks one", () => {

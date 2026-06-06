@@ -184,8 +184,8 @@ Usage:
 Options:
   --from-source   npm link from the local checkout instead of installing from
                   the registry. Use when developing agentline itself.
-  --force         Overwrite an existing statusLine value even when it does
-                  not point at agentline.
+  --force         Back-compat alias; install always backs up and overwrites
+                  a foreign statusLine (uninstall restores it).
   --dry-run       Print every action that would be taken; touch nothing.
   -h, --help      Show this message.
 

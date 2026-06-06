@@ -9,7 +9,7 @@
  * `agentline help` — `reset` is the user/agent-facing entry point.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 
 import { COMMANDS } from "./cli.js";
 
@@ -59,5 +59,50 @@ describe("CLI dispatch table", () => {
 
   it("exposes exactly the documented surface (no surprise entries)", () => {
     expect(Object.keys(COMMANDS).sort()).toEqual([...EXPECTED_COMMANDS].sort());
+  });
+});
+
+describe("COMMANDS.edit --help", () => {
+  let stdoutChunks: string[];
+  let originalWrite: typeof process.stdout.write;
+
+  beforeEach(() => {
+    stdoutChunks = [];
+    originalWrite = process.stdout.write.bind(process.stdout);
+    // Capture stdout without calling the real write so nothing leaks to the terminal.
+    process.stdout.write = ((chunk: unknown) => {
+      stdoutChunks.push(String(chunk));
+      return true;
+    }) as typeof process.stdout.write;
+  });
+
+  afterEach(() => {
+    process.stdout.write = originalWrite;
+  });
+
+  it("resolves 0 when passed --help", async () => {
+    const code = await COMMANDS.edit!(["--help"]);
+    expect(code).toBe(0);
+  });
+
+  it("resolves 0 when passed -h", async () => {
+    const code = await COMMANDS.edit!(["-h"]);
+    expect(code).toBe(0);
+  });
+
+  it("writes help text to stdout for --help", async () => {
+    await COMMANDS.edit!(["--help"]);
+    const output = stdoutChunks.join("");
+    expect(output).toContain("agentline edit");
+    expect(output).toContain("TUI editor");
+  });
+
+  it("does not invoke the TUI on --help (gate-19 safe: no dynamic import attempted)", async () => {
+    // We verify no dynamic import of tui.mjs is triggered by checking that
+    // the command resolves immediately without the editor module being loaded.
+    // Because tui.mjs does not exist in test contexts, any attempt to import
+    // it would throw; the fact the test passes proves the help path is clean.
+    const code = await COMMANDS.edit!(["--help"]);
+    expect(code).toBe(0);
   });
 });

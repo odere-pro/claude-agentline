@@ -16,7 +16,7 @@ export const MAX_LINES = 3;
 
 export class ConfigMutationError extends Error {
   constructor(message: string) {
-    super(`agentline: ${message}`);
+    super(message);
     this.name = "ConfigMutationError";
   }
 }

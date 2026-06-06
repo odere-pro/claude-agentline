@@ -1,0 +1,6 @@
+- CLI + lifecycle hygiene fixes from the audit:
+  - **`agentline edit --help`** now prints help and exits 0 instead of launching the TUI and crashing (Ink raw-mode failure) in a non-interactive shell. The help path imports no TUI code (stays gate-19-safe).
+  - **`config` mutation errors are no longer double-prefixed** — `agentline config: agentline: unknown widget type …` is now `agentline config: unknown widget type …` (`ConfigMutationError` no longer embeds its own `agentline:` prefix; the dispatcher adds the sole one).
+  - **The uninstall restore hint points at `agentline reset`** (the documented entry point) instead of the hidden `agentline install` verb.
+  - **`update-check` is documented as the internal cache helper it is**, not a public verb (it was never wired as a user command; remote update checks are a non-goal).
+  - **`scripts/install.sh --force` is described honestly as a back-compat alias** — install always backs up and overwrites a foreign `statusLine` (reversible via uninstall); `--force` has no behavioural effect. The misleading usage text and conflict-branch logging are corrected.
