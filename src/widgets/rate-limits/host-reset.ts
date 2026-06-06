@@ -18,6 +18,16 @@ import type { WidgetContext } from "../types.js";
 export type ResetWindow = "five-hour" | "seven-day";
 
 /**
+ * Largest epoch-ms a JS `Date` can represent (±8.64e15). A `resets_at`
+ * beyond this is either a finite overflow (`1e290 * 1000`) or simply out
+ * of `Date` range; either way `new Date(ms)` is Invalid and the
+ * wall-clock path throws, while the countdown path prints scientific
+ * notation. We reject it here so callers fall back to the always-valid
+ * local anchor.
+ */
+const MAX_DATE_MS = 8_640_000_000_000_000;
+
+/**
  * Host-provided next-reset instant for `window`, in epoch *milliseconds*,
  * or `undefined` when the host did not ship that window's `resets_at`
  * (the caller then uses its local fallback). `resets_at` is epoch
@@ -30,5 +40,7 @@ export function hostResetMs(ctx: WidgetContext, window: ResetWindow): number | u
   const win = window === "five-hour" ? limits?.fiveHour : limits?.sevenDay;
   const resetsAt = win?.resetsAt;
   if (typeof resetsAt !== "number" || !Number.isFinite(resetsAt)) return undefined;
-  return resetsAt * 1000;
+  const ms = resetsAt * 1000;
+  if (!Number.isFinite(ms) || Math.abs(ms) > MAX_DATE_MS) return undefined;
+  return ms;
 }

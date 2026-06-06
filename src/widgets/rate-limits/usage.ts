@@ -31,9 +31,19 @@
 import type { Cell } from "../cell/cell.js";
 import type { WidgetContext } from "../types.js";
 import { joinValues } from "../separator/separator.js";
-import { MAX_DISPLAY_PERCENTAGE } from "../types.js";
 import type { WidgetSettings } from "../widget.js";
 import { defineWidget } from "../widget.js";
+
+/**
+ * The host's `used_percentage` is a consumed / capacity ratio expressed
+ * as a whole-number percentage (0–100). Values above 100 indicate the
+ * host is over-quota but the display must never show an absurd confident
+ * number like "999%" — clamp to exactly 100. This is intentionally
+ * separate from `MAX_DISPLAY_PERCENTAGE` in `../types.ts`, which
+ * `context-percentage` uses for cumulative sums that can legitimately
+ * exceed 100.
+ */
+const MAX_USAGE_PERCENTAGE = 100;
 
 interface Options {
   readonly label?: string;
@@ -46,7 +56,7 @@ const WEEKLY_PREFIX = "weekly ";
 /** Round + clamp a host percentage into a `NN%` string, or `null` when absent. */
 function formatPercent(pct: unknown): string | null {
   if (typeof pct !== "number" || !Number.isFinite(pct)) return null;
-  return `${Math.min(MAX_DISPLAY_PERCENTAGE, Math.max(0, Math.round(pct)))}%`;
+  return `${Math.min(MAX_USAGE_PERCENTAGE, Math.max(0, Math.round(pct)))}%`;
 }
 
 /**

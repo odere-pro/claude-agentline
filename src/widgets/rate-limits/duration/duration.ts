@@ -19,7 +19,9 @@ import { DAY_MS, HOUR_MS, MINUTE_MS } from "../../../core/lib/time.js";
 export type DurationFormat = "short" | "long" | "clock" | "compact";
 
 export function formatDuration(ms: number, format: DurationFormat = "short"): string {
-  const clamped = Math.max(0, Math.floor(ms));
+  // A non-finite duration (e.g. an overflowed host reset) renders as zero
+  // rather than `Infinityd NaNh NaNm`; the formatter stays total.
+  const clamped = Number.isFinite(ms) ? Math.max(0, Math.floor(ms)) : 0;
   const hours = Math.floor(clamped / HOUR_MS);
   const minutes = Math.floor((clamped % HOUR_MS) / MINUTE_MS);
   const seconds = Math.floor((clamped % MINUTE_MS) / 1000);

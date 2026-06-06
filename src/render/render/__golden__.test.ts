@@ -69,8 +69,10 @@ describe("golden render scenarios", () => {
          * Lock env to a minimal, host-independent shape so goldens
          * are byte-identical on every machine. ASCII glyphs keep
          * Powerline scenarios reproducible without a Nerd Font.
+         * TZ=UTC prevents wall-clock-anchored widgets from drifting
+         * across machines/timezones (Bug 6 / CI incident).
          */
-        env: { NO_COLOR: "1", AGENTLINE_GLYPHS: "ascii" },
+        env: { NO_COLOR: "1", AGENTLINE_GLYPHS: "ascii", TZ: "UTC" },
         flags: { noColor: true, noUnicode: false },
         width: 80,
       });

@@ -200,7 +200,9 @@ describe("session-weekly-usage widget", () => {
     expect(cell.text).toBe("Team 52% · weekly 33%");
   });
 
-  it("clamps an over-budget percentage at 999", () => {
+  it("clamps an over-budget percentage at 100 (host values above 100 are capped)", () => {
+    // A host value > 100 means over-quota. The display caps at 100 to
+    // avoid printing absurd values like "999%" or "4000%".
     const cell = sessionWeeklyUsageWidget.render(
       makeCtx(undefined, {
         stdin: stdinWith({
@@ -210,7 +212,7 @@ describe("session-weekly-usage widget", () => {
       }),
       { options: {}, rawValue: false },
     );
-    expect(cell.text).toBe("999% · weekly 33%");
+    expect(cell.text).toBe("100% · weekly 33%");
   });
 
   it("rawValue strips the label and plan prefix", () => {
@@ -554,5 +556,168 @@ describe("reset widgets — host rate_limits.resets_at", () => {
       { options: { resetWeekday: 0, resetHour: 0, format: "EEE D HH:mm", tz: "UTC" }, rawValue: true },
     );
     expect(cell.text).toBe("Thu 7 12:00");
+  });
+});
+
+describe("reset widgets — huge / non-finite resets_at (bug-1)", () => {
+  it("falls back to local anchor (no garbage) when resets_at * 1000 overflows to Infinity (e.g. 1e308)", () => {
+    // 1e308 is finite so passes the first isFinite check in host-reset.ts,
+    // but 1e308 * 1000 = Infinity — hostResetMs must guard the post-multiply
+    // result and return undefined so the timer falls back to the local
+    // block anchor, rendering a valid countdown instead of
+    // "reset in Infinityd NaNh NaNm".
+    const cell = currentSessionResetTimerWidget.render(
+      makeCtx(undefined, {
+        clock: frozenClock(new Date(FIXED_NOW_MS)),
+        stdin: stdinWith({ fiveHour: { resetsAt: 1e308 } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    // Falls back to local 5-hour block anchor → valid compact text, no garbage.
+    expect(cell.hidden).toBeUndefined();
+    expect(cell.text).not.toMatch(/Infinity|NaN/);
+    expect(cell.text).toMatch(/reset in \d/);
+  });
+
+  it("falls back to local anchor (no garbage) when resets_at is Infinity", () => {
+    // Infinity fails the isFinite guard → hostResetMs returns undefined
+    // → local fallback renders a valid countdown, not garbage.
+    const cell = currentSessionResetTimerWidget.render(
+      makeCtx(undefined, {
+        clock: frozenClock(new Date(FIXED_NOW_MS)),
+        stdin: stdinWith({ fiveHour: { resetsAt: Infinity } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).not.toMatch(/Infinity|NaN/);
+    expect(cell.text).toMatch(/reset in \d/);
+  });
+
+  it("falls back to local anchor (no garbage) when resets_at is NaN", () => {
+    // NaN fails the isFinite guard → hostResetMs returns undefined
+    // → local fallback renders a valid countdown, not garbage.
+    const cell = currentSessionResetTimerWidget.render(
+      makeCtx(undefined, {
+        clock: frozenClock(new Date(FIXED_NOW_MS)),
+        stdin: stdinWith({ fiveHour: { resetsAt: NaN } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).not.toMatch(/Infinity|NaN/);
+    expect(cell.text).toMatch(/reset in \d/);
+  });
+
+  it("falls back to local anchor when resets_at is -1e308 (post-multiply -Infinity)", () => {
+    // -1e308 passes the first isFinite check but -1e308 * 1000 = -Infinity.
+    // The post-multiply guard discards it → local block anchor is used
+    // → valid countdown, no garbage.
+    const cell = currentSessionResetTimerWidget.render(
+      makeCtx(undefined, {
+        clock: frozenClock(new Date(FIXED_NOW_MS)),
+        stdin: stdinWith({ fiveHour: { resetsAt: -1e308 } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).not.toMatch(/Infinity|NaN/);
+    expect(cell.text).toMatch(/reset in \d/);
+  });
+
+  it("week-limit-timer: falls back to local anchor (no garbage) for huge seven_day.resets_at", () => {
+    const cell = weekLimitTimerWidget.render(
+      makeCtx(undefined, {
+        clock: frozenClock(new Date(FIXED_NOW_MS)),
+        stdin: stdinWith({ sevenDay: { resetsAt: 1e308 } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).not.toMatch(/Infinity|NaN/);
+    expect(cell.text).toMatch(/reset in \d/);
+  });
+
+  it("falls back for a finite-but-huge resets_at beyond JS Date range (no sci-notation countdown)", () => {
+    // 1e290 is finite and 1e290 * 1000 (= 1e293) is still finite, so the
+    // isFinite guards pass — but it is far beyond Date's ±8.64e15 range and
+    // produced "reset in 1.157…e+285d 14h 16m". The Date-range guard must
+    // discard it → local anchor → a plain integer-day countdown.
+    const cell = weekLimitTimerWidget.render(
+      makeCtx(undefined, {
+        clock: frozenClock(new Date(FIXED_NOW_MS)),
+        stdin: stdinWith({ sevenDay: { resetsAt: 1e290 } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.hidden).toBeUndefined();
+    expect(cell.text).not.toMatch(/Infinity|NaN|e\+/);
+    expect(cell.text).toMatch(/reset in \d/);
+  });
+
+  it("does NOT crash on a wall-clock format with an out-of-Date-range resets_at", () => {
+    // resets_at 9.99e14 s → 9.99e17 ms is out of Date range; the wall-clock
+    // path built `new Date(ms)` = Invalid Date and threw in frozenClock
+    // (exit 1, blank statusline). The Date-range guard must make it fall
+    // back to the local anchor and render a valid HH:mm with no throw.
+    expect(() =>
+      currentSessionResetTimerWidget.render(
+        makeCtx(undefined, {
+          clock: frozenClock(new Date(FIXED_NOW_MS)),
+          stdin: stdinWith({ fiveHour: { resetsAt: 9.99e14 } }),
+        }),
+        { options: { format: "HH:mm" }, rawValue: false },
+      ),
+    ).not.toThrow();
+    const cell = currentSessionResetTimerWidget.render(
+      makeCtx(undefined, {
+        clock: frozenClock(new Date(FIXED_NOW_MS)),
+        stdin: stdinWith({ fiveHour: { resetsAt: 9.99e14 } }),
+      }),
+      { options: { format: "HH:mm" }, rawValue: false },
+    );
+    expect(cell.text).not.toMatch(/Infinity|NaN|Invalid/);
+    expect(cell.text).toMatch(/\d\d:\d\d/);
+  });
+});
+
+describe("session-weekly-usage — host % capped at 100 (bug-2)", () => {
+  it("clamps a host session percentage of 150 to '100%'", () => {
+    const cell = sessionWeeklyUsageWidget.render(
+      makeCtx(undefined, {
+        stdin: stdinWith({ fiveHour: { usedPercentage: 150 } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toBe("100%");
+  });
+
+  it("clamps a host session percentage of 999 to '100%' (not '999%')", () => {
+    const cell = sessionWeeklyUsageWidget.render(
+      makeCtx(undefined, {
+        stdin: stdinWith({ fiveHour: { usedPercentage: 999 } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toBe("100%");
+  });
+
+  it("clamps a host weekly percentage of 150 to 'weekly 100%'", () => {
+    const cell = sessionWeeklyUsageWidget.render(
+      makeCtx(undefined, {
+        stdin: stdinWith({ sevenDay: { usedPercentage: 150 } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toBe("weekly 100%");
+  });
+
+  it("does not clamp at 100 when both windows are within range", () => {
+    const cell = sessionWeeklyUsageWidget.render(
+      makeCtx(undefined, {
+        stdin: stdinWith({
+          fiveHour: { usedPercentage: 52 },
+          sevenDay: { usedPercentage: 33 },
+        }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toBe("52% · weekly 33%");
   });
 });
