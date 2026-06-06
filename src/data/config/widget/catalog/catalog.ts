@@ -2,9 +2,10 @@
  * Body for `agentline config widget catalog [--json]`.
  *
  * Lists every registered widget type with its human name, one-line
- * description, and family — the discovery surface the in-session
- * configure skill reads before suggesting widgets. JSON form is the
- * structured payload; text form groups by family in reading order.
+ * description, family, and variants (when present) — the discovery
+ * surface the in-session configure skill reads before suggesting widgets.
+ * JSON form is the structured payload; text form groups by family in
+ * reading order.
  *
  * No preview column: the demo-fixture that backed an earlier `--preview`
  * was retired, and the TUI picker (`agentline edit`) is the real preview
@@ -25,7 +26,7 @@ Usage:
   agentline config widget catalog [--json]
 
 Options:
-  --json      emit machine-readable JSON ({ widgets: [{ type, name, description, family }] })
+  --json      emit machine-readable JSON including variants per widget
   -h, --help  show this message
 `;
 
@@ -53,12 +54,28 @@ export function builtinMeta(): readonly WidgetMetaEntry[] {
 }
 
 export function formatJson(entries: readonly WidgetMetaEntry[]): string {
-  const widgets = entries.map((e) => ({
-    type: e.type,
-    name: e.name,
-    description: e.description,
-    family: e.family,
-  }));
+  const widgets = entries.map((e) => {
+    const base: {
+      type: string;
+      name: string;
+      description: string;
+      family: string;
+      variants?: { id: string; label: string; options: Readonly<Record<string, unknown>> }[];
+    } = {
+      type: e.type,
+      name: e.name,
+      description: e.description,
+      family: e.family,
+    };
+    if (e.variants && e.variants.length > 0) {
+      base.variants = e.variants.map((v) => ({
+        id: v.id,
+        label: v.label,
+        options: v.options,
+      }));
+    }
+    return base;
+  });
   return `${JSON.stringify({ widgets }, null, 2)}\n`;
 }
 
@@ -71,6 +88,10 @@ export function formatText(entries: readonly WidgetMetaEntry[]): string {
     out.push(`  ${family} (${inFamily.length}):`);
     for (const e of inFamily) {
       out.push(`    ${e.type.padEnd(widest, " ")}  ${e.description}`);
+      if (e.variants && e.variants.length > 0) {
+        const variantIds = e.variants.map((v) => v.id).join(", ");
+        out.push(`    ${"".padEnd(widest, " ")}  variants: ${variantIds}`);
+      }
     }
     out.push("");
   }

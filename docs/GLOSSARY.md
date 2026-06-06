@@ -212,13 +212,17 @@ All types are kebab-case strings. Source of truth: `src/widgets/families/catalog
 
 ### `config template`
 
-> A shipped default config file used by `agentline install` to seed the
-> user config on first install, and rewritten over the user config by
-> `agentline reset`. Currently only `templates/default.config.json`.
+> A shipped config file in `templates/` used to seed the user config.
+> Three templates are provided: `default` (balanced three-line layout),
+> `minimal` (single-line, lean), and `power` (four-line, showcasing
+> breadth). `agentline install` seeds from `default`; `agentline config
+init --preset <name>` lets you choose any template. `agentline reset`
+> always reseeds from `default`.
 
-**Used in:** `templates/`, install flow.  
+**Used in:** `templates/`, `src/data/config/init/`, install flow.  
 **Distinct from:** "theme preset" (a shipped theme JSON, not a config).  
-**Formerly called:** "preset" or "init preset" — retired terms.
+**Formerly called:** "preset" or "init preset" — retired terms; the CLI
+flag is `--preset` but in prose and docs always say "config template".
 
 ---
 
@@ -685,7 +689,7 @@ Do not use these in new code, docs, or comments. Update any occurrence you find.
 | "category" (for widget grouping)                              | "family"                       | Replaced everywhere — in docs, agents, and TypeScript                                                                         |
 | "config layer" (implying 3 layers)                            | "user config" + "env override" | Project-config layer was removed; only 2 layers remain                                                                        |
 | "options sheet" (TUI)                                         | —                              | Removed in editor redesign; nothing replaced it                                                                               |
-| "focus" / "power" (init template names)                       | —                              | Removed; only the `default` template ships                                                                                    |
+| "focus" (init template name)                                  | —                              | Removed; `default`, `minimal`, and `power` are the shipped config templates                                                   |
 | `agentline config theme`                                      | —                              | Subcommand retired; edit `config.theme` directly or use `agentline edit`                                                      |
-| `agentline init`                                              | —                              | Not in current CLI; `agentline install` seeds the config on first install                                                     |
+| `agentline init`                                              | `agentline config init`        | The bare `init` verb is not in the CLI; use `agentline config init [--preset <name>]`                                         |
 | "glyph mode" / `config.glyphs` / "widget glyph" / `GlyphMode` | —                              | Top-level Nerd Font glyph layer removed; it never rendered reliably across terminals. Powerline chevron glyphs are unaffected |
