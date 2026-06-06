@@ -41,3 +41,41 @@ describe("sanitizeOscLabel", () => {
     expect(sanitizeOscLabel(input)).toBe("PR #42 ]0;evil");
   });
 });
+
+describe("sanitizeCellText — bidi control characters", () => {
+  it("strips U+202E RIGHT-TO-LEFT OVERRIDE from a branch name", () => {
+    // U+202E is the classic terminal-spoofing vector
+    const branch = `main‮evil`;
+    expect(sanitizeCellText(branch)).toBe("mainevil");
+  });
+
+  it("strips the full bidi override set U+202A–U+202E", () => {
+    const chars = "‪‫‬‭‮";
+    expect(sanitizeCellText(`x${chars}y`)).toBe("xy");
+  });
+
+  it("strips Unicode bidi isolates U+2066–U+2069", () => {
+    const chars = "⁦⁧⁨⁩";
+    expect(sanitizeCellText(`x${chars}y`)).toBe("xy");
+  });
+
+  it("strips LRM (U+200E) and RLM (U+200F)", () => {
+    const chars = "‎‏";
+    expect(sanitizeCellText(`x${chars}y`)).toBe("xy");
+  });
+
+  it("strips line separator U+2028 and paragraph separator U+2029", () => {
+    const chars = "  ";
+    expect(sanitizeCellText(`x${chars}y`)).toBe("xy");
+  });
+
+  it("preserves CJK and emoji — bidi strip must not affect legitimate wide chars", () => {
+    const input = "feat: 中文 🚀 branch";
+    expect(sanitizeCellText(input)).toBe(input);
+  });
+
+  it("is idempotent on a clean string containing CJK", () => {
+    const input = "中文";
+    expect(sanitizeCellText(sanitizeCellText(input))).toBe(input);
+  });
+});

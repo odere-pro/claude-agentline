@@ -15,10 +15,16 @@ describe("formatCount", () => {
     expect(formatCount(9999)).toBe("10k");
   });
 
-  it("uses rounded k suffix for 10000–999999", () => {
+  it("uses rounded k suffix for 10000–999499", () => {
     expect(formatCount(10_000)).toBe("10k");
     expect(formatCount(10_500)).toBe("11k");
-    expect(formatCount(999_999)).toBe("1000k");
+    expect(formatCount(999_499)).toBe("999k");
+  });
+
+  it("promotes to M when rounding kilo would reach 1000k (bug-3)", () => {
+    // 999_500 rounds to 1000k which overflows; must promote to "1M".
+    expect(formatCount(999_500)).toBe("1M");
+    expect(formatCount(999_999)).toBe("1M");
   });
 
   it("uses M suffix at 1_000_000+", () => {
@@ -44,10 +50,16 @@ describe("formatSpeed", () => {
     expect(formatSpeed(99.9)).toBe("99.9/s");
   });
 
-  it("uses rounded /s for 100–999", () => {
+  it("uses rounded /s for 100–999.4", () => {
     expect(formatSpeed(100)).toBe("100/s");
     expect(formatSpeed(500.4)).toBe("500/s");
-    expect(formatSpeed(999)).toBe("999/s");
+    expect(formatSpeed(999.4)).toBe("999/s");
+  });
+
+  it("promotes to k/s when rounding integer would reach 1000/s (bug-3)", () => {
+    // 999.5 rounds to 1000/s which overflows; must promote to "1k/s".
+    expect(formatSpeed(999.5)).toBe("1k/s");
+    expect(formatSpeed(999.9)).toBe("1k/s");
   });
 
   it("uses k/s suffix at 1000+", () => {

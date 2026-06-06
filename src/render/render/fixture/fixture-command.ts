@@ -106,8 +106,8 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     await maybeEmitFirstRunHint();
   }
   const isLive = !fixture && input.args.configPath === undefined;
-  const liveSnapshots = isLive ? await loadLiveSnapshotsForRender(payload) : {};
   const liveConfig = isLive ? await loadLiveConfig() : undefined;
+  const liveSnapshots = isLive ? await loadLiveSnapshotsForRender(payload, liveConfig) : {};
   const out = await renderForFixture(payload, {
     ...(liveConfig !== undefined ? { config: liveConfig } : {}),
     ...(input.args.configPath !== undefined ? { configPath: input.args.configPath } : {}),
@@ -173,6 +173,7 @@ async function loadLiveConfig() {
  */
 async function loadLiveSnapshotsForRender(
   rawJson: string,
+  config: import("../../../data/config/types.js").AgentlineConfig | undefined,
 ): Promise<Pick<RenderForFixtureOptions, "session" | "tokens" | "git" | "plan" | "claudeHealth">> {
   let parsed;
   try {
@@ -180,7 +181,7 @@ async function loadLiveSnapshotsForRender(
   } catch {
     return {};
   }
-  return loadLiveSnapshots(parsed);
+  return loadLiveSnapshots(parsed, { config });
 }
 
 async function persistLastStdin(rawJson: string): Promise<void> {

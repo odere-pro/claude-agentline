@@ -30,6 +30,7 @@ import type { StdinPayload } from "../../core/stdin/index.js";
 import { loadTokensSnapshot, type TokensSnapshot } from "../../data/tokens/index.js";
 import type { Clock } from "../../widgets/clock/clock.js";
 import type { WidgetContext } from "../../widgets/types.js";
+import type { AgentlineConfig } from "../../data/config/types.js";
 
 import type { RenderInputs } from "./inputs.js";
 
@@ -47,6 +48,42 @@ export interface LoadLiveSnapshotsOptions {
   readonly env?: NodeJS.ProcessEnv;
   /** Override `Date.now()` for deterministic tokens-snapshot windows. */
   readonly now?: number;
+  /**
+   * Resolved config for the current render tick. When provided, the
+   * loader scans the widget list: if ANY `git-pr` widget has
+   * `options.allowNetwork === true`, `loadGitSnapshot` is called with
+   * `allowPullRequest: true` so `ctx.git.pr` is populated.
+   *
+   * When absent (e.g. the fixture / golden paths that don't carry a live
+   * config) the loader defaults to no PR lookup — gate-14 stays green.
+   */
+  readonly config?: AgentlineConfig;
+}
+
+/**
+ * Return `true` when the config contains at least one `git-pr` widget
+ * whose `options.allowNetwork` is explicitly `true`. This is the
+ * in-band signal that the user has accepted the latency / privacy cost
+ * of running `gh pr view` on every render tick.
+ *
+ * Any other shape (no config, no `git-pr`, `allowNetwork` absent or
+ * falsy) returns `false` and keeps the render hot path network-free
+ * (gate-14).
+ */
+function hasAllowNetworkGitPr(config: AgentlineConfig | undefined): boolean {
+  if (!config) return false;
+  for (const line of config.lines) {
+    for (const widget of line.widgets) {
+      if (
+        widget.type === "git-pr" &&
+        widget.options != null &&
+        widget.options["allowNetwork"] === true
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 /**
@@ -67,7 +104,8 @@ export function loadLiveSnapshots(
     modelId: payload.model,
     now,
   });
-  const git = loadGitSnapshot({ cwd: payload.cwd, env });
+  const allowPullRequest = hasAllowNetworkGitPr(options.config);
+  const git = loadGitSnapshot({ cwd: payload.cwd, env, ...(allowPullRequest ? { allowPullRequest } : {}) });
   /*
    * Plan resolves per session from the same transcript the token snapshot
    * just read (cached this tick — no extra read). Order matters: tokens

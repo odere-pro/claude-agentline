@@ -25,14 +25,22 @@ function trim1(value: number): string {
 export function formatCount(n: number): string {
   if (n < KILO) return Math.round(n).toString();
   if (n < TEN_KILO) return `${trim1(n / KILO)}k`;
-  if (n < MEGA) return `${Math.round(n / KILO)}k`;
+  if (n < MEGA) {
+    const rounded = Math.round(n / KILO);
+    if (rounded >= KILO) return `${trim1(n / MEGA)}M`;
+    return `${rounded}k`;
+  }
   return `${trim1(n / MEGA)}M`;
 }
 
 export function formatSpeed(perSec: number): string {
   if (perSec < 1) return `0`;
   if (perSec < DECIMAL_RATE) return `${trim1(perSec)}/s`;
-  if (perSec < INTEGER_RATE) return `${Math.round(perSec)}/s`;
+  if (perSec < INTEGER_RATE) {
+    const rounded = Math.round(perSec);
+    if (rounded >= INTEGER_RATE) return `${trim1(perSec / INTEGER_RATE)}k/s`;
+    return `${rounded}/s`;
+  }
   return `${trim1(perSec / INTEGER_RATE)}k/s`;
 }
 

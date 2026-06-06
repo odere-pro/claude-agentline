@@ -17,14 +17,36 @@
  *   - C1 (`\x80`–`\x9f`): some terminals re-interpret these as their
  *     7-bit equivalents (`\x9b` → CSI), so they can re-open an escape
  *     sequence on their own.
+ *   - Unicode bidi / format controls (terminal-spoofing vectors):
+ *       U+200E  LEFT-TO-RIGHT MARK
+ *       U+200F  RIGHT-TO-LEFT MARK
+ *       U+202A–U+202E  LRE, RLE, PDF, LRO, RLO (directional embeddings / overrides)
+ *       U+2028  LINE SEPARATOR
+ *       U+2029  PARAGRAPH SEPARATOR
+ *       U+2066–U+2069  LRI, RLI, FSI, PDI (directional isolates)
  *
  * Preserved: everything else, including Unicode beyond `\xa0` — emoji,
  * Nerd-font private-use codepoints, East-Asian wide glyphs. The pure
  * functions below are safe in the render hot path (no I/O, no clock).
  */
 
+/*
+ * Build the pattern via RegExp constructor so the unicode escapes for bidi
+ * characters are unambiguous in source (the regex literal form embeds them
+ * as raw code-points which confuses some transformers). The `\u` notation
+ * inside the string is the conventional way to spell non-printable unicode
+ * ranges; oxc and tsc both handle it cleanly.
+ */
 // eslint-disable-next-line no-control-regex
-const CONTROL_CHARS = /[\x00-\x1f\x7f-\x9f]/g;
+const CONTROL_CHARS = new RegExp(
+  "[\x00-\x1f\x7f-\x9f" +
+    "‎‏" + // LRM, RLM
+    "‪-‮" + // LRE, RLE, PDF, LRO, RLO
+    "  " + // line separator, paragraph separator
+    "⁦-⁩" + // LRI, RLI, FSI, PDI
+    "]",
+  "g",
+);
 
 /**
  * Strip control characters from a widget cell's visible text. Width

@@ -68,6 +68,7 @@ render_scenario() {
     HOME="${HOME:-}" \
     NO_COLOR=1 \
     AGENTLINE_GLYPHS=ascii \
+    TZ=UTC \
     node "${bin}" render \
       --fixture "${__scenario_dir}/stdin.json" \
       --config "${__scenario_dir}/config.json" \
