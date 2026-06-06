@@ -46,11 +46,11 @@ widget instances with different `reset` axes.
 
 ## Built-in widgets
 
-25 widgets ship in v0.3.x, organised into five families. The
+29 widgets ship in v0.3.x, organised into five families. The
 authoritative registry is `src/widgets/registry/registry.ts`; this page tracks
 it.
 
-### Session (9)
+### Session (13)
 
 Surface state from the stdin payload that Claude Code emits.
 
@@ -63,6 +63,10 @@ Surface state from the stdin payload that Claude Code emits.
 | `thinking-effort`  | thinking-effort tier (low / medium / high)                           |
 | `plan`             | active plan name (newest file in plans dir)                          |
 | `project`          | project name — git repo (origin) or working-dir folder               |
+| `cwd-path`         | current working-directory path, home-collapsed and truncatable       |
+| `clock`            | current time of day (24h `HH:MM` or 12h `H:MMam`)                    |
+| `output-style`     | active output style (e.g. `explanatory`, `learning`)                 |
+| `vim-mode`         | active vim mode (`NORMAL`, `INSERT`, …)                              |
 | `session-duration` | host-reported session elapsed time (e.g. `12m 30s`)                  |
 | `lines-changed`    | host-reported lines added and removed this session (e.g. `+156 −23`) |
 

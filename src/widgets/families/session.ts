@@ -1,6 +1,7 @@
 /**
  * Identity + per-session signals — `model`, `version`, `thinking-effort`,
- * `plan`, `project`, `session-id`, `account-email`.
+ * `plan`, `project`, `session-id`, `account-email`, `session-duration`,
+ * `lines-changed`, `cwd-path`, `clock`, `output-style`, `vim-mode`.
  */
 
 import { entry, v, type WidgetMeta } from "./catalog-types.js";
@@ -31,4 +32,19 @@ export const SESSION_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.free
     "Host-reported lines added and removed this session (e.g. +156 −23)",
     "session",
   ),
+  "cwd-path": entry(
+    "Working directory",
+    "Current working-directory path, home-collapsed and truncatable",
+    "session",
+  ),
+  clock: entry("Clock", "Current time of day (24h or 12h)", "session", [
+    v("24h", "24-hour (HH:MM)", { format: "24h" }),
+    v("12h", "12-hour (H:MMam/pm)", { format: "12h" }),
+  ]),
+  "output-style": entry(
+    "Output style",
+    "Active output style (e.g. explanatory, learning)",
+    "session",
+  ),
+  "vim-mode": entry("Vim mode", "Active vim mode (NORMAL, INSERT, …)", "session"),
 });
