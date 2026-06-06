@@ -1,0 +1,3 @@
+- Sync the non-gate-checked docs to the 25-widget catalogue (they drifted across the #206–#212 changes):
+  - **GitHub Pages landing page (`site/index.html`)**: "30 widgets" → 25 everywhere; removed the cards for the 6 retired widgets (claude-doctor, claude-update, context-bar, context-length, git-sha, git-untracked) and the 2 folded `*-reset-at` widgets; added cards for `cost-usd`, `session-duration`, `lines-changed`; fixed per-family filter counts (session 9 / tokens 4 / context 1 / rate-limits 3 / git 8) and surfaced the timer `at-*` variants on the two remaining timer cards.
+  - **`docs/widgets.md`** and **`docs/cookbook/08-feature-catalogue.md`**: corrected the total and per-family counts and added the three new widgets / removed the retired rows.

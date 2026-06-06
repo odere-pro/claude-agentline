@@ -9,7 +9,7 @@
     </title>
     <meta
       name="description"
-      content="agentline is a fast, powerline statusline for Claude Code. It shows git, tokens, context window, rate limits, and session info across 30 configurable widgets, with a live TUI editor, zero render-time network calls, and a Software 3.0 design any agent can install, configure, and theme by itself."
+      content="agentline is a fast, powerline statusline for Claude Code. It shows git, tokens, context window, rate limits, and session info across 25 configurable widgets, with a live TUI editor, zero render-time network calls, and a Software 3.0 design any agent can install, configure, and theme by itself."
     />
     <link rel="canonical" href="https://odere-pro.github.io/claude-agentline/" />
     <meta name="theme-color" content="#1c1714" />
@@ -126,7 +126,7 @@
             "screenshot": "https://odere-pro.github.io/claude-agentline/assets/statusline-example.png",
             "keywords": "claude code statusline, powerline, statusline cli, git, tokens, context window, rate limits, themes, tui editor, agent-operable, software 3.0",
             "featureList": [
-              "30 configurable widgets across 5 families: session, tokens, context, rate-limits, git",
+              "25 configurable widgets across 5 families: session, tokens, context, rate-limits, git",
               "Live TUI editor with a searchable, family-grouped widget picker",
               "Powerline rendering with chevrons and caps",
               "Theme engine that degrades from truecolor to 256-colour to 16-colour terminals",
@@ -229,7 +229,7 @@
                 "name": "Can I show my git branch, token usage, or context-window percentage with Claude Code?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Yes. The git, tokens, and context families cover branch, SHA, worktree, change counts, upstream, pull-request status, input and output token counts, throughput, context-window usage, and a fill bar — 30 widgets across 5 families in total."
+                  "text": "Yes. The git, tokens, and context families cover branch, worktree, change counts, conflicts, ahead/behind, upstream, origin repo, pull-request status, input and output token counts, cached tokens, throughput, session cost, and context-window usage — 25 widgets across 5 families in total."
                 }
               },
               {
@@ -963,11 +963,11 @@
         <p class="lead">
           Fast, themeable, and offline. agentline reads the stdin payload Claude
           Code sends, renders git, tokens, context window, rate limits, and
-          session info across 30 configurable widgets, and exits. No network on
+          session info across 25 configurable widgets, and exits. No network on
           the render path. No native modules. No plugin scaffolding.
         </p>
         <ul class="pills" aria-label="At a glance">
-          <li>30 widgets</li>
+          <li>25 widgets</li>
           <li>5 families</li>
           <li>agent-operable</li>
           <li>zero render-time network</li>
@@ -1005,7 +1005,7 @@
           Everything your session status needs
         </h2>
         <p class="section-lead">
-          30 widgets across 5 families, each covering one slice of session
+          25 widgets across 5 families, each covering one slice of session
           status — composed into up to three statusline rows, then styled by a
           theme engine that degrades gracefully on any terminal.
         </p>
@@ -1013,8 +1013,8 @@
           <article class="card">
             <h3>git</h3>
             <p>
-              Branch, SHA, worktree, change counts, untracked, conflicts,
-              ahead/behind, upstream, origin repo, and pull-request status.
+              Branch, worktree, change counts, conflicts, ahead/behind,
+              upstream, origin repo, and pull-request status.
             </p>
           </article>
           <article class="card">
@@ -1023,7 +1023,7 @@
           </article>
           <article class="card">
             <h3>context</h3>
-            <p>Context-window length, percentage used, and a live fill bar.</p>
+            <p>Context-window percentage used, colour-graded as fill approaches the limit.</p>
           </article>
           <article class="card">
             <h3>rate-limits</h3>
@@ -1172,7 +1172,7 @@
         aria-labelledby="widgets-heading"
       >
         <p class="kicker">The catalogue</p>
-        <h2 class="h2" id="widgets-heading">All 30 widgets, one slice each</h2>
+        <h2 class="h2" id="widgets-heading">All 25 widgets, one slice each</h2>
         <p class="section-lead">
           Pick a family to filter, or browse the whole set. Widgets accumulating
           tokens or quota declare an explicit reset axis — session, block, day,
@@ -1190,12 +1190,12 @@
 
         <fieldset class="filter" aria-label="Filter widgets by family">
           <legend class="vh">Filter widgets by family</legend>
-          <label for="f-all">All <span class="count">30</span></label>
+          <label for="f-all">All <span class="count">25</span></label>
           <label for="f-session">session <span class="count">9</span></label>
-          <label for="f-tokens">tokens <span class="count">3</span></label>
-          <label for="f-context">context <span class="count">3</span></label>
-          <label for="f-rate">rate-limits <span class="count">5</span></label>
-          <label for="f-git">git <span class="count">10</span></label>
+          <label for="f-tokens">tokens <span class="count">4</span></label>
+          <label for="f-context">context <span class="count">1</span></label>
+          <label for="f-rate">rate-limits <span class="count">3</span></label>
+          <label for="f-git">git <span class="count">8</span></label>
         </fieldset>
 
         <div class="catalog">
@@ -1246,17 +1246,17 @@
           </article>
           <article class="wcard fam-session">
             <div class="wtop">
-              <h3>Claude CLI update</h3><span class="fam">session</span>
+              <h3>Session duration</h3><span class="fam">session</span>
             </div>
-            <p class="type">claude-update</p>
-            <p>Shows the latest Claude Code CLI when an update is available.</p>
+            <p class="type">session-duration</p>
+            <p>Host-reported session elapsed time (e.g. 12m 30s).</p>
           </article>
           <article class="wcard fam-session">
             <div class="wtop">
-              <h3>Claude doctor</h3><span class="fam">session</span>
+              <h3>Lines changed</h3><span class="fam">session</span>
             </div>
-            <p class="type">claude-doctor</p>
-            <p>Issue and warning counts from the host claude doctor.</p>
+            <p class="type">lines-changed</p>
+            <p>Host-reported lines added and removed this session (e.g. +156 −23).</p>
           </article>
 
           <!-- tokens -->
@@ -1277,24 +1277,17 @@
             <p class="type">token-speed</p>
             <p>Input + output tokens per second over the active window.</p>
           </article>
+          <article class="wcard fam-tokens">
+            <div class="wtop"><h3>Cost (USD)</h3><span class="fam">tokens</span></div>
+            <p class="type">cost-usd</p>
+            <p>Host-reported session cost in USD (e.g. $1.23).</p>
+          </article>
 
           <!-- context -->
-          <article class="wcard fam-context">
-            <div class="wtop">
-              <h3>Context length</h3><span class="fam">context</span>
-            </div>
-            <p class="type">context-length</p>
-            <p>Tokens currently in the context window.</p>
-          </article>
           <article class="wcard fam-context">
             <div class="wtop"><h3>Context %</h3><span class="fam">context</span></div>
             <p class="type">context-percentage</p>
             <p>Percentage of the model's context window used.</p>
-          </article>
-          <article class="wcard fam-context">
-            <div class="wtop"><h3>Context bar</h3><span class="fam">context</span></div>
-            <p class="type">context-bar</p>
-            <p>Tiny inline bar approximating context fill.</p>
           </article>
 
           <!-- rate-limits -->
@@ -1316,19 +1309,9 @@
               <li>short</li>
               <li>long</li>
               <li>clock</li>
-            </ul>
-          </article>
-          <article class="wcard fam-rate">
-            <div class="wtop">
-              <h3>Current session reset at</h3>
-              <span class="fam">rate-limits</span>
-            </div>
-            <p class="type">current-session-reset-at</p>
-            <p>Wall-clock time of the next session reset.</p>
-            <ul class="variants" aria-label="Variants">
-              <li>time-24h</li>
-              <li>time-12h</li>
-              <li>seconds</li>
+              <li>at-24h</li>
+              <li>at-12h</li>
+              <li>at-seconds</li>
             </ul>
           </article>
           <article class="wcard fam-rate">
@@ -1341,19 +1324,9 @@
               <li>short</li>
               <li>long</li>
               <li>clock</li>
-            </ul>
-          </article>
-          <article class="wcard fam-rate">
-            <div class="wtop">
-              <h3>Weekly reset at</h3><span class="fam">rate-limits</span>
-            </div>
-            <p class="type">weekly-reset-at</p>
-            <p>Day + time of the next weekly reset.</p>
-            <ul class="variants" aria-label="Variants">
-              <li>day-time</li>
-              <li>day-only</li>
-              <li>time-24h</li>
-              <li>time-12h</li>
+              <li>at-day-time</li>
+              <li>at-24h</li>
+              <li>at-12h</li>
             </ul>
           </article>
 
@@ -1364,11 +1337,6 @@
             <p>Current branch, or short SHA when detached.</p>
           </article>
           <article class="wcard fam-git">
-            <div class="wtop"><h3>Git SHA</h3><span class="fam">git</span></div>
-            <p class="type">git-sha</p>
-            <p>Short commit SHA of HEAD.</p>
-          </article>
-          <article class="wcard fam-git">
             <div class="wtop"><h3>Git worktree</h3><span class="fam">git</span></div>
             <p class="type">git-worktree</p>
             <p>Basename of the current worktree.</p>
@@ -1377,11 +1345,6 @@
             <div class="wtop"><h3>Git changes</h3><span class="fam">git</span></div>
             <p class="type">git-changes</p>
             <p>Staged, unstaged, and untracked file counts.</p>
-          </article>
-          <article class="wcard fam-git">
-            <div class="wtop"><h3>Git untracked</h3><span class="fam">git</span></div>
-            <p class="type">git-untracked</p>
-            <p>Untracked-file count.</p>
           </article>
           <article class="wcard fam-git">
             <div class="wtop"><h3>Git conflicts</h3><span class="fam">git</span></div>
@@ -1538,10 +1501,11 @@ agentline uninstall --purge</code></pre>
           </dt>
           <dd>
             Yes. The <code>git</code>, <code>tokens</code>, and
-            <code>context</code> families cover branch, SHA, worktree, change
-            counts, upstream, pull-request status, input and output token
-            counts, throughput, context-window usage, and a fill bar — 28
-            widgets across 5 families in total.
+            <code>context</code> families cover branch, worktree, change
+            counts, conflicts, ahead/behind, upstream, pull-request status,
+            input and output token counts, cached tokens, throughput, session
+            cost, and context-window usage — 25 widgets across 5 families in
+            total.
           </dd>
 
           <dt>What is Software 3.0 and why is agentline agent-operable?</dt>

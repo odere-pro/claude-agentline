@@ -9,20 +9,23 @@
 
 Five families, each producing one cell per widget. The exact widget set may evolve; the family structure is stable.
 
-### Session (~7 widgets)
+### Session (9 widgets)
 
 Surface state from the host stdin payload.
 
-| Type              | Renders                                                                                                                                                                                                                                          |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `model`           | Active model id (mapped to display name).                                                                                                                                                                                                        |
-| `version`         | Host version.                                                                                                                                                                                                                                    |
-| `session-id`      | Short session id; toggleable hide.                                                                                                                                                                                                               |
-| `account-email`   | Logged-in email; auth-file fallback. Mask modes available.                                                                                                                                                                                       |
-| `thinking-effort` | Effort tier; semantic colour grade.                                                                                                                                                                                                              |
-| `skills`          | Skills loaded for this session; cycled display (count / list / last). Reads the inbound stdin `skills` field — **distinct** from the agent-skill files the installer copies into the host's agents directory (see `Shipped agent skills` below). |
+| Type               | Renders                                                               |
+| ------------------ | --------------------------------------------------------------------- |
+| `model`            | Active model id (mapped to display name).                             |
+| `version`          | Host version.                                                         |
+| `session-id`       | Short session id; toggleable hide.                                    |
+| `account-email`    | Logged-in email; auth-file fallback. Mask modes available.            |
+| `thinking-effort`  | Effort tier; semantic colour grade.                                   |
+| `plan`             | Active plan for the current session.                                  |
+| `project`          | Project name — git repo or working-directory folder.                  |
+| `session-duration` | Host-reported session elapsed time (e.g. `12m 30s`).                  |
+| `lines-changed`    | Host-reported lines added and removed this session (e.g. `+156 −23`). |
 
-### Tokens (~3 widgets)
+### Tokens (4 widgets)
 
 `tokens` / `tokens-cached` declare `options.reset` ∈ {`session`, `block`, `day`, `week`, `model`, `effort`}; mixed-axis aggregation forbidden. `token-speed` uses `options.windowSec` instead.
 
@@ -31,6 +34,7 @@ Surface state from the host stdin payload.
 | `tokens`        | Input ↓ + output ↑ subtotals (`↓<in> · ↑<out>`)     |
 | `tokens-cached` | Cached subtotal (prompt-cache hits)                 |
 | `token-speed`   | Input ↓ + output ↑ tokens/sec over a rolling window |
+| `cost-usd`      | Host-reported session cost in USD (e.g. `$1.23`)    |
 
 ### Context (1 widget)
 
@@ -41,7 +45,7 @@ model's context-window size as a postfix (e.g. `200k`, `1M`).
 | -------------------- | ----------------------------------------------------------------------- |
 | `context-percentage` | Used / window, colour-graded green→yellow→red, + window (`37% · 200k`). |
 
-### Rate limits (~3 widgets)
+### Rate limits (3 widgets)
 
 Track the host's current-session / weekly quota, mirroring the host's
 usage-limits screen.
@@ -52,7 +56,7 @@ usage-limits screen.
 | `current-session-reset-timer` | Countdown to next session reset. Variants `at-24h`, `at-12h`, `at-seconds` show the wall-clock time. |
 | `week-limit-timer`            | Countdown to next weekly reset. Variants `at-day-time`, `at-24h`, `at-12h` show the wall-clock time. |
 
-### Git (~8 widgets)
+### Git (8 widgets)
 
 Read the working tree implied by stdin `cwd`.
 
