@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import { isHelpFlag, requestHelp } from "../../../core/lib/help/help.js";
 import { loadConfig } from "../../../data/config/load/load.js";
 import { resolveConfigPaths } from "../../../data/config/paths/paths.js";
+import { ConfigValidationError } from "../../../data/config/validate/validate.js";
 import { pathExists } from "../../../core/lib/fs/fs.js";
 import { type PlanSnapshot } from "../../../data/session/plan/plan.js";
 import { recordSessionPlan } from "../../../data/state/session-plan-cache/session-plan-cache.js";
@@ -152,14 +153,42 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
  * Falls back to `undefined` (which lets `renderForFixture` use
  * `DEFAULT_CONFIG`) when loading fails — the render still produces a
  * usable line instead of bailing the whole status bar.
+ *
+ * When loading fails the config file EXISTS but is broken (invalid JSON
+ * or schema-validation failure). A missing config file is the normal
+ * first-run state and never throws. Any thrown error therefore means
+ * "the user has a config file and it is broken" — worth surfacing so
+ * they know their edits were ignored and `agentline doctor` can explain
+ * why. The diagnostic goes to STDERR only and is suppressed for non-TTY
+ * stderr and when `AGENTLINE_QUIET=1` (same gate as `maybeEmitFirstRunHint`),
+ * so it never spams the host process log on every render tick.
  */
 async function loadLiveConfig() {
   try {
     const loaded = await loadConfig();
     return loaded.config;
-  } catch {
+  } catch (err) {
+    maybeEmitConfigInvalidHint(err);
     return undefined;
   }
+}
+
+/**
+ * Emit a single concise STDERR diagnostic when the user's config file
+ * exists but is broken. Suppressed for non-TTY stderr and AGENTLINE_QUIET=1
+ * (matching the gate used by `maybeEmitFirstRunHint`). The message is
+ * intentionally generic —
+ * no paths, no raw error text that could contain absolute paths (gate-02).
+ * The short reason ("invalid JSON" | "schema") is safe and helps the user
+ * before they run `agentline doctor`.
+ */
+function maybeEmitConfigInvalidHint(err: unknown): void {
+  if (!process.stderr.isTTY) return;
+  if (process.env.AGENTLINE_QUIET === "1") return;
+  const reason = err instanceof ConfigValidationError ? "schema" : "invalid JSON";
+  process.stderr.write(
+    `agentline: config invalid (${reason}, using defaults) — run \`agentline doctor\`\n`,
+  );
 }
 
 /**

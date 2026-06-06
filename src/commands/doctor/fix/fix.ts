@@ -93,8 +93,20 @@ async function fixD02(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
    * statusLine but D09 (evaluated before fixes ran, when no statusLine
    * existed) stays a no-op, and the interval only lands on a *second*
    * --fix run — breaking the one-pass idempotency invariant.
+   *
+   * Guard: if config.json is corrupt (D03 also needs fixing) loadConfig
+   * throws a ConfigValidationError. Fall back to DEFAULT_CONFIG so the
+   * statusLine still gets a sane refreshInterval. D03 runs next and
+   * reseeds the config, so the full sequence converges in one pass.
    */
-  const { config } = await loadConfig({ env: ctx.env });
+  let loadedRefreshInterval = DEFAULT_CONFIG.refreshInterval;
+  try {
+    const { config } = await loadConfig({ env: ctx.env });
+    loadedRefreshInterval = config.refreshInterval;
+  } catch {
+    /* corrupt / invalid config — D03 fixer will reseed it; use the default */
+  }
+  const config = { refreshInterval: loadedRefreshInterval };
   const statusLine: Record<string, unknown> = {
     type: "command",
     command: "npx -y @odere-pro/agentline render",
@@ -139,8 +151,21 @@ async function fixD03(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
  * stays a `warn` pointing at `agentline install`.
  */
 async function fixD09(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
-  const { config } = await loadConfig({ env: ctx.env });
-  const result = await syncRefreshInterval(ctx.home, config.refreshInterval);
+  /*
+   * Guard: if config.json is corrupt loadConfig throws. Fall back to
+   * DEFAULT_CONFIG so the fixer can still sync settings.json without
+   * crashing. D03 normally runs before D09 and reseeds the config, so
+   * this guard is belt-and-braces insurance for the rare case where only
+   * D09 is in the result set with a corrupt config on disk.
+   */
+  let refreshInterval = DEFAULT_CONFIG.refreshInterval;
+  try {
+    const { config } = await loadConfig({ env: ctx.env });
+    refreshInterval = config.refreshInterval;
+  } catch {
+    /* corrupt / invalid config — use the default */
+  }
+  const result = await syncRefreshInterval(ctx.home, refreshInterval);
   if (result.kind === "not-wired") {
     return {
       ...r,
@@ -154,7 +179,7 @@ async function fixD09(r: CheckResult, ctx: FixCtx): Promise<CheckResult> {
       ? `wrote statusLine.refreshInterval=${result.value}`
       : result.kind === "removed"
         ? "removed statusLine.refreshInterval (refresh disabled)"
-        : `already in sync (refreshInterval=${config.refreshInterval})`;
+        : `already in sync (refreshInterval=${refreshInterval})`;
   return { ...r, status: "fixed", message: detail, fixed: true, hint: undefined };
 }
 

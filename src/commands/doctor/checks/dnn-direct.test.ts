@@ -104,6 +104,17 @@ describe("checkD03", () => {
     expect(res.message).toMatch(/schema mismatch/);
     expect(res.hint).toMatch(/--fix/);
   });
+
+  it("includes field-path detail from a multi-line error (not truncated at line 1)", async () => {
+    const multiLineError = new Error(
+      "config invalid:\n  /refreshInterval: must be >= 0\n  /theme: must be string or null",
+    );
+    const res = await checkD03(makeCtx({ configError: multiLineError }));
+    expect(res.status).toBe("fail");
+    // Line 2+ detail must survive — previously truncated at split("\n")[0]
+    expect(res.message).toMatch(/refreshInterval/);
+    expect(res.message).not.toMatch(/^config invalid:$/);
+  });
 });
 
 describe("checkD04", () => {
