@@ -1,27 +1,13 @@
 {
   "$schema": "https://github.com/odere-pro/claude-agentline/schemas/config.schema.json",
   "version": 1,
-  "theme": "claude-code-dark",
+  "theme": null,
   "lines": [
     {
       "widgets": [
         { "type": "model" },
-        { "type": "thinking-effort" },
-        { "type": "git-branch" },
-        { "type": "git-changes" }
-      ]
-    },
-    {
-      "widgets": [
         { "type": "context-percentage" },
         { "type": "tokens", "options": { "reset": "block" } }
-      ]
-    },
-    {
-      "widgets": [
-        { "type": "session-weekly-usage" },
-        { "type": "current-session-reset-timer" },
-        { "type": "week-limit-timer" }
       ]
     }
   ],
@@ -43,13 +29,6 @@
     "autoAlign": false,
     "continueColors": false
   },
-  "terminalWidth": {
-    "mode": "full-minus-40",
-    "compactThreshold": 60
-  },
-  "keymap": {},
-  "language": "en",
-  "refreshInterval": 5,
-  "families": {},
-  "translations": {}
+  "terminalWidth": { "mode": "full", "compactThreshold": 60 },
+  "keymap": {}
 }
