@@ -16,7 +16,6 @@ import type { PlanSnapshot } from "../../data/session/plan/plan.js";
 import type { StdinPayload } from "../../core/stdin/index.js";
 import type { Theme } from "../../data/theme/index.js";
 import type { TokensSnapshot } from "../../data/tokens/index.js";
-import type { ClaudeHealthState } from "../../data/state/claude-health-cache/snapshot.js";
 import type { Clock } from "../../widgets/clock/clock.js";
 
 import type { AccessibilityFlags } from "./accessibility/accessibility.js";
@@ -33,5 +32,4 @@ export interface RenderInputs {
   readonly git?: GitState;
   readonly session?: ResolvedSessionFields;
   readonly plan?: PlanSnapshot;
-  readonly claudeHealth?: ClaudeHealthState;
 }

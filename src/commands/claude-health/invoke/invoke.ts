@@ -1,8 +1,8 @@
 /**
  * Spawn the host `claude` CLI to probe its health. **Off the render path
- * only** — this module is imported by the claude-health refresher
- * (`__refresh-claude-health` verb + doctor D10), never by a render-reachable
- * module (gate 13 / gate 14).
+ * only** — this module is imported by the claude-health refresher (used by
+ * doctor D10 via lazy import), never by a render-reachable module
+ * (gate 13 / gate 14).
  *
  * Both runners return trimmed stdout or `null` on any failure (binary
  * missing, non-zero exit, timeout). We capture stdout; `claude doctor`'s

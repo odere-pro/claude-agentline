@@ -27,7 +27,6 @@ import type { TokensSnapshot } from "../../../data/tokens/index.js";
 import type { GitState } from "../../../data/git/index.js";
 import type { ResolvedSessionFields } from "../../../data/session/index.js";
 import type { PlanSnapshot } from "../../../data/session/plan/plan.js";
-import type { ClaudeHealthState } from "../../../data/state/claude-health-cache/snapshot.js";
 
 export interface RenderForFixtureOptions {
   readonly config?: AgentlineConfig;
@@ -47,7 +46,6 @@ export interface RenderForFixtureOptions {
   readonly git?: GitState;
   readonly session?: ResolvedSessionFields;
   readonly plan?: PlanSnapshot;
-  readonly claudeHealth?: ClaudeHealthState;
   /** Override the bundled themes directory; primarily used by tests. */
   readonly builtinThemesDir?: string;
 }
@@ -85,7 +83,6 @@ export async function renderForFixture(
     ...(options.git !== undefined ? { git: options.git } : {}),
     ...(options.session !== undefined ? { session: options.session } : {}),
     ...(options.plan !== undefined ? { plan: options.plan } : {}),
-    ...(options.claudeHealth !== undefined ? { claudeHealth: options.claudeHealth } : {}),
   });
 }
 

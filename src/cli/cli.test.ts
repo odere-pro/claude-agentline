@@ -7,6 +7,9 @@
  * `config widget …` mutations for in-session use by the agentline
  * configure skill. `install` stays dispatched but is hidden from
  * `agentline help` — `reset` is the user/agent-facing entry point.
+ *
+ * `__refresh-claude-health` was removed: doctor D10 now refreshes the
+ * cache inline; the hidden verb and the render-path spawn are gone.
  */
 
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
@@ -27,9 +30,6 @@ const EXPECTED_COMMANDS = [
   "version",
   "--version",
   "-v",
-  // Internal/hidden — refreshes the claude-health cache off the render
-  // path; spawned detached by the live render and invoked by no human.
-  "__refresh-claude-health",
 ] as const;
 
 const DROPPED_COMMANDS = ["theme", "themes", "widget", "schema", "init", "keys"] as const;

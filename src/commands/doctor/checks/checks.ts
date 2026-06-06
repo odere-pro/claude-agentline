@@ -42,6 +42,9 @@ export async function runChecks(opts: RunOptions): Promise<CheckResult[]> {
     config: null,
     configError: null,
     t: createDictTranslator({}),
+    ...(opts.claudeHealthRefresh !== undefined
+      ? { claudeHealthRefresh: opts.claudeHealthRefresh }
+      : {}),
   };
   try {
     const loaded = await loadConfig({ env: ctx.env });

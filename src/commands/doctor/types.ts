@@ -32,6 +32,12 @@ export interface RunOptions {
   env?: NodeJS.ProcessEnv;
   /** Override cwd (tests). */
   cwd?: string;
+  /**
+   * Test seam: substitute the claude-health refresh called by D10.
+   * Pass a no-op (e.g. `async () => {}`) to suppress the actual `claude`
+   * probe and read only the pre-seeded cache file.
+   */
+  claudeHealthRefresh?: import("./checks/context.js").CheckCtx["claudeHealthRefresh"];
 }
 
 export interface RunReport {

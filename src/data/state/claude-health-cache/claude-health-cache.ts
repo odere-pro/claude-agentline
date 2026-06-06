@@ -4,15 +4,8 @@
  * Lives under `${agentlineDir}/state/claude-health.json`, written by the
  * off-render-path refresher (`src/commands/claude-health/refresh`) after
  * spawning `claude --version` / `claude doctor` and probing npm for the
- * latest `@anthropic-ai/claude-code`. Read synchronously by the render
- * path (to hydrate the `claude-update` / `claude-doctor` widgets) and by
- * doctor's D10 check.
- *
- * Contract — render path:
- *   - The render path may **read** this cache as a synchronous snapshot,
- *     but MUST NEVER refresh it (no `claude` spawn, no npm fetch on the
- *     hot path — gate 13 / gate 14). The render command instead spawns a
- *     detached `__refresh-claude-health` process when the cache is stale.
+ * latest `@anthropic-ai/claude-code`. Read synchronously by doctor's D10
+ * check after the inline self-refresh.
  *
  * Contract — writers:
  *   - Atomic write (write-temp + fsync + rename) via `writeJsonIdempotent`
@@ -21,8 +14,8 @@
  *
  * Contract — readers:
  *   - Sync read; returns `null` on any failure (missing file, malformed
- *     JSON, unknown version, missing required fields). Absence hides the
- *     dependent widgets — it is never an error.
+ *     JSON, unknown version, missing required fields). Absence is never
+ *     an error — D10 reports `pass` with an explanation in that case.
  */
 
 import { readFileSync } from "node:fs";
@@ -151,9 +144,8 @@ export function readClaudeHealthSync(
 
 /**
  * Whether the cached probe is still within the freshness window. Used by
- * the render-path trigger to decide whether to spawn a refresh, and by the
- * refresher to short-circuit a redundant probe. A missing / undated cache
- * is treated as stale.
+ * the refresher to short-circuit a redundant probe. A missing / undated
+ * cache is treated as stale.
  */
 export function isClaudeHealthFresh(
   now: number,

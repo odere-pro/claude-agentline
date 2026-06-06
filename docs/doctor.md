@@ -141,15 +141,12 @@ configured value is `0`.
 
 ### D10 — Claude CLI health
 
-Reports on the host `claude` CLI from an off-render-path cache: whether a
-newer Claude Code CLI is available, and the issue/warning counts from
-`claude doctor`. Read-only — like D07 it never spawns `claude` or fetches
-from inside the check. The cache is refreshed lazily by the live render
-path (the first `agentline` render, and once per ~24h thereafter, spawns a
-detached probe). A `claude doctor` failure reports `fail`; a warning reports
-`warn`; an available update or a clean, current CLI reports `pass` (an
-update hint is informational). A missing CLI or an unpopulated cache reports
-`pass` with an explanation. No fix.
+Reports whether a newer Claude Code CLI is available, and the issue/warning
+counts from `claude doctor`. `doctor` refreshes the cache itself when it
+runs (best-effort; any probe error is swallowed). A `claude doctor` failure
+reports `fail`; a warning reports `warn`; an available update or a clean,
+current CLI reports `pass` (an update hint is informational). A missing CLI
+or an unpopulated cache reports `pass` with an explanation. No fix.
 
 ### D11 — Widget config sanity
 
