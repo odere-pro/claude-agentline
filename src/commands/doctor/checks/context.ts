@@ -1,5 +1,5 @@
 /**
- * Shared context + helpers for the doctor checks (D01–D09).
+ * Shared context + helpers for the doctor checks (D01–D11).
  *
  * Each check is a pure async `(ctx) => CheckResult` in its own
  * `dNN-*.ts` file; this module owns the inputs they all share —
@@ -24,7 +24,7 @@ export interface CheckCtx {
   home: string;
   env: NodeJS.ProcessEnv;
   cwd: string;
-  /** Lazily resolved merged config; some checks need it (D03, D04, D05, D09). */
+  /** Lazily resolved merged config; some checks need it (D03, D04, D05, D09, D11). */
   config: AgentlineConfig | null;
   /** Loader error if config could not be loaded — used by D03. */
   configError: Error | null;
