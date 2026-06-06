@@ -13,6 +13,7 @@ import { checkD04 } from "./d04-themes-installed.js";
 import { checkD05 } from "./d05-git-on-path.js";
 import { checkD08 } from "./d08-render-fixture.js";
 import { checkD09 } from "./d09-refresh-interval.js";
+import { checkD11 } from "./d11-widget-sanity.js";
 
 /*
  * Per-check direct unit tests. Each builds a minimal `CheckCtx` and
@@ -237,5 +238,126 @@ describe("checkD09", () => {
     const res = await checkD09(makeCtx({ home, config: makeConfig({ refreshInterval: 5 }) }));
     expect(res.status).toBe("warn");
     expect(res.message).toMatch(/settings\.json has none/);
+  });
+});
+
+describe("checkD11", () => {
+  it("passes with a note when config is not loaded", async () => {
+    const res = await checkD11(makeCtx({ config: null }));
+    expect(res.id).toBe("D11");
+    expect(res.status).toBe("pass");
+    expect(res.message).toMatch(/config not loaded/);
+  });
+
+  it("passes when there are no widgets configured", async () => {
+    const res = await checkD11(makeCtx({ config: makeConfig({ lines: [] }) }));
+    expect(res.id).toBe("D11");
+    expect(res.status).toBe("pass");
+    expect(res.message).toMatch(/0 widget/);
+  });
+
+  it("passes when every widget type is known and renderable", async () => {
+    const res = await checkD11(
+      makeCtx({
+        config: makeConfig({
+          lines: [{ widgets: [{ type: "git-branch" }, { type: "session-id" }] }],
+        }),
+      }),
+    );
+    expect(res.id).toBe("D11");
+    expect(res.status).toBe("pass");
+    expect(res.message).toMatch(/all renderable/);
+  });
+
+  it("warns when a widget type is unknown (removed from the registry)", async () => {
+    const res = await checkD11(
+      makeCtx({
+        config: makeConfig({
+          lines: [{ widgets: [{ type: "claude-doctor" }, { type: "git-branch" }] }],
+        }),
+      }),
+    );
+    expect(res.id).toBe("D11");
+    expect(res.status).toBe("warn");
+    expect(res.message).toMatch(/unknown/i);
+    expect(res.message).toContain("claude-doctor");
+    expect(res.hint).toMatch(/agentline edit/);
+  });
+
+  it("warns when multiple unknown widget types are present", async () => {
+    const res = await checkD11(
+      makeCtx({
+        config: makeConfig({
+          lines: [
+            {
+              widgets: [
+                { type: "claude-update" },
+                { type: "context-bar" },
+                { type: "git-branch" },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+    expect(res.id).toBe("D11");
+    expect(res.status).toBe("warn");
+    expect(res.message).toContain("claude-update");
+    expect(res.message).toContain("context-bar");
+  });
+
+  it("warns when git-pr is configured without allowNetwork opt-in", async () => {
+    const res = await checkD11(
+      makeCtx({
+        config: makeConfig({
+          lines: [{ widgets: [{ type: "git-pr" }] }],
+        }),
+      }),
+    );
+    expect(res.id).toBe("D11");
+    expect(res.status).toBe("warn");
+    expect(res.message).toMatch(/git-pr/);
+    expect(res.message).toMatch(/allowNetwork/);
+    expect(res.hint).toMatch(/allowNetwork: true/);
+  });
+
+  it("warns when git-pr has allowNetwork: false explicitly", async () => {
+    const res = await checkD11(
+      makeCtx({
+        config: makeConfig({
+          lines: [{ widgets: [{ type: "git-pr", options: { allowNetwork: false } }] }],
+        }),
+      }),
+    );
+    expect(res.id).toBe("D11");
+    expect(res.status).toBe("warn");
+    expect(res.message).toMatch(/allowNetwork/);
+  });
+
+  it("passes when git-pr has allowNetwork: true", async () => {
+    const res = await checkD11(
+      makeCtx({
+        config: makeConfig({
+          lines: [{ widgets: [{ type: "git-pr", options: { allowNetwork: true } }] }],
+        }),
+      }),
+    );
+    expect(res.id).toBe("D11");
+    expect(res.status).toBe("pass");
+    expect(res.message).toMatch(/all renderable/);
+  });
+
+  it("warns on both unknown type and git-pr without opt-in at the same time", async () => {
+    const res = await checkD11(
+      makeCtx({
+        config: makeConfig({
+          lines: [{ widgets: [{ type: "git-untracked" }, { type: "git-pr" }] }],
+        }),
+      }),
+    );
+    expect(res.id).toBe("D11");
+    expect(res.status).toBe("warn");
+    expect(res.message).toContain("git-untracked");
+    expect(res.message).toMatch(/allowNetwork/);
   });
 });

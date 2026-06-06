@@ -52,20 +52,39 @@ export function resolveSessionFields(
 ): ResolvedSessionFields {
   const user = readUserBlock(payload);
   const org = readOrgBlock(user);
+  /*
+   * Cross-account guard (adversarial-QA finding):
+   *
+   * When the host sends a `user` block it has identified the current
+   * session. If that block omits `email` (or another identity field) we
+   * MUST NOT substitute the auth-file value — the auth file may belong
+   * to a different account (e.g. after an account switch). We prefer to
+   * leave the field absent (widget hides) over displaying a wrong identity.
+   *
+   * The fallback is only safe when stdin sends NO `user` block at all —
+   * i.e. an older Claude Code version that never surfaces identity. In
+   * that case the auth file is the only signal and is used as-is.
+   *
+   * Note: no account/org UUID is available on either side, so we cannot
+   * do a positive "same account" match. The `user` block presence is the
+   * best proxy: its absence means "host did not assert identity", its
+   * presence means "host did assert identity, use only what it provided".
+   */
+  const authFallback = user === undefined ? auth : null;
   return {
     ...(payload.model ? { model: payload.model } : {}),
     ...(payload.version ? { version: payload.version } : {}),
     ...(payload.outputStyle ? { outputStyle: payload.outputStyle } : {}),
     ...(payload.sessionId ? { sessionId: payload.sessionId } : {}),
     ...(payload.sessionName ? { sessionName: payload.sessionName } : {}),
-    ...((pickString(user, "email") ?? auth?.email) !== undefined
-      ? { accountEmail: pickString(user, "email") ?? auth?.email }
+    ...((pickString(user, "email") ?? authFallback?.email) !== undefined
+      ? { accountEmail: pickString(user, "email") ?? authFallback?.email }
       : {}),
-    ...((pickString(user, "authMethod") ?? auth?.authMethod) !== undefined
-      ? { loginMethod: pickString(user, "authMethod") ?? auth?.authMethod }
+    ...((pickString(user, "authMethod") ?? authFallback?.authMethod) !== undefined
+      ? { loginMethod: pickString(user, "authMethod") ?? authFallback?.authMethod }
       : {}),
-    ...((pickString(org, "slug") ?? auth?.orgSlug) !== undefined
-      ? { orgSlug: pickString(org, "slug") ?? auth?.orgSlug }
+    ...((pickString(org, "slug") ?? authFallback?.orgSlug) !== undefined
+      ? { orgSlug: pickString(org, "slug") ?? authFallback?.orgSlug }
       : {}),
     ...(payload.thinkingEffort ? { thinkingEffort: payload.thinkingEffort } : {}),
     ...(payload.vimMode ? { vimMode: payload.vimMode } : {}),

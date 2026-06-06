@@ -195,7 +195,7 @@ agentline config refresh 0         # disable; event-driven updates only
 agentline doctor [options]
 ```
 
-Runs nine health checks (D01–D09) against the host configuration. With `--fix`, auto-repairs D01–D04 and D09.
+Runs eleven health checks (D01–D11) against the host configuration. With `--fix`, auto-repairs D01–D04 and D09.
 
 | Flag            | Type | Default | Description                                                                                           |
 | --------------- | ---- | ------- | ----------------------------------------------------------------------------------------------------- |
@@ -206,17 +206,19 @@ Runs nine health checks (D01–D09) against the host configuration. With `--fix`
 
 **Checks:**
 
-| ID  | What it checks                              | Auto-fixable |
-| --- | ------------------------------------------- | ------------ |
-| D01 | `~/.claude/settings.json` exists            | yes          |
-| D02 | `statusLine` wired to agentline             | yes          |
-| D03 | User/project config valid schema            | yes (seed)   |
-| D04 | Theme files present                         | yes (copy)   |
-| D05 | `git` on PATH                               | no           |
-| D06 | Config directory writable                   | no           |
-| D07 | Update-check cache (read-only)              | no           |
-| D08 | Render snapshot matches golden              | no           |
-| D09 | `statusLine.refreshInterval` matches config | yes          |
+| ID  | What it checks                                      | Auto-fixable |
+| --- | --------------------------------------------------- | ------------ |
+| D01 | `~/.claude/settings.json` exists                    | yes          |
+| D02 | `statusLine` wired to agentline                     | yes          |
+| D03 | User/project config valid schema                    | yes (seed)   |
+| D04 | Theme files present                                 | yes (copy)   |
+| D05 | `git` on PATH                                       | no           |
+| D06 | Config directory writable                           | no           |
+| D07 | Update-check cache (read-only)                      | no           |
+| D08 | Render snapshot matches golden                      | no           |
+| D09 | `statusLine.refreshInterval` matches config         | yes          |
+| D10 | Claude CLI health (read-only)                       | no           |
+| D11 | Widget config sanity (unknown types, git-pr opt-in) | no           |
 
 **Glyphs in output:** `[ok]` passed · `[!!]` warning · `[XX]` failed · `[fx]` fixed · `[--]` skipped
 

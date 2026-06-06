@@ -76,6 +76,57 @@ describe("resolveSessionFields", () => {
   });
 });
 
+describe("resolveSessionFields — cross-account fallback guard", () => {
+  it("(a) uses stdin email when present; auth email is ignored", () => {
+    const stdin = payload({
+      user: { email: "session@example.com", authMethod: "oauth", org: { slug: "session-org" } },
+    });
+    const auth: AuthSnapshot = { email: "stale@example.com", orgSlug: "old-org" };
+    const r = resolveSessionFields(stdin, auth);
+    expect(r.accountEmail).toBe("session@example.com");
+    expect(r.orgSlug).toBe("session-org");
+  });
+
+  it("(b) stdin omits email but auth is same-account (user block absent) → auth email shown", () => {
+    // Common case: older Claude Code that never sends a user block at all.
+    const auth: AuthSnapshot = { email: "me@example.com", authMethod: "oauth", orgSlug: "my-org" };
+    const r = resolveSessionFields(payload(), auth);
+    expect(r.accountEmail).toBe("me@example.com");
+    expect(r.loginMethod).toBe("oauth");
+    expect(r.orgSlug).toBe("my-org");
+  });
+
+  it("(c) stdin sends a user block but omits email → auth email NOT used (hide over mislead)", () => {
+    // Host identified the session (user block present) but didn't send email.
+    // Auth disk file may be a different account — suppress it.
+    const stdin = payload({ user: { authMethod: "oauth", org: { slug: "live-org" } } });
+    const auth: AuthSnapshot = { email: "stale@example.com", orgSlug: "old-org" };
+    const r = resolveSessionFields(stdin, auth);
+    expect(r.accountEmail).toBeUndefined();
+    // orgSlug from stdin user block is still used
+    expect(r.orgSlug).toBe("live-org");
+  });
+
+  it("(c-minimal) stdin sends a minimal user block (only email absent) → auth email NOT used", () => {
+    const stdin = payload({ user: {} });
+    const auth: AuthSnapshot = { email: "stale@example.com" };
+    const r = resolveSessionFields(stdin, auth);
+    expect(r.accountEmail).toBeUndefined();
+  });
+
+  it("(d) no stdin user block at all → full auth fallback used for all identity fields", () => {
+    const auth: AuthSnapshot = {
+      email: "fallback@example.com",
+      authMethod: "enterprise",
+      orgSlug: "corp",
+    };
+    const r = resolveSessionFields(payload(), auth);
+    expect(r.accountEmail).toBe("fallback@example.com");
+    expect(r.loginMethod).toBe("enterprise");
+    expect(r.orgSlug).toBe("corp");
+  });
+});
+
 describe("loadSessionFields — identity fallbacks", () => {
   let tmp: string;
 

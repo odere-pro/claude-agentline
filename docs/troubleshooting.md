@@ -7,7 +7,7 @@ agentline doctor          # full report
 agentline doctor --fix    # auto-repair D01–D04
 ```
 
-See [doctor.md](./doctor.md) for the complete check list (D01–D09).
+See [doctor.md](./doctor.md) for the complete check list (D01–D11).
 
 ---
 
