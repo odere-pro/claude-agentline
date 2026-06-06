@@ -1,0 +1,6 @@
+- Add four data-ready widgets to the session family — each reads a field already present on the render context, so no stdin plumbing was needed (catalogue 25 → 29):
+  - **`cwd-path`** — the session's full working-directory path from `cwd`, with the home prefix segment-collapsed to `~` (no absolute home literal) and left-truncatable via `options.maxLength`. Distinct from `project`, which shows the git repo _name_; `cwd-path` shows the whole path.
+  - **`clock`** — current time of day read through `ctx.clock` (never `Date.now()`), formatted in UTC so goldens stay byte-stable. `format: "24h"` (default `HH:MM`) or `"12h"` (`H:MMam`/`pm`); `seconds: true` appends `:SS`.
+  - **`output-style`** — the active output style from `output_style.name` (e.g. `explanatory`, `learning`). The unremarkable `default` style is hidden unless `showDefault: true`.
+  - **`vim-mode`** — the active vim mode from `vim_mode`, upper-cased to the familiar indicator (`NORMAL`, `INSERT`, …); an unknown future mode passes through upper-cased rather than hidden.
+- All four are pure `(ctx, settings) → Cell`, carry no `reset` axis, and hide when their source field is absent. Placed in the existing `session` family rather than a new family, keeping the five-family contract (and gate-22's family check) untouched.

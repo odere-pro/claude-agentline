@@ -12,25 +12,33 @@ import type { WidgetDef } from "../widget.js";
 import type { WidgetRegistry } from "../registry/registry.js";
 
 import { accountEmailWidget } from "./account-email.js";
+import { clockWidget } from "./clock/clock-widget.js";
+import { cwdPathWidget } from "./cwd-path/cwd-path.js";
 import { linesChangedWidget } from "./lines-changed/lines-changed.js";
 import { modelWidget } from "./model.js";
+import { outputStyleWidget } from "./output-style/output-style.js";
 import { planWidget } from "./plan.js";
 import { projectWidget } from "./project.js";
 import { sessionDurationWidget } from "./session-duration/session-duration.js";
 import { sessionIdWidget } from "./session-id.js";
 import { thinkingEffortWidget } from "./thinking-effort.js";
 import { versionWidget } from "./version.js";
+import { vimModeWidget } from "./vim-mode/vim-mode.js";
 
 export const SESSION_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   accountEmailWidget,
+  clockWidget,
+  cwdPathWidget,
   linesChangedWidget,
   modelWidget,
+  outputStyleWidget,
   planWidget,
   projectWidget,
   sessionDurationWidget,
   sessionIdWidget,
   thinkingEffortWidget,
   versionWidget,
+  vimModeWidget,
 ] as readonly WidgetDef<unknown>[]);
 
 export function registerSessionWidgets(registry: WidgetRegistry): void {

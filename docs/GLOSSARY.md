@@ -145,23 +145,27 @@ user-facing term **family**.
 
 ---
 
-## Built-in widget types (25 total)
+## Built-in widget types (29 total)
 
 All types are kebab-case strings. Source of truth: `src/widgets/families/catalog.ts`.
 
-### Session family (9)
+### Session family (13)
 
-| Type               | Description                                         |
-| ------------------ | --------------------------------------------------- |
-| `model`            | Active model id (e.g. Sonnet 4.6)                   |
-| `version`          | Claude Code version                                 |
-| `thinking-effort`  | Thinking-effort tier: low, medium, or high          |
-| `plan`             | Active plan for the current session                 |
-| `project`          | Project name — git repo or working-directory folder |
-| `session-id`       | Short session id                                    |
-| `account-email`    | Logged-in account email                             |
-| `session-duration` | Host-reported session elapsed time (e.g. 12m 30s)   |
-| `lines-changed`    | Host-reported lines added and removed this session  |
+| Type               | Description                                                |
+| ------------------ | ---------------------------------------------------------- |
+| `model`            | Active model id (e.g. Sonnet 4.6)                          |
+| `version`          | Claude Code version                                        |
+| `thinking-effort`  | Thinking-effort tier: low, medium, or high                 |
+| `plan`             | Active plan for the current session                        |
+| `project`          | Project name — git repo or working-directory folder        |
+| `cwd-path`         | Current working-directory path, home-collapsed/truncatable |
+| `clock`            | Current time of day (24h or 12h)                           |
+| `output-style`     | Active output style (e.g. explanatory, learning)           |
+| `vim-mode`         | Active vim mode (NORMAL, INSERT, …)                        |
+| `session-id`       | Short session id                                           |
+| `account-email`    | Logged-in account email                                    |
+| `session-duration` | Host-reported session elapsed time (e.g. 12m 30s)          |
+| `lines-changed`    | Host-reported lines added and removed this session         |
 
 ### Tokens family (4)
 

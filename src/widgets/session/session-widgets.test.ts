@@ -56,24 +56,28 @@ const registry = new WidgetRegistry();
 registerSessionWidgets(registry);
 
 describe("registerSessionWidgets", () => {
-  it("registers exactly the 9 session widgets", () => {
-    expect(registry.size()).toBe(9);
+  it("registers exactly the 13 session widgets", () => {
+    expect(registry.size()).toBe(13);
     expect(registry.list()).toEqual([
       "account-email",
+      "clock",
+      "cwd-path",
       "lines-changed",
       "model",
+      "output-style",
       "plan",
       "project",
       "session-duration",
       "session-id",
       "thinking-effort",
       "version",
+      "vim-mode",
     ]);
   });
 
   it("SESSION_WIDGETS is a frozen array", () => {
     expect(Object.isFrozen(SESSION_WIDGETS)).toBe(true);
-    expect(SESSION_WIDGETS).toHaveLength(9);
+    expect(SESSION_WIDGETS).toHaveLength(13);
   });
 });
 
