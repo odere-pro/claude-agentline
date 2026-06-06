@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCount, formatSpeed, tokenRole } from "./format.js";
+import { formatCount, formatSpeed, formatUsd, tokenRole } from "./format.js";
 
 describe("formatCount", () => {
   it("rounds and returns plain number below 1000", () => {
@@ -95,5 +95,43 @@ describe("tokenRole", () => {
   it("returns tokens-high above 0.8", () => {
     expect(tokenRole(0.9)).toBe("tokens-high");
     expect(tokenRole(1)).toBe("tokens-high");
+  });
+});
+
+describe("formatUsd", () => {
+  it("renders $0 for zero", () => {
+    expect(formatUsd(0)).toBe("$0");
+  });
+
+  it("renders $1.23 for a typical sub-$10 cost with two decimals", () => {
+    expect(formatUsd(1.23)).toBe("$1.23");
+  });
+
+  it("renders $0.50 for a half-dollar (two decimals below $1)", () => {
+    expect(formatUsd(0.5)).toBe("$0.50");
+  });
+
+  it("renders $12 for a whole-dollar amount (no unnecessary decimal)", () => {
+    expect(formatUsd(12)).toBe("$12");
+  });
+
+  it("renders $12.30 for $12.3", () => {
+    expect(formatUsd(12.3)).toBe("$12.30");
+  });
+
+  it("renders $1.2k for 1200", () => {
+    expect(formatUsd(1200)).toBe("$1.2k");
+  });
+
+  it("renders $10k for 10000", () => {
+    expect(formatUsd(10_000)).toBe("$10k");
+  });
+
+  it("renders $1.5M for 1500000", () => {
+    expect(formatUsd(1_500_000)).toBe("$1.5M");
+  });
+
+  it("handles small cents correctly — $0.01", () => {
+    expect(formatUsd(0.01)).toBe("$0.01");
   });
 });

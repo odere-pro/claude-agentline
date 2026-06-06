@@ -14,4 +14,9 @@ export const TOKENS_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freez
     "Input + output tokens per second over the active window",
     "tokens",
   ),
+  "cost-usd": entry(
+    "Cost (USD)",
+    "Host-reported session cost in USD (e.g. $1.23)",
+    "tokens",
+  ),
 });

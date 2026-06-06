@@ -49,3 +49,27 @@ export function tokenRole(ratio: number): "tokens-low" | "tokens-mid" | "tokens-
   if (ratio < ROLE_THRESHOLDS.high) return "tokens-mid";
   return "tokens-high";
 }
+
+/**
+ * Format a USD cost for display in the `cost-usd` widget.
+ *
+ * Rules (toFixed-based, parallel to `trim1`/`formatCount`):
+ *   - < $1000  → `$<n.nn>` (2 decimal places, e.g. `$1.23`, `$12.30`, `$0`)
+ *   - < $10000 → `$<n.n>k` (1 decimal, trimmed trailing .0, e.g. `$1.2k`)
+ *   - ≥ $10000 → `$<n>k` or `$<n.n>M` following `formatCount` magnitudes
+ *
+ * Whole-dollar amounts below $1000 drop the decimal point
+ * (e.g. `$12` not `$12.00`) for compactness.
+ */
+export function formatUsd(n: number): string {
+  if (n >= MEGA) return `$${trim1(n / MEGA)}M`;
+  if (n >= TEN_KILO) {
+    const rounded = Math.round(n / KILO);
+    if (rounded >= KILO) return `$${trim1(n / MEGA)}M`;
+    return `$${rounded}k`;
+  }
+  if (n >= KILO) return `$${trim1(n / KILO)}k`;
+  // Below $1000: show two decimal places, but trim ".00" to keep it compact.
+  const fixed = n.toFixed(2);
+  return fixed.endsWith(".00") ? `$${fixed.slice(0, -3)}` : `$${fixed}`;
+}
