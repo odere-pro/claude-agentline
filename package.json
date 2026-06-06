@@ -79,7 +79,9 @@
     "vitest": "4.1.6"
   },
   "scripts": {
+    "prebuild": "node scripts/gen-schema-enum.mjs",
     "build": "tsup",
+    "gen:schema-enum": "node scripts/gen-schema-enum.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint \"src/**/*.ts\"",

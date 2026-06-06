@@ -1,14 +1,10 @@
 {
-  "$schema": "https://github.com/odere-pro/claude-agentline/schemas/config.schema.json",
+  "$schema": "https://raw.githubusercontent.com/odere-pro/claude-agentline/main/schemas/config.schema.json",
   "version": 1,
   "theme": "claude-code-dark",
   "lines": [
     {
-      "widgets": [
-        { "type": "model" },
-        { "type": "context-percentage" },
-        { "type": "git-branch" }
-      ]
+      "widgets": [{ "type": "model" }, { "type": "context-percentage" }, { "type": "git-branch" }]
     }
   ],
   "global": {

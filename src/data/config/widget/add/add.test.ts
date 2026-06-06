@@ -100,11 +100,11 @@ describe("runWidgetAddCommand", () => {
   it("inserts at an index and carries options through", async () => {
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     await runWidgetAddCommand({
-      args: { type: "session-weekly-usage", line: 0, at: 0, options: { reset: "block" } },
+      args: { type: "session-weekly-usage", line: 0, at: 0, options: { label: "wk:" } },
       env: { CLAUDE_CONFIG_DIR: claudeCfgDir },
     });
     const widgets = (await onDisk()).lines[0]?.widgets;
-    expect(widgets?.[0]).toEqual({ type: "session-weekly-usage", options: { reset: "block" } });
+    expect(widgets?.[0]).toEqual({ type: "session-weekly-usage", options: { label: "wk:" } });
     expect(widgets?.[1]?.type).toBe("model");
   });
 

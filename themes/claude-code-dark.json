@@ -1,5 +1,5 @@
 {
-  "$schema": "https://github.com/odere-pro/claude-agentline/schemas/theme.schema.json",
+  "$schema": "https://raw.githubusercontent.com/odere-pro/claude-agentline/main/schemas/theme.schema.json",
   "name": "claude-code-dark",
   "palette": {
     "accent": "#e89472",
