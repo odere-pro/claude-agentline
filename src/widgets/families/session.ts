@@ -21,4 +21,14 @@ export const SESSION_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.free
     v("domain", "Domain only (@example.com)", { mask: "domain" }),
     v("localpart", "Local part only (user)", { mask: "localpart" }),
   ]),
+  "session-duration": entry(
+    "Session duration",
+    "Host-reported session elapsed time (e.g. 12m 30s)",
+    "session",
+  ),
+  "lines-changed": entry(
+    "Lines changed",
+    "Host-reported lines added and removed this session (e.g. +156 −23)",
+    "session",
+  ),
 });

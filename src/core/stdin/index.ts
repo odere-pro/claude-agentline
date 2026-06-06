@@ -30,7 +30,7 @@ const MAX_PAYLOAD_BYTES = 256 * 1024;
  * the meaning of an existing field. Pure additions to `raw` passthrough
  * do not require a bump.
  */
-export const STATUSLINE_TRANSLATOR_VERSION = 1;
+export const STATUSLINE_TRANSLATOR_VERSION = 2;
 
 export interface StdinPayload {
   /** Original parsed JSON, fields untouched. */
@@ -118,6 +118,27 @@ export interface StdinPayload {
     readonly fiveHour?: { readonly usedPercentage?: number; readonly resetsAt?: number };
     readonly sevenDay?: { readonly usedPercentage?: number; readonly resetsAt?: number };
   };
+  /**
+   * Session-cost snapshot Claude Code reports in its `cost` block.
+   * The host pre-computes these scalars; widgets read them directly
+   * (no transcript aggregation, no reset axis).
+   *
+   *   - `totalUsd`        ← `total_cost_usd`
+   *   - `totalDurationMs` ← `total_duration_ms`
+   *   - `apiDurationMs`   ← `total_api_duration_ms`
+   *   - `linesAdded`      ← `total_lines_added`
+   *   - `linesRemoved`    ← `total_lines_removed`
+   *
+   * Each field is independently optional — a partial block still surfaces
+   * what it can. The block is absent on older Claude Code versions.
+   */
+  cost?: {
+    readonly totalUsd?: number;
+    readonly totalDurationMs?: number;
+    readonly apiDurationMs?: number;
+    readonly linesAdded?: number;
+    readonly linesRemoved?: number;
+  };
 }
 
 export class StdinParseError extends Error {
@@ -159,6 +180,7 @@ export function adaptStatuslinePayload(
   const workspaceBlock = isPlainObject(raw["workspace"]) ? raw["workspace"] : undefined;
   const contextWindow = adaptContextWindow(raw["context_window"]);
   const rateLimits = adaptRateLimits(raw["rate_limits"]);
+  const cost = adaptCost(raw["cost"]);
   return {
     raw,
     truncated: opts.truncated ?? false,
@@ -175,6 +197,7 @@ export function adaptStatuslinePayload(
     transcriptPath: pickString(raw, "transcript_path"),
     ...(contextWindow ? { contextWindow } : {}),
     ...(rateLimits ? { rateLimits } : {}),
+    ...(cost ? { cost } : {}),
   };
 }
 
@@ -229,6 +252,37 @@ function adaptRateLimitWindow(value: unknown): RateLimitWindow | undefined {
   return {
     ...(usedPercentage !== undefined ? { usedPercentage } : {}),
     ...(resetsAt !== undefined ? { resetsAt } : {}),
+  };
+}
+
+/**
+ * Pull the session-cost snapshot out of Claude Code's `cost` block.
+ * Returns `undefined` when the block is absent so cost widgets can hide
+ * rather than invent a number. Each field is adapted independently — a
+ * partial block still surfaces what it can.
+ */
+function adaptCost(value: unknown): StdinPayload["cost"] | undefined {
+  if (!isPlainObject(value)) return undefined;
+  const totalUsd = pickFiniteNumber(value, "total_cost_usd");
+  const totalDurationMs = pickFiniteNumber(value, "total_duration_ms");
+  const apiDurationMs = pickFiniteNumber(value, "total_api_duration_ms");
+  const linesAdded = pickFiniteNumber(value, "total_lines_added");
+  const linesRemoved = pickFiniteNumber(value, "total_lines_removed");
+  if (
+    totalUsd === undefined &&
+    totalDurationMs === undefined &&
+    apiDurationMs === undefined &&
+    linesAdded === undefined &&
+    linesRemoved === undefined
+  ) {
+    return undefined;
+  }
+  return {
+    ...(totalUsd !== undefined ? { totalUsd } : {}),
+    ...(totalDurationMs !== undefined ? { totalDurationMs } : {}),
+    ...(apiDurationMs !== undefined ? { apiDurationMs } : {}),
+    ...(linesAdded !== undefined ? { linesAdded } : {}),
+    ...(linesRemoved !== undefined ? { linesRemoved } : {}),
   };
 }
 

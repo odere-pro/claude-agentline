@@ -206,4 +206,67 @@ describe("adaptStatuslinePayload — translator version", () => {
     const out = await readStdinPayload(streamFrom(""));
     expect(out.translatorVersion).toBe(STATUSLINE_TRANSLATOR_VERSION);
   });
+
+  it("STATUSLINE_TRANSLATOR_VERSION is 2 (bumped when cost block was added)", () => {
+    expect(STATUSLINE_TRANSLATOR_VERSION).toBe(2);
+  });
+});
+
+describe("adaptStatuslinePayload — cost block", () => {
+  it("maps a full cost block to camelCase fields", () => {
+    const out = adaptStatuslinePayload({
+      cost: {
+        total_cost_usd: 1.23,
+        total_duration_ms: 7500,
+        total_api_duration_ms: 6000,
+        total_lines_added: 156,
+        total_lines_removed: 23,
+      },
+    });
+    expect(out.cost).toEqual({
+      totalUsd: 1.23,
+      totalDurationMs: 7500,
+      apiDurationMs: 6000,
+      linesAdded: 156,
+      linesRemoved: 23,
+    });
+  });
+
+  it("omits fields that are absent in the raw block", () => {
+    const out = adaptStatuslinePayload({
+      cost: { total_cost_usd: 0.05 },
+    });
+    expect(out.cost?.totalUsd).toBe(0.05);
+    expect(out.cost?.totalDurationMs).toBeUndefined();
+    expect(out.cost?.linesAdded).toBeUndefined();
+  });
+
+  it("rejects NaN and Infinity for numeric fields", () => {
+    const out = adaptStatuslinePayload({
+      cost: {
+        total_cost_usd: NaN,
+        total_duration_ms: Infinity,
+        total_lines_added: -Infinity,
+      },
+    });
+    expect(out.cost).toBeUndefined();
+  });
+
+  it("rejects string values for numeric fields", () => {
+    const out = adaptStatuslinePayload({
+      cost: { total_cost_usd: "1.23" },
+    });
+    expect(out.cost).toBeUndefined();
+  });
+
+  it("returns undefined when the cost block is absent", () => {
+    const out = adaptStatuslinePayload({ session_id: "s" });
+    expect(out.cost).toBeUndefined();
+  });
+
+  it("returns undefined when cost is not a plain object", () => {
+    expect(adaptStatuslinePayload({ cost: "bad" }).cost).toBeUndefined();
+    expect(adaptStatuslinePayload({ cost: 42 }).cost).toBeUndefined();
+    expect(adaptStatuslinePayload({ cost: null }).cost).toBeUndefined();
+  });
 });

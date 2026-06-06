@@ -145,29 +145,32 @@ user-facing term **family**.
 
 ---
 
-## Built-in widget types (22 total)
+## Built-in widget types (25 total)
 
 All types are kebab-case strings. Source of truth: `src/widgets/families/catalog.ts`.
 
-### Session family (7)
+### Session family (9)
 
-| Type              | Description                                         |
-| ----------------- | --------------------------------------------------- |
-| `model`           | Active model id (e.g. Sonnet 4.6)                   |
-| `version`         | Claude Code version                                 |
-| `thinking-effort` | Thinking-effort tier: low, medium, or high          |
-| `plan`            | Active plan for the current session                 |
-| `project`         | Project name — git repo or working-directory folder |
-| `session-id`      | Short session id                                    |
-| `account-email`   | Logged-in account email                             |
+| Type               | Description                                         |
+| ------------------ | --------------------------------------------------- |
+| `model`            | Active model id (e.g. Sonnet 4.6)                   |
+| `version`          | Claude Code version                                 |
+| `thinking-effort`  | Thinking-effort tier: low, medium, or high          |
+| `plan`             | Active plan for the current session                 |
+| `project`          | Project name — git repo or working-directory folder |
+| `session-id`       | Short session id                                    |
+| `account-email`    | Logged-in account email                             |
+| `session-duration` | Host-reported session elapsed time (e.g. 12m 30s)   |
+| `lines-changed`    | Host-reported lines added and removed this session  |
 
-### Tokens family (3)
+### Tokens family (4)
 
 | Type            | Description                                            |
 | --------------- | ------------------------------------------------------ |
 | `tokens`        | Input ↓ + output ↑ subtotals for the chosen reset axis |
 | `tokens-cached` | Cached-token subtotal (prompt-cache hits)              |
 | `token-speed`   | Input ↓ + output ↑ tokens per second (rolling window)  |
+| `cost-usd`      | Host-reported session cost in USD (e.g. $1.23)         |
 
 ### Context family (1)
 

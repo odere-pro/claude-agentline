@@ -73,6 +73,10 @@ describe("stripNonAscii", () => {
     expect(stripNonAscii("a · b ✓ c ✗ d")).toBe("a . b v c x d");
   });
 
+  it("degrades the minus sign (U+2212) to ASCII '-' (e.g. lines-changed +156 −23)", () => {
+    expect(stripNonAscii("+156 −23")).toBe("+156 -23");
+  });
+
   it("falls back to ? for unknown codepoints", () => {
     expect(stripNonAscii("hello 你好")).toBe("hello ??");
   });

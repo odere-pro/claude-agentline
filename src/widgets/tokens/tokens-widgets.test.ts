@@ -255,11 +255,11 @@ describe("context widgets", () => {
 });
 
 describe("registries", () => {
-  it("registerTokenWidgets installs all three widgets", () => {
+  it("registerTokenWidgets installs all four widgets", () => {
     const r = new WidgetRegistry();
     registerTokenWidgets(r);
-    expect(r.size()).toBe(3);
-    expect(r.list()).toEqual(["token-speed", "tokens", "tokens-cached"]);
+    expect(r.size()).toBe(4);
+    expect(r.list()).toEqual(["cost-usd", "token-speed", "tokens", "tokens-cached"]);
   });
 
   it("registerContextWidgets installs the context-percentage widget", () => {
