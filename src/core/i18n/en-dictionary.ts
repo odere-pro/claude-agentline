@@ -56,6 +56,7 @@ export const EN_DICTIONARY = {
   "family.context.name": "context",
   "family.rate-limits.name": "rate-limits",
   "family.git.name": "git",
+  "family.other.name": "other",
 
   // ── footer.* — keybinding verbs for the editor footer ─────────────────
   "footer.move-cursor": "move",

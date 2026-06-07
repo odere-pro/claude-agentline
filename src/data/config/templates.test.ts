@@ -63,7 +63,7 @@ describe("shipped config template — default", () => {
     expect(layout).toEqual([
       ["model", "thinking-effort", "git-branch", "git-changes"],
       ["context-percentage", "token-speed", "tokens"],
-      ["session-weekly-usage", "current-session-reset-timer", "week-limit-timer"],
+      ["session-weekly-usage", "reset-timer"],
     ]);
     const tokens = cfg.lines[1]!.widgets.find((w) => w.type === "tokens");
     expect(tokens?.options?.reset).toBe("block");

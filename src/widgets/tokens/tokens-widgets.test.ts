@@ -274,8 +274,8 @@ describe("registries", () => {
   it("registerContextWidgets installs the context widgets", () => {
     const r = new WidgetRegistry();
     registerContextWidgets(r);
-    expect(r.size()).toBe(2);
-    expect(r.list()).toEqual(["context-200k-flag", "context-percentage"]);
+    expect(r.size()).toBe(3);
+    expect(r.list()).toEqual(["context-200k-flag", "context-cached", "context-percentage"]);
   });
 
   it("TOKEN_WIDGETS and CONTEXT_WIDGETS are frozen", () => {

@@ -103,8 +103,8 @@ the property is about what an external agent can _do with_ the product.
 
 ### `widget family`
 
-> One of the five named groups that organise built-in widgets:
-> `session`, `tokens`, `context`, `rate-limits`, `git`.
+> One of the six named groups that organise built-in widgets:
+> `session`, `tokens`, `context`, `rate-limits`, `git`, `other`.
 
 **Used in:** `WidgetMeta.family` (code), `WIDGET_FAMILIES` (constant),
 `src/widgets/<family>/` directories, picker group browser, and the
@@ -118,7 +118,7 @@ user-facing term **family**.
 ### `variant`
 
 > A named preset of widget `options` that switches a widget's display style.
-> Example: `current-session-reset-timer` has variants `at-24h`, `at-12h`, `at-seconds`.
+> Example: `reset-timer` has variants `at-24h`, `at-12h`, `at-seconds`.
 
 **Used in:** `WidgetVariant`, picker step 3, `agentline config widget` update verb.  
 **Distinct from:** `widget type` (what the widget is) and `options` (raw config).
@@ -149,7 +149,7 @@ user-facing term **family**.
 
 All types are kebab-case strings. Source of truth: `src/widgets/families/catalog.ts`.
 
-### Session family (17)
+### Session family (11)
 
 | Type               | Description                                                |
 | ------------------ | ---------------------------------------------------------- |
@@ -158,14 +158,8 @@ All types are kebab-case strings. Source of truth: `src/widgets/families/catalog
 | `thinking-effort`  | Thinking-effort tier: low, medium, or high                 |
 | `thinking-enabled` | Whether extended thinking is on (complements effort)       |
 | `plan`             | Active plan for the current session                        |
-| `project`          | Project name — git repo or working-directory folder        |
-| `project-dir`      | Launch-directory name (distinct from the git repo name)    |
 | `cwd-path`         | Current working-directory path, home-collapsed/truncatable |
-| `added-dirs`       | Count of extra workspace roots added via /add-dir          |
 | `agent-name`       | Active subagent persona name                               |
-| `clock`            | Current time of day (24h or 12h)                           |
-| `output-style`     | Active output style (e.g. explanatory, learning)           |
-| `vim-mode`         | Active vim mode (NORMAL, INSERT, …)                        |
 | `session-id`       | Short session id                                           |
 | `account-email`    | Logged-in account email                                    |
 | `session-duration` | Host-reported session elapsed time (e.g. 12m 30s)          |
@@ -184,33 +178,44 @@ All types are kebab-case strings. Source of truth: `src/widgets/families/catalog
 | `cost-efficiency` | Share of wall-clock spent in API calls, as a percent      |
 | `cost-vs-limit`   | Session spend against a configured budget (e.g. $1.20/$5) |
 
-### Context family (2)
+### Context family (3)
 
 | Type                 | Description                                                                   |
 | -------------------- | ----------------------------------------------------------------------------- |
 | `context-percentage` | Percentage of the model's context window used, plus the window (`37% · 200k`) |
 | `context-200k-flag`  | Badge when the prompt exceeds the 200k-token threshold                        |
+| `context-cached`     | Session cached-token count (e.g. `0.8k cached`)                               |
 
-### Rate-limits family (3)
+### Rate-limits family (2)
 
-| Type                          | Description                                                                                                      |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `session-weekly-usage`        | Combined session + weekly usage % from the host                                                                  |
-| `current-session-reset-timer` | Countdown to the next session reset; wall-clock variants (`at-24h`, `at-12h`, `at-seconds`) via `options.format` |
-| `week-limit-timer`            | Countdown to the next weekly reset; wall-clock variants (`at-day-time`, `at-24h`, `at-12h`) via `options.format` |
+| Type                   | Description                                                                                               |
+| ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| `session-weekly-usage` | Combined session + weekly usage % from the host                                                           |
+| `reset-timer`          | Session + weekly reset on one cell; countdown or wall-clock (`at-24h`/`at-12h`/`at-seconds`) via `format` |
 
-### Git family (8)
+### Git family (10)
 
-| Type               | Description                                 |
-| ------------------ | ------------------------------------------- |
-| `git-branch`       | Current branch, or short SHA when detached  |
-| `git-worktree`     | Basename of the current worktree            |
-| `git-changes`      | Staged, unstaged, and untracked file counts |
-| `git-conflicts`    | Merge-conflict file count                   |
-| `git-ahead-behind` | Commits ahead of and behind upstream        |
-| `git-upstream`     | Upstream branch, e.g. `origin/main`         |
-| `git-origin-repo`  | Repo segment of the origin remote URL       |
-| `git-pr`           | PR for HEAD's branch (opt-in network)       |
+| Type               | Description                                         |
+| ------------------ | --------------------------------------------------- |
+| `project`          | Project name — git repo or working-directory folder |
+| `project-dir`      | Launch-directory name (distinct from the repo name) |
+| `git-branch`       | Current branch, or short SHA when detached          |
+| `git-worktree`     | Basename of the current worktree                    |
+| `git-changes`      | Staged, unstaged, and untracked file counts         |
+| `git-conflicts`    | Merge-conflict file count                           |
+| `git-ahead-behind` | Commits ahead of and behind upstream                |
+| `git-upstream`     | Upstream branch, e.g. `origin/main`                 |
+| `git-origin-repo`  | Repo segment of the origin remote URL               |
+| `git-pr`           | PR for HEAD's branch (opt-in network)               |
+
+### Other family (4)
+
+| Type           | Description                                       |
+| -------------- | ------------------------------------------------- |
+| `clock`        | Current time of day (24h or 12h)                  |
+| `added-dirs`   | Count of extra workspace roots added via /add-dir |
+| `output-style` | Active output style (e.g. explanatory, learning)  |
+| `vim-mode`     | Active vim mode (NORMAL, INSERT, …)               |
 
 ---
 

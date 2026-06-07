@@ -27,7 +27,7 @@ The editor has two modes; a binding's **scope** says where it applies
   **flat-search overlay** — a single list across every catalogued
   widget with a family badge on each row. Already-placed widgets are
   hidden in every view. A widget with catalogued _variants_ (the same
-  widget rendered a different way, e.g. `current-session-reset-timer`
+  widget rendered a different way, e.g. `reset-timer`
   as short / long / clock) drills into a variant step; widgets
   without variants commit immediately. <kbd>Esc</kbd> steps back one
   level — from the variant step to wherever the widget was picked

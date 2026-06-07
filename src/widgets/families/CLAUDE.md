@@ -10,7 +10,7 @@ The single source of truth for widget metadata: every shipped widget's `type`, f
 - `catalog-types.ts` — the `Catalogue` / `WidgetCatalogEntry` shapes.
 - `family-factory.ts` — builds a family entry from a partial spec.
 - `family-identity.ts` — the one map per family → glyph + accent colour. Deliberately type-only-plus-`unicodeCapable` so the editor preview can share it without dragging the render graph into the cold path.
-- `<family>.ts` — per-family catalogue entries: `git.ts`, `tokens.ts`, `session.ts`, `rate-limits.ts`, `context.ts`.
+- `<family>.ts` — per-family catalogue entries: `git.ts`, `tokens.ts`, `session.ts`, `rate-limits.ts`, `context.ts`, `other.ts`. Note: a widget's catalogue `family` field need not match its render-fn folder — `project`/`project-dir` are catalogued under `git` and `clock`/`added-dirs`/`output-style`/`vim-mode` under `other`, but their render code stays under `src/widgets/session/`. The registry dispatches by `type`, so the move is metadata-only.
 
 Pipeline position: render-reachable. Read by `src/widgets/registry/` to dispatch and by `src/tui/picker/` to populate the picker.
 
@@ -22,7 +22,7 @@ src/widgets/families/
 ├── catalog-types.ts     the Catalogue / WidgetCatalogEntry types
 ├── family-factory.ts    builds a family entry from a partial spec
 ├── family-identity.ts   one map per family → glyph + accent (type-only-plus-unicodeCapable)
-└── <family>.ts          per-family entries: git, tokens, session, rate-limits, context
+└── <family>.ts          per-family entries: git, tokens, session, rate-limits, context, other
 
   Catalogue ↔ registry parity is enforced by catalog.test.ts and gate-20.
   Every widget.<type>.name / .desc / .variant.<id> authored here

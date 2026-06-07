@@ -119,9 +119,9 @@ describe("renderFromInputs", () => {
     const config = {
       ...DEFAULT_CONFIG,
       lines: [
-        { widgets: [{ type: "current-session-reset-timer" }] },
-        { widgets: [{ type: "current-session-reset-timer" }] },
-        { widgets: [{ type: "current-session-reset-timer" }] },
+        { widgets: [{ type: "clock" }] },
+        { widgets: [{ type: "clock" }] },
+        { widgets: [{ type: "clock" }] },
       ],
     };
     const result = renderFromInputs({
@@ -138,7 +138,7 @@ describe("renderFromInputs", () => {
   it("does not wrap a wide single line when width is undetected", () => {
     const config = {
       ...DEFAULT_CONFIG,
-      lines: [{ widgets: [{ type: "current-session-reset-timer" }, { type: "current-session-reset-timer" }, { type: "current-session-reset-timer" }] }],
+      lines: [{ widgets: [{ type: "clock" }, { type: "clock" }, { type: "clock" }] }],
     };
     const result = renderFromInputs({
       payload: basePayload,
@@ -154,7 +154,7 @@ describe("renderFromInputs", () => {
   it("still wraps when an explicit narrow width is supplied", () => {
     const config = {
       ...DEFAULT_CONFIG,
-      lines: [{ widgets: [{ type: "current-session-reset-timer" }, { type: "current-session-reset-timer" }, { type: "current-session-reset-timer" }] }],
+      lines: [{ widgets: [{ type: "clock" }, { type: "clock" }, { type: "clock" }] }],
     };
     const result = renderFromInputs({
       payload: basePayload,
@@ -207,7 +207,7 @@ describe("renderFromInputs", () => {
   it("emits no warning lines when every widget type is known", () => {
     const config = {
       ...DEFAULT_CONFIG,
-      lines: [{ widgets: [{ type: "current-session-reset-timer" }] }],
+      lines: [{ widgets: [{ type: "clock" }] }],
     };
     const result = renderFromInputs({
       payload: basePayload,

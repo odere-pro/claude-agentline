@@ -1,8 +1,12 @@
 /**
  * Identity + per-session signals — `model`, `version`, `thinking-effort`,
- * `plan`, `project`, `session-id`, `account-email`, `session-duration`,
- * `lines-changed`, `cwd-path`, `clock`, `output-style`, `vim-mode`,
- * `agent-name`, `project-dir`, `added-dirs`, `thinking-enabled`.
+ * `thinking-enabled`, `plan`, `session-id`, `account-email`,
+ * `session-duration`, `lines-changed`, `cwd-path`, `agent-name`.
+ *
+ * `project` / `project-dir` moved to the `git` family, and `clock` /
+ * `added-dirs` / `output-style` / `vim-mode` moved to the `other` family
+ * (catalogue `family` field only — their render-fn folders stay under
+ * `src/widgets/session/`).
  */
 
 import { entry, v, type WidgetMeta } from "./catalog-types.js";
@@ -15,8 +19,12 @@ export const SESSION_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.free
     "Thinking-effort tier: low, medium, or high",
     "session",
   ),
+  "thinking-enabled": entry(
+    "Thinking enabled",
+    "Whether extended thinking is on (complements thinking-effort)",
+    "session",
+  ),
   plan: entry("Plan", "Active plan for the current session", "session"),
-  project: entry("Project", "Project name — git repo or working-directory folder", "session"),
   "session-id": entry("Session id", "Short session id", "session"),
   "account-email": entry("Account email", "Logged-in account email", "session", [
     v("full", "Full address", { mask: "none" }),
@@ -38,30 +46,5 @@ export const SESSION_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.free
     "Current working-directory path, home-collapsed and truncatable",
     "session",
   ),
-  clock: entry("Clock", "Current time of day (24h or 12h)", "session", [
-    v("24h", "24-hour (HH:MM)", { format: "24h" }),
-    v("12h", "12-hour (H:MMam/pm)", { format: "12h" }),
-  ]),
-  "output-style": entry(
-    "Output style",
-    "Active output style (e.g. explanatory, learning)",
-    "session",
-  ),
-  "vim-mode": entry("Vim mode", "Active vim mode (NORMAL, INSERT, …)", "session"),
   "agent-name": entry("Agent name", "Active subagent persona name", "session"),
-  "project-dir": entry(
-    "Project dir",
-    "Launch-directory name (distinct from the git repo name)",
-    "session",
-  ),
-  "added-dirs": entry(
-    "Added dirs",
-    "Count of extra workspace roots added via /add-dir (e.g. +2 dirs)",
-    "session",
-  ),
-  "thinking-enabled": entry(
-    "Thinking enabled",
-    "Whether extended thinking is on (complements thinking-effort)",
-    "session",
-  ),
 });

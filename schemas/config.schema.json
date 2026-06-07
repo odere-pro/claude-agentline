@@ -25,7 +25,8 @@
         "tokens": { "$ref": "#/definitions/familyIdentity" },
         "context": { "$ref": "#/definitions/familyIdentity" },
         "rate-limits": { "$ref": "#/definitions/familyIdentity" },
-        "git": { "$ref": "#/definitions/familyIdentity" }
+        "git": { "$ref": "#/definitions/familyIdentity" },
+        "other": { "$ref": "#/definitions/familyIdentity" }
       }
     },
     "translations": {
@@ -104,12 +105,12 @@
             "api-duration",
             "clock",
             "context-200k-flag",
+            "context-cached",
             "context-percentage",
             "cost-burn-rate",
             "cost-efficiency",
             "cost-usd",
             "cost-vs-limit",
-            "current-session-reset-timer",
             "cwd-path",
             "git-ahead-behind",
             "git-branch",
@@ -125,6 +126,7 @@
             "plan",
             "project",
             "project-dir",
+            "reset-timer",
             "session-duration",
             "session-id",
             "session-weekly-usage",
@@ -134,8 +136,7 @@
             "tokens",
             "tokens-cached",
             "version",
-            "vim-mode",
-            "week-limit-timer"
+            "vim-mode"
           ]
         },
         "id": { "type": "string" },

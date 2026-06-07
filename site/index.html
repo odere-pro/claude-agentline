@@ -126,7 +126,7 @@
             "screenshot": "https://odere-pro.github.io/claude-agentline/assets/statusline-example.png",
             "keywords": "claude code statusline, powerline, statusline cli, git, tokens, context window, rate limits, themes, tui editor, agent-operable, software 3.0",
             "featureList": [
-              "38 configurable widgets across 5 families: session, tokens, context, rate-limits, git",
+              "38 configurable widgets across 6 families: session, tokens, context, rate-limits, git, other",
               "Live TUI editor with a searchable, family-grouped widget picker",
               "Powerline rendering with chevrons and caps",
               "Theme engine that degrades from truecolor to 256-colour to 16-colour terminals",
@@ -229,7 +229,7 @@
                 "name": "Can I show my git branch, token usage, or context-window percentage with Claude Code?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Yes. The git, tokens, and context families cover branch, worktree, change counts, conflicts, ahead/behind, upstream, origin repo, pull-request status, input and output token counts, cached tokens, throughput, session cost, cost burn rate, spend against a budget, API duration, and context-window usage with a 200k-token flag — and the session family adds the working-directory path, clock, output style, vim mode, and active agent name. 38 widgets across 5 families in total."
+                  "text": "Yes. The git, tokens, and context families cover branch, worktree, change counts, conflicts, ahead/behind, upstream, origin repo, pull-request status, input and output token counts, cached tokens, throughput, session cost, cost burn rate, spend against a budget, API duration, and context-window usage with a 200k-token flag — and the session family adds the working-directory path, clock, output style, vim mode, and active agent name. 38 widgets across 6 families in total."
                 }
               },
               {
@@ -710,7 +710,8 @@
       #f-tokens:checked ~ .filter label[for="f-tokens"],
       #f-context:checked ~ .filter label[for="f-context"],
       #f-rate:checked ~ .filter label[for="f-rate"],
-      #f-git:checked ~ .filter label[for="f-git"] {
+      #f-git:checked ~ .filter label[for="f-git"],
+      #f-other:checked ~ .filter label[for="f-other"] {
         color: oklch(20% 0.02 50);
         background: var(--color-accent);
         border-color: var(--color-accent);
@@ -721,7 +722,8 @@
       #f-tokens:focus-visible ~ .filter label[for="f-tokens"],
       #f-context:focus-visible ~ .filter label[for="f-context"],
       #f-rate:focus-visible ~ .filter label[for="f-rate"],
-      #f-git:focus-visible ~ .filter label[for="f-git"] {
+      #f-git:focus-visible ~ .filter label[for="f-git"],
+      #f-other:focus-visible ~ .filter label[for="f-other"] {
         outline: 2px solid var(--color-text);
         outline-offset: 2px;
       }
@@ -798,7 +800,8 @@
       #f-tokens:checked ~ .catalog .wcard:not(.fam-tokens),
       #f-context:checked ~ .catalog .wcard:not(.fam-context),
       #f-rate:checked ~ .catalog .wcard:not(.fam-rate),
-      #f-git:checked ~ .catalog .wcard:not(.fam-git) {
+      #f-git:checked ~ .catalog .wcard:not(.fam-git),
+      #f-other:checked ~ .catalog .wcard:not(.fam-other) {
         display: none;
       }
 
@@ -968,7 +971,7 @@
         </p>
         <ul class="pills" aria-label="At a glance">
           <li>38 widgets</li>
-          <li>5 families</li>
+          <li>6 families</li>
           <li>agent-operable</li>
           <li>zero render-time network</li>
           <li>reversible install</li>
@@ -1005,7 +1008,7 @@
           Everything your session status needs
         </h2>
         <p class="section-lead">
-          38 widgets across 5 families, each covering one slice of session
+          38 widgets across 6 families, each covering one slice of session
           status — composed into up to three statusline rows, then styled by a
           theme engine that degrades gracefully on any terminal.
         </p>
@@ -1187,15 +1190,17 @@
         <input class="vh" type="radio" name="ff" id="f-context" />
         <input class="vh" type="radio" name="ff" id="f-rate" />
         <input class="vh" type="radio" name="ff" id="f-git" />
+        <input class="vh" type="radio" name="ff" id="f-other" />
 
         <fieldset class="filter" aria-label="Filter widgets by family">
           <legend class="vh">Filter widgets by family</legend>
           <label for="f-all">All <span class="count">38</span></label>
-          <label for="f-session">session <span class="count">17</span></label>
+          <label for="f-session">session <span class="count">11</span></label>
           <label for="f-tokens">tokens <span class="count">8</span></label>
-          <label for="f-context">context <span class="count">2</span></label>
-          <label for="f-rate">rate-limits <span class="count">3</span></label>
-          <label for="f-git">git <span class="count">8</span></label>
+          <label for="f-context">context <span class="count">3</span></label>
+          <label for="f-rate">rate-limits <span class="count">2</span></label>
+          <label for="f-git">git <span class="count">10</span></label>
+          <label for="f-other">other <span class="count">4</span></label>
         </fieldset>
 
         <div class="catalog">
@@ -1222,8 +1227,8 @@
             <p class="type">plan</p>
             <p>Active plan for the current session.</p>
           </article>
-          <article class="wcard fam-session">
-            <div class="wtop"><h3>Project</h3><span class="fam">session</span></div>
+          <article class="wcard fam-git">
+            <div class="wtop"><h3>Project</h3><span class="fam">git</span></div>
             <p class="type">project</p>
             <p>Project name — git repo or working-directory folder.</p>
           </article>
@@ -1265,8 +1270,8 @@
             <p class="type">thinking-enabled</p>
             <p>Whether extended thinking is on (complements effort).</p>
           </article>
-          <article class="wcard fam-session">
-            <div class="wtop"><h3>Project dir</h3><span class="fam">session</span></div>
+          <article class="wcard fam-git">
+            <div class="wtop"><h3>Project dir</h3><span class="fam">git</span></div>
             <p class="type">project-dir</p>
             <p>Launch-directory name (distinct from the git repo name).</p>
           </article>
@@ -1278,33 +1283,9 @@
             <p>Current working-directory path, home-collapsed and truncatable.</p>
           </article>
           <article class="wcard fam-session">
-            <div class="wtop"><h3>Added dirs</h3><span class="fam">session</span></div>
-            <p class="type">added-dirs</p>
-            <p>Count of extra workspace roots added via /add-dir.</p>
-          </article>
-          <article class="wcard fam-session">
             <div class="wtop"><h3>Agent name</h3><span class="fam">session</span></div>
             <p class="type">agent-name</p>
             <p>Active subagent persona name.</p>
-          </article>
-          <article class="wcard fam-session">
-            <div class="wtop"><h3>Clock</h3><span class="fam">session</span></div>
-            <p class="type">clock</p>
-            <p>Current time of day (24h or 12h).</p>
-            <ul class="variants" aria-label="Variants">
-              <li>24h</li>
-              <li>12h</li>
-            </ul>
-          </article>
-          <article class="wcard fam-session">
-            <div class="wtop"><h3>Output style</h3><span class="fam">session</span></div>
-            <p class="type">output-style</p>
-            <p>Active output style (e.g. explanatory, learning).</p>
-          </article>
-          <article class="wcard fam-session">
-            <div class="wtop"><h3>Vim mode</h3><span class="fam">session</span></div>
-            <p class="type">vim-mode</p>
-            <p>Active vim mode (NORMAL, INSERT, …).</p>
           </article>
 
           <!-- tokens -->
@@ -1366,6 +1347,11 @@
             <p class="type">context-200k-flag</p>
             <p>Badge when the prompt exceeds the 200k-token threshold.</p>
           </article>
+          <article class="wcard fam-context">
+            <div class="wtop"><h3>Context cached</h3><span class="fam">context</span></div>
+            <p class="type">context-cached</p>
+            <p>Session cached-token count (e.g. 0.8k cached).</p>
+          </article>
 
           <!-- rate-limits -->
           <article class="wcard fam-rate">
@@ -1377,11 +1363,10 @@
           </article>
           <article class="wcard fam-rate">
             <div class="wtop">
-              <h3>Current session reset timer</h3>
-              <span class="fam">rate-limits</span>
+              <h3>Reset timer</h3><span class="fam">rate-limits</span>
             </div>
-            <p class="type">current-session-reset-timer</p>
-            <p>Time remaining until the current session resets.</p>
+            <p class="type">reset-timer</p>
+            <p>Session + weekly reset on one cell (countdown or wall-clock).</p>
             <ul class="variants" aria-label="Variants">
               <li>short</li>
               <li>long</li>
@@ -1389,21 +1374,6 @@
               <li>at-24h</li>
               <li>at-12h</li>
               <li>at-seconds</li>
-            </ul>
-          </article>
-          <article class="wcard fam-rate">
-            <div class="wtop">
-              <h3>Week limit timer</h3><span class="fam">rate-limits</span>
-            </div>
-            <p class="type">week-limit-timer</p>
-            <p>Time remaining until the weekly limit resets.</p>
-            <ul class="variants" aria-label="Variants">
-              <li>short</li>
-              <li>long</li>
-              <li>clock</li>
-              <li>at-day-time</li>
-              <li>at-24h</li>
-              <li>at-12h</li>
             </ul>
           </article>
 
@@ -1459,6 +1429,32 @@
               <li>title</li>
               <li>number-title</li>
             </ul>
+          </article>
+
+          <!-- other -->
+          <article class="wcard fam-other">
+            <div class="wtop"><h3>Clock</h3><span class="fam">other</span></div>
+            <p class="type">clock</p>
+            <p>Current time of day (24h or 12h).</p>
+            <ul class="variants" aria-label="Variants">
+              <li>24h</li>
+              <li>12h</li>
+            </ul>
+          </article>
+          <article class="wcard fam-other">
+            <div class="wtop"><h3>Added dirs</h3><span class="fam">other</span></div>
+            <p class="type">added-dirs</p>
+            <p>Count of extra workspace roots added via /add-dir.</p>
+          </article>
+          <article class="wcard fam-other">
+            <div class="wtop"><h3>Output style</h3><span class="fam">other</span></div>
+            <p class="type">output-style</p>
+            <p>Active output style (e.g. explanatory, learning).</p>
+          </article>
+          <article class="wcard fam-other">
+            <div class="wtop"><h3>Vim mode</h3><span class="fam">other</span></div>
+            <p class="type">vim-mode</p>
+            <p>Active vim mode (NORMAL, INSERT, …).</p>
           </article>
         </div>
       </section>

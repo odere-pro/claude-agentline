@@ -7,7 +7,7 @@
 
 ## Widget families
 
-Five families, each producing one cell per widget. The exact widget set may evolve; the family structure is stable.
+Six families — `session`, `tokens`, `context`, `rate-limits`, `git`, `other` — each producing one cell per widget. The exact widget set may evolve; the tables below are representative, not exhaustive. The authoritative, always-current list is `docs/widgets.md` and `docs/GLOSSARY.md`.
 
 ### Session (9 widgets)
 
@@ -45,16 +45,15 @@ model's context-window size as a postfix (e.g. `200k`, `1M`).
 | -------------------- | ----------------------------------------------------------------------- |
 | `context-percentage` | Used / window, colour-graded green→yellow→red, + window (`37% · 200k`). |
 
-### Rate limits (3 widgets)
+### Rate limits (2 widgets)
 
 Track the host's current-session / weekly quota, mirroring the host's
 usage-limits screen.
 
-| Type                          | Renders                                                                                              |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `session-weekly-usage`        | Session + weekly % — `52% · weekly 33%`.                                                             |
-| `current-session-reset-timer` | Countdown to next session reset. Variants `at-24h`, `at-12h`, `at-seconds` show the wall-clock time. |
-| `week-limit-timer`            | Countdown to next weekly reset. Variants `at-day-time`, `at-24h`, `at-12h` show the wall-clock time. |
+| Type                   | Renders                                                                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `session-weekly-usage` | Session + weekly % — `52% · weekly 33%`.                                                                                       |
+| `reset-timer`          | Session + weekly reset on one cell. Variants `short`/`long`/`clock` (countdown) + `at-24h`/`at-12h`/`at-seconds` (wall-clock). |
 
 ### Git (8 widgets)
 
@@ -132,7 +131,7 @@ capacity → budget:
 ```text
 line 1  model · thinking-effort · git-branch · git-changes
 line 2  context-percentage · token-speed · tokens
-line 3  session-weekly-usage · current-session-reset-timer · week-limit-timer
+line 3  session-weekly-usage · reset-timer
 ```
 
 `tokens` uses `reset: block`. The default theme is `claude-code-dark`

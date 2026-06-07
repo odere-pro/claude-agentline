@@ -45,7 +45,7 @@ See [install.md](./install.md) for `--force`, `--dry-run`, and `CLAUDE_CONFIG_DI
 
 ## Step 2 — See the default
 
-Restart your Claude Code session. The statusline appears at the bottom of the prompt with the default three-line layout (line 1: model, thinking-effort, git-branch, git-changes; line 2: context-percentage, token-speed, tokens; line 3: session-weekly-usage, current-session-reset-timer, week-limit-timer).
+Restart your Claude Code session. The statusline appears at the bottom of the prompt with the default three-line layout (line 1: model, thinking-effort, git-branch, git-changes; line 2: context-percentage, token-speed, tokens; line 3: session-weekly-usage, reset-timer).
 
 If it doesn't render:
 

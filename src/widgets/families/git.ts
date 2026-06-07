@@ -1,15 +1,27 @@
 /**
- * Git widgets — branch / worktree, change counts, upstream and
- * pull-request signals.
+ * Git + project-location widgets — branch / worktree, change counts,
+ * upstream and pull-request signals, plus the project name and launch
+ * directory.
  *
  * `git-sha` and `git-untracked` were removed in v0.1.x (PR #258).
  * Use `git-branch` (which shows the short SHA on detached HEAD) and
  * `git-changes` (which includes untracked counts) instead.
+ *
+ * `project` / `project-dir` were catalogued under `session` before; only
+ * the catalogue `family` field moved here (their render-fn folders stay
+ * under `src/widgets/session/`). They sit with git because the project
+ * name is git-repo-derived (origin remote, basename fallback).
  */
 
 import { entry, v, type WidgetMeta } from "./catalog-types.js";
 
 export const GIT_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
+  project: entry("Project", "Project name — git repo or working-directory folder", "git"),
+  "project-dir": entry(
+    "Project dir",
+    "Launch-directory name (distinct from the git repo name)",
+    "git",
+  ),
   "git-branch": entry("Git branch", "Current branch, or short SHA when detached", "git"),
   "git-worktree": entry("Git worktree", "Basename of the current worktree", "git"),
   "git-changes": entry("Git changes", "Staged, unstaged, and untracked file counts", "git"),

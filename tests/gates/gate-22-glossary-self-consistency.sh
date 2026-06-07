@@ -67,6 +67,7 @@ check_family tokens      Tokens
 check_family context     Context
 check_family rate-limits Rate-limits
 check_family git         Git
+check_family other       Other
 
 # ── 3. No stale gate count claim ─────────────────────────────────────────────
 #
