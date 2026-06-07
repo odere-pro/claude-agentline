@@ -1,15 +1,14 @@
 /**
  * `agentline config undo`
  *
- * Restores the most recent config backup (`config.json.bak`), rolling
- * back the last config-writing operation — a `config widget` mutation or
- * a TUI editor save (both write the backup before the new config lands).
+ * Rolls back the last config-writing operation — a `config widget`
+ * mutation or a TUI editor save (both prime the back slot before the new
+ * config lands). Reversible: `undo` captures the pre-undo config into the
+ * forward slot so `agentline config redo` can roll it forward again.
  *
- * Single-level: it restores the one backup slot, not a multi-level
- * history. The backup is left in place after restoring, so re-running
- * `undo` restores the same bytes (it is not a redo). When no backup
- * exists yet, the command prints a clear message and exits non-zero — it
- * never crashes.
+ * One step back, not a multi-level history. When there is nothing to undo
+ * (no back slot), it prints a clear message and exits non-zero — it never
+ * crashes.
  *
  * Mirrors the other `config` verbs: a single confirmation line on stdout,
  * errors on stderr with the `agentline config undo` prefix, `--help`
@@ -19,7 +18,7 @@
 import { isHelpFlag, requestHelp } from "../../../core/lib/help/help.js";
 import { resolveEnv } from "../../../core/lib/env/env.js";
 import { resolveConfigPaths } from "../paths/paths.js";
-import { restoreConfigBackup } from "../backup/backup.js";
+import { undoConfig } from "../backup/backup.js";
 
 const PREFIX = "agentline config undo";
 
@@ -29,9 +28,9 @@ Usage:
   agentline config undo
 
 Restores the most recent config backup (config.json.bak), undoing the
-last \`config widget\` mutation or TUI editor save. Single-level: it
-restores one step back, not a multi-level history. Exits non-zero with a
-message when there is nothing to undo.
+last \`config widget\` mutation or TUI editor save. One step back, not a
+multi-level history; reversible with \`agentline config redo\`. Exits
+non-zero with a message when there is nothing to undo.
 
 Options:
   -h, --help   show this message
@@ -73,7 +72,7 @@ export async function runUndoCommand(input: UndoInput): Promise<number> {
 
   let restored: unknown | null;
   try {
-    restored = await restoreConfigBackup(userConfig);
+    restored = await undoConfig(userConfig);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     process.stderr.write(`${PREFIX}: ${msg}\n`);
@@ -90,7 +89,7 @@ export async function runUndoCommand(input: UndoInput): Promise<number> {
   const count = widgetCount(restored);
   const noun = count === 1 ? "widget" : "widgets";
   process.stdout.write(
-    `agentline: restored the previous config (${count} ${noun}) → ${userConfig}\n`,
+    `agentline: restored the previous config (${count} ${noun}) → ${userConfig} (redo with \`agentline config redo\`)\n`,
   );
   return 0;
 }
