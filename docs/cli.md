@@ -15,7 +15,7 @@ The top-level surface is intentionally small: **`reset` · `uninstall` · `docto
 | _(default)_               | Read stdin JSON, render statusline, write to stdout | no             |
 | [`reset`](#reset)         | Restore defaults: reseed config + rewire statusLine | **yes**        |
 | [`uninstall`](#uninstall) | Undo install; restore pre-install state             | **yes**        |
-| [`config`](#config)       | Inspect/set config (`refresh`); roll back (`undo`)  | with `<value>` |
+| [`config`](#config)       | Inspect/set config (`refresh`); `undo` / `redo`     | with `<value>` |
 | [`doctor`](#doctor)       | Diagnose host wiring; `--fix` repairs D01–D04, D09  | with `--fix`   |
 | [`edit`](#edit)           | Open the interactive TUI editor                     | with save      |
 | [`version`](#version)     | Print binary version                                | no             |
@@ -187,30 +187,36 @@ agentline config refresh 10        # refresh every 10 seconds
 agentline config refresh 0         # disable; event-driven updates only
 ```
 
-### config undo
+### config undo / config redo
 
 ```bash
 agentline config undo
+agentline config redo
 ```
 
-Rolls back the last config change. Every config-writing path — a
-`config widget` mutation (`add` / `remove` / `move` / `replace` /
-`set-option`) and a TUI editor save — backs up the prior config to
-`config.json.bak` before the new config lands. `config undo` restores
-that backup atomically.
+Rolls a config change back (`undo`) or forward again (`redo`). Every
+config-writing path — a `config widget` mutation (`add` / `remove` /
+`move` / `replace` / `set-option`) and a TUI editor save — backs up the
+prior config to the back slot (`config.json.bak`) before the new config
+lands. `config undo` restores that backup atomically, capturing the
+pre-undo config into a forward slot (`config.json.redo`) so `config redo`
+can roll it forward again.
 
-It is **single-level**: it restores one step back, not a multi-level
-history. The backup is left in place after restoring, so re-running
-`config undo` restores the same bytes (it is not a redo). When no backup
-exists yet, the command prints `nothing to undo` and exits non-zero — it
-never crashes.
+It is a **one-step** reversible stack (one back, one forward), not a
+multi-level history. A **new edit after an undo** — any `config widget`
+mutation or TUI save — invalidates the forward slot: you cannot redo into
+a branch you have diverged from. When there is nothing to undo (or redo),
+the command prints `nothing to undo` (`nothing to redo`) and exits
+non-zero — it never crashes.
 
-**Exit codes:** `0` success · non-zero when there is nothing to undo or
-the backup is unreadable, with an `agentline config undo: …` message.
+**Exit codes:** `0` success · non-zero when there is nothing to undo/redo
+or the backup is unreadable, with an `agentline config undo: …`
+(`agentline config redo: …`) message.
 
 ```bash
 agentline config widget add clock   # mutate (backs up the prior config)
 agentline config undo               # restore the prior config
+agentline config redo               # re-apply the widget add
 ```
 
 ---

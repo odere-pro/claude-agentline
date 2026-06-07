@@ -1,12 +1,14 @@
 /**
- * Tests for the config-backup helper (single-slot `config.json.bak`).
+ * Tests for the config-backup helper — a reversible 2-slot scheme backing
+ * `agentline config undo` / `config redo`.
  *
- * This is the rollback substrate for `agentline config undo`. Every
- * config-writing path backs up the prior config bytes here BEFORE the new
- * config lands, through the one atomic-write helper. `undo` restores it.
- *
- * Single-level: one `.bak` slot, last-write-wins. Not a multi-level
- * history. Distinct from the host-statusLine `settings-backup.json`.
+ * Every config-writing path backs up the prior config to the back slot
+ * (`config.json.bak`) BEFORE the new config lands, through the one
+ * atomic-write helper, and INVALIDATES the forward slot (a new edit
+ * diverges, so any pending redo is unreachable). `undoConfig` rolls back
+ * (capturing the pre-undo state into the forward slot `config.json.redo`);
+ * `redoConfig` rolls forward (capturing the pre-redo state into the back
+ * slot). Distinct from the host-statusLine `settings-backup.json`.
  */
 
 import { promises as fs } from "node:fs";
@@ -17,8 +19,12 @@ import { withTmpDir } from "../../../test-helpers/index.js";
 import {
   backupAndWriteConfig,
   configBackupPath,
+  configRedoPath,
   readConfigBackup,
+  readConfigRedo,
+  redoConfig,
   restoreConfigBackup,
+  undoConfig,
 } from "./backup.js";
 
 const A = { version: 1, lines: [{ widgets: [{ type: "model" }] }] };
@@ -127,6 +133,101 @@ describe("restoreConfigBackup", () => {
       expect(await readConfigBackup(cfg)).toEqual(A);
       const again = await restoreConfigBackup(cfg);
       expect(again).toEqual(A);
+    });
+  });
+});
+
+const C = { version: 1, lines: [{ widgets: [{ type: "plan" }] }] };
+
+describe("configRedoPath", () => {
+  it("is the config path with a .redo suffix", () => {
+    expect(configRedoPath("/cfg/agentline/config.json")).toBe("/cfg/agentline/config.json.redo");
+  });
+});
+
+describe("undoConfig / redoConfig (reversible 2-slot stack)", () => {
+  it("undo returns null and does not write when there is no backup", async () => {
+    await withTmpDir("agentline-config-redo-", async (dir) => {
+      const cfg = join(dir, "config.json");
+      await fs.writeFile(cfg, JSON.stringify(B));
+      expect(await undoConfig(cfg)).toBeNull();
+      expect(await readJson(cfg)).toEqual(B);
+      // No forward slot is created on a no-op undo.
+      expect(await readConfigRedo(cfg)).toBeNull();
+    });
+  });
+
+  it("redo returns null and does not write when there is no forward slot", async () => {
+    await withTmpDir("agentline-config-redo-", async (dir) => {
+      const cfg = join(dir, "config.json");
+      await fs.writeFile(cfg, JSON.stringify(B));
+      expect(await redoConfig(cfg)).toBeNull();
+      expect(await readJson(cfg)).toEqual(B);
+    });
+  });
+
+  it("undo captures the pre-undo config into the forward slot", async () => {
+    await withTmpDir("agentline-config-redo-", async (dir) => {
+      const cfg = join(dir, "config.json");
+      await backupAndWriteConfig(cfg, A); // seed, bak empty
+      await backupAndWriteConfig(cfg, B); // bak = A, current = B
+      const restored = await undoConfig(cfg); // current = A, redo = B
+      expect(restored).toEqual(A);
+      expect(await readJson(cfg)).toEqual(A);
+      expect(await readConfigRedo(cfg)).toEqual(B);
+    });
+  });
+
+  it("redo rolls forward to the forward slot and re-primes the back slot", async () => {
+    await withTmpDir("agentline-config-redo-", async (dir) => {
+      const cfg = join(dir, "config.json");
+      await backupAndWriteConfig(cfg, A);
+      await backupAndWriteConfig(cfg, B); // bak = A, current = B
+      await undoConfig(cfg); // current = A, redo = B
+      const rolledForward = await redoConfig(cfg); // current = B, bak = A
+      expect(rolledForward).toEqual(B);
+      expect(await readJson(cfg)).toEqual(B);
+      expect(await readConfigBackup(cfg)).toEqual(A);
+    });
+  });
+
+  it("undo → redo → undo round-trips to identical bytes", async () => {
+    await withTmpDir("agentline-config-redo-", async (dir) => {
+      const cfg = join(dir, "config.json");
+      await backupAndWriteConfig(cfg, A);
+      await backupAndWriteConfig(cfg, B); // current = B, bak = A
+      await undoConfig(cfg);
+      expect(await readJson(cfg)).toEqual(A);
+      await redoConfig(cfg);
+      expect(await readJson(cfg)).toEqual(B);
+      await undoConfig(cfg);
+      expect(await readJson(cfg)).toEqual(A);
+    });
+  });
+
+  it("a new mutation after an undo invalidates the forward slot (can't redo a diverged branch)", async () => {
+    await withTmpDir("agentline-config-redo-", async (dir) => {
+      const cfg = join(dir, "config.json");
+      await backupAndWriteConfig(cfg, A);
+      await backupAndWriteConfig(cfg, B); // current = B, bak = A
+      await undoConfig(cfg); // current = A, redo = B
+      expect(await readConfigRedo(cfg)).toEqual(B);
+      await backupAndWriteConfig(cfg, C); // diverge: current = C, bak = A, redo GONE
+      expect(await readConfigRedo(cfg)).toBeNull();
+      expect(await redoConfig(cfg)).toBeNull();
+      expect(await readJson(cfg)).toEqual(C);
+    });
+  });
+
+  it("writes atomically — no leftover temp files across an undo/redo cycle", async () => {
+    await withTmpDir("agentline-config-redo-", async (dir) => {
+      const cfg = join(dir, "config.json");
+      await backupAndWriteConfig(cfg, A);
+      await backupAndWriteConfig(cfg, B);
+      await undoConfig(cfg);
+      await redoConfig(cfg);
+      const entries = await fs.readdir(dir);
+      expect(entries.filter((e) => e.includes(".tmp"))).toEqual([]);
     });
   });
 });
