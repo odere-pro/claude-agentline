@@ -1,6 +1,48 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCount, formatSpeed, formatUsd, tokenRole } from "./format.js";
+import {
+  formatCostDuration,
+  formatCount,
+  formatSpeed,
+  formatUsd,
+  tokenRole,
+} from "./format.js";
+
+describe("formatCostDuration", () => {
+  it("renders sub-minute durations with one decimal second", () => {
+    expect(formatCostDuration(2300)).toBe("2.3s");
+    expect(formatCostDuration(900)).toBe("0.9s");
+  });
+
+  it("renders a whole-second sub-minute duration without a trailing .0", () => {
+    expect(formatCostDuration(5000)).toBe("5s");
+  });
+
+  it("renders 0ms as 0s", () => {
+    expect(formatCostDuration(0)).toBe("0s");
+  });
+
+  it("renders minute-scale durations as 'Xm Ys' (seconds rounded, no decimal)", () => {
+    expect(formatCostDuration(65_000)).toBe("1m 5s");
+    expect(formatCostDuration(90_000)).toBe("1m 30s");
+  });
+
+  it("carries a rounded-up 60s into the next minute (never prints '60s')", () => {
+    // 119.6s → 1m 59.6s → seconds round to 60 → carry to 2m 0s
+    expect(formatCostDuration(119_600)).toBe("2m 0s");
+  });
+
+  it("renders hour-scale durations as 'Xh Ym' (seconds dropped)", () => {
+    expect(formatCostDuration(65 * 60_000)).toBe("1h 5m");
+    expect(formatCostDuration(2 * 60 * 60_000)).toBe("2h 0m");
+  });
+
+  it("clamps negative and non-finite inputs to 0s", () => {
+    expect(formatCostDuration(-1)).toBe("0s");
+    expect(formatCostDuration(Number.NaN)).toBe("0s");
+    expect(formatCostDuration(Number.POSITIVE_INFINITY)).toBe("0s");
+  });
+});
 
 describe("formatCount", () => {
   it("rounds and returns plain number below 1000", () => {

@@ -73,3 +73,36 @@ export function formatUsd(n: number): string {
   const fixed = n.toFixed(2);
   return fixed.endsWith(".00") ? `$${fixed.slice(0, -3)}` : `$${fixed}`;
 }
+
+const MINUTE_MS = 60 * 1000;
+const HOUR_MS = 60 * MINUTE_MS;
+
+/**
+ * Format a cost-block duration (ms) for the API-time widgets.
+ *
+ * Unlike the rate-limit timer formatters (which floor to whole minutes —
+ * an API call of 2.3s would read as `0m`), this keeps sub-minute
+ * precision because API durations are routinely seconds:
+ *   - < 1 min  → `<n.n>s` (1 decimal, trimmed `.0`, e.g. `2.3s`, `5s`)
+ *   - < 1 hour → `<m>m <s>s` (seconds rounded, e.g. `1m 5s`)
+ *   - ≥ 1 hour → `<h>h <m>m` (seconds dropped, e.g. `1h 5m`)
+ *
+ * Negative / non-finite inputs clamp to `0s` so a malformed host scalar
+ * never produces `NaNs`.
+ */
+export function formatCostDuration(ms: number): string {
+  const clamped = Number.isFinite(ms) ? Math.max(0, ms) : 0;
+  if (clamped < MINUTE_MS) {
+    return `${trim1(clamped / 1000)}s`;
+  }
+  if (clamped < HOUR_MS) {
+    const minutes = Math.floor(clamped / MINUTE_MS);
+    const seconds = Math.round((clamped % MINUTE_MS) / 1000);
+    // Carry a rounded-up 60s into the next minute so we never print `Xm 60s`.
+    if (seconds === 60) return `${minutes + 1}m 0s`;
+    return `${minutes}m ${seconds}s`;
+  }
+  const hours = Math.floor(clamped / HOUR_MS);
+  const minutes = Math.floor((clamped % HOUR_MS) / MINUTE_MS);
+  return `${hours}h ${minutes}m`;
+}
