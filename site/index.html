@@ -12,7 +12,7 @@
       content="agentline is a fast, powerline statusline for Claude Code. It shows git, tokens, context window, rate limits, and session info across 38 configurable widgets, with a live TUI editor, zero render-time network calls, and a Software 3.0 design any agent can install, configure, and theme by itself."
     />
     <link rel="canonical" href="https://odere-pro.github.io/claude-agentline/" />
-    <meta name="theme-color" content="#1c1714" />
+    <meta name="theme-color" content="#0c0f17" />
     <meta name="color-scheme" content="dark light" />
     <meta name="application-name" content="agentline" />
     <meta name="author" content="agentline maintainers" />
@@ -166,7 +166,7 @@
                 "@type": "HowToStep",
                 "position": 2,
                 "name": "Wire into Claude Code",
-                "text": "Run: agentline install — this backs up your current statusLine, then wires the statusLine plus skills and themes."
+                "text": "Run: agentline reset — the canonical setup verb. It backs up your current statusLine, then wires the statusLine plus skills and themes."
               },
               {
                 "@type": "HowToStep",
@@ -245,7 +245,7 @@
                 "name": "How do I uninstall agentline and restore my previous statusline?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Run `agentline uninstall` to restore your previous statusLine byte-for-byte and remove the installed skills. Add `agentline uninstall --purge` to also wipe your agentline config and custom themes. Install takes a backup first, so the round-trip leaves no trace."
+                  "text": "Run `agentline uninstall` to restore your previous statusLine byte-for-byte and remove the installed skills. Add `agentline uninstall --purge` to also wipe your agentline config and custom themes. Setup takes a backup first, so the round-trip leaves no trace."
                 }
               },
               {
@@ -280,31 +280,37 @@
 
     <style>
       :root {
-        --color-bg: oklch(22% 0.012 50);
-        --color-bg-raised: oklch(27% 0.016 52);
-        --color-surface: oklch(31% 0.02 54);
-        --color-text: oklch(92% 0.012 70);
-        --color-muted: oklch(76% 0.022 62);
-        --color-accent: oklch(70% 0.13 45);
-        --color-accent-soft: oklch(70% 0.13 45 / 0.16);
-        --color-accent-line: oklch(70% 0.13 45 / 0.4);
-        --color-line: oklch(40% 0.02 55);
+        --bg: oklch(16% 0.012 265);
+        --bg-elev: oklch(20% 0.016 265);
+        --surface: oklch(24% 0.02 265);
+        --line: oklch(32% 0.02 265);
+        --text: oklch(94% 0.01 255);
+        --muted: oklch(72% 0.02 255);
+        --accent: oklch(82% 0.16 168);
+        --accent-2: oklch(74% 0.14 250);
+        --accent-soft: oklch(82% 0.16 168 / 0.14);
+        --accent-line: oklch(82% 0.16 168 / 0.4);
+        --warn: oklch(82% 0.15 80);
+        --on-accent: oklch(18% 0.03 168);
 
-        --text-hero: clamp(2.6rem, 1.4rem + 5vw, 5.5rem);
-        --text-lead: clamp(1.1rem, 0.96rem + 0.6vw, 1.4rem);
-        --text-h2: clamp(1.6rem, 1.2rem + 1.5vw, 2.4rem);
-        --space-section: clamp(3.5rem, 2.5rem + 5vw, 7rem);
+        --text-hero: clamp(2.6rem, 1.2rem + 5.4vw, 5.5rem);
+        --text-lead: clamp(1.05rem, 1rem + 0.5vw, 1.3rem);
+        --text-h2: clamp(1.5rem, 1.1rem + 1.6vw, 2.4rem);
+        --text-base: clamp(1rem, 0.96rem + 0.2vw, 1.075rem);
+        --space-section: clamp(3.5rem, 2rem + 6vw, 8rem);
+        --maxw: 72rem;
 
         --radius: 14px;
-        --radius-sm: 9px;
+        --radius-sm: 10px;
         --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        --dur: 280ms;
 
-        --font-sans:
-          ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
+        --mono:
+          ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo,
+          Consolas, monospace;
+        --sans:
+          "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
           Arial, sans-serif;
-        --font-mono:
-          ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas,
-          monospace;
       }
 
       * {
@@ -321,30 +327,38 @@
         margin: 0;
         background:
           radial-gradient(
-            120% 80% at 75% -10%,
-            var(--color-accent-soft),
+            120% 80% at 85% -10%,
+            oklch(24% 0.04 168 / 0.35),
             transparent 60%
           ),
-          var(--color-bg);
-        color: var(--color-text);
-        font-family: var(--font-sans);
-        line-height: 1.55;
+          radial-gradient(
+            90% 70% at 0% 0%,
+            oklch(22% 0.04 265 / 0.5),
+            transparent 55%
+          ),
+          var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        font-size: var(--text-base);
+        line-height: 1.6;
         -webkit-font-smoothing: antialiased;
       }
 
       a {
-        color: inherit;
+        color: var(--accent);
+        text-underline-offset: 3px;
       }
 
       :focus-visible {
-        outline: 2px solid var(--color-accent);
+        outline: 2px solid var(--accent-2);
         outline-offset: 3px;
         border-radius: 4px;
       }
 
       .wrap {
-        width: min(1100px, 92vw);
+        max-width: var(--maxw);
         margin-inline: auto;
+        padding-inline: clamp(1.1rem, 0.6rem + 2vw, 2.5rem);
       }
 
       /* Visually hidden but still focusable / announced */
@@ -367,8 +381,8 @@
         top: 0.5rem;
         z-index: 50;
         transform: translateY(-160%);
-        background: var(--color-accent);
-        color: oklch(20% 0.02 50);
+        background: var(--accent);
+        color: var(--on-accent);
         padding: 0.6rem 1rem;
         border-radius: var(--radius-sm);
         font-weight: 600;
@@ -385,9 +399,9 @@
         position: sticky;
         top: 0;
         z-index: 40;
-        background: oklch(22% 0.012 50 / 0.82);
+        background: oklch(16% 0.012 265 / 0.82);
         backdrop-filter: saturate(140%) blur(10px);
-        border-bottom: 1px solid var(--color-line);
+        border-bottom: 1px solid var(--line);
       }
 
       nav {
@@ -395,19 +409,21 @@
         align-items: center;
         flex-wrap: wrap;
         gap: 0.4rem 1.2rem;
-        padding-block: 0.9rem;
+        padding-block: 1.1rem;
       }
 
       .brand {
-        font-family: var(--font-mono);
-        font-weight: 700;
-        font-size: 1.15rem;
-        letter-spacing: -0.02em;
+        font-family: var(--mono);
+        font-weight: 600;
+        font-size: 1.1rem;
+        letter-spacing: -0.01em;
         text-decoration: none;
+        color: var(--text);
       }
 
-      .brand span {
-        color: var(--color-accent);
+      .brand b {
+        color: var(--accent);
+        font-weight: 600;
       }
 
       nav .spacer {
@@ -420,27 +436,41 @@
         min-height: 44px;
         padding-inline: 0.35rem;
         text-decoration: none;
-        color: var(--color-muted);
+        color: var(--muted);
         font-size: 0.95rem;
         transition: color var(--ease) 200ms;
       }
 
       nav a:not(.brand):hover,
       nav a:not(.brand):focus-visible {
-        color: var(--color-text);
+        color: var(--text);
       }
 
-      /* Hero */
+      /* Hero — asymmetric editorial: copy on the left, a live terminal panel
+         on the right, then the full-width product shot underneath. */
       .hero {
-        padding-block: var(--space-section);
+        padding-block: clamp(3rem, 1.5rem + 6vw, 6rem) var(--space-section);
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: clamp(2rem, 1rem + 4vw, 4rem);
+        align-items: center;
+      }
+
+      @media (max-width: 880px) {
+        .hero-grid {
+          grid-template-columns: 1fr;
+        }
       }
 
       .eyebrow {
-        font-family: var(--font-mono);
+        font-family: var(--mono);
         font-size: 0.85rem;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: var(--color-accent);
+        color: var(--accent);
         margin: 0 0 1.2rem;
       }
 
@@ -448,14 +478,22 @@
         font-size: var(--text-hero);
         line-height: 0.98;
         letter-spacing: -0.03em;
+        font-weight: 680;
         margin: 0 0 1.4rem;
-        max-width: 18ch;
+        max-width: 16ch;
+      }
+
+      h1 .grad {
+        background: linear-gradient(100deg, var(--accent), var(--accent-2));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
       }
 
       .lead {
         font-size: var(--text-lead);
-        color: var(--color-muted);
-        max-width: 58ch;
+        color: var(--muted);
+        max-width: 46ch;
         margin: 0 0 1.8rem;
       }
 
@@ -470,11 +508,11 @@
       }
 
       .pills li {
-        font-family: var(--font-mono);
+        font-family: var(--mono);
         font-size: 0.8rem;
-        color: var(--color-text);
-        background: var(--color-surface);
-        border: 1px solid var(--color-line);
+        color: var(--text);
+        background: var(--surface);
+        border: 1px solid var(--line);
         border-radius: 999px;
         padding: 0.35rem 0.85rem;
       }
@@ -482,7 +520,7 @@
       .cta {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.9rem;
+        gap: 0.8rem;
         align-items: center;
       }
 
@@ -490,18 +528,18 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.8rem 1.4rem;
-        border-radius: 999px;
+        padding: 0.75rem 1.25rem;
+        border-radius: var(--radius-sm);
         text-decoration: none;
         font-weight: 600;
         transition:
-          transform var(--ease) 200ms,
-          background var(--ease) 200ms;
+          transform var(--dur) var(--ease),
+          background var(--dur) var(--ease);
       }
 
       .btn-primary {
-        background: var(--color-accent);
-        color: oklch(20% 0.02 50);
+        background: var(--accent);
+        color: var(--on-accent);
       }
 
       .btn-primary:hover,
@@ -510,22 +548,74 @@
       }
 
       .btn-ghost {
-        border: 1px solid var(--color-line);
-        color: var(--color-text);
+        border: 1px solid var(--line);
+        color: var(--text);
       }
 
       .btn-ghost:hover,
       .btn-ghost:focus-visible {
-        background: var(--color-surface);
+        background: var(--bg-elev);
         transform: translateY(-2px);
       }
 
-      figure.shot {
-        margin: 2.8rem 0 0;
-        border: 1px solid var(--color-line);
+      /* Terminal panel — traffic-light bar + monospace body */
+      .term {
+        background: var(--bg-elev);
+        border: 1px solid var(--line);
         border-radius: var(--radius);
         overflow: hidden;
-        background: var(--color-bg-raised);
+        box-shadow: 0 24px 60px -30px oklch(0% 0 0 / 0.8);
+      }
+
+      .term-bar {
+        display: flex;
+        gap: 0.45rem;
+        align-items: center;
+        padding: 0.7rem 0.95rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .term-bar i {
+        width: 0.7rem;
+        height: 0.7rem;
+        border-radius: 50%;
+        background: var(--line);
+      }
+
+      .term-bar .title {
+        margin-left: 0.5rem;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+
+      .term pre {
+        margin: 0;
+        padding: 1.1rem 1.2rem;
+        overflow-x: auto;
+        font-family: var(--mono);
+        font-size: 0.92rem;
+        line-height: 1.75;
+        color: var(--text);
+        background: transparent;
+        border: 0;
+      }
+
+      .term .cmt {
+        color: var(--muted);
+      }
+
+      .term .bin {
+        color: var(--accent);
+      }
+
+      /* Product shot */
+      figure.shot {
+        margin: clamp(2rem, 1rem + 3vw, 3.2rem) 0 0;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        background: var(--bg-elev);
         box-shadow: 0 30px 80px -40px oklch(0% 0 0 / 0.8);
       }
 
@@ -538,14 +628,14 @@
       figure.shot figcaption {
         padding: 0.7rem 1rem;
         font-size: 0.85rem;
-        color: var(--color-muted);
-        border-top: 1px solid var(--color-line);
+        color: var(--muted);
+        border-top: 1px solid var(--line);
       }
 
       /* Shared section chrome */
       section.band {
         padding-block: var(--space-section);
-        border-top: 1px solid var(--color-line);
+        border-top: 1px solid var(--line);
       }
 
       .h2 {
@@ -555,48 +645,80 @@
       }
 
       .section-lead {
-        color: var(--color-muted);
+        color: var(--muted);
         max-width: 62ch;
         margin: 0 0 2.6rem;
-        font-size: 1.02rem;
       }
 
       .kicker {
-        font-family: var(--font-mono);
+        font-family: var(--mono);
         font-size: 0.8rem;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: var(--color-accent);
+        color: var(--accent);
         margin: 0 0 0.8rem;
       }
 
-      /* Generic card grid */
-      .grid {
+      /* Bento — intentional varied emphasis, not a uniform grid */
+      .bento {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
-        gap: 1px;
-        background: var(--color-line);
-        border: 1px solid var(--color-line);
-        border-radius: var(--radius);
-        overflow: hidden;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 1rem;
       }
 
       .card {
-        background: var(--color-bg-raised);
-        padding: 1.6rem 1.5rem;
+        background: var(--bg-elev);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1.5rem 1.5rem;
+        transition:
+          border-color var(--dur) var(--ease),
+          transform var(--dur) var(--ease);
+      }
+
+      .card:hover {
+        border-color: var(--accent);
+        transform: translateY(-3px);
+      }
+
+      .card .tag {
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        color: var(--accent);
+        text-transform: lowercase;
+        letter-spacing: 0.04em;
       }
 
       .card h3 {
-        margin: 0 0 0.5rem;
-        font-size: 1.1rem;
-        font-family: var(--font-mono);
-        color: var(--color-accent);
+        margin: 0.35rem 0 0.45rem;
+        font-size: 1.12rem;
+        letter-spacing: -0.01em;
       }
 
       .card p {
         margin: 0;
-        color: var(--color-muted);
+        color: var(--muted);
         font-size: 0.96rem;
+      }
+
+      .card code {
+        font-family: var(--mono);
+        color: var(--text);
+      }
+
+      .col-3 {
+        grid-column: span 3;
+      }
+
+      .col-2 {
+        grid-column: span 2;
+      }
+
+      @media (max-width: 760px) {
+        .col-3,
+        .col-2 {
+          grid-column: span 6;
+        }
       }
 
       /* Software 3.0 pillars */
@@ -608,17 +730,22 @@
       }
 
       .pillar {
-        background: var(--color-bg-raised);
-        border: 1px solid var(--color-line);
+        background: var(--bg-elev);
+        border: 1px solid var(--line);
         border-radius: var(--radius);
         padding: 1.5rem 1.45rem;
+        transition: border-color var(--dur) var(--ease);
+      }
+
+      .pillar:hover {
+        border-color: var(--accent);
       }
 
       .pillar .num {
-        font-family: var(--font-mono);
+        font-family: var(--mono);
         font-size: 0.85rem;
-        color: var(--color-accent);
-        border: 1px solid var(--color-accent-line);
+        color: var(--accent);
+        border: 1px solid var(--accent-line);
         border-radius: 999px;
         padding: 0.1rem 0.6rem;
       }
@@ -631,33 +758,33 @@
 
       .pillar p {
         margin: 0;
-        color: var(--color-muted);
+        color: var(--muted);
         font-size: 0.95rem;
       }
 
       .pillar code {
-        font-family: var(--font-mono);
-        color: var(--color-text);
+        font-family: var(--mono);
+        color: var(--text);
       }
 
       /* Worked example */
       .worked {
-        background: var(--color-bg-raised);
-        border: 1px solid var(--color-line);
-        border-left: 3px solid var(--color-accent);
+        background: var(--bg-elev);
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--accent);
         border-radius: var(--radius);
         padding: 1.6rem 1.6rem 1.4rem;
       }
 
       .worked p {
         margin: 0 0 1rem;
-        color: var(--color-text);
+        color: var(--text);
       }
 
       .worked ol {
         margin: 0;
         padding-left: 1.2rem;
-        color: var(--color-muted);
+        color: var(--muted);
         display: grid;
         gap: 0.5rem;
       }
@@ -665,8 +792,8 @@
       .worked code,
       .themes code,
       .install-note code {
-        font-family: var(--font-mono);
-        color: var(--color-text);
+        font-family: var(--mono);
+        color: var(--text);
       }
 
       /* Widget catalogue */
@@ -680,11 +807,11 @@
       }
 
       .filter label {
-        font-family: var(--font-mono);
+        font-family: var(--mono);
         font-size: 0.85rem;
-        color: var(--color-muted);
-        background: var(--color-surface);
-        border: 1px solid var(--color-line);
+        color: var(--muted);
+        background: var(--surface);
+        border: 1px solid var(--line);
         border-radius: 999px;
         padding: 0.4rem 0.9rem;
         cursor: pointer;
@@ -696,8 +823,8 @@
       }
 
       .filter label:hover {
-        color: var(--color-text);
-        border-color: var(--color-accent-line);
+        color: var(--text);
+        border-color: var(--accent-line);
       }
 
       .filter label .count {
@@ -712,9 +839,9 @@
       #f-rate:checked ~ .filter label[for="f-rate"],
       #f-git:checked ~ .filter label[for="f-git"],
       #f-other:checked ~ .filter label[for="f-other"] {
-        color: oklch(20% 0.02 50);
-        background: var(--color-accent);
-        border-color: var(--color-accent);
+        color: var(--on-accent);
+        background: var(--accent);
+        border-color: var(--accent);
       }
 
       #f-all:focus-visible ~ .filter label[for="f-all"],
@@ -724,7 +851,7 @@
       #f-rate:focus-visible ~ .filter label[for="f-rate"],
       #f-git:focus-visible ~ .filter label[for="f-git"],
       #f-other:focus-visible ~ .filter label[for="f-other"] {
-        outline: 2px solid var(--color-text);
+        outline: 2px solid var(--text);
         outline-offset: 2px;
       }
 
@@ -735,10 +862,18 @@
       }
 
       .wcard {
-        background: var(--color-bg-raised);
-        border: 1px solid var(--color-line);
+        background: var(--bg-elev);
+        border: 1px solid var(--line);
         border-radius: var(--radius);
         padding: 1.15rem 1.2rem;
+        transition:
+          border-color var(--dur) var(--ease),
+          transform var(--dur) var(--ease);
+      }
+
+      .wcard:hover {
+        border-color: var(--accent);
+        transform: translateY(-3px);
       }
 
       .wcard .wtop {
@@ -756,23 +891,23 @@
       }
 
       .wcard .fam {
-        font-family: var(--font-mono);
+        font-family: var(--mono);
         font-size: 0.7rem;
         text-transform: lowercase;
-        color: var(--color-accent);
+        color: var(--accent);
         white-space: nowrap;
       }
 
       .wcard .type {
-        font-family: var(--font-mono);
+        font-family: var(--mono);
         font-size: 0.78rem;
-        color: var(--color-muted);
+        color: var(--muted);
         margin: 0 0 0.5rem;
       }
 
       .wcard p {
         margin: 0;
-        color: var(--color-muted);
+        color: var(--muted);
         font-size: 0.92rem;
       }
 
@@ -786,11 +921,11 @@
       }
 
       .variants li {
-        font-family: var(--font-mono);
+        font-family: var(--mono);
         font-size: 0.72rem;
-        color: var(--color-text);
-        background: var(--color-surface);
-        border: 1px solid var(--color-line);
+        color: var(--text);
+        background: var(--surface);
+        border: 1px solid var(--line);
         border-radius: 6px;
         padding: 0.12rem 0.45rem;
       }
@@ -806,7 +941,7 @@
       }
 
       /* Themes / rendering */
-      .themes .grid {
+      .themes .bento {
         margin-bottom: 1.6rem;
       }
 
@@ -825,24 +960,6 @@
       }
 
       /* Install */
-      pre {
-        margin: 0;
-        padding: 1.4rem 1.5rem;
-        background: oklch(16% 0.01 50);
-        border: 1px solid var(--color-line);
-        border-radius: var(--radius);
-        max-width: 100%;
-        overflow-x: auto;
-        font-family: var(--font-mono);
-        font-size: 0.95rem;
-        line-height: 1.7;
-        color: var(--color-text);
-      }
-
-      pre .cmt {
-        color: var(--color-muted);
-      }
-
       .stack {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -854,24 +971,24 @@
       }
 
       .install-note {
-        background: var(--color-accent-soft);
-        border: 1px solid var(--color-accent-line);
+        background: var(--accent-soft);
+        border: 1px solid var(--accent-line);
         border-radius: var(--radius);
         padding: 1.1rem 1.3rem;
-        color: var(--color-text);
+        color: var(--text);
         font-size: 0.96rem;
       }
 
       .install-note strong {
-        color: var(--color-accent);
+        color: var(--accent);
       }
 
       .sub {
-        font-family: var(--font-mono);
+        font-family: var(--mono);
         font-size: 0.8rem;
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        color: var(--color-muted);
+        color: var(--muted);
         margin: 0 0 0.7rem;
       }
 
@@ -890,21 +1007,21 @@
 
       .faq dd {
         margin: 0;
-        color: var(--color-muted);
+        color: var(--muted);
         max-width: 72ch;
       }
 
-      .faq code,
-      pre code {
-        font-family: var(--font-mono);
+      .faq code {
+        font-family: var(--mono);
+        color: var(--text);
       }
 
       /* Footer */
       footer {
-        padding-block: 2.5rem;
-        border-top: 1px solid var(--color-line);
-        color: var(--color-muted);
-        font-size: 0.9rem;
+        padding-block: 3rem;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.92rem;
         display: flex;
         flex-wrap: wrap;
         gap: 0.4rem 1rem;
@@ -920,12 +1037,12 @@
         align-items: center;
         min-height: 44px;
         padding-inline: 0.35rem;
-        color: var(--color-muted);
+        color: var(--muted);
         text-decoration: none;
       }
 
       footer a:hover {
-        color: var(--color-text);
+        color: var(--text);
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -946,7 +1063,7 @@
 
     <header>
       <nav class="wrap" aria-label="Primary">
-        <a class="brand" href="#main">agent<span>line</span></a>
+        <a class="brand" href="#main">agent<b>line</b></a>
         <span class="spacer"></span>
         <a href="#features">Features</a>
         <a href="#widgets">Widgets</a>
@@ -959,26 +1076,50 @@
 
     <main id="main">
       <section class="hero wrap" aria-labelledby="hero-heading">
-        <p class="eyebrow">Statusline for Claude Code · built for Software 3.0</p>
-        <h1 id="hero-heading">
-          A powerline statusline your agent can drive.
-        </h1>
-        <p class="lead">
-          Fast, themeable, and offline. agentline reads the stdin payload Claude
-          Code sends, renders git, tokens, context window, rate limits, and
-          session info across 38 configurable widgets, and exits. No network on
-          the render path. No native modules. No plugin scaffolding.
-        </p>
-        <ul class="pills" aria-label="At a glance">
-          <li>38 widgets</li>
-          <li>6 families</li>
-          <li>agent-operable</li>
-          <li>zero render-time network</li>
-          <li>reversible install</li>
-        </ul>
-        <div class="cta">
-          <a class="btn btn-primary" href="#install">Get started</a>
-          <a class="btn btn-ghost" href="#widgets">Browse the widgets</a>
+        <div class="hero-grid">
+          <div>
+            <p class="eyebrow">
+              Statusline for Claude Code · built for Software 3.0
+            </p>
+            <h1 id="hero-heading">
+              A powerline statusline <span class="grad">your agent can drive</span>.
+            </h1>
+            <p class="lead">
+              Fast, themeable, and offline. agentline reads the stdin payload
+              Claude Code sends, renders git, tokens, context window, rate
+              limits, and session info across 38 configurable widgets, and
+              exits. No network on the render path. No native modules. No plugin
+              scaffolding.
+            </p>
+            <ul class="pills" aria-label="At a glance">
+              <li>38 widgets</li>
+              <li>6 families</li>
+              <li>agent-operable</li>
+              <li>zero render-time network</li>
+              <li>reversible install</li>
+            </ul>
+            <div class="cta">
+              <a class="btn btn-primary" href="#install">Get started</a>
+              <a class="btn btn-ghost" href="#widgets">Browse the widgets</a>
+            </div>
+          </div>
+
+          <div class="term" aria-label="Install agentline in four commands">
+            <div class="term-bar" aria-hidden="true">
+              <i></i><i></i><i></i><span class="title">agentline — setup</span>
+            </div>
+            <pre><code><span class="cmt"># 1. install the CLI</span>
+npm install -g @odere-pro/agentline
+
+<span class="cmt"># 2. wire into Claude Code (statusLine + skills + themes)</span>
+<span class="bin">agentline</span> reset
+
+<span class="cmt"># 3. verify the wiring</span>
+<span class="bin">agentline</span> doctor
+
+<span class="cmt"># 4. customise widgets, theme, and layout (TUI)</span>
+<span class="bin">agentline</span> edit</code></pre>
+          </div>
         </div>
 
         <figure class="shot">
@@ -1012,57 +1153,68 @@
           status — composed into up to three statusline rows, then styled by a
           theme engine that degrades gracefully on any terminal.
         </p>
-        <div class="grid">
-          <article class="card">
-            <h3>git</h3>
+        <div class="bento">
+          <article class="card col-3">
+            <span class="tag">git</span>
+            <h3>Branch, changes &amp; PR</h3>
             <p>
               Branch, worktree, change counts, conflicts, ahead/behind,
               upstream, origin repo, and pull-request status.
             </p>
           </article>
-          <article class="card">
-            <h3>tokens</h3>
-            <p>Input and output token counts, cached tokens, and throughput.</p>
-          </article>
-          <article class="card">
-            <h3>context</h3>
-            <p>Context-window percentage used, colour-graded as fill approaches the limit.</p>
-          </article>
-          <article class="card">
-            <h3>rate-limits</h3>
-            <p>Session and weekly quota usage with countdown reset timers.</p>
-          </article>
-          <article class="card">
-            <h3>session</h3>
+          <article class="card col-3">
+            <span class="tag">tokens</span>
+            <h3>Usage &amp; cost</h3>
             <p>
-              Model, version, thinking effort, plan link, project, session id,
-              and account — straight from the stdin payload.
+              Input and output token counts, cached tokens, throughput, session
+              cost, and burn rate.
             </p>
           </article>
-          <article class="card">
-            <h3>Powerline &amp; themes</h3>
+          <article class="card col-2">
+            <span class="tag">context</span>
+            <h3>Context window</h3>
+            <p>Window percentage used, colour-graded as fill approaches the limit.</p>
+          </article>
+          <article class="card col-2">
+            <span class="tag">rate-limits</span>
+            <h3>Quota &amp; resets</h3>
+            <p>Session and weekly quota usage with countdown reset timers.</p>
+          </article>
+          <article class="card col-2">
+            <span class="tag">session</span>
+            <h3>Model &amp; account</h3>
+            <p>
+              Model, version, thinking effort, plan link, project, session id,
+              and account.
+            </p>
+          </article>
+          <article class="card col-3">
+            <span class="tag">powerline &amp; themes</span>
+            <h3>Looks sharp anywhere</h3>
             <p>
               Arrayed chevrons and caps, plus a theme engine that degrades from
               truecolor to 256-colour to 16-colour terminals.
             </p>
           </article>
-          <article class="card">
-            <h3>Live TUI editor</h3>
+          <article class="card col-3">
+            <span class="tag">live tui editor</span>
+            <h3>Edit with a preview</h3>
             <p>
               <code>agentline edit</code> opens a live-preview editor with a
               searchable, family-grouped widget picker.
             </p>
           </article>
-          <article class="card">
-            <h3>Agent-friendly</h3>
+          <article class="card col-3">
+            <span class="tag">agent-friendly</span>
+            <h3>Drive it by asking</h3>
             <p>
-              Install adds five agentline skills, so you can configure, theme,
-              and troubleshoot it by asking the agent — without leaving Claude
-              Code.
+              Setup adds five agentline skills, so you can configure, theme, and
+              troubleshoot it by asking the agent — without leaving Claude Code.
             </p>
           </article>
-          <article class="card">
-            <h3>Reversible &amp; offline</h3>
+          <article class="card col-3">
+            <span class="tag">reversible &amp; offline</span>
+            <h3>Safe to try</h3>
             <p>
               Uninstall restores your previous statusline byte-for-byte. The
               render hot path makes zero network calls.
@@ -1122,7 +1274,7 @@
             <span class="num">04</span>
             <h3>Seeded subagent skills</h3>
             <p>
-              Install copies five skill files into Claude Code. Each file's
+              Setup copies five skill files into Claude Code. Each file's
               description is its dispatch contract, so the host routes
               natural-language requests to the right runbook — the docs are the
               agent's import path.
@@ -1471,38 +1623,42 @@
           from a named role, so a theme is a small JSON file you can swap or
           author yourself.
         </p>
-        <div class="grid">
-          <article class="card">
-            <h3>powerline</h3>
+        <div class="bento">
+          <article class="card col-3">
+            <span class="tag">powerline</span>
+            <h3>Stitched segments</h3>
             <p>
               Optional chevrons and caps stitch adjacent segments together, with
               colour transitions computed between neighbours.
             </p>
           </article>
-          <article class="card">
-            <h3>graceful colour</h3>
+          <article class="card col-3">
+            <span class="tag">graceful colour</span>
+            <h3>Degrades to fit</h3>
             <p>
               The engine degrades automatically: truecolor → 256-colour →
               16-colour → none, matching whatever the terminal advertises.
             </p>
             <div class="swatches" aria-hidden="true">
-              <span class="swatch" style="background: oklch(70% 0.13 45)"></span>
-              <span class="swatch" style="background: oklch(72% 0.11 150)"></span>
-              <span class="swatch" style="background: oklch(74% 0.12 240)"></span>
-              <span class="swatch" style="background: oklch(78% 0.13 90)"></span>
-              <span class="swatch" style="background: oklch(64% 0.15 25)"></span>
+              <span class="swatch" style="background: oklch(82% 0.16 168)"></span>
+              <span class="swatch" style="background: oklch(74% 0.14 250)"></span>
+              <span class="swatch" style="background: oklch(78% 0.13 145)"></span>
+              <span class="swatch" style="background: oklch(82% 0.15 80)"></span>
+              <span class="swatch" style="background: oklch(66% 0.16 25)"></span>
             </div>
           </article>
-          <article class="card">
-            <h3>accessible by flag</h3>
+          <article class="card col-3">
+            <span class="tag">accessible by flag</span>
+            <h3>Plain when asked</h3>
             <p>
               <code>--no-color</code> for plain text, <code>--no-unicode</code> or
               <code>--ascii</code> to swap glyphs for ASCII. <code>NO_COLOR</code>
               is honoured too.
             </p>
           </article>
-          <article class="card">
-            <h3>shipped &amp; custom</h3>
+          <article class="card col-3">
+            <span class="tag">shipped &amp; custom</span>
+            <h3>Bring your own</h3>
             <p>
               <code>claude-code-dark</code> ships in the box; drop your own
               theme JSON into your agentline config directory and reference it by
@@ -1521,23 +1677,30 @@
         <h2 class="h2" id="install-heading">Install in four commands</h2>
         <p class="section-lead">
           Requires Node.js 20 LTS or newer, and Claude Code run at least once.
+          <code>reset</code> is the canonical setup verb — safe to run whether
+          agentline is new or already set up.
         </p>
 
         <div class="stack">
-          <pre><code><span class="cmt"># 1. install the CLI</span>
+          <div class="term" aria-label="Install agentline">
+            <div class="term-bar" aria-hidden="true">
+              <i></i><i></i><i></i><span class="title">install</span>
+            </div>
+            <pre><code><span class="cmt"># 1. install the CLI</span>
 npm install -g @odere-pro/agentline
 
 <span class="cmt"># 2. wire into Claude Code (statusLine + skills + themes)</span>
-agentline install
+<span class="bin">agentline</span> reset
 
 <span class="cmt"># 3. verify the wiring (add --fix to self-repair)</span>
-agentline doctor
+<span class="bin">agentline</span> doctor
 
 <span class="cmt"># 4. customise widgets, theme, and layout (TUI)</span>
-agentline edit</code></pre>
+<span class="bin">agentline</span> edit</code></pre>
+          </div>
 
           <p class="install-note">
-            <strong>Your settings are safe.</strong> <code>agentline install</code>
+            <strong>Your settings are safe.</strong> <code>agentline reset</code>
             backs up your existing <code>statusLine</code> before wiring its own.
             Run <code>agentline uninstall</code> any time to restore it
             byte-for-byte and remove the installed skills.
@@ -1545,11 +1708,16 @@ agentline edit</code></pre>
 
           <div>
             <p class="sub">Uninstall</p>
-            <pre><code><span class="cmt"># restore the previous statusLine, remove installed skills</span>
-agentline uninstall
+            <div class="term" aria-label="Uninstall agentline">
+              <div class="term-bar" aria-hidden="true">
+                <i></i><i></i><i></i><span class="title">uninstall</span>
+              </div>
+              <pre><code><span class="cmt"># restore the previous statusLine, remove installed skills</span>
+<span class="bin">agentline</span> uninstall
 
 <span class="cmt"># also wipe agentline config and any custom themes</span>
-agentline uninstall --purge</code></pre>
+<span class="bin">agentline</span> uninstall --purge</code></pre>
+            </div>
           </div>
         </div>
       </section>
@@ -1580,7 +1748,7 @@ agentline uninstall --purge</code></pre>
             cost, cost burn rate, spend against a budget, API duration, and
             context-window usage with a 200k-token flag — and the
             <code>session</code> family adds the working-directory path, clock,
-            output style, vim mode, and active agent name. 38 widgets across 5
+            output style, vim mode, and active agent name. 38 widgets across 6
             families in total.
           </dd>
 
@@ -1600,7 +1768,7 @@ agentline uninstall --purge</code></pre>
             Run <code>agentline uninstall</code> to restore your previous
             <code>statusLine</code> byte-for-byte and remove the installed
             skills. Add <code>agentline uninstall --purge</code> to also wipe
-            your agentline config and custom themes. Install takes a backup
+            your agentline config and custom themes. Setup takes a backup
             first, so the round-trip leaves no trace.
           </dd>
 
