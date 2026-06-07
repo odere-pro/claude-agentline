@@ -14,6 +14,7 @@ import { costUsdWidget } from "./cost-usd/cost-usd.js";
 import { apiDurationWidget } from "./api-duration/api-duration.js";
 import { costBurnRateWidget } from "./cost-burn-rate/cost-burn-rate.js";
 import { costEfficiencyWidget } from "./cost-efficiency/cost-efficiency.js";
+import { costVsLimitWidget } from "./cost-vs-limit/cost-vs-limit.js";
 
 export const TOKEN_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   eraseWidget(tokensWidget),
@@ -23,6 +24,7 @@ export const TOKEN_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   eraseWidget(costBurnRateWidget),
   eraseWidget(apiDurationWidget),
   eraseWidget(costEfficiencyWidget),
+  eraseWidget(costVsLimitWidget),
 ]);
 
 export function registerTokenWidgets(registry: WidgetRegistry): void {

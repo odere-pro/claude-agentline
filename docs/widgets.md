@@ -46,7 +46,7 @@ widget instances with different `reset` axes.
 
 ## Built-in widgets
 
-37 widgets ship in v0.3.x, organised into five families. The
+38 widgets ship in v0.3.x, organised into five families. The
 authoritative registry is `src/widgets/registry/registry.ts`; this page tracks
 it.
 
@@ -78,7 +78,7 @@ Auth-file fallback: when the stdin payload omits the account email,
 `account-email` transparently re-reads `${CLAUDE_CONFIG_DIR}/.credentials.json`
 so the line is never blank for an authenticated user.
 
-### Tokens (7)
+### Tokens (8)
 
 | Type              | Renders                                             | Required `options.reset` |
 | ----------------- | --------------------------------------------------- | ------------------------ |
@@ -89,14 +89,17 @@ so the line is never blank for an authenticated user.
 | `cost-burn-rate`  | session spend rate, `$/hr` (e.g. `$1.20/hr`)        | no                       |
 | `api-duration`    | API wait time (`2.3s`; `percent: true` → % of wall) | no                       |
 | `cost-efficiency` | share of wall-clock spent in API calls, as a `%`    | no                       |
+| `cost-vs-limit`   | spend against a `budget` (e.g. `$1.20/$5`)          | no — needs `budget`      |
 
 `tokens` and `token-speed` take optional `inputGlyph` / `outputGlyph`
 (defaults `↓` / `↑`). `token-speed` takes `windowSec` (default 60,
-clamped 1–3600) instead of a reset axis. The four cost widgets read
+clamped 1–3600) instead of a reset axis. The five cost widgets read
 host-provided scalars from the stdin `cost` block — they carry no reset
 axis and hide when their source field is absent (`cost-burn-rate` /
 `cost-efficiency` also hide on a zero wall-clock duration to avoid a
-divide-by-zero).
+divide-by-zero). `cost-vs-limit` takes a required `budget` option (USD, a
+positive number); it hides without it and signals the theme `danger` role
+when spend reaches or exceeds the budget.
 
 ### Context (2)
 

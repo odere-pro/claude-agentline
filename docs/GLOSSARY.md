@@ -145,7 +145,7 @@ user-facing term **family**.
 
 ---
 
-## Built-in widget types (37 total)
+## Built-in widget types (38 total)
 
 All types are kebab-case strings. Source of truth: `src/widgets/families/catalog.ts`.
 
@@ -171,17 +171,18 @@ All types are kebab-case strings. Source of truth: `src/widgets/families/catalog
 | `session-duration` | Host-reported session elapsed time (e.g. 12m 30s)          |
 | `lines-changed`    | Host-reported lines added and removed this session         |
 
-### Tokens family (7)
+### Tokens family (8)
 
-| Type              | Description                                            |
-| ----------------- | ------------------------------------------------------ |
-| `tokens`          | Input ↓ + output ↑ subtotals for the chosen reset axis |
-| `tokens-cached`   | Cached-token subtotal (prompt-cache hits)              |
-| `token-speed`     | Input ↓ + output ↑ tokens per second (rolling window)  |
-| `cost-usd`        | Host-reported session cost in USD (e.g. $1.23)         |
-| `cost-burn-rate`  | Session spend rate in USD per hour (e.g. $1.20/hr)     |
-| `api-duration`    | Time spent waiting on the API (absolute or % of wall)  |
-| `cost-efficiency` | Share of wall-clock spent in API calls, as a percent   |
+| Type              | Description                                               |
+| ----------------- | --------------------------------------------------------- |
+| `tokens`          | Input ↓ + output ↑ subtotals for the chosen reset axis    |
+| `tokens-cached`   | Cached-token subtotal (prompt-cache hits)                 |
+| `token-speed`     | Input ↓ + output ↑ tokens per second (rolling window)     |
+| `cost-usd`        | Host-reported session cost in USD (e.g. $1.23)            |
+| `cost-burn-rate`  | Session spend rate in USD per hour (e.g. $1.20/hr)        |
+| `api-duration`    | Time spent waiting on the API (absolute or % of wall)     |
+| `cost-efficiency` | Share of wall-clock spent in API calls, as a percent      |
+| `cost-vs-limit`   | Session spend against a configured budget (e.g. $1.20/$5) |
 
 ### Context family (2)
 

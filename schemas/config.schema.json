@@ -108,6 +108,7 @@
             "cost-burn-rate",
             "cost-efficiency",
             "cost-usd",
+            "cost-vs-limit",
             "current-session-reset-timer",
             "cwd-path",
             "git-ahead-behind",

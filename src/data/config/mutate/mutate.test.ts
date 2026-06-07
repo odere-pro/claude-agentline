@@ -194,8 +194,8 @@ describe("moveWidget", () => {
 
 describe("setWidgetOption", () => {
   it("sets a fresh option object", () => {
-    const out = setWidgetOption(baseline(), { line: 0, at: 2, key: "format", value: "%H:%M" });
-    expect(out.lines[0]?.widgets[2]).toEqual({ type: "version", options: { format: "%H:%M" } });
+    const out = setWidgetOption(baseline(), { line: 0, at: 2, key: "label", value: "v:" });
+    expect(out.lines[0]?.widgets[2]).toEqual({ type: "version", options: { label: "v:" } });
   });
 
   it("merges into an existing option object without touching the original", () => {
