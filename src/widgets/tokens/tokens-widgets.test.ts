@@ -255,11 +255,19 @@ describe("context widgets", () => {
 });
 
 describe("registries", () => {
-  it("registerTokenWidgets installs all four widgets", () => {
+  it("registerTokenWidgets installs all seven widgets", () => {
     const r = new WidgetRegistry();
     registerTokenWidgets(r);
-    expect(r.size()).toBe(4);
-    expect(r.list()).toEqual(["cost-usd", "token-speed", "tokens", "tokens-cached"]);
+    expect(r.size()).toBe(7);
+    expect(r.list()).toEqual([
+      "api-duration",
+      "cost-burn-rate",
+      "cost-efficiency",
+      "cost-usd",
+      "token-speed",
+      "tokens",
+      "tokens-cached",
+    ]);
   });
 
   it("registerContextWidgets installs the context widgets", () => {

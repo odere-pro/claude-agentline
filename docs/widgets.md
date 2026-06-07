@@ -46,7 +46,7 @@ widget instances with different `reset` axes.
 
 ## Built-in widgets
 
-34 widgets ship in v0.3.x, organised into five families. The
+37 widgets ship in v0.3.x, organised into five families. The
 authoritative registry is `src/widgets/registry/registry.ts`; this page tracks
 it.
 
@@ -78,18 +78,25 @@ Auth-file fallback: when the stdin payload omits the account email,
 `account-email` transparently re-reads `${CLAUDE_CONFIG_DIR}/.credentials.json`
 so the line is never blank for an authenticated user.
 
-### Tokens (4)
+### Tokens (7)
 
-| Type            | Renders                                           | Required `options.reset` |
-| --------------- | ------------------------------------------------- | ------------------------ |
-| `tokens`        | input ↓ and output ↑ subtotals (`↓<in> · ↑<out>`) | yes                      |
-| `tokens-cached` | cached-token subtotal (prompt-cache hits)         | yes                      |
-| `token-speed`   | input ↓ and output ↑ tokens per second (rolling)  | no — uses `windowSec`    |
-| `cost-usd`      | host-reported session cost in USD (e.g. `$1.23`)  | no                       |
+| Type              | Renders                                             | Required `options.reset` |
+| ----------------- | --------------------------------------------------- | ------------------------ |
+| `tokens`          | input ↓ and output ↑ subtotals (`↓<in> · ↑<out>`)   | yes                      |
+| `tokens-cached`   | cached-token subtotal (prompt-cache hits)           | yes                      |
+| `token-speed`     | input ↓ and output ↑ tokens per second (rolling)    | no — uses `windowSec`    |
+| `cost-usd`        | host-reported session cost in USD (e.g. `$1.23`)    | no                       |
+| `cost-burn-rate`  | session spend rate, `$/hr` (e.g. `$1.20/hr`)        | no                       |
+| `api-duration`    | API wait time (`2.3s`; `percent: true` → % of wall) | no                       |
+| `cost-efficiency` | share of wall-clock spent in API calls, as a `%`    | no                       |
 
 `tokens` and `token-speed` take optional `inputGlyph` / `outputGlyph`
 (defaults `↓` / `↑`). `token-speed` takes `windowSec` (default 60,
-clamped 1–3600) instead of a reset axis.
+clamped 1–3600) instead of a reset axis. The four cost widgets read
+host-provided scalars from the stdin `cost` block — they carry no reset
+axis and hide when their source field is absent (`cost-burn-rate` /
+`cost-efficiency` also hide on a zero wall-clock duration to avoid a
+divide-by-zero).
 
 ### Context (2)
 

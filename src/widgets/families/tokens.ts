@@ -1,7 +1,9 @@
 /**
- * Token counts + throughput — the merged `tokens` (input + output)
- * widget, the `tokens-cached` subtotal, and the merged `token-speed`
- * (input + output rate) widget.
+ * Token counts + throughput, plus the host-reported cost scalars —
+ * `tokens` / `tokens-cached` / `token-speed`, and the cost-block widgets
+ * `cost-usd` / `cost-burn-rate` / `api-duration` / `cost-efficiency`.
+ * The cost widgets read host pre-computed scalars, so they carry no
+ * reset axis (only the token accumulators declare one).
  */
 
 import { entry, type WidgetMeta } from "./catalog-types.js";
@@ -17,6 +19,21 @@ export const TOKENS_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freez
   "cost-usd": entry(
     "Cost (USD)",
     "Host-reported session cost in USD (e.g. $1.23)",
+    "tokens",
+  ),
+  "cost-burn-rate": entry(
+    "Cost burn rate",
+    "Session spend rate in USD per hour (e.g. $1.20/hr)",
+    "tokens",
+  ),
+  "api-duration": entry(
+    "API duration",
+    "Time spent waiting on the API (absolute, or percent of wall)",
+    "tokens",
+  ),
+  "cost-efficiency": entry(
+    "Cost efficiency",
+    "Share of wall-clock spent in API calls, as a percent",
     "tokens",
   ),
 });
