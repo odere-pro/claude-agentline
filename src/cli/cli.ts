@@ -30,6 +30,7 @@ import { effectiveDepth, honourNoColorEnv } from "../render/render/accessibility
 import { runWidgetSubgroup } from "../data/config/widget-command/widget-command.js";
 import { runRefreshSubgroup } from "../data/config/refresh/refresh-command.js";
 import { runInitSubgroup } from "../data/config/init/init-command.js";
+import { runUndoSubgroup } from "../data/config/undo/undo-command.js";
 
 type ParsedArgs = {
   command: string;
@@ -110,6 +111,7 @@ function runHelp(): number {
       "  config widget <sub>  inspect or edit the statusline layout (scriptable)",
       "  config refresh [<s>] get/set the statusline refresh cadence (seconds)",
       "  config init          seed the user config from a preset template",
+      "  config undo          roll back the last config change",
       "  version              print version (alias: -v, --version)",
       "  help                 print this message (alias: -h, --help)",
       "",
@@ -141,6 +143,7 @@ Groups:
   widget <sub>                     inspect or edit the statusline layout; see \`agentline config widget --help\`
   refresh [<seconds>]              get or set the statusline refresh cadence (seconds; 0 disables)
   init [--preset <name>] [--force] seed the user config from a preset template (default, minimal, power)
+  undo                             roll back the last config change (config widget mutation or TUI save)
 
 For interactive editing with live preview, use \`agentline edit\` instead.
 `;
@@ -158,6 +161,8 @@ async function runConfig(rest: readonly string[]): Promise<number> {
       return runRefreshSubgroup(groupRest);
     case "init":
       return runInitSubgroup(groupRest);
+    case "undo":
+      return runUndoSubgroup(groupRest);
     default:
       process.stderr.write(`agentline config: unknown group '${group}'\n`);
       process.stdout.write(CONFIG_HELP);

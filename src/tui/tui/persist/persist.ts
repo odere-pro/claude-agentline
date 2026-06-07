@@ -3,11 +3,13 @@
  *
  * Builds a complete `AgentlineConfig` from the editor's mutable line
  * list (everything else is preserved from the loaded config) and
- * writes it via the existing atomic-write helper. Validation runs
- * before disk write so a broken edit never lands.
+ * writes it via `backupAndWriteConfig` (the shared config-backup +
+ * atomic-write seam). Validation runs before disk write so a broken edit
+ * never lands; the prior config is backed up to `<config>.bak` first so
+ * `agentline config undo` can roll back a TUI save.
  */
 
-import { writeJsonIdempotent } from "../../../core/lib/atomic-write/atomic-write.js";
+import { backupAndWriteConfig } from "../../../data/config/backup/backup.js";
 import { validateConfig } from "../../../data/config/validate/validate.js";
 import type { AgentlineConfig, LineConfig } from "../../../data/config/types.js";
 import { readLastStdinSync } from "../../../data/state/stdin-cache/stdin-cache.js";
@@ -29,7 +31,9 @@ export async function saveEditedConfig(input: SaveInput): Promise<AgentlineConfi
     ),
   };
   validateConfig(next);
-  await writeJsonIdempotent(input.path, next);
+  // Back up the prior config to `<config>.bak` before the edit lands, so
+  // `agentline config undo` can roll back a TUI save.
+  await backupAndWriteConfig(input.path, next);
   return next;
 }
 
