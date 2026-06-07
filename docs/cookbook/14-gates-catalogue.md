@@ -38,25 +38,27 @@ Exit contract for every gate: `0` pass, `1` fail, `2` skipped (with a printed re
 - **Probes.** Greps the codebase for third-party trademarks; permitted occurrences live in an allowlist.
 - **Pass criterion.** No matches outside the allowlist.
 
+> **gates 07–10 share a hermetic sandbox.** `tests/gates/lib/install-sandbox.sh` builds a temp `HOME` + `CLAUDE_CONFIG_DIR` plus a fake `agentline` shim on `PATH`, so `scripts/install.sh` / `scripts/uninstall.sh` run for real without the global `npm install -g` step (offline). The real `~/.claude` is never touched. Each gate cleans up its sandbox on exit. All four are strict and skip only when `node`/`bash`/the scripts are absent. Implemented in `tests/gates/gate-07-install-roundtrip.sh` … `gate-10-install-dry-run.sh`.
+
 ## gate-07 · install/uninstall roundtrip leaves a clean tree
 
-- **Probes.** Runs `<bin> install` then `<bin> uninstall` against a temp host config dir; diffs the temp dir before and after.
-- **Pass criterion.** Diff is empty.
+- **Probes.** Seeds a pre-existing foreign `statusLine`, runs `scripts/install.sh` then `scripts/uninstall.sh` in the sandbox.
+- **Pass criterion.** After install, `statusLine` is wired to agentline; after uninstall, the foreign `statusLine` is restored byte-for-byte and the seeded `config.json` / bundled themes are gone.
 
 ## gate-08 · roundtrip preserves user-authored content
 
-- **Probes.** Pre-existing user config and themes survive an install/uninstall cycle.
-- **Pass criterion.** User-edited content (detected via SHA mismatch with the shipped template) is preserved unless `--purge`.
+- **Probes.** A `settings.json` carrying unrelated user keys (`theme`, `hooks`, `env`, `permissions`) alongside the foreign `statusLine`; compares each non-`statusLine` key before install and after uninstall.
+- **Pass criterion.** Every non-`statusLine` key is byte-identical across the round-trip — agentline only ever touches `statusLine`.
 
 ## gate-09 · install twice is idempotent
 
-- **Probes.** Run `<bin> install` twice in a row.
-- **Pass criterion.** Second run is a no-op (or reports already-installed); host state is unchanged.
+- **Probes.** Runs `scripts/install.sh` twice and snapshots the sandbox tree **plus every file's content hash** after each run.
+- **Pass criterion.** The second run leaves the tree byte-identical (a true no-op). This is the gate that surfaced — and is now satisfied by — the `manifest.json` idempotency fix (`write_manifest` preserves the original `installedAt` and skips an unchanged rewrite).
 
 ## gate-10 · `--dry-run` matches the real run
 
-- **Probes.** Compares the diff produced by `<bin> install --dry-run` against the diff produced by a real install (followed by `uninstall` to clean up).
-- **Pass criterion.** Diffs are equivalent.
+- **Probes.** Snapshots the sandbox (tree + content hashes), runs `scripts/install.sh --dry-run`, and re-snapshots.
+- **Pass criterion.** The snapshot is unchanged (zero filesystem writes) **and** the command still exits 0 and reports the actions it would take (`would …` lines) — parity is "reports without doing".
 
 ## gate-11 · schema round-trip
 

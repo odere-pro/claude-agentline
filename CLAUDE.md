@@ -87,6 +87,10 @@ Lookup table — full spec lives in `docs/cookbook/14-gates-catalogue.md`. Run `
 | gate-03 | shellcheck                      | Shell-script lint regressions under `tests/gates/` or `scripts/`                                        |
 | gate-05 | markdown formatting             | Unformatted markdown — run `npx prettier --write`                                                       |
 | gate-06 | trademark / brand strings       | Restricted brand string introduced into shipped text                                                    |
+| gate-07 | install round-trip              | Install/uninstall does not restore the prior `statusLine`, or leaves an agentline footprint behind      |
+| gate-08 | install content preservation    | Install/uninstall mutates a non-`statusLine` settings key                                               |
+| gate-09 | install idempotency             | A second `install` is not a byte-clean no-op (e.g. a re-stamped manifest timestamp)                     |
+| gate-10 | install `--dry-run` parity      | `install --dry-run` writes to the filesystem, or reports no planned actions                             |
 | gate-11 | schema ↔ template round-trip    | Schema drift from `templates/default.config.json`                                                       |
 | gate-12 | render determinism              | Published bin replays a golden twice — bytes differ run-to-run, or don't match `expected.ansi`          |
 | gate-13 | cold-start budget               | Process-start to first byte over the budget in `docs/GLOSSARY.md`                                       |

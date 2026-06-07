@@ -476,20 +476,37 @@ try {
   }
 } catch { /* dir absent */ }
 
+// Preserve the original install time on a re-install so the manifest
+// stays byte-stable across idempotent runs (a second install must be a
+// no-op). Only stamp a fresh timestamp on the first write.
+let installedAt = new Date().toISOString();
+try {
+  const prior = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
+  if (prior && typeof prior.installedAt === 'string') installedAt = prior.installedAt;
+} catch { /* no prior manifest, or unreadable — use the fresh timestamp */ }
+
 const manifest = {
   version: 1,
-  installedAt: new Date().toISOString(),
+  installedAt,
   statusLineSettings: settingsFile,
   userConfig: configFile,
   themes,
   skills,
 };
 
+const body = JSON.stringify(manifest, null, 2) + '\n';
+
+// Skip the write entirely when the manifest is already byte-identical, so
+// a re-install never rewrites (and never bumps mtime on) the file.
+try {
+  if (fs.readFileSync(manifestFile, 'utf8') === body) process.exit(0);
+} catch { /* absent — fall through to write */ }
+
 fs.mkdirSync(path.dirname(manifestFile), { recursive: true, mode: 0o700 });
 const tmp = manifestFile + '.tmp.' + process.pid;
 const fd = fs.openSync(tmp, 'w', 0o600);
 try {
-  fs.writeFileSync(fd, JSON.stringify(manifest, null, 2) + '\n');
+  fs.writeFileSync(fd, body);
   fs.fsyncSync(fd);
 } finally {
   fs.closeSync(fd);
