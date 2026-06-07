@@ -84,17 +84,12 @@ const WIDGET_OPTIONS: Readonly<Record<string, WidgetOptionSpec>> = Object.freeze
   "cost-efficiency": {},
   "cost-vs-limit": { budget: FREE },
   // ── context ──────────────────────────────────────────────────────────
-  "context-percentage": {},
+  "context-percentage": { showCached: FREE },
   "context-200k-flag": {},
+  "context-cached": {},
   // ── rate-limits ──────────────────────────────────────────────────────
   "session-weekly-usage": { plan: FREE },
-  "current-session-reset-timer": {
-    format: FREE,
-    resetHour: FREE,
-    resetWeekday: FREE,
-    tz: FREE,
-  },
-  "week-limit-timer": { format: FREE, resetHour: FREE, resetWeekday: FREE, tz: FREE },
+  "reset-timer": { format: FREE, resetHour: FREE, resetWeekday: FREE, tz: FREE },
   // ── git ──────────────────────────────────────────────────────────────
   "git-branch": {},
   "git-changes": { hideZero: FREE },

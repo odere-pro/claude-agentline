@@ -19,7 +19,7 @@ src/widgets/
 ├── types.ts            widget contract (WidgetRender, WidgetDef)
 ├── families/           catalogue + identity (single source of truth for widget metadata)
 │      └─ catalog.ts, catalog-types.ts, family-factory.ts, family-identity.ts,
-│         <family>.ts  (git / tokens / session / rate-limits / context)
+│         <family>.ts  (git / tokens / session / rate-limits / context / other)
 ├── registry/           runtime type → render lookup, populated by registerAllBuiltins()
 ├── render-widget/      dispatch wrapper consumed by src/render/
 ├── cell/, clock/       shared shapes (Cell, ctx.clock)

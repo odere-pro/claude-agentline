@@ -4,7 +4,7 @@
 
 The resolver and on-disk-state layer that sits between `core` and `widgets`:
 
-- `config/` — layered config load/merge/validate, the env-override decoder, and the scriptable `config widget` mutation verbs.
+- `config/` — layered config load/merge/validate, the env-override decoder, the scriptable config verbs (`config widget`, `init`, `refresh`), and the backup-backed `config undo`/`redo` rollback pair.
 - `theme/` — theme load, palette resolution by role, colour parsing.
 - `tokens/` — transcript-derived token / context-window / speed snapshots and the reset-axis type.
 - `git/` — git working-tree snapshot (invoke + parse), optional PR lookup.

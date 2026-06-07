@@ -46,11 +46,11 @@ widget instances with different `reset` axes.
 
 ## Built-in widgets
 
-38 widgets ship in v0.3.x, organised into five families. The
+38 widgets ship in v0.3.x, organised into six families. The
 authoritative registry is `src/widgets/registry/registry.ts`; this page tracks
 it.
 
-### Session (17)
+### Session (11)
 
 Surface state from the stdin payload that Claude Code emits.
 
@@ -63,16 +63,13 @@ Surface state from the stdin payload that Claude Code emits.
 | `thinking-effort`  | thinking-effort tier (low / medium / high)                           |
 | `thinking-enabled` | whether extended thinking is on (`thinking` / `no-thinking`)         |
 | `plan`             | active plan name (newest file in plans dir)                          |
-| `project`          | project name — git repo (origin) or working-dir folder               |
-| `project-dir`      | launch-directory basename (the dir the host started in)              |
 | `cwd-path`         | current working-directory path, home-collapsed and truncatable       |
-| `added-dirs`       | count of extra `/add-dir` workspace roots (e.g. `+2 dirs`)           |
 | `agent-name`       | active subagent persona name                                         |
-| `clock`            | current time of day (24h `HH:MM` or 12h `H:MMam`)                    |
-| `output-style`     | active output style (e.g. `explanatory`, `learning`)                 |
-| `vim-mode`         | active vim mode (`NORMAL`, `INSERT`, …)                              |
 | `session-duration` | host-reported session elapsed time (e.g. `12m 30s`)                  |
 | `lines-changed`    | host-reported lines added and removed this session (e.g. `+156 −23`) |
+
+(`project` / `project-dir` moved to the **git** family; `clock` /
+`added-dirs` / `output-style` / `vim-mode` moved to the **other** family.)
 
 Auth-file fallback: when the stdin payload omits the account email,
 `account-email` transparently re-reads `${CLAUDE_CONFIG_DIR}/.credentials.json`
@@ -101,15 +98,19 @@ divide-by-zero). `cost-vs-limit` takes a required `budget` option (USD, a
 positive number); it hides without it and signals the theme `danger` role
 when spend reaches or exceeds the budget.
 
-### Context (2)
+### Context (3)
 
 | Type                 | Renders                                             |
 | -------------------- | --------------------------------------------------- |
 | `context-percentage` | percentage of the model's context window used       |
 | `context-200k-flag`  | a `>200k` badge when the prompt crosses 200k tokens |
+| `context-cached`     | session cached-token count (e.g. `0.8k cached`)     |
 
 `context-percentage` appends the current model's context-window size as a
-postfix — e.g. `37% · 200k` (`1M` for the 1M-token model variants). The
+postfix — e.g. `37% · 200k` (`1M` for the 1M-token model variants). With
+`options.showCached` (off by default) it inserts a cached segment —
+`37% · 0.8k cached · 200k`; `context-cached` shows that same cached count
+on its own cell, parallel to `tokens-cached`. The
 postfix is omitted when the window size is unknown (synthetic fallback).
 It resolves usage through three sources in priority order:
 
@@ -125,44 +126,42 @@ It resolves usage through three sources in priority order:
 3. **Local transcript aggregate.** Legacy fallback for hosts that
    don't ship `context_window` on stdin.
 
-### Rate limits (3)
+### Rate limits (2)
 
 Mirrors the host's usage-limits screen: one combined current-session +
-weekly usage cell, and two timer widgets that carry both countdown and
-wall-clock (absolute-time) variants. All three read Claude Code's own
-`rate_limits` block off stdin, so they match what you see on the host's
-`/usage` screen. The usage widget reads `used_percentage` and includes
-whichever window the host ships, hiding only when **neither** is present
-(older Claude Code, fixtures with no usage data) — there is no
+weekly usage cell, and one combined reset-timer cell that shows BOTH the
+session and weekly reset (countdown or wall-clock). Both read Claude
+Code's own `rate_limits` block off stdin, so they match what you see on
+the host's `/usage` screen. The usage widget reads `used_percentage` and
+includes whichever window the host ships, hiding only when **neither** is
+present (older Claude Code, fixtures with no usage data) — there is no
 transcript-derived fallback, which would over-count and disagree with
-the host. The timer widgets read `resets_at` and **fall back** to a
-local estimate when the host omits it, so they still render on older
-Claude Code.
+the host. `reset-timer` reads `resets_at` and **falls back** to a local
+estimate for the session window when the host omits it.
 
-| Type                          | Renders                                                            |
-| ----------------------------- | ------------------------------------------------------------------ |
-| `session-weekly-usage`        | combined session + weekly usage % — `52% · weekly 33%`             |
-| `current-session-reset-timer` | time to the next session reset (`rate_limits.five_hour.resets_at`) |
-| `week-limit-timer`            | time to the next weekly reset (`rate_limits.seven_day.resets_at`)  |
+| Type                   | Renders                                                                  |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `session-weekly-usage` | combined session + weekly usage % — `52% · weekly 33%`                   |
+| `reset-timer`          | session + weekly reset on one cell — `reset in 1h 30m · weekly 3d 4h 0m` |
 
-**Wall-clock variants.** Both timer widgets double as wall-clock
-(absolute-time) widgets when `options.format` is set to a clock-format
-string — any format that is not a duration keyword (`short`, `long`,
-`clock`, `compact`). Set `format` to a wall-clock token string and the
-widget renders the absolute reset time instead of the countdown:
+**Both windows, one `format`.** `reset-timer` replaces the former
+`current-session-reset-timer` + `week-limit-timer`. A single
+`options.format` drives both windows: a duration keyword (`short`,
+`long`, `clock`, default `compact`) gives the countdown
+(`reset in 1h 30m · weekly 3d 4h 0m`); a wall-clock token gives the
+absolute reset time (`resets 18:30 · weekly Mon 17 00:00`):
 
-| Widget                        | Format string   | Example output            |
-| ----------------------------- | --------------- | ------------------------- |
-| `current-session-reset-timer` | `"HH:mm"`       | `resets 18:30`            |
-| `current-session-reset-timer` | `"h:mma"`       | `resets 6:30pm`           |
-| `current-session-reset-timer` | `"HH:mm:ss"`    | `resets 18:30:45`         |
-| `week-limit-timer`            | `"EEE D HH:mm"` | `week resets Mon 5 00:00` |
-| `week-limit-timer`            | `"HH:mm"`       | `week resets 00:00`       |
-| `week-limit-timer`            | `"h:mma"`       | `week resets 12:00am`     |
+| Format string | Example output                       |
+| ------------- | ------------------------------------ |
+| `"HH:mm"`     | `resets 18:30 · weekly Thu 7 12:00`  |
+| `"h:mma"`     | `resets 6:30pm · weekly Thu 7 12:00` |
+| `"HH:mm:ss"`  | `resets 18:30:45 · weekly …`         |
 
-The picker lists these as pre-built variants (`at-24h`, `at-12h`,
-`at-seconds` for the session timer; `at-day-time`, `at-24h`, `at-12h`
-for the week timer).
+The session window uses the chosen token; the weekly window keeps its
+day-aware default (`EEE D HH:mm`) when you leave the session default, and
+follows the token when you pick a non-default one. The picker lists these
+as pre-built variants (`short`, `long`, `clock`, `at-24h`, `at-12h`,
+`at-seconds`).
 
 `session-weekly-usage` renders both windows as `52% · weekly 33%`,
 dropping a half when the host omits that window (session-only → `52%`,
@@ -171,25 +170,28 @@ host-provided `plan` field if Claude Code ever ships one, else the
 configured `options.plan` (e.g. `{ "plan": "Max" }` →
 `Max 52% · weekly 33%`). Out of the box there is no prefix.
 
-The timer widgets prefer the host's `rate_limits.*.resets_at` and only
-fall back to a local estimate when Claude Code doesn't ship it. The
-weekly fallback defaults to a local **Monday 00:00** reset;
-`options.resetWeekday` (`0`=Sunday … `6`=Saturday) and
-`options.resetHour` (`0`–`23`, minutes fixed at `00`) pin **that
-fallback only** — when the host ships `resets_at`, it wins regardless.
-Example: `{ "resetWeekday": 4, "resetHour": 12 }` keeps a Thursday-12:00
-estimate for older Claude Code. A stale (past) host reset renders `0m`
-for the countdown variants and the past wall-clock for the at-\* variants,
-self-correcting on the next render.
+`reset-timer` prefers the host's `rate_limits.*.resets_at` and only
+falls back to a local estimate for the session window when Claude Code
+doesn't ship it. The weekly window renders from the host value, or from a
+local **Monday 00:00** estimate when you pin one; `options.resetWeekday`
+(`0`=Sunday … `6`=Saturday) and `options.resetHour` (`0`–`23`, minutes
+fixed at `00`) pin **that fallback only** — when the host ships
+`resets_at`, it wins regardless. Example: `{ "resetWeekday": 4, "resetHour": 12 }`
+keeps a Thursday-12:00 weekly estimate for older Claude Code. A stale
+(past) host reset renders `0m` for the countdown and the past wall-clock
+for the at-\* variants, self-correcting on the next render.
 
-### Git (8)
+### Git (10)
 
 Git widgets activate only when the working directory is a git checkout;
 otherwise they hide themselves. They share a single per-render snapshot
-so a line with several git widgets only spawns `git` once.
+so a line with several git widgets only spawns `git` once. `project` and
+`project-dir` sit here too — the project name is git-repo-derived.
 
 | Type               | Renders                                                                |
 | ------------------ | ---------------------------------------------------------------------- |
+| `project`          | project name — git repo (origin) or working-dir folder                 |
+| `project-dir`      | launch-directory basename (the dir the host started in)                |
 | `git-branch`       | current branch (or short SHA when detached)                            |
 | `git-worktree`     | basename of the current worktree                                       |
 | `git-changes`      | summary of insertions / deletions from `git diff --shortstat`          |
@@ -216,6 +218,19 @@ metadata, which lives outside the local checkout, so it is gated:
 - Variants in the catalogue: `number` (`#42`, default), `url`,
   `title`, `number-title` (`#42 · feat: do the thing`).
 
+### Other (4)
+
+Miscellaneous host/editor signals that don't belong to a data-domain
+family. Their render code still lives under `src/widgets/session/` —
+only the catalogue family moved.
+
+| Type           | Renders                                               |
+| -------------- | ----------------------------------------------------- |
+| `clock`        | current time of day (24h `HH:MM` or 12h `H:MMam`)     |
+| `added-dirs`   | count of extra `/add-dir` workspace roots (`+2 dirs`) |
+| `output-style` | active output style (e.g. `explanatory`, `learning`)  |
+| `vim-mode`     | active vim mode (`NORMAL`, `INSERT`, …)               |
+
 ## Choosing widgets
 
 A useful starting point is `templates/default.config.json`:
@@ -232,8 +247,7 @@ A useful starting point is `templates/default.config.json`:
   ] },
   { "widgets": [
     { "type": "session-weekly-usage" },
-    { "type": "current-session-reset-timer" },
-    { "type": "week-limit-timer" }
+    { "type": "reset-timer" }
   ] }
 ]
 ```

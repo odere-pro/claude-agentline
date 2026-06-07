@@ -23,11 +23,7 @@
       ]
     },
     {
-      "widgets": [
-        { "type": "session-weekly-usage" },
-        { "type": "current-session-reset-timer" },
-        { "type": "week-limit-timer" }
-      ]
+      "widgets": [{ "type": "session-weekly-usage" }, { "type": "reset-timer" }]
     },
     {
       "widgets": [

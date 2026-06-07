@@ -9,6 +9,13 @@
  * consumers.
  */
 
-export const WIDGET_FAMILIES = ["session", "tokens", "context", "rate-limits", "git"] as const;
+export const WIDGET_FAMILIES = [
+  "session",
+  "tokens",
+  "context",
+  "rate-limits",
+  "git",
+  "other",
+] as const;
 
 export type WidgetFamily = (typeof WIDGET_FAMILIES)[number];

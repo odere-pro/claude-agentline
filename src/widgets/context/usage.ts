@@ -40,6 +40,32 @@ export function formatWindowLabel(window: number): string | null {
   return window >= MIN_WINDOW_FOR_POSTFIX ? formatCount(window) : null;
 }
 
+/**
+ * Resolve the cached-token count for the current session — the same cache
+ * source `context-percentage`'s usage path counts (the transcript
+ * `TokensSnapshot` aggregated over the session). Returns `null` when no
+ * snapshot is available or the session has no cached tokens. Used by the
+ * `context-cached` widget and `context-percentage`'s `showCached` postfix.
+ *
+ * The live `context_window` block sums cache reads/writes into a single
+ * `usedTokens` and never reports the cached portion separately, so the
+ * cached figure is necessarily the transcript-derived one — the same
+ * value `tokens-cached` shows.
+ */
+export function resolveCachedTokens(ctx: WidgetContext): number | null {
+  const snapshot = ctx.tokens;
+  if (!snapshot) return null;
+  const totals = aggregate({
+    events: snapshot.events,
+    axis: "session",
+    now: snapshot.now,
+    sessionStart: snapshot.sessionStart,
+    model: ctx.stdin.model,
+    effort: ctx.stdin.thinkingEffort,
+  });
+  return totals.cached > 0 ? totals.cached : null;
+}
+
 export function resolveContextUsage(ctx: WidgetContext): { used: number; window: number } | null {
   const live = ctx.stdin.contextWindow;
   if (live?.usedTokens !== undefined && live.usedTokens > 0) {

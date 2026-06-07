@@ -1,4 +1,7 @@
-import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
+import { promises as fs } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { HelpRequestedError } from "../../../core/lib/help/help.js";
 import { parseWidgetAddArgs, runWidgetAddCommand } from "../widget/add/add.js";
@@ -67,7 +70,24 @@ describe("defineWidgetSub type linkage", () => {
 });
 
 describe("runWidgetSubgroup", () => {
-  afterEach(() => vi.restoreAllMocks());
+  // Hermetic config dir: the run-routing cases load/save the user config,
+  // so point CLAUDE_CONFIG_DIR at a fresh temp dir (no file → defaults)
+  // rather than the developer's real config, which could be stale.
+  let cfgDir: string;
+  let prevCfgDir: string | undefined;
+
+  beforeEach(async () => {
+    cfgDir = await fs.mkdtemp(join(tmpdir(), "agentline-widget-cmd-"));
+    prevCfgDir = process.env.CLAUDE_CONFIG_DIR;
+    process.env.CLAUDE_CONFIG_DIR = cfgDir;
+  });
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    if (prevCfgDir === undefined) delete process.env.CLAUDE_CONFIG_DIR;
+    else process.env.CLAUDE_CONFIG_DIR = prevCfgDir;
+    await fs.rm(cfgDir, { recursive: true, force: true });
+  });
 
   it("routes `catalog` and exits 0", async () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);

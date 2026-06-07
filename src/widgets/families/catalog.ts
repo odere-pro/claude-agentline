@@ -22,6 +22,7 @@
 
 import { CONTEXT_CATALOG } from "./context.js";
 import { GIT_CATALOG } from "./git.js";
+import { OTHER_CATALOG } from "./other.js";
 import { RATE_LIMITS_CATALOG } from "./rate-limits.js";
 import { SESSION_CATALOG } from "./session.js";
 import { TOKENS_CATALOG } from "./tokens.js";
@@ -50,6 +51,7 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freez
   ...CONTEXT_CATALOG,
   ...RATE_LIMITS_CATALOG,
   ...GIT_CATALOG,
+  ...OTHER_CATALOG,
 });
 
 /** Look up a widget's metadata by `type`. */

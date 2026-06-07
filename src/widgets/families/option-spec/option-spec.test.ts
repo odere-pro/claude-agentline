@@ -41,8 +41,8 @@ const AUDITED_OPTIONS: Readonly<Record<string, readonly string[]>> = {
   "git-pr": ["label", "allowNetwork", "variant"],
   "session-id": ["label", "length"],
   "session-weekly-usage": ["label", "plan"],
-  "current-session-reset-timer": ["label", "format", "resetHour", "resetWeekday", "tz"],
-  "week-limit-timer": ["label", "format", "resetHour", "resetWeekday", "tz"],
+  "reset-timer": ["label", "format", "resetHour", "resetWeekday", "tz"],
+  "context-percentage": ["label", "showCached"],
   "cost-vs-limit": ["label", "budget"],
 };
 

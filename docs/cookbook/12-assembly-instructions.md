@@ -80,7 +80,7 @@ Group IDs (Gn) are stable. A group ends when its exit criteria are met; the gate
 ## G12 · Rate-limit widgets
 
 - **Prereq.** G11.
-- **Produces.** `session-weekly-usage`, `current-session-reset-timer` (with `at-*` variants), `week-limit-timer` (with `at-*` variants).
+- **Produces.** `session-weekly-usage`, `reset-timer` (combined session + weekly reset, with `at-*` variants).
 
 ## G13 · Git widgets
 

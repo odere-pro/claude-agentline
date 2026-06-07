@@ -38,6 +38,7 @@ export const DEFAULT_FAMILY_IDENTITY: Readonly<Record<WidgetFamily, FamilyIdenti
     context: Object.freeze({ glyph: "◰", glyphAscii: "[c]", colour: "magenta" }),
     "rate-limits": Object.freeze({ glyph: "◔", glyphAscii: "[r]", colour: "red" }),
     git: Object.freeze({ glyph: "⎇", glyphAscii: "[g]", colour: "green" }),
+    other: Object.freeze({ glyph: "○", glyphAscii: "[o]", colour: "cyan" }),
   }) as Readonly<Record<WidgetFamily, FamilyIdentity>>;
 
 /** A family's identity with the glyph already degraded for the host. */

@@ -72,13 +72,13 @@ describe("widgetMeta", () => {
 });
 
 describe("WIDGET_CATALOG — variants", () => {
-  it("declares variants for widgets that branch on an option (timers/account-email)", () => {
+  it("declares variants for widgets that branch on an option (reset-timer/account-email)", () => {
     expect(widgetVariants("account-email").map((v) => v.id)).toEqual([
       "full",
       "domain",
       "localpart",
     ]);
-    expect(widgetVariants("current-session-reset-timer").map((v) => v.id)).toEqual([
+    expect(widgetVariants("reset-timer").map((v) => v.id)).toEqual([
       "short",
       "long",
       "clock",
@@ -86,13 +86,9 @@ describe("WIDGET_CATALOG — variants", () => {
       "at-12h",
       "at-seconds",
     ]);
-    expect(widgetVariants("week-limit-timer").map((v) => v.id)).toEqual([
-      "short",
-      "long",
-      "clock",
-      "at-day-time",
-      "at-24h",
-      "at-12h",
+    expect(widgetVariants("context-percentage").map((v) => v.id)).toEqual([
+      "plain",
+      "with-cached",
     ]);
   });
 
@@ -100,7 +96,7 @@ describe("WIDGET_CATALOG — variants", () => {
     expect(widgetVariants("git-branch")).toEqual([]);
     expect(widgetVariants("model")).toEqual([]);
     expect(widgetVariants("plan")).toEqual([]);
-    expect(widgetVariants("context-percentage")).toEqual([]);
+    expect(widgetVariants("context-cached")).toEqual([]);
     expect(widgetVariants("session-weekly-usage")).toEqual([]);
     expect(widgetVariants("does-not-exist")).toEqual([]);
   });
@@ -125,13 +121,13 @@ describe("activeVariantId", () => {
   it("recognises the active variant from a widget's options", () => {
     expect(activeVariantId("account-email", { mask: "domain" })).toBe("domain");
     expect(activeVariantId("account-email", { mask: "none" })).toBe("full");
-    expect(activeVariantId("current-session-reset-timer", { format: "h:mma" })).toBe("at-12h");
-    expect(activeVariantId("current-session-reset-timer", { format: "long" })).toBe("long");
-    expect(activeVariantId("week-limit-timer", { format: "EEE D HH:mm" })).toBe("at-day-time");
+    expect(activeVariantId("reset-timer", { format: "h:mma" })).toBe("at-12h");
+    expect(activeVariantId("reset-timer", { format: "long" })).toBe("long");
+    expect(activeVariantId("context-percentage", { showCached: true })).toBe("with-cached");
   });
 
   it("ignores extra keys when matching (variant only constrains the keys it declares)", () => {
-    expect(activeVariantId("current-session-reset-timer", { format: "clock", pad: 2 })).toBe(
+    expect(activeVariantId("reset-timer", { format: "clock", pad: 2 })).toBe(
       "clock",
     );
   });
