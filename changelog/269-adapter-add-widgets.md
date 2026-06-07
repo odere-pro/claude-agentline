@@ -1,0 +1,8 @@
+- Plumb five previously-unparsed Claude Code stdin fields through the adapter and add five widgets that consume them (catalogue 29 → 34; translator version bumped 2 → 3):
+  - **`agent-name`** (session) — active subagent persona name, from `agent.name`.
+  - **`project-dir`** (session) — launch-directory basename, from `workspace.project_dir`. Distinct from `project` (git repo name) and `cwd-path` (the current dir, which can differ after a `cd`); `options.full` shows the whole path.
+  - **`added-dirs`** (session) — count of extra workspace roots added via `/add-dir`, from `workspace.added_dirs` (e.g. `+2 dirs`); hides at zero.
+  - **`context-200k-flag`** (context) — a `>200k` badge from the boolean `exceeds_200k_tokens`; hidden otherwise.
+  - **`thinking-enabled`** (session) — on/off indicator from `thinking.enabled`, complementing `thinking-effort` (which level); hides the off state unless `showOff`.
+- Each new stdin field uses the same defensive pick discipline as cost/cwd/vimMode (a new `pickBoolean` helper joins `pickString` / `pickStringArray` for the two boolean fields), is independently optional, and is omitted on absence or a malformed shape. The five widgets are pure `(ctx, settings) → Cell` and hide when their source field is absent, so they carry no `reset` axis and leave the render goldens unchanged (opt-in widgets, not in any default fixture).
+- The `widget.type` schema enum regenerates from the catalogue via the prebuild gen script (gate-28); README / glossary / `docs/widgets.md` counts updated.

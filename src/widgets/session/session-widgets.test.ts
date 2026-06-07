@@ -56,10 +56,12 @@ const registry = new WidgetRegistry();
 registerSessionWidgets(registry);
 
 describe("registerSessionWidgets", () => {
-  it("registers exactly the 13 session widgets", () => {
-    expect(registry.size()).toBe(13);
+  it("registers exactly the 17 session widgets", () => {
+    expect(registry.size()).toBe(17);
     expect(registry.list()).toEqual([
       "account-email",
+      "added-dirs",
+      "agent-name",
       "clock",
       "cwd-path",
       "lines-changed",
@@ -67,9 +69,11 @@ describe("registerSessionWidgets", () => {
       "output-style",
       "plan",
       "project",
+      "project-dir",
       "session-duration",
       "session-id",
       "thinking-effort",
+      "thinking-enabled",
       "version",
       "vim-mode",
     ]);
@@ -77,7 +81,7 @@ describe("registerSessionWidgets", () => {
 
   it("SESSION_WIDGETS is a frozen array", () => {
     expect(Object.isFrozen(SESSION_WIDGETS)).toBe(true);
-    expect(SESSION_WIDGETS).toHaveLength(13);
+    expect(SESSION_WIDGETS).toHaveLength(17);
   });
 });
 

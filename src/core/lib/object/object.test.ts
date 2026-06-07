@@ -1,5 +1,24 @@
 import { describe, it, expect } from "vitest";
-import { isPlainObject, pickString, pickStringArray, pickEnum } from "./object.js";
+import { isPlainObject, pickBoolean, pickString, pickStringArray, pickEnum } from "./object.js";
+
+describe("pickBoolean", () => {
+  it("returns the boolean when the field is a real boolean", () => {
+    expect(pickBoolean({ flag: true }, "flag")).toBe(true);
+    expect(pickBoolean({ flag: false }, "flag")).toBe(false);
+  });
+
+  it("returns undefined for a missing key or undefined object", () => {
+    expect(pickBoolean({}, "flag")).toBeUndefined();
+    expect(pickBoolean(undefined, "flag")).toBeUndefined();
+  });
+
+  it("returns undefined for non-boolean coercible values (no truthiness coercion)", () => {
+    expect(pickBoolean({ flag: "true" }, "flag")).toBeUndefined();
+    expect(pickBoolean({ flag: 1 }, "flag")).toBeUndefined();
+    expect(pickBoolean({ flag: 0 }, "flag")).toBeUndefined();
+    expect(pickBoolean({ flag: null }, "flag")).toBeUndefined();
+  });
+});
 
 describe("isPlainObject", () => {
   it("accepts a plain object literal", () => {

@@ -38,13 +38,13 @@ Restart Claude Code after `reset` — the statusline appears at the bottom of th
 
 ## Highlights
 
-**29 widgets across 5 families**, each covering one slice of session status:
+**34 widgets across 5 families**, each covering one slice of session status:
 
 | Family        | What it shows                                                       |
 | ------------- | ------------------------------------------------------------------- |
-| `session`     | model, version, thinking effort, plan, project, cwd, clock, account |
+| `session`     | model, version, thinking, plan, project, cwd, clock, agent, account |
 | `tokens`      | input / output token counts and throughput                          |
-| `context`     | context-window usage percentage                                     |
+| `context`     | context-window usage percentage and the 200k threshold flag         |
 | `rate-limits` | session & weekly quota usage and reset timers (countdown + at-time) |
 | `git`         | branch, worktree, change counts, upstream, PR                       |
 
