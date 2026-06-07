@@ -8,7 +8,7 @@ _A powerline statusline for Claude Code — git, tokens, context window, rate li
 [![for Claude Code](https://img.shields.io/badge/for-Claude%20Code-cc785c?logo=anthropic&logoColor=white)](https://docs.anthropic.com/claude/docs/claude-code)
 [![type: CLI](https://img.shields.io/badge/type-CLI-5b8def?logo=gnubash&logoColor=white)](#use)
 [![node ≥20](https://img.shields.io/badge/node-%E2%89%A520-43853d?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![status: pre-release](https://img.shields.io/badge/status-pre--release-blue)](./CHANGELOG.md)
+[![status: stable](https://img.shields.io/badge/status-stable-brightgreen)](./CHANGELOG.md)
 [![license: MIT](https://img.shields.io/badge/license-MIT-yellow)](./LICENSE)
 [![gates](https://github.com/odere-pro/claude-agentline/actions/workflows/gates.yml/badge.svg?branch=main)](https://github.com/odere-pro/claude-agentline/actions/workflows/gates.yml)
 [![install-matrix](https://github.com/odere-pro/claude-agentline/actions/workflows/install-matrix.yml/badge.svg?branch=main)](https://github.com/odere-pro/claude-agentline/actions/workflows/install-matrix.yml)

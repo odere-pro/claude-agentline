@@ -15,6 +15,7 @@
  */
 
 import { readClaudeHealthSync } from "../../../data/state/claude-health-cache/claude-health-cache.js";
+import type { MaybeRefreshClaudeHealthOptions } from "../../claude-health/index.js";
 import type { CheckResult } from "../types.js";
 
 import type { CheckCtx } from "./context.js";
@@ -37,7 +38,7 @@ export async function checkD10(ctx: CheckCtx): Promise<CheckResult> {
   try {
     const refresh =
       ctx.claudeHealthRefresh ??
-      (async (opts?: import("../../claude-health/index.js").MaybeRefreshClaudeHealthOptions) => {
+      (async (opts?: MaybeRefreshClaudeHealthOptions) => {
         const { maybeRefreshClaudeHealth } = await import("../../claude-health/index.js");
         return maybeRefreshClaudeHealth(opts);
       });

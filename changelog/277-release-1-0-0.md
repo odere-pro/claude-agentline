@@ -1,0 +1,1 @@
+- Release v1.0.0: promote the pending fragments into `CHANGELOG.md`, freeze the public CLI surface and config schema at the first stable release, refresh the README status badge and landing-page `softwareVersion`, clear four pre-existing `import()`-type-annotation lint errors so the tag's release pipeline lint step passes, and bump the package and bundled bin version to 1.0.0.

@@ -1,1 +1,0 @@
-- Fix the failing `pages` workflow: enable GitHub Pages and make `configure-pages` self-enable (`enablement: true`, with `pages: write` on the build job) so a repo without Pages turned on no longer hard-fails at "Get Pages site failed".
