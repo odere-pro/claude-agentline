@@ -53,7 +53,13 @@ describe("loadGitSnapshot", () => {
     expect(loadGitSnapshot({ cwd: undefined }).available).toBe(false);
   });
 
-  describe("on a populated repo", () => {
+  // Windows CI occasionally returns `--is-inside-work-tree` != "true" for
+  // ~1s after git operations on a freshly created temp repo (the FS state
+  // hasn't propagated yet), so `loadGitSnapshot` flakes to available:false.
+  // Observed on both Node 20 and 22; passes on every macOS/Linux combo and
+  // in production (real repos are never created microseconds before render).
+  // Retry absorbs the propagation delay for the whole populated-repo suite.
+  describe("on a populated repo", { retry: 2 }, () => {
     let repo: RepoFixture;
 
     beforeAll(() => {
@@ -104,11 +110,7 @@ describe("loadGitSnapshot", () => {
       }
     });
 
-    // Windows + Node 22 occasionally returns `--is-inside-work-tree` !=
-    // "true" for ~1s after `git checkout --detach` against a freshly
-    // committed ref — the FS state hasn't propagated yet. Same test
-    // passes on every other OS × Node combo. Retry absorbs the flake.
-    it("reports detached HEAD with the short SHA as branch", { retry: 2 }, () => {
+    it("reports detached HEAD with the short SHA as branch", () => {
       const r = makeRepo();
       try {
         writeFileSync(join(r.path, "a.txt"), "v1\n");
