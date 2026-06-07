@@ -4,7 +4,7 @@
 
 ## Scope
 
-This leaf owns one thing: turning the merge layers into a single trusted `AgentlineConfig`, and being the only place that writes that config back to disk. Concretely: layer discovery and merge (`load.ts`, `merge.ts`, `env.ts`, `defaults.ts`), schema validation (`validate.ts`), pure immutable mutation operations plus their disk wrappers (`mutate.ts`), the global config path resolution (`paths.ts`), the type mirror of the schema (`types.ts`), and the scriptable `config widget` verbs (`widget/`, `widget-command.ts`).
+This leaf owns one thing: turning the merge layers into a single trusted `AgentlineConfig`, and being the only place that writes that config back to disk. Concretely: layer discovery and merge (`load.ts`, `merge.ts`, `env.ts`, `defaults.ts`), schema validation (`validate.ts`), pure immutable mutation operations plus their disk wrappers (`mutate.ts`), the shared backup-then-write seam that every config write routes through plus its reversible 2-slot undo/redo (`backup/`, `undo/`, `redo/`), the global config path resolution (`paths.ts`), the type mirror of the schema (`types.ts`), and the scriptable config verbs — `widget/` (`add`/`remove`/`move`/`replace`/`set-option`) and `widget-command.ts`, plus `init/` and `refresh/`.
 
 ## Local setup
 

@@ -94,11 +94,14 @@ Restart Claude Code — the statusline appears at the bottom of the prompt.
 
 Three equivalent paths — pick whichever fits the moment:
 
-| Path                      | When                                              |
-| ------------------------- | ------------------------------------------------- |
-| _"swap the theme to X"_   | Ask the agent in any Claude Code session          |
-| `agentline edit`          | Interactive TUI with live preview                 |
-| `agentline config widget` | Scriptable: `add`, `remove`, `move`, `set-option` |
+| Path                             | When                                                             |
+| -------------------------------- | ---------------------------------------------------------------- |
+| _"swap the theme to X"_          | Ask the agent in any Claude Code session                         |
+| `agentline edit`                 | Interactive TUI with live preview                                |
+| `agentline config widget`        | Scriptable: `add`, `remove`, `move`, `replace`, `set-option`     |
+| `agentline config init`          | Seed the user config from a preset (`default`/`minimal`/`power`) |
+| `agentline config refresh`       | Get or set the statusline refresh cadence (seconds)              |
+| `agentline config undo` / `redo` | Roll the last config change back, or forward again               |
 
 Changes apply on the next prompt render — no restart.
 
