@@ -5,6 +5,8 @@
  * results and the formatters render them as text or JSON.
  */
 
+import type { CheckCtx } from "./checks/context.js";
+
 export type CheckStatus = "pass" | "warn" | "fail" | "fixed" | "skip";
 
 export interface CheckResult {
@@ -37,7 +39,7 @@ export interface RunOptions {
    * Pass a no-op (e.g. `async () => {}`) to suppress the actual `claude`
    * probe and read only the pre-seeded cache file.
    */
-  claudeHealthRefresh?: import("./checks/context.js").CheckCtx["claudeHealthRefresh"];
+  claudeHealthRefresh?: CheckCtx["claudeHealthRefresh"];
 }
 
 export interface RunReport {

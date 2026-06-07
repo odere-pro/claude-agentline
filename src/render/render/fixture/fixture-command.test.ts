@@ -5,6 +5,7 @@ import { Readable } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ConfigValidationError } from "../../../data/config/validate/validate.js";
+import type * as ConfigLoadModule from "../../../data/config/load/load.js";
 import { parseRenderArgs, runRenderCommand } from "./fixture-command.js";
 
 // Module-level mock so vitest can hoist it. Only the "invalid-config
@@ -12,7 +13,7 @@ import { parseRenderArgs, runRenderCommand } from "./fixture-command.js";
 // existing runRenderCommand suite benefits from the passthrough default
 // (calls the real implementation).
 vi.mock("../../../data/config/load/load.js", async (importOriginal) => {
-  const original = await importOriginal<typeof import("../../../data/config/load/load.js")>();
+  const original = await importOriginal<typeof ConfigLoadModule>();
   return {
     ...original,
     loadConfig: vi.fn(original.loadConfig),

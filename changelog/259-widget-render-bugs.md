@@ -1,7 +1,0 @@
-- Fix five widget-render bugs found in the statusline audit:
-  - **git-pr now renders.** The render path never threaded the pull-request opt-in, so `git-pr` was permanently hidden even with `options.allowNetwork: true`. `context.ts` now passes `allowPullRequest: true` to the git-snapshot loader when (and only when) a configured `git-pr` widget sets `allowNetwork: true`; the default path stays network-free (gate-14).
-  - **Reset timers no longer print `Infinityd NaNh NaNm` or crash.** A finite-but-huge or out-of-`Date`-range `resets_at` is rejected (`host-reset.ts`) so the timer falls back to the local anchor; `formatDuration` is now total on non-finite input. Previously a wall-clock format with an out-of-range `resets_at` threw and emitted a blank statusline.
-  - **`session-weekly-usage` caps at 100%** instead of up to `999%` (a local cap, leaving `context-percentage`'s higher cap intact).
-  - **Token counts round correctly at the unit boundary:** 999 500–999 999 now formats as `1M` (was `1000k`) and `999.5/s` as `1k/s` (was `1000/s`).
-  - **Bidirectional/format control characters are stripped** from all rendered widget text at one chokepoint (`sanitize.ts`), closing a terminal-spoofing vector in e.g. git branch names.
-- Harden the golden harness against timezone drift: pin `TZ=UTC` in the source harness and gate-12 bin replay so wall-clock-adjacent widgets cannot vary across machines.

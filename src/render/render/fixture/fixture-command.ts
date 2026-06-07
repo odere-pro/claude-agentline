@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import { isHelpFlag, requestHelp } from "../../../core/lib/help/help.js";
 import { loadConfig } from "../../../data/config/load/load.js";
 import { resolveConfigPaths } from "../../../data/config/paths/paths.js";
+import type { AgentlineConfig } from "../../../data/config/types.js";
 import { ConfigValidationError } from "../../../data/config/validate/validate.js";
 import { pathExists } from "../../../core/lib/fs/fs.js";
 import { type PlanSnapshot } from "../../../data/session/plan/plan.js";
@@ -194,7 +195,7 @@ function maybeEmitConfigInvalidHint(err: unknown): void {
  */
 async function loadLiveSnapshotsForRender(
   rawJson: string,
-  config: import("../../../data/config/types.js").AgentlineConfig | undefined,
+  config: AgentlineConfig | undefined,
 ): Promise<Pick<RenderForFixtureOptions, "session" | "tokens" | "git" | "plan">> {
   let parsed;
   try {

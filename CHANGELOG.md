@@ -11,6 +11,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-06-07
+
+First stable release. `1.0.0` freezes the public CLI surface and the config schema; subsequent breaking changes to CLI flags, config shape, or schema version follow the post-1.0 deprecation policy in `docs/cookbook/16-release-and-versioning.md`.
+
+### Added
+
+- `8168d50` — Ship `minimal` and `power` config templates beside `default` (all schema-validated by gate-11), add `agentline config init [--preset <name>] [--force]` to seed a config from one, and surface each widget's display variants in `config widget catalog`.
+- `388951e` — Parse the Claude Code stdin cost block and add the `cost-usd` (tokens), `session-duration`, and `lines-changed` (session) widgets fed by it.
+- `33395ec` — Add the `cwd-path`, `clock`, `output-style`, and `vim-mode` session widgets, each reading a field already present on the render context.
+- `8b0f548` — Plumb five more Claude Code stdin fields and add the `agent-name`, `project-dir`, `added-dirs`, `context-200k-flag`, and `thinking-enabled` widgets.
+- `c587446` — Add the derived `cost-burn-rate`, `api-duration`, and `cost-efficiency` tokens widgets.
+- `7536d5e` — Add `agentline config undo` — single-level rollback of the last config change, captured through the shared atomic-write seam before each mutation.
+- `c10cbaa` — Make `config undo` reversible and add `agentline config redo` (a 2-slot back/forward stack; a new edit after an undo invalidates the redo).
+- `d65f9e0` — Add doctor check D11 (widget config sanity), flagging an unknown widget `type` or a `git-pr` widget without `allowNetwork`; harden `account-email` to hide rather than show a mismatched identity.
+- `c0e4196` — Add install/uninstall shell gates 07–10 (round-trip, content preservation, idempotency, dry-run parity), each in a hermetic offline sandbox.
+- `3ce9494` — Enforce strict per-widget option validation across every widget and add the `cost-vs-limit` tokens widget (session spend against a configured budget).
+
+### Changed
+
+- `25ea6c2` — Tighten config/schema correctness: resolvable `$schema`/`$id` URLs, a catalogue-derived `widget.type` enum (gate-28), `version` pinned to `enum: [1]`, and mutation-time option-key/value validation.
+- `a7b983b` — Move host CLI health ownership into doctor check D10 so the render path no longer forks a probe on each stale render.
+- `2795a97` — Rewrite `SOFTWARE-3-0.md` into a parity-checked seven-surface map and add gate-12 (render determinism over the published bin) and gate-27 (doc citation existence).
+- `8e144e8` — Tidy the root README (drift reconciled, npm version badge added) and refresh the landing page.
+- `a3cf9c6` — Sync the non-gate-checked docs and landing page to the then-current widget catalogue.
+- `442065b` — **BREAKING:** regroup the 38-widget catalogue into six families (new `other` family; `project`/`project-dir` move to `git`), merge the two reset timers into a single `reset-timer`, and add a `context-cached` widget plus a `showCached` option on `context-percentage`. Configs naming a removed `type` render the hidden unknown-type path; no migration shim.
+
+### Fixed
+
+- `f3fc294` — Fix five widget-render bugs: `git-pr` opt-in wiring, reset-timer overflow on an out-of-range `resets_at`, the weekly-usage cap, token rounding at the unit boundary, and control-character stripping from rendered text.
+- `ec5ab5b` — Make config failures self-healing: `doctor --fix` converges on a simultaneously-missing-settings / corrupt-config state, and an invalid config is surfaced (stderr, TTY only) instead of silently swallowed on render.
+- `79e25e8` — CLI lifecycle hygiene: `edit --help` exits cleanly in a non-interactive shell, the double `agentline:` error prefix is removed, the uninstall hint points at `agentline reset`, and `update-check` / `install --force` are documented honestly.
+- `cc536e3` — Make the `pages` workflow self-enable GitHub Pages so a repo without Pages turned on no longer hard-fails.
+- `cba491e` — Deflake the Windows-only git-snapshot suite (filesystem-propagation delay on freshly created temp repos); test-only.
+
+### Removed
+
+- `3548ffd` — **BREAKING:** trim the widget catalogue from 30 to 22 — remove `claude-doctor`, `claude-update`, `context-bar`, `context-length`, `git-sha`, and `git-untracked`, and fold the two `*-reset-at` widgets into wall-clock format variants on the timer widgets. A config naming a removed `type` now renders a hidden cell, not an error.
+
 ## [0.3.0] — 2026-06-01
 
 ### Added

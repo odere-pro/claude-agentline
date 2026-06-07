@@ -1,6 +1,0 @@
-- Parse the Claude Code stdin `cost` block (previously discarded) and add three widgets fed by it (catalogue 22 → 25):
-  - **`cost-usd`** (tokens family) — session spend, e.g. `$1.23`, from `total_cost_usd`.
-  - **`session-duration`** (session family) — elapsed time, e.g. `12m 30s`, from `total_duration_ms` (a host scalar; not wall-clock, so it stays golden-deterministic).
-  - **`lines-changed`** (session family) — agent edit churn, e.g. `+156 −23`, from `total_lines_added` / `total_lines_removed`.
-- These read host pre-computed scalars, so they carry no `reset` axis (like `context-percentage` / `session-weekly-usage`) and each hides when its source field is absent. `STATUSLINE_TRANSLATOR_VERSION` bumped to 2 for the new field.
-- Accessibility: the minus sign `−` (U+2212) now degrades to ASCII `-` under `--no-unicode` / `--ascii`, so `lines-changed` reads `+156 -23` rather than `+156 ?23`.
