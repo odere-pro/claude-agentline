@@ -23,7 +23,7 @@ import { loadConfig } from "../load/load.js";
 import { resolveConfigPaths } from "../paths/paths.js";
 import type { AgentlineConfig, LineConfig, WidgetConfig } from "../types.js";
 import { validateConfig } from "../validate/validate.js";
-import { writeJsonIdempotent } from "../../../core/lib/atomic-write/atomic-write.js";
+import { backupAndWriteConfig } from "../backup/backup.js";
 import { resolveEnv } from "../../../core/lib/env/env.js";
 import { withFileLock } from "../../../core/lib/file-lock/file-lock.js";
 import { WIDGET_CATALOG } from "../../../widgets/families/catalog.js";
@@ -205,7 +205,8 @@ export function saveSetRefreshInterval(
  * concurrent CLI invocations (e.g. `agentline config widget add` racing
  * `agentline config refresh`) can't read the same on-disk config, apply
  * independent mutations, and silently lose one writer's changes when the
- * second `writeJsonIdempotent` lands last.
+ * second atomic write lands last. `backupAndWriteConfig` backs up the
+ * prior config to `<config>.bak` (the `config undo` slot) before writing.
  */
 async function persist(
   mutate: (cfg: AgentlineConfig) => AgentlineConfig,
@@ -217,7 +218,9 @@ async function persist(
     const { config } = await loadConfig({ env });
     const next = mutate(config);
     validateConfig(next);
-    await writeJsonIdempotent(userConfig, next);
+    // Back up the prior config to `<config>.bak` before the new one lands,
+    // so `agentline config undo` can roll this mutation back.
+    await backupAndWriteConfig(userConfig, next);
     return next;
   });
 }

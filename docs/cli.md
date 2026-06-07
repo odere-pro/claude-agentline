@@ -15,7 +15,7 @@ The top-level surface is intentionally small: **`reset` · `uninstall` · `docto
 | _(default)_               | Read stdin JSON, render statusline, write to stdout | no             |
 | [`reset`](#reset)         | Restore defaults: reseed config + rewire statusLine | **yes**        |
 | [`uninstall`](#uninstall) | Undo install; restore pre-install state             | **yes**        |
-| [`config`](#config)       | Inspect/set scalar config keys (`refresh`)          | with `<value>` |
+| [`config`](#config)       | Inspect/set config (`refresh`); roll back (`undo`)  | with `<value>` |
 | [`doctor`](#doctor)       | Diagnose host wiring; `--fix` repairs D01–D04, D09  | with `--fix`   |
 | [`edit`](#edit)           | Open the interactive TUI editor                     | with save      |
 | [`version`](#version)     | Print binary version                                | no             |
@@ -185,6 +185,32 @@ error, with an `agentline config refresh: …` message.
 agentline config refresh           # print the current value (e.g. 5)
 agentline config refresh 10        # refresh every 10 seconds
 agentline config refresh 0         # disable; event-driven updates only
+```
+
+### config undo
+
+```bash
+agentline config undo
+```
+
+Rolls back the last config change. Every config-writing path — a
+`config widget` mutation (`add` / `remove` / `move` / `replace` /
+`set-option`) and a TUI editor save — backs up the prior config to
+`config.json.bak` before the new config lands. `config undo` restores
+that backup atomically.
+
+It is **single-level**: it restores one step back, not a multi-level
+history. The backup is left in place after restoring, so re-running
+`config undo` restores the same bytes (it is not a redo). When no backup
+exists yet, the command prints `nothing to undo` and exits non-zero — it
+never crashes.
+
+**Exit codes:** `0` success · non-zero when there is nothing to undo or
+the backup is unreadable, with an `agentline config undo: …` message.
+
+```bash
+agentline config widget add clock   # mutate (backs up the prior config)
+agentline config undo               # restore the prior config
 ```
 
 ---

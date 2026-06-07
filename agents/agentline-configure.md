@@ -26,7 +26,14 @@ There is no per-project config layer. A `.agentline.json` in the cwd is silently
 agentline edit                                # interactive TUI editor (live preview, widget picker)
 agentline config refresh                      # print the current refresh cadence (seconds)
 agentline config refresh <seconds>            # set it (integer >= 0; 0 disables); re-syncs settings.json
+agentline config undo                         # roll back the last config change (single-level)
 ```
+
+`config undo` restores the prior config from `config.json.bak`, which
+every config-writing path (a `config widget` mutation or a TUI editor
+save) writes before the new config lands. It is single-level — it
+restores one step back, not a multi-level history — and exits non-zero
+with a `nothing to undo` message when there is no backup yet.
 
 Config edits take effect on the **next prompt render** — Claude Code re-invokes the statusline bin every prompt — so no restart is needed. (`agentline install` is the only thing that needs a restart, to wire the `statusLine` key.)
 
