@@ -207,8 +207,63 @@ describe("adaptStatuslinePayload — translator version", () => {
     expect(out.translatorVersion).toBe(STATUSLINE_TRANSLATOR_VERSION);
   });
 
-  it("STATUSLINE_TRANSLATOR_VERSION is 2 (bumped when cost block was added)", () => {
-    expect(STATUSLINE_TRANSLATOR_VERSION).toBe(2);
+  it("STATUSLINE_TRANSLATOR_VERSION is 3 (bumped when agent/workspace/thinking fields were added)", () => {
+    expect(STATUSLINE_TRANSLATOR_VERSION).toBe(3);
+  });
+});
+
+describe("adaptStatuslinePayload — agent / workspace / thinking fields", () => {
+  it("extracts agent.name from the nested agent block", () => {
+    const out = adaptStatuslinePayload({ agent: { name: "researcher" } });
+    expect(out.agentName).toBe("researcher");
+  });
+
+  it("omits agentName when the agent block is absent or malformed", () => {
+    expect(adaptStatuslinePayload({}).agentName).toBeUndefined();
+    expect(adaptStatuslinePayload({ agent: "researcher" }).agentName).toBeUndefined();
+    expect(adaptStatuslinePayload({ agent: { name: "" } }).agentName).toBeUndefined();
+  });
+
+  it("extracts workspace.project_dir (the launch dir, distinct from cwd)", () => {
+    const out = adaptStatuslinePayload({
+      cwd: "/repo/sub",
+      workspace: { current_dir: "/repo/sub", project_dir: "/repo" },
+    });
+    expect(out.projectDir).toBe("/repo");
+    expect(out.cwd).toBe("/repo/sub");
+  });
+
+  it("omits projectDir when workspace is absent or project_dir is not a string", () => {
+    expect(adaptStatuslinePayload({}).projectDir).toBeUndefined();
+    expect(adaptStatuslinePayload({ workspace: { project_dir: 42 } }).projectDir).toBeUndefined();
+  });
+
+  it("extracts workspace.added_dirs as a string array", () => {
+    const out = adaptStatuslinePayload({
+      workspace: { added_dirs: ["/a", "/b", ""] },
+    });
+    expect(out.addedDirs).toEqual(["/a", "/b"]);
+  });
+
+  it("omits addedDirs when absent, not an array, or empty", () => {
+    expect(adaptStatuslinePayload({}).addedDirs).toBeUndefined();
+    expect(adaptStatuslinePayload({ workspace: { added_dirs: "/a" } }).addedDirs).toBeUndefined();
+    expect(adaptStatuslinePayload({ workspace: { added_dirs: [] } }).addedDirs).toBeUndefined();
+  });
+
+  it("extracts exceeds_200k_tokens only as a real boolean", () => {
+    expect(adaptStatuslinePayload({ exceeds_200k_tokens: true }).exceeds200kTokens).toBe(true);
+    expect(adaptStatuslinePayload({ exceeds_200k_tokens: false }).exceeds200kTokens).toBe(false);
+    expect(adaptStatuslinePayload({ exceeds_200k_tokens: "true" }).exceeds200kTokens).toBeUndefined();
+    expect(adaptStatuslinePayload({}).exceeds200kTokens).toBeUndefined();
+  });
+
+  it("extracts thinking.enabled only as a real boolean from the nested block", () => {
+    expect(adaptStatuslinePayload({ thinking: { enabled: true } }).thinkingEnabled).toBe(true);
+    expect(adaptStatuslinePayload({ thinking: { enabled: false } }).thinkingEnabled).toBe(false);
+    expect(adaptStatuslinePayload({ thinking: { enabled: 1 } }).thinkingEnabled).toBeUndefined();
+    expect(adaptStatuslinePayload({ thinking: "on" }).thinkingEnabled).toBeUndefined();
+    expect(adaptStatuslinePayload({}).thinkingEnabled).toBeUndefined();
   });
 });
 

@@ -15,7 +15,7 @@
  *     live here.
  */
 
-import { isPlainObject, pickString } from "../lib/object/object.js";
+import { isPlainObject, pickBoolean, pickString, pickStringArray } from "../lib/object/object.js";
 
 const MAX_PAYLOAD_BYTES = 256 * 1024;
 
@@ -30,7 +30,7 @@ const MAX_PAYLOAD_BYTES = 256 * 1024;
  * the meaning of an existing field. Pure additions to `raw` passthrough
  * do not require a bump.
  */
-export const STATUSLINE_TRANSLATOR_VERSION = 2;
+export const STATUSLINE_TRANSLATOR_VERSION = 3;
 
 export interface StdinPayload {
   /** Original parsed JSON, fields untouched. */
@@ -139,6 +139,43 @@ export interface StdinPayload {
     readonly linesAdded?: number;
     readonly linesRemoved?: number;
   };
+  /**
+   * Subagent persona name Claude Code reports in its `agent` block
+   * (`agent.name`). Present while a named subagent is driving the
+   * session; absent on the main agent. The `agent-name` widget reads it
+   * directly and hides when absent.
+   */
+  agentName?: string;
+  /**
+   * The directory the host was launched in, from
+   * `workspace.project_dir`. Distinct from `cwd`
+   * (`workspace.current_dir`): the user may have `cd`'d into a
+   * subdirectory after launch, or the launch dir may not be a git repo.
+   * The `project-dir` widget renders its basename.
+   */
+  projectDir?: string;
+  /**
+   * Extra workspace roots added via `/add-dir`, from
+   * `workspace.added_dirs`. The array is kept (not pre-counted) so a
+   * widget can show either a count or the list; `added-dirs` renders the
+   * count. Omitted when the field is absent, not an array, or empty.
+   */
+  addedDirs?: readonly string[];
+  /**
+   * Host-reported flag (`exceeds_200k_tokens`) that the current prompt
+   * exceeds the 200k-token threshold — the point at which long-context
+   * pricing/behaviour kicks in. The `context-200k-flag` widget shows a
+   * badge when true and hides otherwise. Only set when the host sent a
+   * real boolean.
+   */
+  exceeds200kTokens?: boolean;
+  /**
+   * Whether extended thinking is on, from the host's `thinking.enabled`
+   * block. Complements `thinkingEffort` (which level): this is the
+   * on/off switch. The `thinking-enabled` widget reads it; only set when
+   * the host sent a real boolean.
+   */
+  thinkingEnabled?: boolean;
 }
 
 export class StdinParseError extends Error {
@@ -178,9 +215,16 @@ export function adaptStatuslinePayload(
   const outputStyleBlock = isPlainObject(raw["output_style"]) ? raw["output_style"] : undefined;
   const effortBlock = isPlainObject(raw["effort"]) ? raw["effort"] : undefined;
   const workspaceBlock = isPlainObject(raw["workspace"]) ? raw["workspace"] : undefined;
+  const agentBlock = isPlainObject(raw["agent"]) ? raw["agent"] : undefined;
+  const thinkingBlock = isPlainObject(raw["thinking"]) ? raw["thinking"] : undefined;
   const contextWindow = adaptContextWindow(raw["context_window"]);
   const rateLimits = adaptRateLimits(raw["rate_limits"]);
   const cost = adaptCost(raw["cost"]);
+  const agentName = pickString(agentBlock, "name");
+  const projectDir = pickString(workspaceBlock, "project_dir");
+  const addedDirs = pickStringArray(workspaceBlock, "added_dirs");
+  const exceeds200kTokens = pickBoolean(raw, "exceeds_200k_tokens");
+  const thinkingEnabled = pickBoolean(thinkingBlock, "enabled");
   return {
     raw,
     truncated: opts.truncated ?? false,
@@ -195,6 +239,11 @@ export function adaptStatuslinePayload(
     thinkingEffort: pickString(effortBlock, "level"),
     vimMode: pickString(raw, "vim_mode"),
     transcriptPath: pickString(raw, "transcript_path"),
+    ...(agentName !== undefined ? { agentName } : {}),
+    ...(projectDir !== undefined ? { projectDir } : {}),
+    ...(addedDirs !== undefined ? { addedDirs } : {}),
+    ...(exceeds200kTokens !== undefined ? { exceeds200kTokens } : {}),
+    ...(thinkingEnabled !== undefined ? { thinkingEnabled } : {}),
     ...(contextWindow ? { contextWindow } : {}),
     ...(rateLimits ? { rateLimits } : {}),
     ...(cost ? { cost } : {}),

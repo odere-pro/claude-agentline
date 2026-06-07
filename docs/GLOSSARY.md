@@ -145,20 +145,24 @@ user-facing term **family**.
 
 ---
 
-## Built-in widget types (29 total)
+## Built-in widget types (34 total)
 
 All types are kebab-case strings. Source of truth: `src/widgets/families/catalog.ts`.
 
-### Session family (13)
+### Session family (17)
 
 | Type               | Description                                                |
 | ------------------ | ---------------------------------------------------------- |
 | `model`            | Active model id (e.g. Sonnet 4.6)                          |
 | `version`          | Claude Code version                                        |
 | `thinking-effort`  | Thinking-effort tier: low, medium, or high                 |
+| `thinking-enabled` | Whether extended thinking is on (complements effort)       |
 | `plan`             | Active plan for the current session                        |
 | `project`          | Project name — git repo or working-directory folder        |
+| `project-dir`      | Launch-directory name (distinct from the git repo name)    |
 | `cwd-path`         | Current working-directory path, home-collapsed/truncatable |
+| `added-dirs`       | Count of extra workspace roots added via /add-dir          |
+| `agent-name`       | Active subagent persona name                               |
 | `clock`            | Current time of day (24h or 12h)                           |
 | `output-style`     | Active output style (e.g. explanatory, learning)           |
 | `vim-mode`         | Active vim mode (NORMAL, INSERT, …)                        |
@@ -176,11 +180,12 @@ All types are kebab-case strings. Source of truth: `src/widgets/families/catalog
 | `token-speed`   | Input ↓ + output ↑ tokens per second (rolling window)  |
 | `cost-usd`      | Host-reported session cost in USD (e.g. $1.23)         |
 
-### Context family (1)
+### Context family (2)
 
 | Type                 | Description                                                                   |
 | -------------------- | ----------------------------------------------------------------------------- |
 | `context-percentage` | Percentage of the model's context window used, plus the window (`37% · 200k`) |
+| `context-200k-flag`  | Badge when the prompt exceeds the 200k-token threshold                        |
 
 ### Rate-limits family (3)
 

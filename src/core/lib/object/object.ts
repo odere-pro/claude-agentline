@@ -31,6 +31,21 @@ export function pickString(
 }
 
 /**
+ * Returns `obj[key]` only when it is a real boolean — never coerces a
+ * truthy/falsy value. Returns `undefined` for a missing key or a
+ * non-boolean value, so callers can branch on "the host actually told us
+ * true/false" vs "the field is absent".
+ */
+export function pickBoolean(
+  obj: Record<string, unknown> | undefined,
+  key: string,
+): boolean | undefined {
+  if (!obj) return undefined;
+  const v = obj[key];
+  return typeof v === "boolean" ? v : undefined;
+}
+
+/**
  * Returns the elements of `obj[key]` that are non-empty strings, or
  * `undefined` when the field is missing, not an array, or has no
  * usable entries.

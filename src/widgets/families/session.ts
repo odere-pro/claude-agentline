@@ -1,7 +1,8 @@
 /**
  * Identity + per-session signals — `model`, `version`, `thinking-effort`,
  * `plan`, `project`, `session-id`, `account-email`, `session-duration`,
- * `lines-changed`, `cwd-path`, `clock`, `output-style`, `vim-mode`.
+ * `lines-changed`, `cwd-path`, `clock`, `output-style`, `vim-mode`,
+ * `agent-name`, `project-dir`, `added-dirs`, `thinking-enabled`.
  */
 
 import { entry, v, type WidgetMeta } from "./catalog-types.js";
@@ -47,4 +48,20 @@ export const SESSION_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.free
     "session",
   ),
   "vim-mode": entry("Vim mode", "Active vim mode (NORMAL, INSERT, …)", "session"),
+  "agent-name": entry("Agent name", "Active subagent persona name", "session"),
+  "project-dir": entry(
+    "Project dir",
+    "Launch-directory name (distinct from the git repo name)",
+    "session",
+  ),
+  "added-dirs": entry(
+    "Added dirs",
+    "Count of extra workspace roots added via /add-dir (e.g. +2 dirs)",
+    "session",
+  ),
+  "thinking-enabled": entry(
+    "Thinking enabled",
+    "Whether extended thinking is on (complements thinking-effort)",
+    "session",
+  ),
 });

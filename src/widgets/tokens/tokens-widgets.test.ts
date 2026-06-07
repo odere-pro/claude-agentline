@@ -262,11 +262,11 @@ describe("registries", () => {
     expect(r.list()).toEqual(["cost-usd", "token-speed", "tokens", "tokens-cached"]);
   });
 
-  it("registerContextWidgets installs the context-percentage widget", () => {
+  it("registerContextWidgets installs the context widgets", () => {
     const r = new WidgetRegistry();
     registerContextWidgets(r);
-    expect(r.size()).toBe(1);
-    expect(r.list()).toEqual(["context-percentage"]);
+    expect(r.size()).toBe(2);
+    expect(r.list()).toEqual(["context-200k-flag", "context-percentage"]);
   });
 
   it("TOKEN_WIDGETS and CONTEXT_WIDGETS are frozen", () => {

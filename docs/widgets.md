@@ -46,11 +46,11 @@ widget instances with different `reset` axes.
 
 ## Built-in widgets
 
-29 widgets ship in v0.3.x, organised into five families. The
+34 widgets ship in v0.3.x, organised into five families. The
 authoritative registry is `src/widgets/registry/registry.ts`; this page tracks
 it.
 
-### Session (13)
+### Session (17)
 
 Surface state from the stdin payload that Claude Code emits.
 
@@ -61,9 +61,13 @@ Surface state from the stdin payload that Claude Code emits.
 | `session-id`       | short session id                                                     |
 | `account-email`    | logged-in account email                                              |
 | `thinking-effort`  | thinking-effort tier (low / medium / high)                           |
+| `thinking-enabled` | whether extended thinking is on (`thinking` / `no-thinking`)         |
 | `plan`             | active plan name (newest file in plans dir)                          |
 | `project`          | project name — git repo (origin) or working-dir folder               |
+| `project-dir`      | launch-directory basename (the dir the host started in)              |
 | `cwd-path`         | current working-directory path, home-collapsed and truncatable       |
+| `added-dirs`       | count of extra `/add-dir` workspace roots (e.g. `+2 dirs`)           |
+| `agent-name`       | active subagent persona name                                         |
 | `clock`            | current time of day (24h `HH:MM` or 12h `H:MMam`)                    |
 | `output-style`     | active output style (e.g. `explanatory`, `learning`)                 |
 | `vim-mode`         | active vim mode (`NORMAL`, `INSERT`, …)                              |
@@ -87,11 +91,12 @@ so the line is never blank for an authenticated user.
 (defaults `↓` / `↑`). `token-speed` takes `windowSec` (default 60,
 clamped 1–3600) instead of a reset axis.
 
-### Context (1)
+### Context (2)
 
-| Type                 | Renders                                       |
-| -------------------- | --------------------------------------------- |
-| `context-percentage` | percentage of the model's context window used |
+| Type                 | Renders                                             |
+| -------------------- | --------------------------------------------------- |
+| `context-percentage` | percentage of the model's context window used       |
+| `context-200k-flag`  | a `>200k` badge when the prompt crosses 200k tokens |
 
 `context-percentage` appends the current model's context-window size as a
 postfix — e.g. `37% · 200k` (`1M` for the 1M-token model variants). The
