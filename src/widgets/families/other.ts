@@ -11,7 +11,7 @@
 import { entry, v, type WidgetMeta } from "./catalog-types.js";
 
 export const OTHER_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
-  clock: entry("Clock", "Current time of day (24h or 12h)", "other", [
+  clock: entry("Clock", "Current time of day in local timezone (24h or 12h); set timezone option for an IANA override", "other", [
     v("24h", "24-hour (HH:MM)", { format: "24h" }),
     v("12h", "12-hour (H:MMam/pm)", { format: "12h" }),
   ]),
