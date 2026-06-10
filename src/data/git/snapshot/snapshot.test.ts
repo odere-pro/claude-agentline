@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { loadGitSnapshot } from "./snapshot.js";
+import { loadGitSnapshot, resolveField, type GitSnapshot } from "./snapshot.js";
 
 interface RepoFixture {
   readonly path: string;
@@ -153,5 +153,84 @@ describe("loadGitSnapshot", () => {
       if (!snap.available) throw new Error("expected available");
       expect(snap.pr).toBeNull();
     });
+
+    it("ignores the previous snapshot when the live read succeeds", () => {
+      // A successful tick must show fresh data, never the cached value.
+      const stale = makePrevious({ branch: "stale-branch", detached: false });
+      const snap = loadGitSnapshot({ cwd: repo.path, previous: stale });
+      if (!snap.available) throw new Error("expected available");
+      expect(snap.branch).toBe("main");
+    });
+  });
+
+  describe("last-known-good fallback", () => {
+    it("holds the previous snapshot when the gate read fails transiently", () => {
+      // A non-existent cwd makes git's spawn fail (ENOENT) — a transient
+      // miss, not a clean exit — so the prior snapshot must survive.
+      const prev = makePrevious({ branch: "feature-x" });
+      const snap = loadGitSnapshot({ cwd: "/definitely-not-a-real-path-xyz123", previous: prev });
+      expect(snap).toBe(prev);
+    });
+
+    it("reports unavailable on a transient gate miss when there is no previous", () => {
+      const snap = loadGitSnapshot({ cwd: "/definitely-not-a-real-path-xyz123" });
+      expect(snap.available).toBe(false);
+    });
+
+    it("does NOT hold the previous snapshot in a genuine non-repo (clean exit)", () => {
+      // A real, non-git directory makes `--is-inside-work-tree` exit
+      // non-zero — a genuine "not a repo", which must clear the cache.
+      const tmp = mkdtempSync(join(tmpdir(), "agentline-nogit-prev-"));
+      try {
+        const prev = makePrevious({ branch: "feature-x" });
+        const snap = loadGitSnapshot({ cwd: tmp, previous: prev });
+        expect(snap.available).toBe(false);
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe("resolveField", () => {
+    const parse = (raw: string | null): string => raw ?? "EMPTY";
+
+    it("parses fresh output on success", () => {
+      expect(resolveField({ ok: true, value: "fresh" }, parse, "prev")).toBe("fresh");
+    });
+
+    it("parses the empty value on a clean exit (genuine absence)", () => {
+      expect(resolveField({ ok: false, reason: "exit" }, parse, "prev")).toBe("EMPTY");
+    });
+
+    it("reuses last-known-good on a transient miss", () => {
+      expect(resolveField({ ok: false, reason: "transient" }, parse, "prev")).toBe("prev");
+    });
+
+    it("falls back to the empty value on a transient miss with no previous", () => {
+      expect(resolveField({ ok: false, reason: "transient" }, parse, undefined)).toBe("EMPTY");
+    });
   });
 });
+
+/** Minimal frozen GitSnapshot for fallback tests. */
+function makePrevious(overrides: Partial<GitSnapshot> = {}): GitSnapshot {
+  return Object.freeze({
+    available: true,
+    cwd: "/cached/repo",
+    branch: "main",
+    detached: false,
+    sha: "0".repeat(40),
+    shortSha: "0000000",
+    status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 0, modified: 0, added: 0 },
+    diff: { insertions: 0, deletions: 0, filesChanged: 0 },
+    diffStaged: { insertions: 0, deletions: 0, filesChanged: 0 },
+    aheadBehind: { ahead: 0, behind: 0 },
+    upstream: null,
+    origin: null,
+    upstreamRemote: null,
+    worktreeName: null,
+    inWorktree: false,
+    pr: null,
+    ...overrides,
+  });
+}

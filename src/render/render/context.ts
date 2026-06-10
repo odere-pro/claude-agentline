@@ -19,6 +19,7 @@
  */
 
 import { loadGitSnapshot, type GitState } from "../../data/git/snapshot/snapshot.js";
+import { readGitSnapshotSync } from "../../data/state/git-snapshot-cache/git-snapshot-cache.js";
 import { createTranslator } from "../../core/i18n/index.js";
 import { loadSessionFields, type ResolvedSessionFields } from "../../data/session/index.js";
 import { loadPlanSnapshot, type PlanSnapshot } from "../../data/session/plan/plan.js";
@@ -99,7 +100,21 @@ export function loadLiveSnapshots(
     now,
   });
   const allowPullRequest = hasAllowNetworkGitPr(options.config);
-  const git = loadGitSnapshot({ cwd: payload.cwd, env, ...(allowPullRequest ? { allowPullRequest } : {}) });
+  /*
+   * Last-known-good fallback (anti-flicker): read the prior tick's git
+   * snapshot for this cwd and hand it to the loader. When a `git` call
+   * fails transiently, the loader reuses the cached field instead of
+   * blanking it. Best-effort — a missing/corrupt cache reads back as null
+   * and the loader behaves exactly as it did before. Live path only;
+   * fixtures/goldens inject snapshots and never reach here.
+   */
+  const previousGit = payload.cwd ? readGitSnapshotSync(payload.cwd, env) : null;
+  const git = loadGitSnapshot({
+    cwd: payload.cwd,
+    env,
+    ...(allowPullRequest ? { allowPullRequest } : {}),
+    ...(previousGit ? { previous: previousGit } : {}),
+  });
   /*
    * Plan resolves per session from the same transcript the token snapshot
    * just read (cached this tick — no extra read). Order matters: tokens

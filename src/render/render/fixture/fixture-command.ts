@@ -28,6 +28,7 @@ import { pathExists } from "../../../core/lib/fs/fs.js";
 import { type PlanSnapshot } from "../../../data/session/plan/plan.js";
 import { recordSessionPlan } from "../../../data/state/session-plan-cache/session-plan-cache.js";
 import { saveLastRender } from "../../../data/state/render-cache/render-cache.js";
+import { saveGitSnapshot } from "../../../data/state/git-snapshot-cache/git-snapshot-cache.js";
 import { saveLastStdin } from "../../../data/state/stdin-cache/stdin-cache.js";
 import { readStdinPayload } from "../../../core/stdin/index.js";
 import { parseAccessibilityArgs, type AccessibilityFlags } from "../accessibility/accessibility.js";
@@ -136,6 +137,13 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     });
     if ("plan" in liveSnapshots && liveSnapshots.plan) {
       await recordSessionPlanFromRender(payload, liveSnapshots.plan);
+    }
+    // Persist this tick's git snapshot as last-known-good so the next
+    // slow tick can fall back to it instead of flickering. Best-effort,
+    // live-path only, and only for an available snapshot (it carries the
+    // cwd the cache is keyed on).
+    if ("git" in liveSnapshots && liveSnapshots.git?.available) {
+      await saveGitSnapshot(liveSnapshots.git);
     }
   }
   return 0;

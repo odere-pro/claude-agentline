@@ -31,12 +31,23 @@ export interface LoadPullRequestOptions {
 }
 
 /**
- * Best-effort PR lookup for HEAD's branch. Returns `null` when `gh`
- * isn't installed, the cwd isn't a repo, the branch has no PR, the
- * call times out, or the response can't be parsed. Errors are swallowed
- * silently — the widget hides on a `null` snapshot.
+ * Outcome of a PR lookup, distinguishing a *transient* flake (the `gh`
+ * call never produced a clean answer — timeout, missing binary, spawn
+ * failure) from a *clean* result (`gh` ran and either reported a PR, no
+ * PR, or an unparseable body). The snapshot loader holds last-known-good
+ * PR data across a `transient` flake but lets a clean `null` (PR closed /
+ * none for the branch) clear it — so a stale PR never lingers.
+ *
+ * Same `status`-based classification as `invoke.ts#gitRunOutcome`: a
+ * non-zero exit (e.g. `gh pr view` when the branch has no PR) sets a
+ * numeric `status`; a timeout / `ENOENT` does not.
  */
-export function loadPullRequest(options: LoadPullRequestOptions): GitPullRequestInfo | null {
+export interface PullRequestOutcome {
+  readonly found: GitPullRequestInfo | null;
+  readonly transient: boolean;
+}
+
+export function loadPullRequestOutcome(options: LoadPullRequestOptions): PullRequestOutcome {
   try {
     const stdout = execFileSync("gh", ["pr", "view", "--json", "number,url,title"], {
       cwd: options.cwd,
@@ -47,10 +58,22 @@ export function loadPullRequest(options: LoadPullRequestOptions): GitPullRequest
       env: options.env,
       windowsHide: true,
     });
-    return parsePullRequestJson(stdout);
-  } catch {
-    return null;
+    return { found: parsePullRequestJson(stdout), transient: false };
+  } catch (err) {
+    const status = (err as { status?: unknown }).status;
+    // Numeric exit => gh ran and said "no PR"; otherwise it never ran cleanly.
+    return { found: null, transient: typeof status !== "number" };
   }
+}
+
+/**
+ * Best-effort PR lookup for HEAD's branch. Returns `null` when `gh`
+ * isn't installed, the cwd isn't a repo, the branch has no PR, the
+ * call times out, or the response can't be parsed. Errors are swallowed
+ * silently — the widget hides on a `null` snapshot.
+ */
+export function loadPullRequest(options: LoadPullRequestOptions): GitPullRequestInfo | null {
+  return loadPullRequestOutcome(options).found;
 }
 
 /**
