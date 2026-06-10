@@ -74,25 +74,37 @@ jobs:
         run: pnpm run build
 
       - name: Render smoke (from source)
+        env:
+          # Isolate config so the live render falls back to `DEFAULT_CONFIG`
+          # (model-only) instead of reading any `~/.config/agentline/config.json`
+          # left on the runner. Mirrors the install-matrix gate-15 smoke.
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/agentline-skew-cfg
         run: |
           set -Eeuo pipefail
-          # `node-skew` is not a known model id, so the model widget
-          # falls back to the raw payload value. The remaining default
-          # widgets hide (no transcript, no git repo, etc.). Matches the
+          mkdir -p "$CLAUDE_CONFIG_DIR"
+          # `node-skew` is not a known model id, so the `model` widget falls
+          # back to the raw payload value. The rest of the default config
+          # widgets hide (no transcript, no git repo, etc.), so the rendered
+          # line is just the model widget — which carries its `session` family
+          # glyph (U+2302) per the family-identity contract. Matches the
           # install-matrix expected-bytes contract.
-          expected='node-skew'
+          expected=$'⌂ node-skew'
           actual="$(printf '%s' '{"model":"node-skew","cwd":"/agentline/node-skew"}' \
             | NO_COLOR=1 node dist/cli.mjs)"
           actual="${actual%$'\n'}"
           if [ "${actual}" != "${expected}" ]; then
-            printf 'expected: %s\nactual:   %s\n' "${expected}" "${actual}"
+            printf 'expected: %q\nactual:   %q\n' "${expected}" "${actual}"
             exit 1
           fi
           echo "from-source render smoke matched expected bytes"
 
       - name: Smoke published tarball (when available)
+        env:
+          # Same config isolation as the from-source smoke above.
+          CLAUDE_CONFIG_DIR: ${{ runner.temp }}/agentline-skew-cfg
         run: |
           set -Eeuo pipefail
+          mkdir -p "$CLAUDE_CONFIG_DIR"
           # The published package is the artefact users actually consume.
           # Until the first release lands, skip cleanly: the from-source
           # smoke above already covers the Node-skew signal.
@@ -122,12 +134,12 @@ jobs:
             exit 1
           fi
 
-          expected='node-skew'
+          expected=$'⌂ node-skew'
           actual="$(printf '%s' '{"model":"node-skew","cwd":"/agentline/node-skew"}' \
             | NO_COLOR=1 "${bin}")"
           actual="${actual%$'\n'}"
           if [ "${actual}" != "${expected}" ]; then
-            printf 'expected: %s\nactual:   %s\n' "${expected}" "${actual}"
+            printf 'expected: %q\nactual:   %q\n' "${expected}" "${actual}"
             exit 1
           fi
           echo "published render smoke matched expected bytes"
