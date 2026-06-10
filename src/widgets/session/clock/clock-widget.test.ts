@@ -9,8 +9,9 @@
  *   - `seconds: true` appends :SS;
  *   - identical clock ⇒ identical text (determinism contract).
  *
- * Note: time is rendered in UTC so goldens stay byte-stable across CI
- * runners and time zones (the render-determinism contract — D-006).
+ * All tests pin `timezone: "UTC"` so assertions stay byte-stable across
+ * CI runners and time zones (D-006). Without the pin the widget renders in
+ * the system's local timezone, which is the correct production behaviour.
  */
 
 import { describe, expect, it } from "vitest";
@@ -36,7 +37,7 @@ function makeCtx(at: string): WidgetContext {
 describe("clock widget", () => {
   it("renders 24-hour HH:MM by default", () => {
     const cell = clockWidget.render(makeCtx("2026-01-15T09:05:00Z"), {
-      options: {},
+      options: { timezone: "UTC" },
       rawValue: false,
     });
     expect(cell.text).toBe("09:05");
@@ -45,7 +46,7 @@ describe("clock widget", () => {
 
   it("zero-pads hours and minutes", () => {
     const cell = clockWidget.render(makeCtx("2026-01-15T00:00:00Z"), {
-      options: {},
+      options: { timezone: "UTC" },
       rawValue: false,
     });
     expect(cell.text).toBe("00:00");
@@ -53,7 +54,7 @@ describe("clock widget", () => {
 
   it("renders 23:59 at end of day", () => {
     const cell = clockWidget.render(makeCtx("2026-01-15T23:59:00Z"), {
-      options: {},
+      options: { timezone: "UTC" },
       rawValue: false,
     });
     expect(cell.text).toBe("23:59");
@@ -61,7 +62,7 @@ describe("clock widget", () => {
 
   it("appends :SS when seconds option is true", () => {
     const cell = clockWidget.render(makeCtx("2026-01-15T09:05:07Z"), {
-      options: { seconds: true },
+      options: { seconds: true, timezone: "UTC" },
       rawValue: false,
     });
     expect(cell.text).toBe("09:05:07");
@@ -69,13 +70,13 @@ describe("clock widget", () => {
 
   it("renders 12-hour with lowercase am/pm when format is 12h", () => {
     const morning = clockWidget.render(makeCtx("2026-01-15T09:05:00Z"), {
-      options: { format: "12h" },
+      options: { format: "12h", timezone: "UTC" },
       rawValue: false,
     });
     expect(morning.text).toBe("9:05am");
 
     const evening = clockWidget.render(makeCtx("2026-01-15T21:05:00Z"), {
-      options: { format: "12h" },
+      options: { format: "12h", timezone: "UTC" },
       rawValue: false,
     });
     expect(evening.text).toBe("9:05pm");
@@ -83,13 +84,13 @@ describe("clock widget", () => {
 
   it("renders 12:00pm at noon and 12:00am at midnight in 12h", () => {
     const noon = clockWidget.render(makeCtx("2026-01-15T12:00:00Z"), {
-      options: { format: "12h" },
+      options: { format: "12h", timezone: "UTC" },
       rawValue: false,
     });
     expect(noon.text).toBe("12:00pm");
 
     const midnight = clockWidget.render(makeCtx("2026-01-15T00:00:00Z"), {
-      options: { format: "12h" },
+      options: { format: "12h", timezone: "UTC" },
       rawValue: false,
     });
     expect(midnight.text).toBe("12:00am");
@@ -97,7 +98,7 @@ describe("clock widget", () => {
 
   it("honours options.label when rawValue is false", () => {
     const cell = clockWidget.render(makeCtx("2026-01-15T09:05:00Z"), {
-      options: { label: "🕐 " },
+      options: { label: "🕐 ", timezone: "UTC" },
       rawValue: false,
     });
     expect(cell.text).toBe("🕐 09:05");
@@ -105,7 +106,7 @@ describe("clock widget", () => {
 
   it("rawValue suppresses the label", () => {
     const cell = clockWidget.render(makeCtx("2026-01-15T09:05:00Z"), {
-      options: { label: "t:" },
+      options: { label: "t:", timezone: "UTC" },
       rawValue: true,
     });
     expect(cell.text).toBe("09:05");
@@ -113,11 +114,11 @@ describe("clock widget", () => {
 
   it("is deterministic — identical frozen clock yields identical text", () => {
     const a = clockWidget.render(makeCtx("2026-01-15T13:37:00Z"), {
-      options: {},
+      options: { timezone: "UTC" },
       rawValue: false,
     });
     const b = clockWidget.render(makeCtx("2026-01-15T13:37:00Z"), {
-      options: {},
+      options: { timezone: "UTC" },
       rawValue: false,
     });
     expect(a.text).toBe(b.text);

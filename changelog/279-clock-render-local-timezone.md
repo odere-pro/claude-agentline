@@ -1,0 +1,1 @@
+- Fix the clock widget to render the system's local timezone instead of UTC: it now formats through `Intl.DateTimeFormat`, defaulting to the host's local zone, with a new `timezone` option accepting an IANA string (e.g. `Europe/Stockholm`) for an explicit override. Unit tests pin `timezone: "UTC"` to keep goldens byte-stable across CI runners (the D-006 determinism contract).

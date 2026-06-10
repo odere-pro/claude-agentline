@@ -3,13 +3,15 @@
  *
  * Renders the current time-of-day read through `ctx.clock.now()` — never
  * `Date.now()` — so golden tests stay byte-stable under a frozen clock
- * (the render-determinism contract, D-006). Time is formatted in UTC for
- * the same reason: a wall-clock-local render would differ across CI
- * runners and time zones.
+ * (the render-determinism contract, D-006). Time is rendered in the system's
+ * local timezone by default; pass `timezone` (IANA string) to override.
+ * Unit tests pin `timezone: "UTC"` to satisfy D-006 across CI runners.
  *
  * Options:
- *   - `format`  "24h" (default) → `HH:MM`; "12h" → `H:MMam`/`H:MMpm`.
- *   - `seconds` true → append `:SS`.
+ *   - `format`   "24h" (default) → `HH:MM`; "12h" → `H:MMam`/`H:MMpm`.
+ *   - `seconds`  true → append `:SS`.
+ *   - `timezone` IANA timezone string (e.g. "Europe/Stockholm"). Omit for
+ *                the system's local timezone.
  *
  * Pure `(ctx, settings) → Cell`; never hidden (the clock always has a value).
  */
@@ -24,6 +26,28 @@ interface ClockOptions {
   readonly format?: "24h" | "12h";
   /** Append `:SS` when true. */
   readonly seconds?: boolean;
+  /** IANA timezone string (e.g. "Europe/Stockholm"). Defaults to system local. */
+  readonly timezone?: string;
+}
+
+function extractTimeParts(
+  date: Date,
+  tz: string | undefined,
+): { h: number; m: number; s: number } {
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    ...(tz !== undefined ? { timeZone: tz } : {}),
+  });
+  const map = new Map<string, string>();
+  for (const part of fmt.formatToParts(date)) map.set(part.type, part.value);
+  return {
+    h: (Number.parseInt(map.get("hour") ?? "0", 10) || 0) % 24,
+    m: Number.parseInt(map.get("minute") ?? "0", 10) || 0,
+    s: Number.parseInt(map.get("second") ?? "0", 10) || 0,
+  };
 }
 
 function pad2(n: number): string {
@@ -47,9 +71,7 @@ export const clockWidget = defineWidget<ClockOptions>(
   "clock",
   (ctx: WidgetContext, settings): Cell => {
     const now = ctx.clock.now();
-    const h = now.getUTCHours();
-    const m = now.getUTCMinutes();
-    const s = now.getUTCSeconds();
+    const { h, m, s } = extractTimeParts(now, settings.options.timezone);
     const withSeconds = settings.options.seconds === true;
 
     const time =
