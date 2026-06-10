@@ -1,0 +1,1 @@
+- Stop the git widgets flickering and dropping branch / worktree / PR on slow ticks: a transient `git` timeout now holds the last-known-good snapshot (cached per repo) instead of blanking, while a genuine change still updates; also collapses the per-tick `git rev-parse` spawns.

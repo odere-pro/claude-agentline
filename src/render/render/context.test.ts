@@ -9,10 +9,15 @@
  *       is `true` calls the snapshot loader WITH `allowPullRequest: true`.
  */
 
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 import { DEFAULT_CONFIG } from "../../data/config/defaults/defaults.js";
 import type { AgentlineConfig, WidgetConfig } from "../../data/config/types.js";
+import type { GitSnapshot } from "../../data/git/snapshot/snapshot.js";
+import { saveGitSnapshot } from "../../data/state/git-snapshot-cache/git-snapshot-cache.js";
 import { makeStdinPayload } from "../../test-helpers/index.js";
 
 // --------------------------------------------------------------------------
@@ -118,5 +123,55 @@ describe("loadLiveSnapshots — allowPullRequest threading", () => {
     expect(mockLoadGitSnapshot).toHaveBeenCalledOnce();
     const callArg = mockLoadGitSnapshot.mock.calls[0]?.[0];
     expect(callArg?.allowPullRequest).toBeFalsy();
+  });
+});
+
+describe("loadLiveSnapshots — last-known-good threading", () => {
+  let tmp: string;
+  let env: NodeJS.ProcessEnv;
+
+  beforeEach(() => {
+    mockLoadGitSnapshot.mockClear();
+    mockLoadGitSnapshot.mockReturnValue({ available: false });
+    tmp = mkdtempSync(join(tmpdir(), "agentline-ctx-cache-"));
+    env = { CLAUDE_CONFIG_DIR: tmp };
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it("passes the cached snapshot as `previous` when one exists for the cwd", async () => {
+    const cached: GitSnapshot = Object.freeze({
+      available: true,
+      cwd: "/repo",
+      branch: "feature-x",
+      detached: false,
+      sha: "b".repeat(40),
+      shortSha: "bbbbbbb",
+      status: { staged: 0, unstaged: 0, untracked: 0, conflicts: 0, modified: 0, added: 0 },
+      diff: { insertions: 0, deletions: 0, filesChanged: 0 },
+      diffStaged: { insertions: 0, deletions: 0, filesChanged: 0 },
+      aheadBehind: { ahead: 0, behind: 0 },
+      upstream: null,
+      origin: null,
+      upstreamRemote: null,
+      worktreeName: null,
+      inWorktree: false,
+      pr: null,
+    });
+    await saveGitSnapshot(cached, { env });
+
+    loadLiveSnapshots(makeStdinPayload({ cwd: "/repo" }), { env });
+
+    const callArg = mockLoadGitSnapshot.mock.calls[0]?.[0];
+    expect(callArg?.previous).toEqual(cached);
+  });
+
+  it("omits `previous` when no cache exists for the cwd", () => {
+    loadLiveSnapshots(makeStdinPayload({ cwd: "/repo" }), { env });
+    const callArg = mockLoadGitSnapshot.mock.calls[0]?.[0];
+    expect(callArg?.previous).toBeUndefined();
   });
 });

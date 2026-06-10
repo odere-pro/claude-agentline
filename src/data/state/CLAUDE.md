@@ -4,10 +4,11 @@
 
 ## Scope
 
-Six sibling on-disk caches under `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/`:
+Seven sibling on-disk caches under `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/`:
 
 - `stdin-cache/` — most recent stdin payload; the editor preview reads it when the real transcript is absent.
 - `render-cache/` — last-rendered ANSI; debug + preview fallback.
+- `git-snapshot-cache/` — last-known-good git snapshot, **keyed per `cwd`** (one file per repo, named by a hash of the absolute `cwd`). Written best-effort on the live render path; read synchronously by the live snapshot loader and handed to `loadGitSnapshot` as `previous` so a transient `git` timeout holds last-known-good instead of flickering the git family off.
 - `backup/` — host-state backup written by `agentline install`; restored byte-for-byte by `agentline uninstall`.
 - `version-check-cache/` — latest-version hint refreshed by `update-check`; never consulted on the render hot path as a blocking read.
 - `session-plan-cache/` — `session_id` → its latest plan; the `plan` widget's per-session store and a fallback when the transcript is momentarily unreadable. Written best-effort on the live render path under a file lock; only on a real change.
@@ -21,6 +22,7 @@ Pipeline position: orthogonal to the render path. Reads are synchronous snapshot
 src/data/state/
 ├── stdin-cache/         most recent stdin payload (read by TUI preview)
 ├── render-cache/        last-rendered ANSI (debug + preview fallback)
+├── git-snapshot-cache/  last-known-good git snapshot per cwd (anti-flicker fallback)
 ├── backup/              host-state backup for agentline install / uninstall
 ├── version-check-cache/ latest-version hint (refreshed by update-check)
 ├── session-plan-cache/  session_id → its latest plan (read by the plan widget)
@@ -66,6 +68,26 @@ grounded in `src/data/state/render-cache/render-cache.ts`:
 - **Agent-operable** — because the read is synchronous and path-scoped to `$CLAUDE_CONFIG_DIR`, an
   agent can answer "what is the statusline currently showing?" by calling `readLastRenderSync`
   without touching the render pipeline.
+
+## Git-snapshot cache freshness contract
+
+The **git-snapshot cache** (`src/data/state/git-snapshot-cache/`) stores the last
+successful `GitSnapshot` per repo as `state/git-snapshot/<hash-of-cwd>.json`. Key
+properties, grounded in `git-snapshot-cache.ts` and `data/git/snapshot/snapshot.ts`:
+
+- **Keyed per `cwd`** — one file per repo (filename = 16-hex SHA-256 prefix of the
+  absolute `cwd`). Two repos open in two terminals never clobber each other's
+  last-known-good, and per-file atomic rename keeps concurrent renders race-safe.
+- **Written** only on the live render path, best-effort and only for an _available_
+  snapshot. **Read** synchronously by `loadLiveSnapshots` and passed to
+  `loadGitSnapshot` as `previous`.
+- **The loader, not the cache, decides staleness.** On a _transient_ `git` failure
+  (timeout / spawn error — `gitRunOutcome` reason `transient`) the loader reuses the
+  cached field; a _clean_ non-zero exit (no upstream, not a repo, PR closed) takes the
+  fresh answer so real changes are never masked. There is no TTL.
+- **Invalid/absent → `null`** — missing file, malformed JSON, unknown `version`,
+  `cwd` mismatch, or any wrong-typed field reads back as `null`, and the loader behaves
+  exactly as it did before the cache existed. Deleting any file is safe.
 
 ## Applied patterns
 
