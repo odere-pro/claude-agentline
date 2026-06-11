@@ -60,16 +60,28 @@ export function gitRunOutcome(args: readonly string[], options: GitInvokeOptions
     });
     return { ok: true, value: trimCrlf(out) };
   } catch (err) {
-    /*
-     * `execFileSync` sets a numeric `status` only when git actually ran
-     * and returned a non-zero exit code. Timeouts, a missing binary,
-     * buffer overflow, and other spawn failures leave `status` null/
-     * undefined and surface via `code`/`signal` instead — those are the
-     * transient cases we hold last-known-good data through.
-     */
-    const status = (err as { status?: unknown }).status;
-    return { ok: false, reason: typeof status === "number" ? "exit" : "transient" };
+    return { ok: false, reason: classifyGitFailure(err) };
   }
+}
+
+/**
+ * Classify a thrown `execFileSync` failure as a genuine non-zero `exit`
+ * (git ran and answered "no") or a `transient` miss (timeout, signal
+ * kill, missing binary, buffer overflow, spawn failure).
+ *
+ * Signal/kill is checked BEFORE the exit status: a timed-out command is
+ * killed with SIGTERM and, depending on platform/Node version, may carry
+ * both a signal and a non-null `status`. Keying on `status` alone would
+ * then misread a timeout as a genuine exit and drop the last-known-good
+ * fallback — the very flicker this guards against. Only a clean exit
+ * (status set, not killed, no signal) counts as `exit`.
+ */
+export function classifyGitFailure(err: unknown): "exit" | "transient" {
+  const e = (err ?? {}) as { status?: unknown; signal?: unknown; killed?: unknown };
+  if (e.killed === true) return "transient";
+  if (typeof e.signal === "string" && e.signal.length > 0) return "transient";
+  if (typeof e.status === "number") return "exit";
+  return "transient";
 }
 
 export function gitRun(args: readonly string[], options: GitInvokeOptions): string | null {

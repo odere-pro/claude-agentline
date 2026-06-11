@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { gitRun, gitRunOutcome, trimCrlf } from "./invoke.js";
+import { classifyGitFailure, gitRun, gitRunOutcome, trimCrlf } from "./invoke.js";
 
 describe("trimCrlf", () => {
   it("strips trailing LF", () => {
@@ -61,10 +61,35 @@ describe("gitRunOutcome", () => {
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.reason).toBe("transient");
   });
+});
 
-  it("classifies a timeout as 'transient'", () => {
-    // A 0ms timeout forces the kill path (SIGTERM, no exit status).
-    const outcome = gitRunOutcome(["rev-parse", "HEAD"], { cwd: process.cwd(), timeoutMs: 1 });
-    if (!outcome.ok) expect(outcome.reason).toBe("transient");
+describe("classifyGitFailure", () => {
+  it("treats a numeric exit status as a genuine 'exit'", () => {
+    expect(classifyGitFailure({ status: 128, signal: null })).toBe("exit");
+  });
+
+  it("treats a SIGTERM kill (timeout) as 'transient'", () => {
+    expect(classifyGitFailure({ status: null, signal: "SIGTERM", code: "ETIMEDOUT" })).toBe(
+      "transient",
+    );
+  });
+
+  it("treats a kill that also reports a status as 'transient' (signal wins)", () => {
+    // Some platforms/Node versions surface both on a timeout kill; the
+    // signal must take precedence so the timeout isn't read as a real exit.
+    expect(classifyGitFailure({ status: 143, signal: "SIGTERM", killed: true })).toBe("transient");
+  });
+
+  it("treats killed:true as 'transient' even without a signal", () => {
+    expect(classifyGitFailure({ status: 1, killed: true })).toBe("transient");
+  });
+
+  it("treats a spawn failure (ENOENT) as 'transient'", () => {
+    expect(classifyGitFailure({ code: "ENOENT", status: null })).toBe("transient");
+  });
+
+  it("treats an unknown/empty error as 'transient'", () => {
+    expect(classifyGitFailure({})).toBe("transient");
+    expect(classifyGitFailure(undefined)).toBe("transient");
   });
 });
