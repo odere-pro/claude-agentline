@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] — 2026-06-11
+
+### Changed
+
+- `8c466a7` — Align the GitHub Pages landing page with the README and the odere-pro wiki-pages design system: correct the install flow to the canonical `agentline reset` verb (was `agentline install`) in the install panels and the HowTo structured data, fix the "5 families" FAQ count to 6, and restyle the page onto the wiki-pages-plugin palette and UX — slate-blue base with teal/blue accents, Inter type, dual-glow background, gradient hero headline, a traffic-light terminal panel, bento feature grids, and 10px controls — while keeping the page fully self-contained with zero render-time network requests.
+
+### Fixed
+
+- `c02e5d9` — Fix the clock widget to render the system's local timezone instead of UTC: it now formats through `Intl.DateTimeFormat`, defaulting to the host's local zone, with a new `timezone` option accepting an IANA string (e.g. `Europe/Stockholm`) for an explicit override. Unit tests pin `timezone: "UTC"` to keep goldens byte-stable across CI runners (the D-006 determinism contract).
+- `371f7b7` — Stop the git widgets flickering and dropping branch / worktree / PR on slow ticks: a transient `git` timeout now holds the last-known-good snapshot (cached per repo) instead of blanking, while a genuine change still updates; also collapses the per-tick `git rev-parse` spawns.
+
 ## [1.0.0] — 2026-06-07
 
 First stable release. `1.0.0` freezes the public CLI surface and the config schema; subsequent breaking changes to CLI flags, config shape, or schema version follow the post-1.0 deprecation policy in `docs/cookbook/16-release-and-versioning.md`.
