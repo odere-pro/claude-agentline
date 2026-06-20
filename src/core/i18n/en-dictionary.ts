@@ -236,6 +236,30 @@ Options:
 Your config.json IS overwritten. Themes/skills you edited and any
 pre-install statusLine backup are preserved.
 `,
+  "cmd.start.help": `agentline start — use the installed version with your existing config
+
+Usage:
+  agentline start [--from-source] [--force] [--dry-run] [--no-preview]
+
+Re-wires the Claude Code statusLine to the installed agentline binary and
+prints a one-shot preview rendered through your existing config. Run it
+after upgrading the package (npm i -g @odere-pro/agentline) to start using
+the new version. If agentline is not yet set up on this host, start
+performs the first-time wiring too.
+
+Options:
+  --from-source   npm link from the local checkout instead of the registry.
+  --force         Overwrite a non-agentline statusLine value.
+  --dry-run       Print every action that would be taken; touch nothing.
+  --no-preview    Skip the statusline preview after wiring.
+  -h, --help      Show this message.
+
+Your config.json is PRESERVED. To reset it to the shipped default
+template instead, use \`agentline reset\`.
+`,
+  "cmd.start.preview-label": "Statusline preview (your config):",
+  "cmd.start.preview-unavailable":
+    "Statusline preview unavailable — run `agentline doctor` to check your config.",
 } as const;
 
 export type DictionaryId = keyof typeof EN_DICTIONARY;

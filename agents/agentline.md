@@ -78,8 +78,11 @@ Full reference → [themes.md](../docs/themes.md)
 
 ```bash
 npm install -g @odere-pro/agentline && agentline install   # install
+npm i -g @odere-pro/agentline@latest && agentline start     # upgrade + adopt new version (keeps your config)
 agentline uninstall [--purge]                        # uninstall
 ```
+
+`agentline start` re-wires the statusLine to the installed binary and prints a preview, **without** overwriting your config — use it after upgrading. `agentline reset` does the same wiring but resets your config to defaults.
 
 Full reference → [install.md](../docs/install.md)
 
@@ -92,7 +95,7 @@ Full reference → [install.md](../docs/install.md)
 | Statusline not showing       | `agentline doctor --fix` then restart Claude Code                                        |
 | Blank/garbled output         | Reset config (see above), run `agentline doctor`                                         |
 | Config ignored               | Check path is `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/config.json` (no project layer) |
-| Outdated CLI                 | `npm install -g @odere-pro/agentline@latest`                                             |
+| Outdated CLI                 | `npm i -g @odere-pro/agentline@latest && agentline start` (upgrade, keep config)         |
 | Powerline `>` instead of `❯` | Install a Nerd Font, or set `AGENTLINE_GLYPHS=nerd`                                      |
 
 More → [troubleshooting.md](../docs/troubleshooting.md) · Full CLI reference → [cli.md](../docs/cli.md)

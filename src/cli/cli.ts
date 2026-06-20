@@ -5,10 +5,11 @@
  * (`src/doctor`, `src/render`, `src/tui`, …); this file is
  * dispatch-only.
  *
- * Top-level surface: render (default) / edit / reset /
+ * Top-level surface: render (default) / start / edit / reset /
  * uninstall / doctor / config / help / version.
  * `install` is still dispatched but hidden from help — `reset`
- * is the user/agent-facing way to (re)apply defaults.
+ * is the user/agent-facing way to (re)apply defaults, and `start`
+ * is the config-preserving way to (re)wire the installed version.
  *
  * The default invocation (no subcommand) runs the render path:
  * read stdin, render the merged statusline, write to stdout.
@@ -23,6 +24,7 @@ import { HelpRequestedError, isHelpFlag, requestHelp } from "../core/lib/help/he
 import { parseDoctorArgs, runDoctorCommand } from "../commands/doctor/command.js";
 import { parseInstallArgs, runInstallCommand } from "../commands/install/command.js";
 import { parseResetArgs, runResetCommand } from "../commands/reset/command.js";
+import { parseStartArgs, runStartCommand } from "../commands/start/command.js";
 import { parseUninstallArgs, runUninstallCommand } from "../commands/uninstall/command.js";
 import { parseRenderArgs, runRenderCommand } from "../render/render/fixture/fixture-command.js";
 import { detectColourDepth } from "../render/render/colour-depth/colour-depth.js";
@@ -105,6 +107,7 @@ function runHelp(): number {
       "The default form is what Claude Code reads. Use the commands below to set it up.",
       "",
       "Commands:",
+      "  start                use the installed version with your config (rewire + preview)",
       "  reset                reset agentline to defaults (reseed config + rewire)",
       "  uninstall            remove agentline + restore prior statusLine",
       "  doctor [--fix]       diagnose + repair host wiring",
@@ -260,6 +263,7 @@ export const COMMANDS: Readonly<Record<string, Subcommand>> = Object.freeze({
     return dispatch(runEditor, "agentline edit");
   },
   reset: (rest) => dispatch(() => runResetCommand(parseResetArgs(rest)), "agentline reset"),
+  start: (rest) => dispatch(() => runStartCommand(parseStartArgs(rest)), "agentline start"),
   // Hidden from `runHelp()` but still dispatched (see table JSDoc above).
   install: (rest) => dispatch(() => runInstallCommand(parseInstallArgs(rest)), "agentline install"),
   uninstall: (rest) =>

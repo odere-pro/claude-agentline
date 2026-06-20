@@ -7,6 +7,7 @@ The non-render verbs and host-wiring lifecycle:
 - `install/` — wire the `statusLine` host setting and copy skill files, with a paired byte-checksummed backup.
 - `uninstall/` — reverse the install and restore the prior host setting byte-for-byte.
 - `reset/` — the user/agent-facing entry point: install steps plus a forced config reseed.
+- `start/` — visible, config-preserving rewire: install steps **without** the reseed, then a one-shot statusline preview. Use after upgrading the package to adopt the new version with the existing config.
 - `doctor/` — diagnose host wiring, with `--fix` repair and a `--json` report.
 - `update-check/` — an out-of-render-path helper that refreshes a cached latest-version hint; **not** a user-facing command.
 - `claude-health/` — an out-of-render-path helper that probes the host `claude` CLI (`claude --version`, `claude doctor`) and npm, writing the claude-health cache that feeds doctor D10. Imported lazily by D10 at check time (best-effort self-refresh); **not** a user-facing command and not spawned by the render path.

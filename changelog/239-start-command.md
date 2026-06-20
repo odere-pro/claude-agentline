@@ -1,0 +1,1 @@
+- Add a visible `agentline start` command: re-wire the statusLine to the installed binary and print a one-shot preview, without overwriting the user config — the config-preserving counterpart to `reset`, for adopting a freshly upgraded version.
