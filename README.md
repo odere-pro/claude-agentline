@@ -65,7 +65,7 @@ Restart Claude Code after `reset` — the statusline appears at the bottom of th
 
 ## Use
 
-The CLI is intentionally small: `reset` · `uninstall` · `doctor` · `edit` · `config`.
+The CLI is intentionally small: `start` · `reset` · `uninstall` · `doctor` · `edit` · `config`.
 
 ### Install and first-time setup
 
@@ -90,6 +90,18 @@ is hidden from `agentline help` — `reset` is the entry point for users and age
 Backs up any prior `statusLine` so `uninstall` restores it byte-for-byte.
 
 Restart Claude Code — the statusline appears at the bottom of the prompt.
+
+### Upgrade
+
+After publishing/installing a new version, adopt it with the config you already have:
+
+```bash
+npm i -g @odere-pro/agentline@latest   # pull the new version
+agentline start                        # rewire to it + preview; your config is preserved
+```
+
+`start` is the visible, config-preserving verb: it re-wires `statusLine` to the installed
+binary and prints a one-shot preview. Unlike `reset`, it never overwrites `config.json`.
 
 ### Configure
 

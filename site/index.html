@@ -250,6 +250,14 @@
               },
               {
                 "@type": "Question",
+                "name": "How do I upgrade agentline to a new version?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Pull the new release with `npm i -g @odere-pro/agentline@latest`, then run `agentline start`. It re-wires the statusLine to the installed binary and prints a one-shot preview rendered through your existing config — without overwriting it. Use `agentline reset` instead only when you want to discard your config and return to the shipped default."
+                }
+              },
+              {
+                "@type": "Question",
                 "name": "Does agentline support no-color, ASCII, or accessible terminals?",
                 "acceptedAnswer": {
                   "@type": "Answer",
@@ -1706,6 +1714,13 @@ npm install -g @odere-pro/agentline
             byte-for-byte and remove the installed skills.
           </p>
 
+          <p class="install-note">
+            <strong>Already installed?</strong> After
+            <code>npm i -g @odere-pro/agentline@latest</code>, run
+            <code>agentline start</code> to adopt the new version — it rewires to
+            the installed binary and shows a preview, keeping your config.
+          </p>
+
           <div>
             <p class="sub">Uninstall</p>
             <div class="term" aria-label="Uninstall agentline">
@@ -1770,6 +1785,17 @@ npm install -g @odere-pro/agentline
             skills. Add <code>agentline uninstall --purge</code> to also wipe
             your agentline config and custom themes. Setup takes a backup
             first, so the round-trip leaves no trace.
+          </dd>
+
+          <dt>How do I upgrade agentline to a new version?</dt>
+          <dd>
+            Pull the new release with
+            <code>npm i -g @odere-pro/agentline@latest</code>, then run
+            <code>agentline start</code>. It re-wires the
+            <code>statusLine</code> to the installed binary and prints a
+            one-shot preview rendered through your existing config — without
+            overwriting it. Reach for <code>agentline reset</code> only when you
+            want to discard your config and return to the shipped default.
           </dd>
 
           <dt>Does agentline support no-color, ASCII, or accessible terminals?</dt>

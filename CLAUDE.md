@@ -162,6 +162,7 @@ Plugin distribution (`.claude-plugin/`), native binaries, Homebrew, curl-install
 | `pnpm test`                                         | Unit tests                                                |
 | `bash tests/gates/run-all.sh`                       | Run all repo gates                                        |
 | `node dist/cli.mjs install --from-source`           | Wire statusline + install skills locally                  |
+| `node dist/cli.mjs start --from-source`             | Re-wire to the build + preview (config-preserving)        |
 | `node dist/cli.mjs edit`                            | Open the TUI editor                                       |
 | `pnpm run preview:watch`                            | Live-reload preview while editing config                  |
 | `bash scripts/install.sh --dry-run`                 | Preview the install actions (legacy)                      |

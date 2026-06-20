@@ -219,10 +219,25 @@ Every subcommand responds to `-h` / `--help`. See [cli.md](./cli.md) for the com
 | Command               | Purpose                                                         |
 | --------------------- | --------------------------------------------------------------- |
 | `agentline install`   | Wire `statusLine` and install skill files (this page).          |
+| `agentline start`     | Re-wire to the installed version + preview; preserves config.   |
 | `agentline uninstall` | Restore prior `statusLine`; remove installed skills.            |
 | `agentline doctor`    | Diagnose host wiring; `--fix` repairs D01–D04.                  |
 | `agentline edit`      | Open the TUI editor (Ink, lazy-loaded).                         |
 | `(default)`           | Read stdin, render, write to stdout (the live statusline path). |
+
+## Upgrading
+
+To move to a newer release without disturbing your configuration:
+
+```bash
+npm i -g @odere-pro/agentline@latest   # pull the new version
+agentline start                        # rewire to it + preview; config is preserved
+```
+
+`agentline start` runs the same idempotent wiring as `install` (so it also performs
+first-time setup on a fresh host) but **never** reseeds `config.json`, then prints a
+one-shot statusline preview rendered through your existing config. Use `agentline reset`
+instead only when you want to discard your config and return to the shipped default.
 
 ## Uninstall
 

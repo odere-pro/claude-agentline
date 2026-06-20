@@ -28,9 +28,11 @@ agentline reset
 
 **`reset` is the canonical setup verb.** It performs first-time wiring on a fresh host and
 is safe to re-run — it reseeds the user config from the default template and rewires Claude
-Code every time. The lower-level `agentline install` verb preserves an existing user config
-(useful for upgrades) but is hidden from `agentline help`; `reset` is the entry point for
-users and agents.
+Code every time. To adopt a newer version **without** reseeding your config, use
+`agentline start` (it rewires to the installed binary and prints a preview, preserving
+`config.json`). The lower-level `agentline install` verb is the same config-preserving
+wiring without the preview, and is hidden from `agentline help`; `reset` is the entry point
+for users and agents.
 
 Either way, `reset`:
 
