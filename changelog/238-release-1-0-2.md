@@ -1,0 +1,1 @@
+- Release v1.0.2: promote the `ws` security fix into a curated `[1.0.2]` section of `CHANGELOG.md`, clear the stale `230-release-1-0-1.md` fragment, and bump the package, bundled bin, and landing-page version to 1.0.2.
