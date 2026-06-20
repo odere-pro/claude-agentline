@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-06-20
+
+### Added
+
+- `a7f439e` — Add a visible `agentline start` command: re-wire the statusLine to the installed binary and print a one-shot preview rendered through your existing config, without overwriting it — the config-preserving counterpart to `reset`, for adopting a freshly upgraded version. Wires into the CLI dispatch table and help, ships `cmd.start.*` dictionary entries, and is documented across the CLI reference, README, install/get-started docs, and the landing page.
+
 ## [1.0.2] — 2026-06-20
 
 ### Security

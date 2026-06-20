@@ -1,0 +1,1 @@
+- Release v1.1.0: promote the `agentline start` command into a curated `[1.1.0]` section of `CHANGELOG.md`, clear the folded fragments, and bump the package, bundled bin, and landing-page version to 1.1.0.
