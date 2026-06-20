@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] — 2026-06-20
+
+### Security
+
+- `cdd6570` — Bump the pinned `ws` override from `8.20.1` to the patched `8.21.0` to clear GHSA-96hv-2xvq-fx4p, a high-severity memory-exhaustion DoS reported against `ws <8.21.0` (pulled in transitively via `ink`). Restores `gate-23` (dependency audit) to green; `ink`'s `^8.15.0` range accepts the new pin.
+
 ## [1.0.1] — 2026-06-11
 
 ### Changed
