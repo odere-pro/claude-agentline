@@ -1,8 +1,8 @@
 /**
  * CLI dispatch surface test.
  *
- * Locks the top-level command set: render / edit / reset / install /
- * uninstall / doctor / config + the help/version aliases.
+ * Locks the top-level command set: render / start / edit / reset /
+ * install / uninstall / doctor / config + the help/version aliases.
  * `config` re-entered the surface in PR #107 to host scriptable
  * `config widget …` mutations for in-session use by the agentline
  * configure skill. `install` stays dispatched but is hidden from
@@ -18,6 +18,7 @@ import { COMMANDS } from "./cli.js";
 
 const EXPECTED_COMMANDS = [
   "render",
+  "start",
   "edit",
   "reset",
   "install",

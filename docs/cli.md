@@ -13,6 +13,7 @@ The top-level surface is intentionally small: **`reset` · `uninstall` · `docto
 | Command                   | Purpose                                             | Writes to disk |
 | ------------------------- | --------------------------------------------------- | -------------- |
 | _(default)_               | Read stdin JSON, render statusline, write to stdout | no             |
+| [`start`](#start)         | Wire the installed version to your config + preview | **yes**        |
 | [`reset`](#reset)         | Restore defaults: reseed config + rewire statusLine | **yes**        |
 | [`uninstall`](#uninstall) | Undo install; restore pre-install state             | **yes**        |
 | [`config`](#config)       | Inspect/set config (`refresh`); `undo` / `redo`     | with `<value>` |
@@ -39,6 +40,36 @@ Called by Claude Code on every prompt render. Claude Code pipes a JSON payload t
 **First-run hint:** when stderr is a TTY and no user config exists, agentline prints a one-time hint recommending `agentline reset` to seed the default config. Suppress with `AGENTLINE_QUIET=1`.
 
 **Exit codes:** `0` success · `1` stdin parse error or empty stdin
+
+---
+
+## start
+
+```bash
+agentline start [options]
+```
+
+Use the installed agentline binary with the config you already have. Run it after upgrading the package (`npm i -g @odere-pro/agentline`) to start using the new version: it re-wires the Claude Code `statusLine` to the installed binary and then prints a one-shot preview rendered through your existing config so you can confirm it works. On a host that was never set up, `start` performs the first-time wiring too.
+
+`start` is the visible, **config-preserving** counterpart to the hidden [`install`](#install-hidden) and the config-overwriting [`reset`](#reset). It delegates to `scripts/install.sh` **without** `--reset`, so your `config.json` is never touched.
+
+| Flag            | Type | Default | Description                                                                |
+| --------------- | ---- | ------- | -------------------------------------------------------------------------- |
+| `--from-source` | flag | off     | `npm link` from the local checkout instead of installing from the registry |
+| `--force`       | flag | off     | Overwrite a `statusLine` value even when it does not point at agentline    |
+| `--dry-run`     | flag | off     | Print every action that would be taken; touch nothing (no preview)         |
+| `--no-preview`  | flag | off     | Wire the statusLine but skip the preview                                   |
+| `-h` / `--help` | flag | —       | Show command help                                                          |
+
+**Preview scope:** the preview is rendered against a synthetic payload (there is no live Claude Code payload at `start` time), so it confirms your layout and colours. Widgets that need a live transcript (tokens, session) are hidden; git widgets reflect the directory you ran `start` from.
+
+**Examples:**
+
+```bash
+agentline start                            # rewire + show a preview
+agentline start --no-preview               # rewire only
+agentline start --dry-run                  # preview the wiring actions; touch nothing
+```
 
 ---
 

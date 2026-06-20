@@ -58,7 +58,7 @@ export interface ProjectGateInput {
   /** Output stream the prompt + skip message are written to. Defaults to `process.stderr`. */
   readonly stderr?: { write(chunk: string): unknown };
   /** Command name surfaced in the prompt copy ("agentline edit: …"). */
-  readonly command: "init" | "install" | "reset" | "edit";
+  readonly command: "init" | "install" | "reset" | "edit" | "start";
 }
 
 /**
@@ -68,7 +68,7 @@ export interface ProjectGateInput {
 export type ProjectGateResult = "proceed" | "skip";
 
 /**
- * Pre-flight gate for `init`/`install`/`reset`/`edit`. Returns
+ * Pre-flight gate for `init`/`install`/`reset`/`edit`/`start`. Returns
  * `"proceed"` inside a Claude project unconditionally; outside one,
  * prompts on TTYs (default `N`) and skips silently on non-TTYs.
  */
