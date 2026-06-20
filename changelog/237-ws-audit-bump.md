@@ -1,0 +1,1 @@
+- Security: bump the pinned `ws` override to `8.21.0` to clear GHSA-96hv-2xvq-fx4p (memory-exhaustion DoS) reported against `<8.21.0` and keep gate-23 green.
