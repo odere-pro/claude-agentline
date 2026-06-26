@@ -207,8 +207,8 @@ describe("adaptStatuslinePayload — translator version", () => {
     expect(out.translatorVersion).toBe(STATUSLINE_TRANSLATOR_VERSION);
   });
 
-  it("STATUSLINE_TRANSLATOR_VERSION is 4 (bumped when vim_mode reshaped to nested vim.mode)", () => {
-    expect(STATUSLINE_TRANSLATOR_VERSION).toBe(4);
+  it("STATUSLINE_TRANSLATOR_VERSION is 5 (bumped when pr / workspace.repo accessors added)", () => {
+    expect(STATUSLINE_TRANSLATOR_VERSION).toBe(5);
   });
 });
 
@@ -307,6 +307,121 @@ describe("adaptStatuslinePayload — agent / workspace / thinking fields", () =>
     expect(adaptStatuslinePayload({ thinking: { enabled: 1 } }).thinkingEnabled).toBeUndefined();
     expect(adaptStatuslinePayload({ thinking: "on" }).thinkingEnabled).toBeUndefined();
     expect(adaptStatuslinePayload({}).thinkingEnabled).toBeUndefined();
+  });
+});
+
+describe("adaptStatuslinePayload — pr block", () => {
+  it("maps a full pr block to camelCase fields, lowercasing review_state", () => {
+    const out = adaptStatuslinePayload({
+      pr: { number: 244, url: "https://github.com/odere-pro/agentline/pull/244", review_state: "APPROVED" },
+    });
+    expect(out.pr).toEqual({
+      number: 244,
+      url: "https://github.com/odere-pro/agentline/pull/244",
+      reviewState: "approved",
+    });
+  });
+
+  it("maps a partial pr block (only number)", () => {
+    const out = adaptStatuslinePayload({ pr: { number: 7 } });
+    expect(out.pr).toEqual({ number: 7 });
+    expect(out.pr?.url).toBeUndefined();
+    expect(out.pr?.reviewState).toBeUndefined();
+  });
+
+  it("returns undefined when the pr key is absent", () => {
+    const out = adaptStatuslinePayload({ session_id: "s" });
+    expect(out.pr).toBeUndefined();
+  });
+
+  it("returns undefined when pr is not a plain object", () => {
+    expect(adaptStatuslinePayload({ pr: "bad" }).pr).toBeUndefined();
+    expect(adaptStatuslinePayload({ pr: 42 }).pr).toBeUndefined();
+    expect(adaptStatuslinePayload({ pr: null }).pr).toBeUndefined();
+  });
+
+  it("lowercases review_state values", () => {
+    const out = adaptStatuslinePayload({ pr: { review_state: "CHANGES_REQUESTED" } });
+    expect(out.pr?.reviewState).toBe("changes_requested");
+  });
+
+  it("passes through unknown review_state values lower-cased (forward-compat)", () => {
+    const out = adaptStatuslinePayload({ pr: { review_state: "FUTURE_VALUE" } });
+    expect(out.pr?.reviewState).toBe("future_value");
+  });
+
+  it("omits reviewState when review_state is an empty string", () => {
+    const out = adaptStatuslinePayload({ pr: { review_state: "" } });
+    expect(out.pr?.reviewState).toBeUndefined();
+  });
+});
+
+describe("adaptStatuslinePayload — pr block integer hardening", () => {
+  it("omits pr.number when the value is a float (3.7)", () => {
+    // pickFiniteNumber accepts 3.7 but the stricter integer guard must reject it.
+    const out = adaptStatuslinePayload({ pr: { number: 3.7, review_state: "approved" } });
+    expect(out.pr?.number).toBeUndefined();
+    // The block is still present because reviewState survives.
+    expect(out.pr?.reviewState).toBe("approved");
+  });
+
+  it("omits pr.number when the value is zero", () => {
+    const out = adaptStatuslinePayload({ pr: { number: 0, review_state: "pending" } });
+    expect(out.pr?.number).toBeUndefined();
+    expect(out.pr?.reviewState).toBe("pending");
+  });
+
+  it("omits pr.number when the value is negative (-5)", () => {
+    const out = adaptStatuslinePayload({ pr: { number: -5 } });
+    // Only number present and it is rejected → whole pr block is undefined.
+    expect(out.pr).toBeUndefined();
+  });
+
+  it("omits pr.number when the value is a non-number string", () => {
+    const out = adaptStatuslinePayload({ pr: { number: "x" as unknown as number } });
+    expect(out.pr?.number).toBeUndefined();
+  });
+
+  it("keeps pr.number=244 as a valid finite positive integer", () => {
+    const out = adaptStatuslinePayload({ pr: { number: 244 } });
+    expect(out.pr?.number).toBe(244);
+  });
+});
+
+describe("adaptStatuslinePayload — workspaceRepo block", () => {
+  it("maps a full workspace.repo block to host/owner/name", () => {
+    const out = adaptStatuslinePayload({
+      workspace: {
+        current_dir: "/repo",
+        repo: { host: "github.com", owner: "odere-pro", name: "agentline" },
+      },
+    });
+    expect(out.workspaceRepo).toEqual({ host: "github.com", owner: "odere-pro", name: "agentline" });
+  });
+
+  it("maps a partial workspace.repo block (only name)", () => {
+    const out = adaptStatuslinePayload({ workspace: { repo: { name: "agentline" } } });
+    expect(out.workspaceRepo).toEqual({ name: "agentline" });
+    expect(out.workspaceRepo?.host).toBeUndefined();
+    expect(out.workspaceRepo?.owner).toBeUndefined();
+  });
+
+  it("returns undefined when workspace.repo is absent", () => {
+    const out = adaptStatuslinePayload({ workspace: { current_dir: "/repo" } });
+    expect(out.workspaceRepo).toBeUndefined();
+  });
+
+  it("returns undefined when workspace itself is absent", () => {
+    expect(adaptStatuslinePayload({ session_id: "s" }).workspaceRepo).toBeUndefined();
+  });
+
+  it("returns undefined when workspace.repo is not a plain object", () => {
+    expect(adaptStatuslinePayload({ workspace: { repo: "bad" } }).workspaceRepo).toBeUndefined();
+    expect(adaptStatuslinePayload({ workspace: { repo: 42 } }).workspaceRepo).toBeUndefined();
+  });
+
+  it("returns undefined when workspace.repo has no recognised fields", () => {
+    expect(adaptStatuslinePayload({ workspace: { repo: {} } }).workspaceRepo).toBeUndefined();
   });
 });
 

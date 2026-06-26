@@ -29,8 +29,12 @@ const MAX_PAYLOAD_BYTES = 256 * 1024;
  * Bump rules: increment when adding a new field, renaming, or changing
  * the meaning of an existing field. Pure additions to `raw` passthrough
  * do not require a bump.
+ *
+ * Version history:
+ *   4 — `vim.mode` nested block (vim_mode flat fallback retained)
+ *   5 — `pr` block + `workspace.repo` nested block accessors
  */
-export const STATUSLINE_TRANSLATOR_VERSION = 4;
+export const STATUSLINE_TRANSLATOR_VERSION = 5;
 
 export interface StdinPayload {
   /** Original parsed JSON, fields untouched. */
@@ -181,6 +185,46 @@ export interface StdinPayload {
    * the host sent a real boolean.
    */
   thinkingEnabled?: boolean;
+  /**
+   * Host-provided pull-request metadata from the host's `pr` block.
+   * Bridges the PR data from the host directly into the git snapshot
+   * (number + url) so `git-pr` can render without a `gh` shell-out, and
+   * feeds the `git-pr-review` widget via `reviewState`.
+   *
+   *   - `number`       ← `pr.number`       (finite int > 0)
+   *   - `url`          ← `pr.url`          (non-empty string)
+   *   - `reviewState`  ← `pr.review_state` (lower-cased by the adapter)
+   *
+   * Known `reviewState` values at time of writing: `"approved"`,
+   * `"pending"`, `"changes_requested"`, `"draft"`. An unknown future
+   * value passes through lower-cased — same forward-compat reasoning as
+   * `thinkingEffort` and `vimMode`. The block is absent on older host
+   * versions; each field is independently optional so a partial block
+   * still surfaces what it can.
+   */
+  pr?: {
+    readonly number?: number;
+    readonly url?: string;
+    readonly reviewState?: string;
+  };
+  /**
+   * Host-provided repository identity from the nested `workspace.repo`
+   * block. Feeds the `git-origin-repo` widget's `owner/name` variant and
+   * its host-first name preference.
+   *
+   *   - `host`   ← `workspace.repo.host`   (e.g. `"github.com"`)
+   *   - `owner`  ← `workspace.repo.owner`
+   *   - `name`   ← `workspace.repo.name`
+   *
+   * Each field is independently optional. The block is absent when the
+   * host does not send a `workspace.repo` sub-object, or when none of
+   * the fields are recognisable strings.
+   */
+  workspaceRepo?: {
+    readonly host?: string;
+    readonly owner?: string;
+    readonly name?: string;
+  };
 }
 
 export class StdinParseError extends Error {
@@ -228,6 +272,8 @@ export function adaptStatuslinePayload(
   const contextWindow = adaptContextWindow(raw["context_window"]);
   const rateLimits = adaptRateLimits(raw["rate_limits"]);
   const cost = adaptCost(raw["cost"]);
+  const pr = adaptPr(raw["pr"]);
+  const workspaceRepo = adaptWorkspaceRepo(workspaceBlock?.["repo"]);
   const agentName = pickString(agentBlock, "name");
   const projectDir = pickString(workspaceBlock, "project_dir");
   const addedDirs = pickStringArray(workspaceBlock, "added_dirs");
@@ -255,6 +301,8 @@ export function adaptStatuslinePayload(
     ...(contextWindow ? { contextWindow } : {}),
     ...(rateLimits ? { rateLimits } : {}),
     ...(cost ? { cost } : {}),
+    ...(pr ? { pr } : {}),
+    ...(workspaceRepo ? { workspaceRepo } : {}),
   };
 }
 
@@ -265,6 +313,58 @@ function pickFiniteNumber(
   if (!obj) return undefined;
   const v = obj[key];
   return typeof v === "number" && Number.isFinite(v) ? v : undefined;
+}
+
+/**
+ * Pull the host-provided PR metadata out of Claude Code's `pr` block.
+ * Returns `undefined` when the block is absent so PR widgets can hide
+ * rather than invent a value. Each field is adapted independently — a
+ * partial block (e.g. only `number`) still surfaces what it can.
+ * `review_state` is lower-cased for consistency with `vimMode`; an
+ * unknown future value passes through unchanged.
+ *
+ * `number` is accepted only when it is a finite integer > 0 (matching
+ * the JSDoc guarantee and the guard in `src/data/git/snapshot/snapshot.ts`).
+ * Floats (3.7), zero, and negatives are treated as absent.
+ */
+function adaptPr(value: unknown): StdinPayload["pr"] | undefined {
+  if (!isPlainObject(value)) return undefined;
+  const raw = value["number"];
+  const number =
+    typeof raw === "number" &&
+    Number.isFinite(raw) &&
+    Math.floor(raw) === raw &&
+    raw > 0
+      ? raw
+      : undefined;
+  const url = pickString(value, "url");
+  const reviewState = pickString(value, "review_state")?.toLowerCase();
+  if (number === undefined && url === undefined && reviewState === undefined) return undefined;
+  return {
+    ...(number !== undefined ? { number } : {}),
+    ...(url !== undefined ? { url } : {}),
+    ...(reviewState !== undefined ? { reviewState } : {}),
+  };
+}
+
+/**
+ * Pull the host-provided repository identity out of the nested
+ * `workspace.repo` block. Called with `workspaceBlock?.["repo"]` so it
+ * never re-reads `raw["workspace"]` directly — the `workspaceBlock` is
+ * already resolved from `adaptStatuslinePayload`. Returns `undefined`
+ * when the sub-block is absent or carries no recognisable fields.
+ */
+function adaptWorkspaceRepo(value: unknown): StdinPayload["workspaceRepo"] | undefined {
+  if (!isPlainObject(value)) return undefined;
+  const host = pickString(value, "host");
+  const owner = pickString(value, "owner");
+  const name = pickString(value, "name");
+  if (host === undefined && owner === undefined && name === undefined) return undefined;
+  return {
+    ...(host !== undefined ? { host } : {}),
+    ...(owner !== undefined ? { owner } : {}),
+    ...(name !== undefined ? { name } : {}),
+  };
 }
 
 /**

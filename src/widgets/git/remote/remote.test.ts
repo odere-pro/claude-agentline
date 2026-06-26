@@ -85,6 +85,66 @@ describe("git-origin-repo widget", () => {
   });
 });
 
+describe("git-origin-repo widget — host-first workspaceRepo", () => {
+  it("prefers ctx.stdin.workspaceRepo.name over origin.repo (default variant)", () => {
+    const snap = makeSnapshot({ origin: { owner: "anthropic", repo: "origin-repo" } });
+    const ctx = makeCtx(snap, {
+      stdin: { raw: {}, truncated: false, workspaceRepo: { name: "host-repo" } },
+    });
+    const cell = gitOriginRepoWidget.render(ctx, { options: {}, rawValue: false });
+    expect(cell.text).toBe("host-repo");
+  });
+
+  it("falls back to origin.repo when workspaceRepo is absent", () => {
+    const snap = makeSnapshot({ origin: { owner: "anthropic", repo: "origin-repo" } });
+    const cell = gitOriginRepoWidget.render(makeCtx(snap), { options: {}, rawValue: false });
+    expect(cell.text).toBe("origin-repo");
+  });
+
+  it("hides when both workspaceRepo and origin are absent", () => {
+    const ctx = makeCtx(makeSnapshot({ origin: null }));
+    const cell = gitOriginRepoWidget.render(ctx, { options: {}, rawValue: false });
+    expect(cell.hidden).toBe(true);
+  });
+
+  it("renders owner/name when the owner-name variant is set and host has both fields", () => {
+    const snap = makeSnapshot({ origin: { owner: "anthropic", repo: "origin-repo" } });
+    const ctx = makeCtx(snap, {
+      stdin: {
+        raw: {},
+        truncated: false,
+        workspaceRepo: { host: "github.com", owner: "odere-pro", name: "agentline" },
+      },
+    });
+    const cell = gitOriginRepoWidget.render(ctx, {
+      options: { variant: "owner-name" },
+      rawValue: false,
+    });
+    expect(cell.text).toBe("odere-pro/agentline");
+  });
+
+  it("hides on owner-name variant when workspaceRepo owner or name is missing", () => {
+    const snap = makeSnapshot({ origin: { owner: "anthropic", repo: "origin-repo" } });
+    const ctx = makeCtx(snap, {
+      stdin: { raw: {}, truncated: false, workspaceRepo: { name: "agentline" } },
+    });
+    const cell = gitOriginRepoWidget.render(ctx, {
+      options: { variant: "owner-name" },
+      rawValue: false,
+    });
+    expect(cell.hidden).toBe(true);
+  });
+
+  it("hides on owner-name variant when workspaceRepo is absent", () => {
+    const snap = makeSnapshot({ origin: { owner: "anthropic", repo: "origin-repo" } });
+    const cell = gitOriginRepoWidget.render(makeCtx(snap), {
+      options: { variant: "owner-name" },
+      rawValue: false,
+    });
+    expect(cell.hidden).toBe(true);
+  });
+});
+
 describe("git-upstream widget", () => {
   it("hides when ctx.git is absent", () => {
     const cell = gitUpstreamWidget.render(makeCtx(undefined), { options: {}, rawValue: false });

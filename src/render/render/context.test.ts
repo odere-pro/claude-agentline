@@ -126,6 +126,75 @@ describe("loadLiveSnapshots — allowPullRequest threading", () => {
   });
 });
 
+describe("loadLiveSnapshots — hostPr threading", () => {
+  beforeEach(() => {
+    mockLoadGitSnapshot.mockClear();
+    mockLoadGitSnapshot.mockReturnValue({ available: false });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("passes hostPr to loadGitSnapshot when payload.pr has a valid number and url", () => {
+    const payload = makeStdinPayload({
+      cwd: "/repo",
+      pr: { number: 244, url: "https://github.com/odere-pro/agentline/pull/244" },
+    });
+    loadLiveSnapshots(payload);
+    const callArg = mockLoadGitSnapshot.mock.calls[0]?.[0];
+    expect(callArg?.hostPr).toEqual({
+      number: 244,
+      url: "https://github.com/odere-pro/agentline/pull/244",
+    });
+  });
+
+  it("omits hostPr when payload.pr is absent", () => {
+    const payload = makeStdinPayload({ cwd: "/repo" });
+    loadLiveSnapshots(payload);
+    const callArg = mockLoadGitSnapshot.mock.calls[0]?.[0];
+    expect(callArg?.hostPr).toBeUndefined();
+  });
+
+  it("omits hostPr when pr.number is zero (malformed)", () => {
+    const payload = makeStdinPayload({
+      cwd: "/repo",
+      pr: { number: 0, url: "https://github.com/foo/bar/pull/0" },
+    });
+    loadLiveSnapshots(payload);
+    const callArg = mockLoadGitSnapshot.mock.calls[0]?.[0];
+    expect(callArg?.hostPr).toBeUndefined();
+  });
+
+  it("omits hostPr when pr.url is empty string (malformed)", () => {
+    const payload = makeStdinPayload({
+      cwd: "/repo",
+      pr: { number: 5, url: "" },
+    });
+    loadLiveSnapshots(payload);
+    const callArg = mockLoadGitSnapshot.mock.calls[0]?.[0];
+    expect(callArg?.hostPr).toBeUndefined();
+  });
+
+  it("omits hostPr when pr.url is absent (only number present)", () => {
+    const payload = makeStdinPayload({ cwd: "/repo", pr: { number: 7 } });
+    loadLiveSnapshots(payload);
+    const callArg = mockLoadGitSnapshot.mock.calls[0]?.[0];
+    expect(callArg?.hostPr).toBeUndefined();
+  });
+
+  it("omits hostPr when pr.number is a float (not an integer)", () => {
+    // Even if the adapter already rejects floats, context.ts must guard independently.
+    const payload = makeStdinPayload({
+      cwd: "/repo",
+      pr: { number: 3.7, url: "https://github.com/foo/bar/pull/3" },
+    });
+    loadLiveSnapshots(payload);
+    const callArg = mockLoadGitSnapshot.mock.calls[0]?.[0];
+    expect(callArg?.hostPr).toBeUndefined();
+  });
+});
+
 describe("loadLiveSnapshots — last-known-good threading", () => {
   let tmp: string;
   let env: NodeJS.ProcessEnv;

@@ -1,0 +1,1 @@
+- Host-provided PR and repo: when the host sends a `pr` block (number + url), the git snapshot uses it directly and skips the `gh` shell-out; `pr.review_state` feeds the new `git-pr-review` widget (glyph/word variants); and `workspace.repo` feeds a new `owner/name` variant for `git-origin-repo`.

@@ -59,6 +59,16 @@ export function buildMockPreview(now: number = Date.now()): MockPreview {
       fiveHour: { usedPercentage: 21, resetsAt: fiveHourReset },
       sevenDay: { usedPercentage: 31, resetsAt: sevenDayReset },
     },
+    // Host-provided PR data: exercises git-pr-review (reviewState) widget in the
+    // picker preview. number + url are included so the host-bridge path is also
+    // exercised for git-pr if the user has it configured.
+    pr: {
+      reviewState: "approved",
+      number: 1,
+      url: "https://github.com/owner/repo/pull/1",
+    },
+    // Host-provided repo identity: exercises git-origin-repo owner-name variant.
+    workspaceRepo: { host: "github.com", owner: "owner", name: "repo" },
   };
 
   const session: ResolvedSessionFields = {

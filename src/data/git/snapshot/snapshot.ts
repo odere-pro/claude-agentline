@@ -67,11 +67,18 @@ export interface GitSnapshot {
   readonly worktreeName: string | null;
   readonly inWorktree: boolean;
   /**
-   * PR metadata for HEAD's branch. Populated only when the snapshot
-   * loader was called with `allowPullRequest: true` (opt-in) and the
-   * `gh` CLI returned a PR. `null` everywhere else: opt-out, no `gh`,
-   * no PR, network failure. The `git-pr` widget reads this field and
-   * hides cleanly when it's null.
+   * PR metadata for HEAD's branch. Populated via one of two paths:
+   *
+   *   1. **Host bridge** — when the caller passes a usable `hostPr`
+   *      (`number` a finite int > 0 AND `url` a non-empty string), the
+   *      loader sets this directly from the host-provided values and
+   *      never touches `gh`. `title` is `""` on the host-bridge path.
+   *   2. **Network path** — when `allowPullRequest: true` is opted in and
+   *      the `gh` CLI returns a PR.
+   *
+   * `null` everywhere else: opt-out, no host PR, no `gh`, no PR, or
+   * network failure. The `git-pr` widget reads this field and hides
+   * cleanly when it's null.
    */
   readonly pr: GitPullRequestInfo | null;
 }
@@ -93,10 +100,31 @@ export interface LoadGitSnapshotInput {
    * outbound `gh` calls. Callers that opt in (e.g. a future scan
    * detecting a `git-pr` widget on the configured lines) accept the
    * latency and silent-failure semantics documented in `pr.ts`.
+   *
+   * Ignored when `hostPr` is usable — the host bridge takes precedence.
    */
   readonly allowPullRequest?: boolean;
   /** Timeout for the `gh` lookup; defaults to `pr.ts`'s built-in. */
   readonly pullRequestTimeoutMs?: number;
+  /**
+   * Host-provided PR metadata from `StdinPayload.pr`. When both `number`
+   * (a finite integer > 0) and `url` (a non-empty string) are present,
+   * the loader sets `snapshot.pr` from these values and skips the `gh`
+   * shell-out entirely — the host bridge takes precedence over the
+   * network path.
+   *
+   * `title` is set to `""` because the host's `pr` block does not carry
+   * a title; the `git-pr` widget's `title` / `number-title` variants will
+   * show an empty title. Only the `number` and `url` fields are bridged.
+   *
+   * Defined locally here (not imported from `StdinPayload`) to keep the
+   * loader contract-narrow; gate-25 prohibits `data/git` from importing
+   * `core/stdin`.
+   */
+  readonly hostPr?: {
+    readonly number?: number;
+    readonly url?: string;
+  };
   /**
    * Last-known-good snapshot for this `cwd` (from the git-snapshot
    * cache). When a `git` call fails *transiently*, the matching field
@@ -230,7 +258,23 @@ export function loadGitSnapshot(input: LoadGitSnapshotInput): GitState {
   }
 
   let pr: GitPullRequestInfo | null = null;
-  if (input.allowPullRequest) {
+  // Host-first PR bridge: when the host supplies a usable PR (finite int > 0
+  // number AND non-empty url), use it directly and skip the `gh` shell-out.
+  // Only when the host PR is absent or unusable do we fall through to the
+  // existing `allowPullRequest` gh path — keeping the network-opt-in contract
+  // intact for users who don't have a host that sends the `pr` block.
+  const hostNumber = input.hostPr?.number;
+  const hostUrl = input.hostPr?.url;
+  const hostPrUsable =
+    typeof hostNumber === "number" &&
+    Number.isFinite(hostNumber) &&
+    Math.floor(hostNumber) === hostNumber &&
+    hostNumber > 0 &&
+    typeof hostUrl === "string" &&
+    hostUrl !== "";
+  if (hostPrUsable && hostNumber !== undefined && hostUrl !== undefined) {
+    pr = Object.freeze({ number: Math.floor(hostNumber), url: hostUrl, title: "" });
+  } else if (input.allowPullRequest) {
     const outcome = loadPullRequestOutcome({
       cwd: input.cwd,
       ...(input.env !== undefined ? { env: input.env } : {}),

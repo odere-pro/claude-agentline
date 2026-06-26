@@ -39,6 +39,8 @@ const AUDITED_OPTIONS: Readonly<Record<string, readonly string[]>> = {
   "git-ahead-behind": ["label", "aheadGlyph", "behindGlyph", "glyph", "hideEven"],
   "git-conflicts": ["label", "glyph"],
   "git-pr": ["label", "allowNetwork", "variant"],
+  "git-origin-repo": ["label", "variant"],
+  "git-pr-review": ["label", "variant"],
   "session-id": ["label", "length"],
   "session-weekly-usage": ["label", "plan"],
   "reset-timer": ["label", "format", "resetHour", "resetWeekday", "tz"],

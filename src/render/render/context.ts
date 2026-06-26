@@ -101,6 +101,20 @@ export function loadLiveSnapshots(
   });
   const allowPullRequest = hasAllowNetworkGitPr(options.config);
   /*
+   * Host-first PR bridge: when the host supplies a usable PR (finite int > 0
+   * and non-empty url), pass it to the snapshot loader so it can skip the
+   * `gh` shell-out. "Usable" mirrors the same guards the loader applies.
+   */
+  const hostPrNum = payload.pr?.number;
+  const hostPrUrl = payload.pr?.url;
+  const hostPrUsable =
+    typeof hostPrNum === "number" &&
+    Number.isFinite(hostPrNum) &&
+    Math.floor(hostPrNum) === hostPrNum &&
+    hostPrNum > 0 &&
+    typeof hostPrUrl === "string" &&
+    hostPrUrl !== "";
+  /*
    * Last-known-good fallback (anti-flicker): read the prior tick's git
    * snapshot for this cwd and hand it to the loader. When a `git` call
    * fails transiently, the loader reuses the cached field instead of
@@ -114,6 +128,9 @@ export function loadLiveSnapshots(
     env,
     ...(allowPullRequest ? { allowPullRequest } : {}),
     ...(previousGit ? { previous: previousGit } : {}),
+    ...(hostPrUsable && hostPrNum !== undefined && hostPrUrl !== undefined
+      ? { hostPr: { number: hostPrNum, url: hostPrUrl } }
+      : {}),
   });
   /*
    * Plan resolves per session from the same transcript the token snapshot

@@ -82,6 +82,23 @@ describe("stripNonAscii", () => {
   });
 });
 
+describe("stripNonAscii — git-pr-review glyph coverage (gate-16 class)", () => {
+  it("maps ◌ (draft glyph U+25CC) to 'o' not '?'", () => {
+    expect(stripNonAscii("◌")).toBe("o");
+  });
+
+  it("each glyph git-pr-review can emit has a non-? ASCII fallback", () => {
+    // Glyphs: approved=✓, changes_requested=✗, pending=…, draft=◌
+    for (const g of ["✓", "✗", "…", "◌"]) {
+      const result = stripNonAscii(g);
+      expect(
+        result,
+        `glyph ${g} (U+${g.codePointAt(0)?.toString(16).toUpperCase()}) must not map to '?'`,
+      ).not.toBe("?");
+    }
+  });
+});
+
 describe("applyAccessibility", () => {
   it("returns the same segments when noUnicode is false", () => {
     const segs: Segment[] = [{ text: "a · b" }];

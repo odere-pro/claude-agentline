@@ -70,6 +70,8 @@ const ASCII_FALLBACKS: ReadonlyMap<string, string> = new Map([
   ["", "<"],
   ["", ">"],
   ["", "<"],
+  // git-pr-review draft glyph (U+25CC DOTTED CIRCLE) — gate-16 class
+  ["◌", "o"],
 ]);
 
 export function stripNonAscii(text: string): string {
