@@ -356,7 +356,7 @@ describe("thinking-effort widget", () => {
     );
   });
 
-  it.each(["low", "medium", "high", "xhigh"])(
+  it.each(["low", "medium", "high", "xhigh", "max"])(
     "renders '%s' as plain text with no state-signal colour (family accent applies)",
     (effort) => {
       const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: effort }), {
@@ -368,6 +368,14 @@ describe("thinking-effort widget", () => {
       expect(cell.signal).toBeUndefined();
     },
   );
+
+  it("normalises 'MAX' to 'max' — the union/guard recognise the new top level", () => {
+    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "MAX" }), {
+      options: {},
+      rawValue: false,
+    });
+    expect(cell.text).toBe("max");
+  });
 
   it("renders unknown effort verbatim with no colour", () => {
     const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "unknown" }), {

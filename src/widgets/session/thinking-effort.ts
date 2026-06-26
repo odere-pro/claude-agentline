@@ -1,13 +1,13 @@
 /**
  * `thinking-effort` widget (§7.2). One of `low` / `medium` / `high`
- * / `xhigh`. Renders in the session family accent — no per-widget
+ * / `xhigh` / `max`. Renders in the session family accent — no per-widget
  * colour, so every session widget reads as one family.
  */
 
 import type { Cell } from "../cell/cell.js";
 import { defineWidget } from "../widget.js";
 
-type Effort = "low" | "medium" | "high" | "xhigh";
+type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 
 interface ThinkingEffortOptions {
   readonly label?: string;
@@ -15,7 +15,7 @@ interface ThinkingEffortOptions {
 
 function normaliseEffort(value: string): Effort | null {
   const v = value.toLowerCase().trim();
-  if (v === "low" || v === "medium" || v === "high" || v === "xhigh") return v;
+  if (v === "low" || v === "medium" || v === "high" || v === "xhigh" || v === "max") return v;
   return null;
 }
 
