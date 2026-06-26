@@ -163,6 +163,12 @@ These gates may be added per-implementation; the IDs are kept stable.
 - **Pass criterion.** The checked-in schema matches the generator's output; exit `0`. Strict. Skips when node, esbuild, or prettier are unavailable (lean runtime install); CI installs devDeps and runs it.
 - **Debugging.** Run `node scripts/gen-schema-enum.mjs` to regenerate the schema, then commit the result. The vitest mirror is `src/core/schema/embedded/schema-enum.test.ts`.
 
+## gate-29 · host-contract conformance
+
+- **Probes.** Runs `node scripts/check-host-contract.mjs --check`, which productizes the manual `agentline-claude-code-watcher` local diff. It wraps the captured fixture `tests/fixtures/host-payload-2.1.193.json` in a recording Proxy, runs every module that reads a top-level key off `raw` (the adapter `src/core/stdin/index.ts`, the session resolver `src/data/session/index.ts`, and the `src/widgets/rate-limits/usage.ts` widget), and derives the **consumed** key set from real behaviour. Four assertions: (A1) every host-sent fixture key is consumed or on the explicit ignore allowlist; (A2) no ignored key shows up as consumed (catches a `{...raw}` / `Object.entries(raw)` refactor that would neuter A1); (ENUM) the set of source modules that read `raw[...]` equals the set the harness exercises (a new reader fails CI until it is wired in); (B) the `Raw key` column of `docs/cookbook/06-data-contracts.md` equals the consumed keys the host actually sends — no phantom rows, no missing rows. Implemented in `tests/gates/gate-29-host-contract-conformance.sh`.
+- **Pass criterion.** The checker reports in sync; exit `0`. Strict. Skips when node or esbuild are unavailable (lean runtime install); CI installs devDeps and runs it.
+- **Debugging.** The checker prints the consumed / documented / ignored sets on failure. If the host added a field, map it in the adapter (or a downstream reader) and add its `Raw key` row to the data-contract table — or, if agentline intentionally ignores it, add it to `IGNORED` in `scripts/check-host-contract.mjs` with a reason. If a new module started reading `raw[...]`, add it to `EXERCISED_READERS` and run it in `deriveConsumed`. The selftest `tests/gates/selftest/gate-29-selftest.sh` proves the drift, missing-row, and phantom-row cases fail as expected.
+
 ---
 
 ## Debugging a failing gate

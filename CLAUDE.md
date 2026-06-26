@@ -80,35 +80,36 @@ Source files live in feature folders with their test as a sibling: `src/<area>/<
 
 Lookup table — full spec lives in `docs/cookbook/14-gates-catalogue.md`. Run `bash tests/gates/run-all.sh` before opening a PR.
 
-| Gate    | Protects                        | Typical failure                                                                                         |
-| ------- | ------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| gate-01 | doctor smoke                    | Host wiring missing on a fresh bootstrap                                                                |
-| gate-02 | no absolute paths in artefacts  | A `/Users/` / `/home/` / `~/.claude/` literal in a shipped file                                         |
-| gate-03 | shellcheck                      | Shell-script lint regressions under `tests/gates/` or `scripts/`                                        |
-| gate-05 | markdown formatting             | Unformatted markdown — run `npx prettier --write`                                                       |
-| gate-06 | trademark / brand strings       | Restricted brand string introduced into shipped text                                                    |
-| gate-07 | install round-trip              | Install/uninstall does not restore the prior `statusLine`, or leaves an agentline footprint behind      |
-| gate-08 | install content preservation    | Install/uninstall mutates a non-`statusLine` settings key                                               |
-| gate-09 | install idempotency             | A second `install` is not a byte-clean no-op (e.g. a re-stamped manifest timestamp)                     |
-| gate-10 | install `--dry-run` parity      | `install --dry-run` writes to the filesystem, or reports no planned actions                             |
-| gate-11 | schema ↔ template round-trip    | Schema drift from `templates/default.config.json`                                                       |
-| gate-12 | render determinism              | Published bin replays a golden twice — bytes differ run-to-run, or don't match `expected.ansi`          |
-| gate-13 | cold-start budget               | Process-start to first byte over the budget in `docs/GLOSSARY.md`                                       |
-| gate-14 | no network at render time       | Outbound request added to a render-reachable module                                                     |
-| gate-15 | platform matrix                 | macOS / Linux / WSL parity regression                                                                   |
-| gate-16 | accessibility fallbacks         | `--no-color` / `--no-unicode` / `--ascii` regression                                                    |
-| gate-17 | keymap coverage                 | Documented editor action missing / malformed in `dist/keys.mjs`                                         |
-| gate-18 | changelog fragment present      | PR missing a `changelog/<branch>.md` fragment                                                           |
-| gate-19 | no TUI/ink/react in render path | **Most load-bearing:** static import of ink / react / `src/tui/` from a render-reachable file           |
-| gate-20 | docs glossary parity            | README widget count out of sync with catalogue, or retired term in docs                                 |
-| gate-21 | source-comment glossary parity  | Retired term in a source comment                                                                        |
-| gate-22 | glossary self-consistency       | Glossary count or type-table path out of sync with code                                                 |
-| gate-23 | dependency audit                | New runtime dep unpinned or with a known advisory                                                       |
-| gate-24 | secret scan                     | Credential-shaped literal in a tracked file                                                             |
-| gate-25 | layer import direction          | Reverse import (e.g. `core` → `data`)                                                                   |
-| gate-26 | i18n dictionary contract        | Unknown id prefix, or two different English fallbacks for one id                                        |
-| gate-27 | doc citation existence          | A dangling repo-path, gate-id, or md-link citation in `docs/` or `SOFTWARE-3-0.md`                      |
-| gate-28 | schema `widget.type` enum sync  | Shipped schema's `widget.type` enum drifted from the catalogue — run `node scripts/gen-schema-enum.mjs` |
+| Gate    | Protects                        | Typical failure                                                                                                                                                       |
+| ------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| gate-01 | doctor smoke                    | Host wiring missing on a fresh bootstrap                                                                                                                              |
+| gate-02 | no absolute paths in artefacts  | A `/Users/` / `/home/` / `~/.claude/` literal in a shipped file                                                                                                       |
+| gate-03 | shellcheck                      | Shell-script lint regressions under `tests/gates/` or `scripts/`                                                                                                      |
+| gate-05 | markdown formatting             | Unformatted markdown — run `npx prettier --write`                                                                                                                     |
+| gate-06 | trademark / brand strings       | Restricted brand string introduced into shipped text                                                                                                                  |
+| gate-07 | install round-trip              | Install/uninstall does not restore the prior `statusLine`, or leaves an agentline footprint behind                                                                    |
+| gate-08 | install content preservation    | Install/uninstall mutates a non-`statusLine` settings key                                                                                                             |
+| gate-09 | install idempotency             | A second `install` is not a byte-clean no-op (e.g. a re-stamped manifest timestamp)                                                                                   |
+| gate-10 | install `--dry-run` parity      | `install --dry-run` writes to the filesystem, or reports no planned actions                                                                                           |
+| gate-11 | schema ↔ template round-trip    | Schema drift from `templates/default.config.json`                                                                                                                     |
+| gate-12 | render determinism              | Published bin replays a golden twice — bytes differ run-to-run, or don't match `expected.ansi`                                                                        |
+| gate-13 | cold-start budget               | Process-start to first byte over the budget in `docs/GLOSSARY.md`                                                                                                     |
+| gate-14 | no network at render time       | Outbound request added to a render-reachable module                                                                                                                   |
+| gate-15 | platform matrix                 | macOS / Linux / WSL parity regression                                                                                                                                 |
+| gate-16 | accessibility fallbacks         | `--no-color` / `--no-unicode` / `--ascii` regression                                                                                                                  |
+| gate-17 | keymap coverage                 | Documented editor action missing / malformed in `dist/keys.mjs`                                                                                                       |
+| gate-18 | changelog fragment present      | PR missing a `changelog/<branch>.md` fragment                                                                                                                         |
+| gate-19 | no TUI/ink/react in render path | **Most load-bearing:** static import of ink / react / `src/tui/` from a render-reachable file                                                                         |
+| gate-20 | docs glossary parity            | README widget count out of sync with catalogue, or retired term in docs                                                                                               |
+| gate-21 | source-comment glossary parity  | Retired term in a source comment                                                                                                                                      |
+| gate-22 | glossary self-consistency       | Glossary count or type-table path out of sync with code                                                                                                               |
+| gate-23 | dependency audit                | New runtime dep unpinned or with a known advisory                                                                                                                     |
+| gate-24 | secret scan                     | Credential-shaped literal in a tracked file                                                                                                                           |
+| gate-25 | layer import direction          | Reverse import (e.g. `core` → `data`)                                                                                                                                 |
+| gate-26 | i18n dictionary contract        | Unknown id prefix, or two different English fallbacks for one id                                                                                                      |
+| gate-27 | doc citation existence          | A dangling repo-path, gate-id, or md-link citation in `docs/` or `SOFTWARE-3-0.md`                                                                                    |
+| gate-28 | schema `widget.type` enum sync  | Shipped schema's `widget.type` enum drifted from the catalogue — run `node scripts/gen-schema-enum.mjs`                                                               |
+| gate-29 | host-contract conformance       | Host sends a stdin field nothing reads, a new `raw[...]` reader isn't wired into the harness, or the `06-data-contracts.md` `Raw key` column drifted from the adapter |
 
 ## When you need to know X, read Y
 
