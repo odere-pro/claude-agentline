@@ -1,0 +1,1 @@
+- Fix the silently-dead `vim-mode` widget: the stdin adapter now reads Claude Code v2.1.193's nested `vim: { mode }` block (lower-casing the uppercase value) while still dual-reading the legacy flat `vim_mode` key, so the widget renders again.

@@ -207,8 +207,51 @@ describe("adaptStatuslinePayload — translator version", () => {
     expect(out.translatorVersion).toBe(STATUSLINE_TRANSLATOR_VERSION);
   });
 
-  it("STATUSLINE_TRANSLATOR_VERSION is 3 (bumped when agent/workspace/thinking fields were added)", () => {
-    expect(STATUSLINE_TRANSLATOR_VERSION).toBe(3);
+  it("STATUSLINE_TRANSLATOR_VERSION is 4 (bumped when vim_mode reshaped to nested vim.mode)", () => {
+    expect(STATUSLINE_TRANSLATOR_VERSION).toBe(4);
+  });
+});
+
+describe("adaptStatuslinePayload — vim mode", () => {
+  it("extracts vim.mode from the nested block the host sends, lower-cased", () => {
+    const out = adaptStatuslinePayload({ vim: { mode: "NORMAL" } });
+    expect(out.vimMode).toBe("normal");
+  });
+
+  it("lower-cases multi-word uppercase modes (VISUAL LINE → visual line)", () => {
+    const out = adaptStatuslinePayload({ vim: { mode: "VISUAL LINE" } });
+    expect(out.vimMode).toBe("visual line");
+  });
+
+  it("reads the flat vim_mode key for back-compat with older hosts", () => {
+    const out = adaptStatuslinePayload({ vim_mode: "insert" });
+    expect(out.vimMode).toBe("insert");
+  });
+
+  it("prefers the nested vim.mode over a stale flat vim_mode when both exist", () => {
+    const out = adaptStatuslinePayload({ vim: { mode: "VISUAL" }, vim_mode: "normal" });
+    expect(out.vimMode).toBe("visual");
+  });
+
+  it("omits vimMode when neither shape is present or the block is malformed", () => {
+    expect(adaptStatuslinePayload({}).vimMode).toBeUndefined();
+    expect(adaptStatuslinePayload({ vim: "NORMAL" }).vimMode).toBeUndefined();
+    expect(adaptStatuslinePayload({ vim: { mode: "" } }).vimMode).toBeUndefined();
+  });
+
+  it("adapts a captured Claude Code version 2.1.193 payload so the vim-mode widget can render", () => {
+    // Captured shape from Claude Code version 2.1.193: vim mode is nested under `vim`
+    // with an uppercase value, distinct from the older flat `vim_mode` key.
+    const capturedV2_1_193 = {
+      session_id: "s-193",
+      version: "2.1.193",
+      model: { id: "claude-opus-4-8", display_name: "Opus 4.8" },
+      workspace: { current_dir: "/repo", project_dir: "/repo" },
+      vim: { mode: "NORMAL" },
+    };
+    const out = adaptStatuslinePayload(capturedV2_1_193);
+    expect(out.vimMode).toBe("normal");
+    expect(out.version).toBe("2.1.193");
   });
 });
 
