@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-06-26
+
+### Added
+
+- `0dec57b` — Add `gate-29` host-contract conformance: a deterministic check (`scripts/check-host-contract.mjs`) that productizes the manual `agentline-claude-code-watcher` diff. It proxies a captured `tests/fixtures/host-payload-2.1.193.json` through every module that reads a top-level stdin key and fails CI when the host sends a field nothing consumes, when a new `raw[...]` reader isn't wired into the harness, or when the `docs/cookbook/06-data-contracts.md` `Raw key` column drifts from the adapter — so the next host-contract drift (the class behind the vim-mode silent death) is caught automatically instead of by hand.
+- `aa28b47` — Host-provided PR and repo: when the host sends a `pr` block (number + url), the git snapshot uses it directly and skips the `gh` shell-out; `pr.review_state` feeds the new `git-pr-review` widget (glyph/word variants); and `workspace.repo` feeds a new `owner/name` variant for `git-origin-repo`.
+
+### Changed
+
+- `1ae7914` — Release v1.1.1: fold the pending fragments into a curated `[1.1.1]` section of `CHANGELOG.md`, clear the folded fragments, and bump the package, bundled bin, and landing-page version to 1.1.1.
+- `1bb68ee` — Tidy host-contract drift surfaced by the Claude Code version 2.1.193 sync: widen the `thinking-effort` widget's `Effort` union and normalise guard to recognise the new `max` level (it already printed, but future `Effort`-branching code would have missed it), and refresh `docs/cookbook/06-data-contracts.md` — add the actively-parsed `context_window` and `cost` stdin rows and list `max` for `thinkingEffort`. No per-effort colours added; the widget keeps its single session-family accent.
+
 ## [1.1.1] — 2026-06-26
 
 ### Changed
