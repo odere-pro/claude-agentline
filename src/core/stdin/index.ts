@@ -67,8 +67,8 @@ export interface StdinPayload {
   sessionName?: string;
   cwd?: string;
   /**
-   * Known values: `"low"`, `"medium"`, `"high"`, `"xhigh"`. Typed as
-   * `string` so the `thinking-effort` widget can pass an unknown
+   * Known values: `"low"`, `"medium"`, `"high"`, `"xhigh"`, `"max"`. Typed
+   * as `string` so the `thinking-effort` widget can pass an unknown
    * future level through uncoloured rather than hide it. Consumers
    * that need a colour role or bucketing key narrow it themselves
    * (see `widgets/session/thinking-effort.ts`).
