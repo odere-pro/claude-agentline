@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-06-26
+
+### Changed
+
+- `6338c97` — Release v1.1.0: promote the `agentline start` command into a curated `[1.1.0]` section of `CHANGELOG.md`, clear the folded fragments, and bump the package, bundled bin, and landing-page version to 1.1.0.
+
+### Fixed
+
+- `58f7f9c` — Fix the silently-dead `vim-mode` widget: the stdin adapter now reads Claude Code version 2.1.193's nested `vim: { mode }` block (lower-casing the uppercase value) while still dual-reading the legacy flat `vim_mode` key, so the widget renders again.
+
 ## [1.1.0] — 2026-06-20
 
 ### Added
