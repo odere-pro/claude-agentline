@@ -30,7 +30,7 @@ const MAX_PAYLOAD_BYTES = 256 * 1024;
  * the meaning of an existing field. Pure additions to `raw` passthrough
  * do not require a bump.
  */
-export const STATUSLINE_TRANSLATOR_VERSION = 3;
+export const STATUSLINE_TRANSLATOR_VERSION = 4;
 
 export interface StdinPayload {
   /** Original parsed JSON, fields untouched. */
@@ -75,8 +75,13 @@ export interface StdinPayload {
    */
   thinkingEffort?: string;
   /**
-   * Known values: `"normal"`, `"insert"`, `"visual"`, `"replace"`.
-   * Same forward-compat reasoning as `thinkingEffort`.
+   * Active editor vim mode, lower-cased. Known values: `"normal"`,
+   * `"insert"`, `"visual"`, `"visual line"`. Same forward-compat reasoning
+   * as `thinkingEffort` — an unknown future mode passes through untouched.
+   *
+   * The host reports this nested and uppercase — `vim: { mode: "NORMAL" }`
+   * (Claude Code version 2.1.193+). The adapter also dual-reads the older flat
+   * `vim_mode` key for back-compat; the nested block wins when both exist.
    */
   vimMode?: string;
   transcriptPath?: string;
@@ -202,10 +207,12 @@ export class StdinParseError extends Error {
  *   - `output_style`  → `{ name }`              → keep `name`
  *   - `effort`        → `{ level }`             → keep `level`
  *   - `workspace`     → `{ current_dir, … }`    → fallback for `cwd`
+ *   - `vim`           → `{ mode }` (UPPERCASE)  → lower-cased `vimMode`,
+ *                                                 flat `vim_mode` fallback
  *
  * The adapter normalises both shapes (and accepts a flat-string `model`
- * for back-compat with the older docs), so widgets read a single
- * camelCase, flat-string surface.
+ * for back-compat with the older docs, and the flat `vim_mode` key older
+ * hosts sent), so widgets read a single camelCase, flat-string surface.
  */
 export function adaptStatuslinePayload(
   raw: Record<string, unknown>,
@@ -217,6 +224,7 @@ export function adaptStatuslinePayload(
   const workspaceBlock = isPlainObject(raw["workspace"]) ? raw["workspace"] : undefined;
   const agentBlock = isPlainObject(raw["agent"]) ? raw["agent"] : undefined;
   const thinkingBlock = isPlainObject(raw["thinking"]) ? raw["thinking"] : undefined;
+  const vimBlock = isPlainObject(raw["vim"]) ? raw["vim"] : undefined;
   const contextWindow = adaptContextWindow(raw["context_window"]);
   const rateLimits = adaptRateLimits(raw["rate_limits"]);
   const cost = adaptCost(raw["cost"]);
@@ -237,7 +245,7 @@ export function adaptStatuslinePayload(
     sessionName: pickString(raw, "session_name"),
     cwd: pickString(raw, "cwd") ?? pickString(workspaceBlock, "current_dir"),
     thinkingEffort: pickString(effortBlock, "level"),
-    vimMode: pickString(raw, "vim_mode"),
+    vimMode: pickString(vimBlock, "mode")?.toLowerCase() ?? pickString(raw, "vim_mode"),
     transcriptPath: pickString(raw, "transcript_path"),
     ...(agentName !== undefined ? { agentName } : {}),
     ...(projectDir !== undefined ? { projectDir } : {}),
