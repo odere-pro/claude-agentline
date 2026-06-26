@@ -15,16 +15,17 @@ import { gitBranchWidget } from "./branch.js";
 import { gitChangesWidget } from "./changes.js";
 import { gitOriginRepoWidget, gitUpstreamWidget } from "./remote/remote.js";
 import { gitWorktreeWidget } from "./sha/sha.js";
+import { gitPrReviewWidget } from "./pr-review/pr-review.js";
 import { GIT_WIDGETS, registerGitWidgets } from "./index.js";
 
 const makeCtx = (git: GitState | undefined, overrides: Partial<WidgetContext> = {}) =>
   makeWidgetContext({ git, ...overrides });
 
 describe("registerGitWidgets", () => {
-  it("ships exactly 8 widgets in sorted order", () => {
+  it("ships exactly 9 widgets in sorted order", () => {
     const r = new WidgetRegistry();
     registerGitWidgets(r);
-    expect(r.size()).toBe(8);
+    expect(r.size()).toBe(9);
     expect(r.list()).toEqual([
       "git-ahead-behind",
       "git-branch",
@@ -32,11 +33,12 @@ describe("registerGitWidgets", () => {
       "git-conflicts",
       "git-origin-repo",
       "git-pr",
+      "git-pr-review",
       "git-upstream",
       "git-worktree",
     ]);
     expect(Object.isFrozen(GIT_WIDGETS)).toBe(true);
-    expect(GIT_WIDGETS).toHaveLength(8);
+    expect(GIT_WIDGETS).toHaveLength(9);
   });
 
   it("hides every widget when ctx.git is missing", () => {
@@ -255,6 +257,22 @@ describe("git-origin-repo widget", () => {
     expect(
       gitOriginRepoWidget.render(makeCtx(makeSnapshot()), { options: {}, rawValue: false }).hidden,
     ).toBe(true);
+  });
+});
+
+describe("git-pr-review widget", () => {
+  it("renders ✓ for an approved review state from stdin.pr.reviewState", () => {
+    const ctx = makeWidgetContext({
+      stdin: { raw: {}, truncated: false, pr: { reviewState: "approved" } },
+    });
+    const cell = gitPrReviewWidget.render(ctx, { options: {}, rawValue: false });
+    expect(cell.text).toBe("✓");
+  });
+
+  it("hides when stdin.pr.reviewState is absent", () => {
+    const ctx = makeCtx(undefined);
+    const cell = gitPrReviewWidget.render(ctx, { options: {}, rawValue: false });
+    expect(cell.hidden).toBe(true);
   });
 });
 

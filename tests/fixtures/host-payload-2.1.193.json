@@ -11,8 +11,10 @@
   "workspace": {
     "current_dir": "/home/dev/repo",
     "project_dir": "/home/dev/repo",
-    "added_dirs": ["/home/dev/shared"]
+    "added_dirs": ["/home/dev/shared"],
+    "repo": { "host": "github.com", "owner": "odere-pro", "name": "agentline" }
   },
+  "pr": { "number": 244, "url": "https://github.com/odere-pro/agentline/pull/244", "review_state": "approved" },
   "agent": { "name": "agentline-dev-lead" },
   "thinking": { "enabled": true },
   "vim": { "mode": "NORMAL" },

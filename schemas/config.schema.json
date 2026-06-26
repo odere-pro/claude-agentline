@@ -118,6 +118,7 @@
             "git-conflicts",
             "git-origin-repo",
             "git-pr",
+            "git-pr-review",
             "git-upstream",
             "git-worktree",
             "lines-changed",

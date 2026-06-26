@@ -96,9 +96,10 @@ const WIDGET_OPTIONS: Readonly<Record<string, WidgetOptionSpec>> = Object.freeze
   "git-ahead-behind": { aheadGlyph: FREE, behindGlyph: FREE, glyph: FREE, hideEven: FREE },
   "git-conflicts": { glyph: FREE },
   "git-worktree": {},
-  "git-origin-repo": {},
+  "git-origin-repo": { variant: FREE },
   "git-upstream": {},
   "git-pr": { allowNetwork: FREE, variant: FREE },
+  "git-pr-review": { variant: FREE },
 });
 
 /**

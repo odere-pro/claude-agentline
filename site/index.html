@@ -9,7 +9,7 @@
     </title>
     <meta
       name="description"
-      content="agentline is a fast, powerline statusline for Claude Code. It shows git, tokens, context window, rate limits, and session info across 38 configurable widgets, with a live TUI editor, zero render-time network calls, and a Software 3.0 design any agent can install, configure, and theme by itself."
+      content="agentline is a fast, powerline statusline for Claude Code. It shows git, tokens, context window, rate limits, and session info across 39 configurable widgets, with a live TUI editor, zero render-time network calls, and a Software 3.0 design any agent can install, configure, and theme by itself."
     />
     <link rel="canonical" href="https://odere-pro.github.io/claude-agentline/" />
     <meta name="theme-color" content="#0c0f17" />
@@ -126,7 +126,7 @@
             "screenshot": "https://odere-pro.github.io/claude-agentline/assets/statusline-example.png",
             "keywords": "claude code statusline, powerline, statusline cli, git, tokens, context window, rate limits, themes, tui editor, agent-operable, software 3.0",
             "featureList": [
-              "38 configurable widgets across 6 families: session, tokens, context, rate-limits, git, other",
+              "39 configurable widgets across 6 families: session, tokens, context, rate-limits, git, other",
               "Live TUI editor with a searchable, family-grouped widget picker",
               "Powerline rendering with chevrons and caps",
               "Theme engine that degrades from truecolor to 256-colour to 16-colour terminals",
@@ -229,7 +229,7 @@
                 "name": "Can I show my git branch, token usage, or context-window percentage with Claude Code?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Yes. The git, tokens, and context families cover branch, worktree, change counts, conflicts, ahead/behind, upstream, origin repo, pull-request status, input and output token counts, cached tokens, throughput, session cost, cost burn rate, spend against a budget, API duration, and context-window usage with a 200k-token flag — and the session family adds the working-directory path, clock, output style, vim mode, and active agent name. 38 widgets across 6 families in total."
+                  "text": "Yes. The git, tokens, and context families cover branch, worktree, change counts, conflicts, ahead/behind, upstream, origin repo, pull-request status, PR review state, input and output token counts, cached tokens, throughput, session cost, cost burn rate, spend against a budget, API duration, and context-window usage with a 200k-token flag — and the session family adds the working-directory path, clock, output style, vim mode, and active agent name. 39 widgets across 6 families in total."
                 }
               },
               {
@@ -1095,12 +1095,12 @@
             <p class="lead">
               Fast, themeable, and offline. agentline reads the stdin payload
               Claude Code sends, renders git, tokens, context window, rate
-              limits, and session info across 38 configurable widgets, and
+              limits, and session info across 39 configurable widgets, and
               exits. No network on the render path. No native modules. No plugin
               scaffolding.
             </p>
             <ul class="pills" aria-label="At a glance">
-              <li>38 widgets</li>
+              <li>39 widgets</li>
               <li>6 families</li>
               <li>agent-operable</li>
               <li>zero render-time network</li>
@@ -1157,7 +1157,7 @@ npm install -g @odere-pro/agentline
           Everything your session status needs
         </h2>
         <p class="section-lead">
-          38 widgets across 6 families, each covering one slice of session
+          39 widgets across 6 families, each covering one slice of session
           status — composed into up to three statusline rows, then styled by a
           theme engine that degrades gracefully on any terminal.
         </p>
@@ -1335,7 +1335,7 @@ npm install -g @odere-pro/agentline
         aria-labelledby="widgets-heading"
       >
         <p class="kicker">The catalogue</p>
-        <h2 class="h2" id="widgets-heading">All 38 widgets, one slice each</h2>
+        <h2 class="h2" id="widgets-heading">All 39 widgets, one slice each</h2>
         <p class="section-lead">
           Pick a family to filter, or browse the whole set. Widgets accumulating
           tokens or quota declare an explicit reset axis — session, block, day,
@@ -1354,12 +1354,12 @@ npm install -g @odere-pro/agentline
 
         <fieldset class="filter" aria-label="Filter widgets by family">
           <legend class="vh">Filter widgets by family</legend>
-          <label for="f-all">All <span class="count">38</span></label>
+          <label for="f-all">All <span class="count">39</span></label>
           <label for="f-session">session <span class="count">11</span></label>
           <label for="f-tokens">tokens <span class="count">8</span></label>
           <label for="f-context">context <span class="count">3</span></label>
           <label for="f-rate">rate-limits <span class="count">2</span></label>
-          <label for="f-git">git <span class="count">10</span></label>
+          <label for="f-git">git <span class="count">11</span></label>
           <label for="f-other">other <span class="count">4</span></label>
         </fieldset>
 
@@ -1575,7 +1575,11 @@ npm install -g @odere-pro/agentline
               <h3>Git origin repo</h3><span class="fam">git</span>
             </div>
             <p class="type">git-origin-repo</p>
-            <p>Repo segment of the origin remote URL.</p>
+            <p>Repo name — from the host or the origin remote URL.</p>
+            <ul class="variants" aria-label="Variants">
+              <li>default</li>
+              <li>owner-name</li>
+            </ul>
           </article>
           <article class="wcard fam-git">
             <div class="wtop">
@@ -1588,6 +1592,17 @@ npm install -g @odere-pro/agentline
               <li>url</li>
               <li>title</li>
               <li>number-title</li>
+            </ul>
+          </article>
+          <article class="wcard fam-git">
+            <div class="wtop">
+              <h3>Git PR review</h3><span class="fam">git</span>
+            </div>
+            <p class="type">git-pr-review</p>
+            <p>Host-provided PR review state (approved, changes requested, …).</p>
+            <ul class="variants" aria-label="Variants">
+              <li>glyph</li>
+              <li>word</li>
             </ul>
           </article>
 
@@ -1763,7 +1778,7 @@ npm install -g @odere-pro/agentline
             cost, cost burn rate, spend against a budget, API duration, and
             context-window usage with a 200k-token flag — and the
             <code>session</code> family adds the working-directory path, clock,
-            output style, vim mode, and active agent name. 38 widgets across 6
+            output style, vim mode, and active agent name. 39 widgets across 6
             families in total.
           </dd>
 

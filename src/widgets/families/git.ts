@@ -28,7 +28,14 @@ export const GIT_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
   "git-conflicts": entry("Git conflicts", "Merge-conflict file count", "git"),
   "git-ahead-behind": entry("Git ahead/behind", "Commits ahead of and behind upstream", "git"),
   "git-upstream": entry("Git upstream", "Upstream branch, e.g. origin/main", "git"),
-  "git-origin-repo": entry("Git origin repo", "Repo segment of the origin remote URL", "git"),
+  "git-origin-repo": entry(
+    "Git origin repo",
+    "Repo segment of the origin remote URL, or host-provided repo name",
+    "git",
+    [
+      v("owner-name", "Owner/name (odere-pro/agentline)", { variant: "owner-name" }),
+    ],
+  ),
   "git-pr": entry(
     "Git pull request",
     "PR for HEAD's branch (opt-in network: requires options.allowNetwork)",
@@ -38,6 +45,15 @@ export const GIT_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
       v("url", "URL (https://…/pull/42)", { variant: "url" }),
       v("title", "Title (feat: …)", { variant: "title" }),
       v("number-title", "Number + title (#42 feat: …)", { variant: "number-title" }),
+    ],
+  ),
+  "git-pr-review": entry(
+    "Git PR review",
+    "Host-provided PR review state (approved, changes requested, pending, draft)",
+    "git",
+    [
+      v("glyph", "Glyph (✓ / ✗ / … / ◌)", { variant: "glyph" }),
+      v("word", "Word (approved / changes requested / pending / draft)", { variant: "word" }),
     ],
   ),
 });

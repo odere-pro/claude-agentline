@@ -145,7 +145,7 @@ user-facing term **family**.
 
 ---
 
-## Built-in widget types (38 total)
+## Built-in widget types (39 total)
 
 All types are kebab-case strings. Source of truth: `src/widgets/families/catalog.ts`.
 
@@ -193,20 +193,21 @@ All types are kebab-case strings. Source of truth: `src/widgets/families/catalog
 | `session-weekly-usage` | Combined session + weekly usage % from the host                                                           |
 | `reset-timer`          | Session + weekly reset on one cell; countdown or wall-clock (`at-24h`/`at-12h`/`at-seconds`) via `format` |
 
-### Git family (10)
+### Git family (11)
 
-| Type               | Description                                         |
-| ------------------ | --------------------------------------------------- |
-| `project`          | Project name — git repo or working-directory folder |
-| `project-dir`      | Launch-directory name (distinct from the repo name) |
-| `git-branch`       | Current branch, or short SHA when detached          |
-| `git-worktree`     | Basename of the current worktree                    |
-| `git-changes`      | Staged, unstaged, and untracked file counts         |
-| `git-conflicts`    | Merge-conflict file count                           |
-| `git-ahead-behind` | Commits ahead of and behind upstream                |
-| `git-upstream`     | Upstream branch, e.g. `origin/main`                 |
-| `git-origin-repo`  | Repo segment of the origin remote URL               |
-| `git-pr`           | PR for HEAD's branch (opt-in network)               |
+| Type               | Description                                                       |
+| ------------------ | ----------------------------------------------------------------- |
+| `project`          | Project name — git repo or working-directory folder               |
+| `project-dir`      | Launch-directory name (distinct from the repo name)               |
+| `git-branch`       | Current branch, or short SHA when detached                        |
+| `git-worktree`     | Basename of the current worktree                                  |
+| `git-changes`      | Staged, unstaged, and untracked file counts                       |
+| `git-conflicts`    | Merge-conflict file count                                         |
+| `git-ahead-behind` | Commits ahead of and behind upstream                              |
+| `git-upstream`     | Upstream branch, e.g. `origin/main`                               |
+| `git-origin-repo`  | Repo segment of the origin remote URL, or host-provided repo name |
+| `git-pr`           | PR for HEAD's branch (opt-in network)                             |
+| `git-pr-review`    | Host-provided PR review state (approved, changes requested, etc.) |
 
 ### Other family (4)
 

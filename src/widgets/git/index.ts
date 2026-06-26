@@ -17,6 +17,7 @@ import { gitAheadBehindWidget, gitConflictsWidget } from "./ahead-behind/ahead-b
 import { gitBranchWidget } from "./branch.js";
 import { gitChangesWidget } from "./changes.js";
 import { gitPrWidget } from "./pr/pr.js";
+import { gitPrReviewWidget } from "./pr-review/pr-review.js";
 import { gitOriginRepoWidget, gitUpstreamWidget } from "./remote/remote.js";
 import { gitWorktreeWidget } from "./sha/sha.js";
 
@@ -29,6 +30,7 @@ export const GIT_WIDGETS: readonly WidgetDef<unknown>[] = Object.freeze([
   eraseWidget(gitUpstreamWidget),
   eraseWidget(gitOriginRepoWidget),
   eraseWidget(gitPrWidget),
+  eraseWidget(gitPrReviewWidget),
 ]);
 
 export function registerGitWidgets(registry: WidgetRegistry): void {

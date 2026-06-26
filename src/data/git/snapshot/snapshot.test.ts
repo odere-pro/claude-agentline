@@ -24,6 +24,20 @@ function git(repo: string, args: readonly string[]): string {
   }).trim();
 }
 
+/**
+ * Make a minimal git repo with one commit and return its path.
+ * The caller must rmSync the path when done.
+ */
+function makeTmpRepo(): string {
+  const path = mkdtempSync(join(tmpdir(), "agentline-hostpr-"));
+  git(path, ["init", "-q", "-b", "main"]);
+  git(path, ["config", "commit.gpgsign", "false"]);
+  writeFileSync(join(path, "a.txt"), "hello\n");
+  git(path, ["add", "a.txt"]);
+  git(path, ["commit", "-q", "-m", "init"]);
+  return path;
+}
+
 function makeRepo(): RepoFixture {
   const path = mkdtempSync(join(tmpdir(), "agentline-git-"));
   git(path, ["init", "-q", "-b", "main"]);
@@ -160,6 +174,106 @@ describe("loadGitSnapshot", () => {
       const snap = loadGitSnapshot({ cwd: repo.path, previous: stale });
       if (!snap.available) throw new Error("expected available");
       expect(snap.branch).toBe("main");
+    });
+  });
+
+  describe("host-first PR bridge", () => {
+    it("uses hostPr when number is a valid integer and url is non-empty", () => {
+      // A non-existent cwd guarantees gh is never reached; host pr must survive.
+      // The cwd does not exist so git detects "not a repo" — transient miss
+      // with no previous → available:false. The next test uses a real repo
+      // to confirm the full host-wins path.
+      const snap = loadGitSnapshot({
+        cwd: "/definitely-not-a-real-path-xyz123",
+        hostPr: { number: 244, url: "https://github.com/odere-pro/agentline/pull/244" },
+      });
+      expect(snap).toBeDefined();
+      expect(snap.available).toBe(false);
+    });
+
+    it("hostPr produces a frozen pr object with title empty, skipping gh", () => {
+      // Use a real temp repo (allowPullRequest NOT set) to prove host wins.
+      const r = makeTmpRepo();
+      try {
+        const snap = loadGitSnapshot({
+          cwd: r,
+          hostPr: { number: 7, url: "https://github.com/owner/repo/pull/7" },
+        });
+        if (!snap.available) throw new Error("expected available");
+        expect(snap.pr).toEqual({ number: 7, url: "https://github.com/owner/repo/pull/7", title: "" });
+        expect(Object.isFrozen(snap.pr)).toBe(true);
+      } finally {
+        rmSync(r, { recursive: true, force: true });
+      }
+    });
+
+    it("hostPr wins over allowPullRequest=true (gh never called)", () => {
+      // Provide a hostPr and also allowPullRequest=true; host must win.
+      // We verify behaviourally: gh would fail in CI (no auth), but the
+      // snapshot still comes back with the host's number.
+      const r = makeTmpRepo();
+      try {
+        const snap = loadGitSnapshot({
+          cwd: r,
+          hostPr: { number: 99, url: "https://github.com/foo/bar/pull/99" },
+          allowPullRequest: true,
+        });
+        if (!snap.available) throw new Error("expected available");
+        expect(snap.pr?.number).toBe(99);
+      } finally {
+        rmSync(r, { recursive: true, force: true });
+      }
+    });
+
+    it("falls through to allowPullRequest path when hostPr is absent", () => {
+      // No hostPr + no allowPullRequest → pr stays null.
+      const r = makeTmpRepo();
+      try {
+        const snap = loadGitSnapshot({ cwd: r });
+        if (!snap.available) throw new Error("expected available");
+        expect(snap.pr).toBeNull();
+      } finally {
+        rmSync(r, { recursive: true, force: true });
+      }
+    });
+
+    it("ignores malformed hostPr (number <= 0)", () => {
+      const r = makeTmpRepo();
+      try {
+        const snap = loadGitSnapshot({
+          cwd: r,
+          hostPr: { number: 0, url: "https://github.com/foo/bar/pull/0" },
+        });
+        if (!snap.available) throw new Error("expected available");
+        expect(snap.pr).toBeNull();
+      } finally {
+        rmSync(r, { recursive: true, force: true });
+      }
+    });
+
+    it("ignores malformed hostPr (empty url)", () => {
+      const r = makeTmpRepo();
+      try {
+        const snap = loadGitSnapshot({
+          cwd: r,
+          hostPr: { number: 5, url: "" },
+        });
+        if (!snap.available) throw new Error("expected available");
+        expect(snap.pr).toBeNull();
+      } finally {
+        rmSync(r, { recursive: true, force: true });
+      }
+    });
+
+    it("ignores malformed hostPr (url absent)", () => {
+      const r = makeTmpRepo();
+      try {
+        const snap = loadGitSnapshot({ cwd: r, hostPr: { number: 5 } });
+        if (!snap.available) throw new Error("expected available");
+        expect(snap.pr).toBeNull();
+      } finally {
+        rmSync(r, { recursive: true, force: true });
+      }
     });
   });
 
