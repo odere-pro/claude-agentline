@@ -151,19 +151,19 @@ All types are kebab-case strings. Source of truth: `src/widgets/families/catalog
 
 ### Session family (11)
 
-| Type               | Description                                                |
-| ------------------ | ---------------------------------------------------------- |
-| `model`            | Active model id (e.g. Sonnet 4.6)                          |
-| `version`          | Claude Code version                                        |
-| `thinking-effort`  | Thinking-effort tier: low, medium, or high                 |
-| `thinking-enabled` | Whether extended thinking is on (complements effort)       |
-| `plan`             | Active plan for the current session                        |
-| `cwd-path`         | Current working-directory path, home-collapsed/truncatable |
-| `agent-name`       | Active subagent persona name                               |
-| `session-id`       | Short session id                                           |
-| `account-email`    | Logged-in account email                                    |
-| `session-duration` | Host-reported session elapsed time (e.g. 12m 30s)          |
-| `lines-changed`    | Host-reported lines added and removed this session         |
+| Type               | Description                                                                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`            | Active model id (e.g. Sonnet 4.6)                                                                                                           |
+| `version`          | Claude Code version                                                                                                                         |
+| `thinking-effort`  | Thinking-effort tier: low, medium, or high                                                                                                  |
+| `thinking-enabled` | Whether extended thinking is on (complements effort)                                                                                        |
+| `plan`             | Active plan for the current session — a `.claude/plans/` file basename (`ctx.plan`); not the subscription tier (cf. `session-weekly-usage`) |
+| `cwd-path`         | Current working-directory path, home-collapsed/truncatable                                                                                  |
+| `agent-name`       | Active subagent persona name                                                                                                                |
+| `session-id`       | Short session id                                                                                                                            |
+| `account-email`    | Logged-in account email                                                                                                                     |
+| `session-duration` | Host-reported session elapsed time (e.g. 12m 30s)                                                                                           |
+| `lines-changed`    | Host-reported lines added and removed this session                                                                                          |
 
 ### Tokens family (8)
 
@@ -188,10 +188,10 @@ All types are kebab-case strings. Source of truth: `src/widgets/families/catalog
 
 ### Rate-limits family (2)
 
-| Type                   | Description                                                                                               |
-| ---------------------- | --------------------------------------------------------------------------------------------------------- |
-| `session-weekly-usage` | Combined session + weekly usage % from the host                                                           |
-| `reset-timer`          | Session + weekly reset on one cell; countdown or wall-clock (`at-24h`/`at-12h`/`at-seconds`) via `format` |
+| Type                   | Description                                                                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `session-weekly-usage` | Combined session + weekly usage % from the host; optional `plan` prefix names the subscription tier (`raw["plan"]` / `options.plan`), not the `plan` widget |
+| `reset-timer`          | Session + weekly reset on one cell; countdown or wall-clock (`at-24h`/`at-12h`/`at-seconds`) via `format`                                                   |
 
 ### Git family (11)
 
@@ -415,7 +415,7 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 | `KeyBinding`             | `src/tui/keys/bindings/bindings.ts`      | Single key binding entry                                         |
 | `WidgetMeta`             | `src/widgets/families/catalog-types.ts`  | Widget metadata entry in catalog                                 |
 | `WidgetVariant`          | `src/widgets/families/catalog-types.ts`  | Named display variant for a widget                               |
-| `WidgetFamily`           | `src/core/lib/widget-families.ts`        | Union of the 5 widget family strings                             |
+| `WidgetFamily`           | `src/core/lib/widget-families.ts`        | Union of the 6 widget family strings                             |
 | `WidgetMetaEntry`        | `src/widgets/families/catalog-types.ts`  | `WidgetMeta` paired with its `type` string                       |
 
 ---
