@@ -166,6 +166,7 @@ describe("loadGitSnapshot", () => {
       const snap = loadGitSnapshot({ cwd: repo.path });
       if (!snap.available) throw new Error("expected available");
       expect(snap.pr).toBeNull();
+      expect(snap.prSource).toBeNull();
     });
 
     it("ignores the previous snapshot when the live read succeeds", () => {
@@ -202,6 +203,7 @@ describe("loadGitSnapshot", () => {
         if (!snap.available) throw new Error("expected available");
         expect(snap.pr).toEqual({ number: 7, url: "https://github.com/owner/repo/pull/7", title: "" });
         expect(Object.isFrozen(snap.pr)).toBe(true);
+        expect(snap.prSource).toBe("host");
       } finally {
         rmSync(r, { recursive: true, force: true });
       }
@@ -220,6 +222,7 @@ describe("loadGitSnapshot", () => {
         });
         if (!snap.available) throw new Error("expected available");
         expect(snap.pr?.number).toBe(99);
+        expect(snap.prSource).toBe("host");
       } finally {
         rmSync(r, { recursive: true, force: true });
       }
@@ -232,6 +235,7 @@ describe("loadGitSnapshot", () => {
         const snap = loadGitSnapshot({ cwd: r });
         if (!snap.available) throw new Error("expected available");
         expect(snap.pr).toBeNull();
+        expect(snap.prSource).toBeNull();
       } finally {
         rmSync(r, { recursive: true, force: true });
       }
@@ -345,6 +349,7 @@ function makePrevious(overrides: Partial<GitSnapshot> = {}): GitSnapshot {
     worktreeName: null,
     inWorktree: false,
     pr: null,
+    prSource: null,
     ...overrides,
   });
 }

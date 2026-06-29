@@ -7,9 +7,16 @@
  * The render contract (§1.2 N5) forbids outbound calls during render.
  * The actual `gh pr view` invocation lives in `src/git/pr.ts` and only
  * fires when `loadGitSnapshot` is called with `allowPullRequest: true`.
- * This widget is the consumer end of that opt-in: it stays hidden
- * unless the user has explicitly set `options.allowNetwork: true`,
- * giving the in-band signal to whatever wires up the snapshot loader.
+ *
+ * Provenance decides the gate (`snap.prSource`):
+ *   - `"host"`    → the host populated `pr.{number,url}` on stdin; the
+ *                   data is free (no subprocess, no latency, no privacy
+ *                   cost), so the widget renders by default.
+ *   - `"network"` → fetched via `gh pr view`; the widget stays hidden
+ *                   unless the user sets `options.allowNetwork: true`,
+ *                   giving the in-band signal to whatever wires up the
+ *                   snapshot loader — and a defense-in-depth check so a
+ *                   second `git-pr` without the opt-in never shows it.
  *
  * Variants (catalogue):
  *   - `number` (default) → `#42`
@@ -30,10 +37,12 @@ type GitPrVariant = "number" | "url" | "title" | "number-title";
 interface Options {
   readonly label?: string;
   /**
-   * Required opt-in. The widget hides unless this is `true`. Signals
-   * to the data layer (and to the in-session reviewer) that the user
-   * has accepted the latency / privacy cost of running `gh pr view`
-   * on every render tick.
+   * Opt-in for the **network** PR source only. A host-provided PR
+   * (`prSource === "host"`) renders without it. When the PR would come
+   * from `gh pr view` (`prSource === "network"`), the widget hides unless
+   * this is `true` — signalling to the data layer (and the in-session
+   * reviewer) that the user has accepted the latency / privacy cost of
+   * running `gh pr view` on every render tick.
    */
   readonly allowNetwork?: boolean;
   readonly variant?: GitPrVariant;
@@ -64,9 +73,18 @@ function renderVariant(
 }
 
 export const gitPrWidget = defineWidget<Options>("git-pr", (ctx, settings): Cell => {
-  if (settings.options.allowNetwork !== true) return { text: "", hidden: true };
   const snap = ctx.git;
   if (!snap || !snap.available || !snap.pr) return { text: "", hidden: true };
+  // Loader invariant: a non-null `pr` always carries a provenance. Guard it
+  // explicitly so a malformed snapshot (pr present, prSource null) hides
+  // rather than rendering ungated — and so the union narrows to
+  // "host" | "network" for the network-opt-in check below.
+  if (snap.prSource === null) return { text: "", hidden: true };
+  // A network-sourced PR (the `gh` shell-out) still requires the explicit
+  // opt-in; a host-provided PR is free and renders by default.
+  if (snap.prSource === "network" && settings.options.allowNetwork !== true) {
+    return { text: "", hidden: true };
+  }
   const requested = settings.options.variant ?? "number";
   const variant: GitPrVariant = VALID_VARIANTS.has(requested) ? requested : "number";
   const body = renderVariant(variant, snap.pr, valueSeparator(ctx));

@@ -59,16 +59,16 @@ usage-limits screen.
 
 Read the working tree implied by stdin `cwd`.
 
-| Type               | Renders                                          |
-| ------------------ | ------------------------------------------------ |
-| `git-branch`       | Branch name (detached HEAD shows short SHA).     |
-| `git-changes`      | `+N · -M` aggregate.                             |
-| `git-ahead-behind` | `↑N · ↓M`; hidden when even.                     |
-| `git-conflicts`    | Conflict count; hidden at zero.                  |
-| `git-worktree`     | Worktree name when inside one.                   |
-| `git-origin-repo`  | Remote repo identifier.                          |
-| `git-upstream`     | Upstream ref.                                    |
-| `git-pr`           | PR identifier — opt-in only; not on render path. |
+| Type               | Renders                                                       |
+| ------------------ | ------------------------------------------------------------- |
+| `git-branch`       | Branch name (detached HEAD shows short SHA).                  |
+| `git-changes`      | `+N · -M` aggregate.                                          |
+| `git-ahead-behind` | `↑N · ↓M`; hidden when even.                                  |
+| `git-conflicts`    | Conflict count; hidden at zero.                               |
+| `git-worktree`     | Worktree name when inside one.                                |
+| `git-origin-repo`  | Remote repo identifier.                                       |
+| `git-upstream`     | Upstream ref.                                                 |
+| `git-pr`           | PR identifier — host-provided by default; gh fallback opt-in. |
 
 ---
 

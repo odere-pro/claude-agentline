@@ -59,9 +59,9 @@ export function buildMockPreview(now: number = Date.now()): MockPreview {
       fiveHour: { usedPercentage: 21, resetsAt: fiveHourReset },
       sevenDay: { usedPercentage: 31, resetsAt: sevenDayReset },
     },
-    // Host-provided PR data: exercises git-pr-review (reviewState) widget in the
-    // picker preview. number + url are included so the host-bridge path is also
-    // exercised for git-pr if the user has it configured.
+    // Host-provided PR data: exercises the git-pr-review (reviewState) widget in
+    // the picker preview. number + url feed the git-pr widget too — the mock git
+    // snapshot below mirrors these as its host-bridge PR.
     pr: {
       reviewState: "approved",
       number: 1,
@@ -129,7 +129,11 @@ export function buildMockPreview(now: number = Date.now()): MockPreview {
     upstreamRemote: null,
     worktreeName: null,
     inWorktree: false,
-    pr: null,
+    // Mirror the host `pr` block above as the host-bridge outcome, so a user
+    // configuring a git-pr widget sees it render in the preview by default
+    // (host-provided PRs need no allowNetwork opt-in).
+    pr: { number: 1, url: "https://github.com/owner/repo/pull/1", title: "" },
+    prSource: "host",
   };
 
   return { payload, session, tokens, git, plan };

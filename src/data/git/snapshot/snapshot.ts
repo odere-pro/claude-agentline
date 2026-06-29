@@ -81,6 +81,15 @@ export interface GitSnapshot {
    * cleanly when it's null.
    */
   readonly pr: GitPullRequestInfo | null;
+  /**
+   * Provenance of `pr`, so consumers can gate the two sources
+   * differently. `"host"` when bridged from the host's `pr` block (free
+   * — no subprocess), `"network"` when fetched via the `gh` shell-out,
+   * `null` when there is no PR. The `git-pr` widget gates only the
+   * `"network"` source behind `allowNetwork`; a `"host"` PR renders by
+   * default. Invariant: `prSource === null` iff `pr === null`.
+   */
+  readonly prSource: "host" | "network" | null;
 }
 
 export interface GitUnavailable {
@@ -258,6 +267,7 @@ export function loadGitSnapshot(input: LoadGitSnapshotInput): GitState {
   }
 
   let pr: GitPullRequestInfo | null = null;
+  let prSource: "host" | "network" | null = null;
   // Host-first PR bridge: when the host supplies a usable PR (finite int > 0
   // number AND non-empty url), use it directly and skip the `gh` shell-out.
   // Only when the host PR is absent or unusable do we fall through to the
@@ -274,6 +284,7 @@ export function loadGitSnapshot(input: LoadGitSnapshotInput): GitState {
     hostUrl !== "";
   if (hostPrUsable && hostNumber !== undefined && hostUrl !== undefined) {
     pr = Object.freeze({ number: Math.floor(hostNumber), url: hostUrl, title: "" });
+    prSource = "host";
   } else if (input.allowPullRequest) {
     const outcome = loadPullRequestOutcome({
       cwd: input.cwd,
@@ -284,7 +295,17 @@ export function loadGitSnapshot(input: LoadGitSnapshotInput): GitState {
     });
     // Hold last-known-good only on a transient flake; a clean "no PR"
     // (PR closed/merged) clears it so the widget never shows a stale PR.
-    pr = outcome.transient ? (prev?.pr ?? null) : outcome.found;
+    if (outcome.transient) {
+      pr = prev?.pr ?? null;
+      // Carry the held value's provenance forward. The `?? "network"` is a
+      // defensive fallback only — the cache parser rejects any snapshot
+      // missing `prSource`, so `prev` always has it in practice; the safe
+      // (opt-in-gated) source is the right default if that ever changes.
+      prSource = pr ? (prev?.prSource ?? "network") : null;
+    } else {
+      pr = outcome.found;
+      prSource = pr ? "network" : null;
+    }
   }
 
   return Object.freeze({
@@ -304,5 +325,6 @@ export function loadGitSnapshot(input: LoadGitSnapshotInput): GitState {
     worktreeName,
     inWorktree,
     pr,
+    prSource,
   });
 }

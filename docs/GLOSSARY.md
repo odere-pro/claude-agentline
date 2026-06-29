@@ -206,7 +206,7 @@ All types are kebab-case strings. Source of truth: `src/widgets/families/catalog
 | `git-ahead-behind` | Commits ahead of and behind upstream                              |
 | `git-upstream`     | Upstream branch, e.g. `origin/main`                               |
 | `git-origin-repo`  | Repo segment of the origin remote URL, or host-provided repo name |
-| `git-pr`           | PR for HEAD's branch (opt-in network)                             |
+| `git-pr`           | PR for HEAD's branch (host-provided; gh fallback opt-in)          |
 | `git-pr-review`    | Host-provided PR review state (approved, changes requested, etc.) |
 
 ### Other family (4)

@@ -38,7 +38,7 @@ export const GIT_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.freeze({
   ),
   "git-pr": entry(
     "Git pull request",
-    "PR for HEAD's branch (opt-in network: requires options.allowNetwork)",
+    "PR for HEAD's branch — host-provided; gh fallback via options.allowNetwork",
     "git",
     [
       v("number", "Number (#42)", { variant: "number" }),

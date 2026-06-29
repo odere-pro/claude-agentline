@@ -51,6 +51,7 @@ const CLEAN_GIT: GitState = {
   worktreeName: null,
   inWorktree: false,
   pr: null,
+  prSource: null,
 };
 
 /*

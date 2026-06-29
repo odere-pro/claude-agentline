@@ -184,6 +184,12 @@ function parsePr(value: unknown): GitSnapshot["pr"] | undefined {
   return { number, url, title };
 }
 
+function parsePrSource(value: unknown): GitSnapshot["prSource"] | undefined {
+  if (value === null) return null;
+  if (value === "host" || value === "network") return value;
+  return undefined;
+}
+
 /**
  * Validate a parsed snapshot back into a frozen `GitSnapshot`, or `null`
  * if any field is missing or the wrong type. Tolerant by design — a
@@ -212,7 +218,13 @@ function parseSnapshot(value: unknown, cwd: string): GitSnapshot | null {
   const origin = parseRemote(value.origin);
   const upstreamRemote = parseRemote(value.upstreamRemote);
   const pr = parsePr(value.pr);
+  const prSource = parsePrSource(value.prSource);
   if (origin === undefined || upstreamRemote === undefined || pr === undefined) return null;
+  if (prSource === undefined) return null;
+  // Snapshot invariant: provenance and PR presence move together. Reject a
+  // tampered cache file that pairs them inconsistently (pr with no source,
+  // or a source with no pr) rather than feed a malformed snapshot forward.
+  if ((pr === null) !== (prSource === null)) return null;
 
   return Object.freeze({
     available: true,
@@ -231,5 +243,6 @@ function parseSnapshot(value: unknown, cwd: string): GitSnapshot | null {
     worktreeName,
     inWorktree: value.inWorktree,
     pr,
+    prSource,
   });
 }

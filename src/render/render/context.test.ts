@@ -229,6 +229,7 @@ describe("loadLiveSnapshots — last-known-good threading", () => {
       worktreeName: null,
       inWorktree: false,
       pr: null,
+      prSource: null,
     });
     await saveGitSnapshot(cached, { env });
 
