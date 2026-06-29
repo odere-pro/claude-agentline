@@ -1,0 +1,1 @@
+- Security: cleared the `js-yaml` quadratic-complexity DoS advisory (GHSA-h67p-54hq-rp68) by pinning the transitive eslint dependency to 4.2.0 via a pnpm override. Development-only; no runtime dependency or shipped artefact changed.
