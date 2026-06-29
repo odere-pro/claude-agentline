@@ -1,0 +1,1 @@
+- Maintainability: the `model` widget's id→name fallback now derives names like `Opus 4.8`, `Opus 3`, and `Fable 5` directly from the model id, so adding a new model no longer needs a per-release table row. This path only runs when the host omits `display_name`, so live renders are byte-unchanged.
