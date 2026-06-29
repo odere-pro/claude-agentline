@@ -91,11 +91,11 @@ picked up.
 
 ## Blank or garbled output
 
-Run `agentline doctor` to check colour-depth detection and the active theme. If the issue looks like a palette problem, switch to a simpler theme by editing the config:
+Run `agentline doctor` to check colour-depth detection and the active theme. If the issue looks like a palette problem, switch to the `ansi-minimal` theme — it uses only named ANSI colours, so it draws from the terminal's own 16-colour palette:
 
 ```jsonc
 // ~/.config/agentline/config.json
-{ "theme": "vscode-dark" }
+{ "theme": "ansi-minimal" }
 ```
 
 To strip colour entirely, set `NO_COLOR=1` in your shell environment and restart Claude Code. agentline honours [`NO_COLOR`](https://no-color.org). See [themes.md](./themes.md#truecolor-and-degraded-terminals) for colour-depth details.

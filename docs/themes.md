@@ -46,16 +46,27 @@ Colour values accept the same three forms as widget colours
 
 ## Shipped theme presets
 
-| Name               | Base            |
-| ------------------ | --------------- |
-| `claude-code-dark` | dark warm brown |
+| Name                | Base                                         |
+| ------------------- | -------------------------------------------- |
+| `claude-code-dark`  | dark, warm brown (host-brand inspired)       |
+| `claude-code-light` | light, warm cream                            |
+| `high-contrast`     | maximum-contrast dark — bright on near-black |
+| `ansi-minimal`      | named ANSI colours only; 16-colour-safe      |
+| `midnight`          | cool blue / slate dark                       |
+
+`ansi-minimal` uses only named ANSI colours, so it draws from the
+terminal's own 16-colour palette — no truecolor support required — and
+stays legible on minimal terminals. The other four use truecolor hex
+values and quantise automatically to 256- or 16-colour terminals (see
+[Truecolor and degraded terminals](#truecolor-and-degraded-terminals)).
 
 Additional community themes can be placed in
 `${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/themes/` and referenced
 by name in your config. See [Authoring a theme](#authoring-a-theme) below.
 
-To activate a theme, set `"theme": "<name>"` in your config (or use the
-TUI editor with `agentline edit`) and restart your Claude Code session.
+To activate a theme, set `"theme": "<name>"` in your config — or set
+`AGENTLINE_THEME=<name>` to override it for a single session without
+editing the file — then restart your Claude Code session.
 
 ## Palette roles
 

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/odere-pro/claude-agentline/main/schemas/theme.schema.json",
+  "name": "midnight",
+  "palette": {
+    "accent": "#6fa0e6",
+    "info": "#74c7d8",
+    "success": "#86c06a",
+    "warning": "#d6a85c",
+    "danger": "#e06c8a",
+    "muted": "#6b7695",
+    "git-clean": "#86c06a",
+    "git-dirty": "#d6a85c",
+    "tokens-low": "#86c06a",
+    "tokens-mid": "#d6a85c",
+    "tokens-high": "#e06c8a",
+    "bg-section": "#161a24",
+    "bg-emphasis": "#212635"
+  },
+  "powerline": {
+    "caps.start": "",
+    "caps.end": ""
+  }
+}

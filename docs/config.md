@@ -190,7 +190,7 @@ variable named `AGENTLINE_` followed by the dot-path in
 
 ```bash
 AGENTLINE_GLOBAL_PADDING=2
-AGENTLINE_THEME=vscode-dark
+AGENTLINE_THEME=midnight
 AGENTLINE_POWERLINE_ENABLED=true
 ```
 
