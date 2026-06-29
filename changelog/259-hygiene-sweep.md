@@ -1,0 +1,1 @@
+- Internal hygiene: renamed the `git-worktree` widget's source folder from `sha/` to `worktree/` to match the widget it exports, and dropped the unused `sessionName` and `skills` carriers from the session resolver (the host-contract gate now allowlists `skills`).

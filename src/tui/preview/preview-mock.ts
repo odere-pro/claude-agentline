@@ -76,7 +76,6 @@ export function buildMockPreview(now: number = Date.now()): MockPreview {
     version: "2.0.14",
     outputStyle: "default",
     sessionId: MOCK_SESSION_ID,
-    sessionName: "preview",
     accountEmail: "you@example.com",
     loginMethod: "oauth",
     orgSlug: "agentline",

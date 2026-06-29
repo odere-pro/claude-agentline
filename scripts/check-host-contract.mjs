@@ -63,6 +63,10 @@ const IGNORED = new Set([
   // Hook envelope marker (always "Status" for the statusline hook). Not a
   // statusline datum; nothing to surface.
   "hook_event_name",
+  // Host-session skill list. Historically drained by the session resolver but
+  // surfaced by no widget; moved to IGNORED so the resolver no longer reads a
+  // key purely to satisfy this gate.
+  "skills",
 ]);
 
 /**
@@ -121,7 +125,7 @@ async function deriveConsumed(fixture) {
   // Reader 1: the adapter. Returns a payload whose `.raw` IS the proxy.
   const payload = stdinMod.adaptStatuslinePayload(proxy);
 
-  // Reader 2: the session resolver reads payload.raw["user"] / ["skills"].
+  // Reader 2: the session resolver reads payload.raw["user"].
   // Pass `null` auth so it never touches the filesystem (resolveSessionFields,
   // not loadSessionFields).
   sessionMod.resolveSessionFields({ raw: proxy, truncated: false }, null);
