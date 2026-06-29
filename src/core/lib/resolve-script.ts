@@ -1,11 +1,12 @@
 /**
  * Resolve a `scripts/<name>` path relative to the built CLI bundle.
  *
- * `install`, `uninstall`, and `reset` all delegate to a bash script
- * shipped alongside `dist/`. They each used to carry a private copy of
- * this resolver; `reset` (PR adding the command) reuses this shared one
- * instead of adding a fourth. The `command` label only shapes the
- * not-found error message so the hint names the right subcommand.
+ * `install`, `start`, `reset`, and `uninstall` all delegate to a bash
+ * script shipped alongside `dist/`. They each used to carry a private
+ * copy of this resolver; `start`, `reset`, and `install` now share this
+ * one. (`uninstall` still keeps a private copy — a candidate for the
+ * same consolidation.) The `command` label only shapes the not-found
+ * error message so the hint names the right subcommand.
  */
 
 import { existsSync } from "node:fs";

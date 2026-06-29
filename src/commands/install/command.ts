@@ -7,12 +7,11 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { EN_DICTIONARY } from "../../core/i18n/index.js";
 import { isHelpFlag, requestHelp } from "../../core/lib/help/help.js";
 import { projectGate } from "../../core/lib/claude-project/claude-project.js";
+import { resolveScript } from "../../core/lib/resolve-script.js";
+import { printNextSteps } from "../next-steps/next-steps.js";
 import { maybeRefresh } from "../update-check/index.js";
 
 const HELP = EN_DICTIONARY["cmd.install.help"];
@@ -54,7 +53,7 @@ export async function runInstallCommand(
     ...(opts.stdin !== undefined ? { stdin: opts.stdin } : {}),
   });
   if (gate === "skip") return 0;
-  const script = resolveScript("install.sh");
+  const script = resolveScript("install.sh", "install");
   const argv: string[] = [];
   if (args.fromSource) argv.push("--from-source");
   if (args.force) argv.push("--force");
@@ -71,20 +70,10 @@ export async function runInstallCommand(
    * after this verb has already returned.
    */
   if (!args.dryRun && result.status === 0) {
+    // Show a freshly wired user their next move (issue #263). Gated on a
+    // successful, non-dry-run wire so gate-09/gate-10 stay green.
+    printNextSteps();
     void maybeRefresh().catch(() => undefined);
   }
   return result.status ?? 1;
-}
-
-function resolveScript(name: string): string {
-  const cliDir = dirname(fileURLToPath(import.meta.url));
-  const path = join(cliDir, "..", "scripts", name);
-  if (!existsSync(path)) {
-    throw new Error(
-      `agentline install: script not found at ${path}\n` +
-        "  This command requires the agentline repository checkout.\n" +
-        "  Clone https://github.com/odere-pro/claude-agentline and run from there.",
-    );
-  }
-  return path;
 }
