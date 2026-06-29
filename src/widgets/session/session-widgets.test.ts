@@ -88,18 +88,35 @@ describe("registerSessionWidgets", () => {
 // ── model ────────────────────────────────────────────────────────────────
 
 describe("modelDisplayName", () => {
-  it("maps the canonical model ids to their friendly labels", () => {
+  it("derives canonical names from the id without a per-model table row", () => {
+    expect(modelDisplayName("claude-opus-4-8")).toBe("Opus 4.8");
     expect(modelDisplayName("claude-opus-4-7")).toBe("Opus 4.7");
+    expect(modelDisplayName("claude-opus-4-6")).toBe("Opus 4.6");
     expect(modelDisplayName("claude-sonnet-4-6")).toBe("Sonnet 4.6");
     expect(modelDisplayName("claude-haiku-4-5")).toBe("Haiku 4.5");
   });
 
-  it("maps the dated haiku variant to 'Haiku 4.5'", () => {
+  it("derives a single-component version (e.g. Fable 5, Opus 3)", () => {
+    expect(modelDisplayName("claude-fable-5")).toBe("Fable 5");
+    expect(modelDisplayName("claude-opus-3")).toBe("Opus 3");
+  });
+
+  it("strips a trailing release-date segment", () => {
     expect(modelDisplayName("claude-haiku-4-5-20251001")).toBe("Haiku 4.5");
   });
 
-  it("falls back to the raw id for unknown models", () => {
+  it("strips a variant suffix like '[1m]'", () => {
+    expect(modelDisplayName("claude-opus-4-8[1m]")).toBe("Opus 4.8");
+  });
+
+  it("falls back to the raw id for non-conforming models", () => {
     expect(modelDisplayName("unknown-future-model")).toBe("unknown-future-model");
+  });
+
+  it("leaves a non-claude id verbatim rather than mis-casing it", () => {
+    // Only the `claude-` namespace is derived; everything else is shown raw.
+    expect(modelDisplayName("gate-15")).toBe("gate-15");
+    expect(modelDisplayName("gpt-4")).toBe("gpt-4");
   });
 
   it("returns empty string unchanged", () => {
