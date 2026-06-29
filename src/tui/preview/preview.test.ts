@@ -50,6 +50,7 @@ const realGit: GitState = Object.freeze({
   worktreeName: null,
   inWorktree: false,
   pr: null,
+  prSource: null,
 });
 
 const realTokens: TokensSnapshot = Object.freeze({

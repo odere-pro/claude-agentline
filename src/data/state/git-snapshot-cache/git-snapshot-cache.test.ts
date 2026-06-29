@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -30,6 +30,7 @@ function makeSnapshot(overrides: Partial<GitSnapshot> = {}): GitSnapshot {
     worktreeName: null,
     inWorktree: false,
     pr: { number: 42, url: "https://example.com/pr/42", title: "Add thing" },
+    prSource: "network",
     ...overrides,
   });
 }
@@ -130,12 +131,57 @@ describe("saveGitSnapshot + readGitSnapshotSync", () => {
   });
 
   it("preserves null remotes / pr / upstream through the round-trip", async () => {
-    const snap = makeSnapshot({ upstream: null, origin: null, pr: null, upstreamRemote: null });
+    const snap = makeSnapshot({ upstream: null, origin: null, pr: null, upstreamRemote: null, prSource: null });
     await saveGitSnapshot(snap, { env });
     const out = readGitSnapshotSync(snap.cwd, env);
     expect(out?.upstream).toBeNull();
     expect(out?.origin).toBeNull();
     expect(out?.pr).toBeNull();
+    expect(out?.prSource).toBeNull();
+  });
+
+  it("round-trips prSource for both the host and network sources", async () => {
+    const host = makeSnapshot({
+      cwd: "/repo/host",
+      pr: { number: 7, url: "https://example.com/pr/7", title: "" },
+      prSource: "host",
+    });
+    await saveGitSnapshot(host, { env });
+    expect(readGitSnapshotSync(host.cwd, env)?.prSource).toBe("host");
+
+    const network = makeSnapshot({ cwd: "/repo/net", prSource: "network" });
+    await saveGitSnapshot(network, { env });
+    expect(readGitSnapshotSync(network.cwd, env)?.prSource).toBe("network");
+  });
+
+  it("rejects a legacy cache file missing prSource (reads back as null)", async () => {
+    const snap = makeSnapshot();
+    await saveGitSnapshot(snap, { env });
+    const file = resolveGitSnapshotCacheFile(snap.cwd, env);
+    const body = JSON.parse(readFileSync(file, "utf8"));
+    delete body.snapshot.prSource;
+    writeFileSync(file, JSON.stringify(body));
+    expect(readGitSnapshotSync(snap.cwd, env)).toBeNull();
+  });
+
+  it("rejects a tampered cache where pr and prSource disagree (invariant)", async () => {
+    // pr present but prSource null — malformed pairing must read back null.
+    const snap = makeSnapshot();
+    await saveGitSnapshot(snap, { env });
+    const file = resolveGitSnapshotCacheFile(snap.cwd, env);
+    const body = JSON.parse(readFileSync(file, "utf8"));
+    body.snapshot.prSource = null;
+    writeFileSync(file, JSON.stringify(body));
+    expect(readGitSnapshotSync(snap.cwd, env)).toBeNull();
+
+    // and the mirror case: a source with no pr.
+    const snap2 = makeSnapshot({ cwd: "/repo/two", pr: null, prSource: "host" as const });
+    await saveGitSnapshot(snap2, { env });
+    const file2 = resolveGitSnapshotCacheFile(snap2.cwd, env);
+    const body2 = JSON.parse(readFileSync(file2, "utf8"));
+    expect(body2.snapshot.pr).toBeNull();
+    expect(body2.snapshot.prSource).toBe("host");
+    expect(readGitSnapshotSync(snap2.cwd, env)).toBeNull();
   });
 
   it("is best-effort — a broken state dir does not throw", async () => {

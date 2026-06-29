@@ -167,14 +167,6 @@ export const EN_DICTIONARY = {
     "unknown widget type{s} (removed or mistyped): {types} — will render as hidden",
   "cmd.doctor.d11.hint-unknown":
     "remove or replace them with `agentline edit`, or delete the entries from your config",
-  "cmd.doctor.d11.git-pr-no-network":
-    "git-pr widget will never show a PR: options.allowNetwork is not true",
-  "cmd.doctor.d11.hint-git-pr":
-    "set `options.allowNetwork: true` on the git-pr widget (note: makes a network request per render)",
-  "cmd.doctor.d11.mixed":
-    "unknown widget type{s}: {types}; git-pr has no allowNetwork opt-in",
-  "cmd.doctor.d11.hint-mixed":
-    "remove unknown types with `agentline edit`; set `options.allowNetwork: true` on git-pr",
 
   // ── cmd.install.*, cmd.uninstall.*, cmd.reset.* — verb help blocks ────
   "cmd.install.help": `agentline install — wire @odere-pro/agentline into Claude Code's statusline

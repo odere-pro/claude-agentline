@@ -30,6 +30,7 @@ function makeSnapshot(overrides: Partial<GitSnapshot> = {}): GitSnapshot {
     worktreeName: null,
     inWorktree: false,
     pr: null,
+    prSource: null,
     ...overrides,
   });
 }

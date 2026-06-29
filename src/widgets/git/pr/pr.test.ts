@@ -10,6 +10,9 @@ const prSnapshot = (overrides: Partial<GitSnapshot> = {}): GitSnapshot =>
   makeGitSnapshot({
     branch: "feat/x",
     pr: { number: 42, url: "https://github.com/owner/repo/pull/42", title: "feat: do the thing" },
+    // Default to the network source so the pre-existing opt-in tests keep
+    // their original meaning; host-source tests override this explicitly.
+    prSource: "network",
     ...overrides,
   });
 
@@ -17,12 +20,45 @@ const ctxWithGit = (git: GitState | undefined) =>
   makeWidgetContext(git !== undefined ? { git } : {});
 
 describe("gitPrWidget", () => {
-  it("hides when allowNetwork is not set (defense in depth)", () => {
-    const cell = gitPrWidget.render(ctxWithGit(prSnapshot()), {
+  it("hides a network-sourced PR when allowNetwork is not set (opt-in preserved)", () => {
+    const cell = gitPrWidget.render(ctxWithGit(prSnapshot({ prSource: "network" })), {
       options: {},
       rawValue: false,
     });
     expect(cell.hidden).toBe(true);
+  });
+
+  it("renders a host-sourced PR by default — no allowNetwork opt-in needed", () => {
+    const cell = gitPrWidget.render(
+      ctxWithGit(
+        prSnapshot({
+          prSource: "host",
+          pr: { number: 42, url: "https://github.com/owner/repo/pull/42", title: "" },
+        }),
+      ),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.hidden).not.toBe(true);
+    expect(cell.text).toBe("#42");
+    expect(cell.href).toBe("https://github.com/owner/repo/pull/42");
+  });
+
+  it("renders a host-sourced PR even when allowNetwork is explicitly false", () => {
+    const cell = gitPrWidget.render(ctxWithGit(prSnapshot({ prSource: "host" })), {
+      options: { allowNetwork: false },
+      rawValue: false,
+    });
+    expect(cell.hidden).not.toBe(true);
+    expect(cell.text).toBe("#42");
+  });
+
+  it("renders a network-sourced PR once allowNetwork is opted in", () => {
+    const cell = gitPrWidget.render(ctxWithGit(prSnapshot({ prSource: "network" })), {
+      options: { allowNetwork: true },
+      rawValue: false,
+    });
+    expect(cell.hidden).not.toBe(true);
+    expect(cell.text).toBe("#42");
   });
 
   it("hides when ctx.git is undefined even with allowNetwork", () => {
@@ -35,6 +71,14 @@ describe("gitPrWidget", () => {
 
   it("hides when the snapshot is unavailable", () => {
     const cell = gitPrWidget.render(ctxWithGit({ available: false }), {
+      options: { allowNetwork: true },
+      rawValue: false,
+    });
+    expect(cell.hidden).toBe(true);
+  });
+
+  it("hides a malformed snapshot (pr present but prSource null) — defense in depth", () => {
+    const cell = gitPrWidget.render(ctxWithGit(prSnapshot({ prSource: null })), {
       options: { allowNetwork: true },
       rawValue: false,
     });

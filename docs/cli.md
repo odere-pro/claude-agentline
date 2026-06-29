@@ -281,7 +281,7 @@ Runs eleven health checks (D01–D11) against the host configuration. With `--fi
 | D08 | Render snapshot matches golden                      | no           |
 | D09 | `statusLine.refreshInterval` matches config         | yes          |
 | D10 | Claude CLI health (read-only)                       | no           |
-| D11 | Widget config sanity (unknown types, git-pr opt-in) | no           |
+| D11 | Widget config sanity (unknown/removed widget types) | no           |
 
 **Glyphs in output:** `[ok]` passed · `[!!]` warning · `[XX]` failed · `[fx]` fixed · `[--]` skipped
 

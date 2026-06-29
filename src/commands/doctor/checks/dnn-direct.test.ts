@@ -317,7 +317,9 @@ describe("checkD11", () => {
     expect(res.message).toContain("context-bar");
   });
 
-  it("warns when git-pr is configured without allowNetwork opt-in", async () => {
+  it("passes git-pr without allowNetwork — host-provided PRs render by default", async () => {
+    // The host bridge (issue #244) renders host PRs without the opt-in, so a
+    // git-pr lacking allowNetwork is a working config, not an inert one.
     const res = await checkD11(
       makeCtx({
         config: makeConfig({
@@ -326,13 +328,11 @@ describe("checkD11", () => {
       }),
     );
     expect(res.id).toBe("D11");
-    expect(res.status).toBe("warn");
-    expect(res.message).toMatch(/git-pr/);
-    expect(res.message).toMatch(/allowNetwork/);
-    expect(res.hint).toMatch(/allowNetwork: true/);
+    expect(res.status).toBe("pass");
+    expect(res.message).toMatch(/all renderable/);
   });
 
-  it("warns when git-pr has allowNetwork: false explicitly", async () => {
+  it("passes git-pr with allowNetwork: false explicitly (still renders host PRs)", async () => {
     const res = await checkD11(
       makeCtx({
         config: makeConfig({
@@ -341,8 +341,7 @@ describe("checkD11", () => {
       }),
     );
     expect(res.id).toBe("D11");
-    expect(res.status).toBe("warn");
-    expect(res.message).toMatch(/allowNetwork/);
+    expect(res.status).toBe("pass");
   });
 
   it("passes when git-pr has allowNetwork: true", async () => {
@@ -358,7 +357,7 @@ describe("checkD11", () => {
     expect(res.message).toMatch(/all renderable/);
   });
 
-  it("warns on both unknown type and git-pr without opt-in at the same time", async () => {
+  it("warns only about the unknown type, not git-pr, when both are present", async () => {
     const res = await checkD11(
       makeCtx({
         config: makeConfig({
@@ -369,6 +368,6 @@ describe("checkD11", () => {
     expect(res.id).toBe("D11");
     expect(res.status).toBe("warn");
     expect(res.message).toContain("git-untracked");
-    expect(res.message).toMatch(/allowNetwork/);
+    expect(res.message).not.toMatch(/allowNetwork/);
   });
 });

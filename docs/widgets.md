@@ -188,30 +188,34 @@ otherwise they hide themselves. They share a single per-render snapshot
 so a line with several git widgets only spawns `git` once. `project` and
 `project-dir` sit here too — the project name is git-repo-derived.
 
-| Type               | Renders                                                                |
-| ------------------ | ---------------------------------------------------------------------- |
-| `project`          | project name — git repo (origin) or working-dir folder                 |
-| `project-dir`      | launch-directory basename (the dir the host started in)                |
-| `git-branch`       | current branch (or short SHA when detached)                            |
-| `git-worktree`     | basename of the current worktree                                       |
-| `git-changes`      | summary of insertions / deletions from `git diff --shortstat`          |
-| `git-conflicts`    | merge-conflict file count                                              |
-| `git-ahead-behind` | commits ahead of and behind upstream                                   |
-| `git-upstream`     | upstream branch (`origin/main`)                                        |
-| `git-origin-repo`  | repo segment of the `origin` remote URL                                |
-| `git-pr`           | PR number / URL / title for HEAD's branch (opt-in network — see below) |
+| Type               | Renders                                                                          |
+| ------------------ | -------------------------------------------------------------------------------- |
+| `project`          | project name — git repo (origin) or working-dir folder                           |
+| `project-dir`      | launch-directory basename (the dir the host started in)                          |
+| `git-branch`       | current branch (or short SHA when detached)                                      |
+| `git-worktree`     | basename of the current worktree                                                 |
+| `git-changes`      | summary of insertions / deletions from `git diff --shortstat`                    |
+| `git-conflicts`    | merge-conflict file count                                                        |
+| `git-ahead-behind` | commits ahead of and behind upstream                                             |
+| `git-upstream`     | upstream branch (`origin/main`)                                                  |
+| `git-origin-repo`  | repo segment of the `origin` remote URL                                          |
+| `git-pr`           | PR number / URL / title for HEAD's branch (host-provided by default — see below) |
 
-**`git-pr` and the no-network rule.** The render hot path (§1.2 N5)
-forbids outbound calls. `git-pr` is the only widget that needs PR
-metadata, which lives outside the local checkout, so it is gated:
+**`git-pr`, the host bridge, and the no-network rule.** The render hot
+path (§1.2 N5) forbids outbound calls. PR metadata lives outside the
+local checkout, so `git-pr` has two sources with different visibility:
 
-- The widget hides unless `options.allowNetwork: true` is set.
-- The actual network call lives in `src/data/git/pr/pr.ts`'s `loadPullRequest`,
-  which shells out to `gh pr view --json number,url,title`. It is
-  invoked only when `loadGitSnapshot` is called with
-  `allowPullRequest: true`. `loadGitSnapshot` is itself wired outside
-  `renderFromInputs`, so the render path stays clean even when the
-  widget is enabled.
+- **Host-provided (default).** When Claude Code sends a PR on stdin
+  (`pr.{number,url}`), the data is free — no subprocess, no latency. The
+  widget renders it **without any opt-in**; `prSource` on the git snapshot
+  is tagged `"host"`.
+- **`gh` fallback (opt-in).** When the host sends no PR, the widget can
+  fetch via `gh pr view --json number,url,title` (`src/data/git/pr/pr.ts`'s
+  `loadPullRequest`), tagged `prSource: "network"`. This source renders
+  **only** when `options.allowNetwork: true` is set — accepting the
+  latency / privacy cost. `loadGitSnapshot` makes the `gh` call only when
+  it sees that opt-in, and is wired outside `renderFromInputs`, so the
+  render path stays clean.
 - Any failure — `gh` not installed, no PR for the branch, response
   malformed, network timeout — silently yields `null` and the widget
   hides. There is no error surface on the statusline.

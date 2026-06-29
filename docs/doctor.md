@@ -37,7 +37,7 @@ wrapper around the bin is read-only by construction — it never passes
 | D08 | render dry-run on an embedded fixture matches the stored snapshot                               | none; reports                                                            |
 | D09 | `~/.claude/settings.json` `statusLine.refreshInterval` matches the configured `refreshInterval` | re-sync from config                                                      |
 | D10 | Claude CLI health (read-only): update available and `claude doctor` issues/warnings             | none; reports                                                            |
-| D11 | Widget config sanity: unknown/removed types and `git-pr` without `allowNetwork` opt-in          | none; reports                                                            |
+| D11 | Widget config sanity: unknown/removed widget types still in the config                          | none; reports                                                            |
 
 `--fix` touches D01–D04 and D09. Everything else is reported and left
 to you, on the principle that doctor never acts on host state it does
@@ -150,23 +150,20 @@ or an unpopulated cache reports `pass` with an explanation. No fix.
 
 ### D11 — Widget config sanity
 
-Advisory check (severity `warn`, never `fail`) that surfaces widgets which
-are configured but will not render:
+Advisory check (severity `warn`, never `fail`) that surfaces
+**unknown or removed widget types**: any `type` in the configured widget
+list that is absent from the widget catalogue renders as a hidden cell with
+no visible feedback. This catches the common post-upgrade scenario where an
+old config still names a type that was removed (e.g. the eight types removed
+in v0.3.0: `claude-doctor`, `claude-update`, `context-bar`, `context-length`,
+`git-sha`, `git-untracked`, `current-session-reset-at`, `weekly-reset-at`).
+Reports each unknown type and suggests `agentline edit` to remove or replace
+them.
 
-1. **Unknown or removed widget types.** Any `type` in the configured widget
-   list that is absent from the widget catalogue renders as a hidden cell
-   with no visible feedback. This catches the common post-upgrade scenario
-   where an old config still names a type that was removed (e.g. the eight
-   types removed in v0.3.0: `claude-doctor`, `claude-update`, `context-bar`,
-   `context-length`, `git-sha`, `git-untracked`, `current-session-reset-at`,
-   `weekly-reset-at`). Reports each unknown type and suggests `agentline edit`
-   to remove or replace them.
-
-2. **`git-pr` without the network opt-in.** A `git-pr` widget whose
-   `options.allowNetwork` is not explicitly `true` will never show a PR
-   number — the resolver skips the network call without the opt-in. Reports
-   the widget and tells the user to set `options.allowNetwork: true` (noting
-   the latency and privacy cost).
+`git-pr` without `options.allowNetwork` is **not** flagged: since Claude Code
+provides PRs on stdin, `git-pr` renders host-provided PRs by default —
+`allowNetwork` only enables the additional `gh` fallback, so the widget is
+not inert without it.
 
 Source of truth for valid types is the widget catalogue (`WIDGET_CATALOG`),
 not a hardcoded list, so D11 stays accurate as the widget set evolves.

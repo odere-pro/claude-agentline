@@ -33,6 +33,11 @@ export function makeStdinPayload(overrides: Partial<StdinPayload> = {}): StdinPa
 /**
  * Default-clean git snapshot pinned to `main` on `/repo` with a frozen
  * 40-char SHA. Override `branch`, `status`, `pr`, etc. via `overrides`.
+ *
+ * Snapshot invariant: `prSource === null` iff `pr === null`. When you
+ * override `pr` with a non-null PR, also set `prSource` to `"host"` or
+ * `"network"` — the default leaves `prSource: null`, which is a malformed
+ * pairing the `git-pr` widget deliberately hides.
  */
 export function makeGitSnapshot(overrides: Partial<GitSnapshot> = {}): GitSnapshot {
   return Object.freeze({
@@ -52,6 +57,7 @@ export function makeGitSnapshot(overrides: Partial<GitSnapshot> = {}): GitSnapsh
     worktreeName: null,
     inWorktree: false,
     pr: null,
+    prSource: null,
     ...overrides,
   });
 }
