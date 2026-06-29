@@ -20,6 +20,12 @@ The file is a test fixture, not a shipped artefact (`shipped_artefact_paths` in
 `tests/gates/lib/common.sh` excludes `tests/fixtures/`), so the absolute-looking
 `cwd` / `transcript_path` / `workspace` values it contains do not trip gate-02.
 
+The active fixture is `host-payload-2.1.195.json` (it carries the observed-but-
+undocumented `fast_mode` key, which `scripts/check-host-contract.mjs` lists in
+`IGNORED`). The earlier `host-payload-2.1.193.json` is retained beside it as the
+prior-version capture — provenance for the gate-29 introduction — and is not
+read by the live gate.
+
 ### Refreshing for a new host version
 
 When Claude Code ships a statusline contract change, capture a fresh payload —

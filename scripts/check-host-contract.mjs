@@ -50,7 +50,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, "..");
 
 const FIXTURE_PATH =
-  process.env.HOST_CONTRACT_FIXTURE ?? resolve(REPO_ROOT, "tests/fixtures/host-payload-2.1.193.json");
+  process.env.HOST_CONTRACT_FIXTURE ?? resolve(REPO_ROOT, "tests/fixtures/host-payload-2.1.195.json");
 const DOC_PATH =
   process.env.HOST_CONTRACT_DOC ?? resolve(REPO_ROOT, "docs/cookbook/06-data-contracts.md");
 
@@ -67,6 +67,9 @@ const IGNORED = new Set([
   // surfaced by no widget; moved to IGNORED so the resolver no longer reads a
   // key purely to satisfy this gate.
   "skills",
+  // Opus fast-mode signal. Observed in 2.1.195; undocumented in the public
+  // statusline spec — no widget surface until documented.
+  "fast_mode",
 ]);
 
 /**

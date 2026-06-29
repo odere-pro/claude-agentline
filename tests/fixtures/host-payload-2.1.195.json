@@ -1,0 +1,45 @@
+{
+  "hook_event_name": "Status",
+  "session_id": "0f3a9c2e-7b1d-4e6a-9c5f-2a8b1d4e6f00",
+  "session_name": "demo-session",
+  "transcript_path": "/home/dev/.config/claude/projects/repo/0f3a9c2e.jsonl",
+  "cwd": "/home/dev/repo",
+  "version": "2.1.195",
+  "model": { "id": "claude-opus-4-8", "display_name": "Opus 4.8 (1M context)" },
+  "output_style": { "name": "default" },
+  "effort": { "level": "high" },
+  "workspace": {
+    "current_dir": "/home/dev/repo",
+    "project_dir": "/home/dev/repo",
+    "added_dirs": ["/home/dev/shared"],
+    "repo": { "host": "github.com", "owner": "odere-pro", "name": "agentline" }
+  },
+  "pr": { "number": 244, "url": "https://github.com/odere-pro/agentline/pull/244", "review_state": "approved" },
+  "agent": { "name": "agentline-dev-lead" },
+  "thinking": { "enabled": true },
+  "vim": { "mode": "NORMAL" },
+  "exceeds_200k_tokens": false,
+  "fast_mode": false,
+  "context_window": {
+    "current_usage": {
+      "input_tokens": 12000,
+      "cache_read_input_tokens": 48000,
+      "cache_creation_input_tokens": 3000
+    },
+    "context_window_size": 1000000,
+    "used_percentage": 6.3
+  },
+  "rate_limits": {
+    "five_hour": { "used_percentage": 52, "resets_at": 1782490000 },
+    "seven_day": { "used_percentage": 33, "resets_at": 1782900000 }
+  },
+  "cost": {
+    "total_cost_usd": 1.2345,
+    "total_duration_ms": 845000,
+    "total_api_duration_ms": 123000,
+    "total_lines_added": 420,
+    "total_lines_removed": 69
+  },
+  "user": { "email": "dev@example.com", "authMethod": "oauth", "org": { "slug": "acme" } },
+  "skills": ["agentline-deliver", "agentline-sync"]
+}
