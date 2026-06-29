@@ -17,6 +17,7 @@ import { EN_DICTIONARY } from "../../core/i18n/index.js";
 import { isHelpFlag, requestHelp } from "../../core/lib/help/help.js";
 import { projectGate } from "../../core/lib/claude-project/claude-project.js";
 import { resolveScript } from "../../core/lib/resolve-script.js";
+import { printNextSteps } from "../next-steps/next-steps.js";
 import { maybeRefresh } from "../update-check/index.js";
 
 const HELP = EN_DICTIONARY["cmd.reset.help"];
@@ -77,6 +78,10 @@ export async function runResetCommand(
    * after this verb has already returned.
    */
   if (!args.dryRun && result.status === 0) {
+    // `reset` is the documented fresh-setup verb, so it shows the same
+    // next-steps nudge as `install` (issue #263). Gated on a successful,
+    // non-dry-run wire so gate-09/gate-10 stay green.
+    printNextSteps();
     void maybeRefresh().catch(() => undefined);
   }
   return result.status ?? 1;

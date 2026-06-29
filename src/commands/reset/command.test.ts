@@ -1,11 +1,32 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { HelpRequestedError } from "../../core/lib/help/help.js";
+
+/*
+ * Mock the side-effecting collaborators so the command can be exercised
+ * without spawning the real install script or touching the network.
+ * Mirrors the harness in ../install/command.test.ts and ../start/command.test.ts.
+ */
+vi.mock("node:child_process", () => ({
+  spawnSync: vi.fn(() => ({ status: 0, error: undefined })),
+}));
+vi.mock("../../core/lib/resolve-script.js", () => ({
+  resolveScript: vi.fn(() => "/fake/scripts/install.sh"),
+}));
+vi.mock("../update-check/index.js", () => ({
+  maybeRefresh: vi.fn(() => Promise.resolve()),
+}));
+
+import { spawnSync } from "node:child_process";
+import { maybeRefresh } from "../update-check/index.js";
 import { parseResetArgs, runResetCommand } from "./command.js";
+
+const spawnMock = vi.mocked(spawnSync);
+const refreshMock = vi.mocked(maybeRefresh);
 
 describe("parseResetArgs", () => {
   it("returns all false with no arguments", () => {
@@ -64,6 +85,7 @@ describe("runResetCommand — project gate", () => {
 
   beforeEach(() => {
     tmp = mkdtempSync(join(tmpdir(), "agentline-reset-gate-"));
+    spawnMock.mockClear();
   });
 
   afterEach(() => {
@@ -82,5 +104,76 @@ describe("runResetCommand — project gate", () => {
      * so the temp dir stays untouched and we get a clean exit.
      */
     expect(code).toBe(0);
+    expect(spawnMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("runResetCommand — wiring + nudge", () => {
+  let tmp: string;
+  let writeSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    // A directory that IS a Claude project so the gate proceeds.
+    tmp = mkdtempSync(join(tmpdir(), "agentline-reset-run-"));
+    writeFileSync(join(tmp, "CLAUDE.md"), "# project\n");
+    spawnMock.mockClear();
+    refreshMock.mockClear();
+    spawnMock.mockReturnValue({ status: 0, error: undefined } as never);
+    writeSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    writeSpy.mockRestore();
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  function printed(): string {
+    return writeSpy.mock.calls.map((c: readonly unknown[]) => String(c[0])).join("");
+  }
+
+  function argvOf(): string[] {
+    const call = spawnMock.mock.calls[0];
+    return (call?.[1] as string[]).slice(1); // drop the script path
+  }
+
+  it("always forwards --reset and, on success, prints the next-steps nudge + refreshes", async () => {
+    const code = await runResetCommand(
+      { fromSource: false, force: false, dryRun: false },
+      { cwd: tmp },
+    );
+    expect(code).toBe(0);
+    expect(argvOf()).toEqual(["--reset"]);
+    expect(refreshMock).toHaveBeenCalledTimes(1);
+    // Reset is the documented fresh-setup verb, so it shows the same nudge as
+    // install. Content is asserted in ../next-steps/next-steps.test.ts.
+    expect(printed()).toContain("Next steps:");
+  });
+
+  it("dry-run forwards --reset --dry-run, prints no nudge, and skips the refresh", async () => {
+    const code = await runResetCommand(
+      { fromSource: false, force: false, dryRun: true },
+      { cwd: tmp },
+    );
+    expect(code).toBe(0);
+    expect(argvOf()).toEqual(["--reset", "--dry-run"]);
+    expect(refreshMock).not.toHaveBeenCalled();
+    expect(printed()).not.toContain("Next steps:");
+  });
+
+  it("a failed reset (non-zero status) prints no nudge and skips the refresh", async () => {
+    spawnMock.mockReturnValue({ status: 1, error: undefined } as never);
+    const code = await runResetCommand(
+      { fromSource: false, force: false, dryRun: false },
+      { cwd: tmp },
+    );
+    expect(code).toBe(1);
+    expect(refreshMock).not.toHaveBeenCalled();
+    expect(printed()).not.toContain("Next steps:");
+  });
+
+  it("forwards --from-source and --force alongside --reset", async () => {
+    await runResetCommand({ fromSource: true, force: true, dryRun: false }, { cwd: tmp });
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    expect(argvOf()).toEqual(["--reset", "--from-source", "--force"]);
   });
 });

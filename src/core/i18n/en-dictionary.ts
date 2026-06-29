@@ -85,7 +85,8 @@ export const EN_DICTIONARY = {
   "cmd.doctor.d02.settings-not-object": "Claude Code settings file is not a JSON object",
   "cmd.doctor.d02.hint-fix-d01": "fix D01 first, then run `agentline doctor --fix`",
   "cmd.doctor.d02.no-statusline": "settings.json has no `statusLine` entry",
-  "cmd.doctor.d02.hint-wire": "run `agentline doctor --fix` to wire `npx -y @odere-pro/agentline render`",
+  "cmd.doctor.d02.hint-wire":
+    "run `agentline doctor --fix` to wire `npx -y @odere-pro/agentline render`",
   "cmd.doctor.d02.no-command": "`statusLine.command` is missing or not a string",
   "cmd.doctor.d02.hint-overwrite":
     "run `agentline doctor --fix` to overwrite with a working invocation",
@@ -190,6 +191,12 @@ Steps performed:
   5. Wire statusLine into $HOME/.claude/settings.json.
   6. Write install manifest to track managed files.
 `,
+  "cmd.install.next-steps":
+    "Your statusline is wired. Restart Claude Code to see it at the bottom of the prompt.\n" +
+    "\n" +
+    "Next steps:\n" +
+    "  `agentline edit`       customize your statusline\n" +
+    "  `agentline uninstall`  remove agentline",
   "cmd.uninstall.help": `agentline uninstall — remove agentline from this host
 
 Usage:
