@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] — 2026-06-29
+
+### Added
+
+- `f9a1f87` — Render host-provided PRs by default: the `git-pr` widget now tags PR provenance on the git snapshot (`prSource`) and gates only the network (`gh`) source behind `allowNetwork`, so a PR the host puts on stdin shows without the opt-in while the `gh` shell-out keeps its latency/privacy gate.
+
 ## [1.2.0] — 2026-06-26
 
 ### Added
