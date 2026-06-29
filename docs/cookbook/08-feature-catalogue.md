@@ -74,14 +74,15 @@ Read the working tree implied by stdin `cwd`.
 
 ## Theme presets
 
-Four themes ship by default. The implementer MAY add more; these four MUST be present.
+Five themes ship by default. The implementer MAY add more; these five MUST be present.
 
-| Theme               | Tone                              |
-| ------------------- | --------------------------------- |
-| `vscode-dark`       | Dark, neutral.                    |
-| `vscode-light`      | Light, neutral.                   |
-| `claude-code-dark`  | Dark, warm (host-brand inspired). |
-| `claude-code-light` | Light, warm.                      |
+| Theme               | Tone                                           |
+| ------------------- | ---------------------------------------------- |
+| `claude-code-dark`  | Dark, warm (host-brand inspired). The default. |
+| `claude-code-light` | Light, warm.                                   |
+| `high-contrast`     | Maximum-contrast dark — bright on near-black.  |
+| `ansi-minimal`      | Named ANSI colours only; 16-colour-safe.       |
+| `midnight`          | Cool blue / slate dark.                        |
 
 Themes live under the product's themes directory and are copied to the user's themes directory by `install`.
 

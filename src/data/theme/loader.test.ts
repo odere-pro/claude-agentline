@@ -12,11 +12,23 @@ import {
   loadThemeFromString,
   resolveRole,
 } from "./index.js";
+import { parseColour } from "./colours/colours.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const themesDir = path.resolve(here, "..", "..", "..", "themes");
 
 const SHIPPED_THEME = "claude-code-dark";
+
+/** The curated built-in theme gallery (issue #261). */
+const SHIPPED_GALLERY = [
+  "claude-code-dark",
+  "claude-code-light",
+  "high-contrast",
+  "ansi-minimal",
+  "midnight",
+] as const;
+
+const KEBAB_CASE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 describe("loadThemeFromString", () => {
   it("parses a minimal valid theme", () => {
@@ -101,5 +113,36 @@ describe("shipped theme", () => {
     expect(json.$id).toBe(
       "https://raw.githubusercontent.com/odere-pro/claude-agentline/main/schemas/theme.schema.json",
     );
+  });
+});
+
+describe("shipped theme gallery", () => {
+  it("ships exactly the curated gallery", async () => {
+    const files = (await fs.readdir(themesDir)).filter((f) => f.endsWith(".json")).sort();
+    const expected = [...SHIPPED_GALLERY].map((n) => `${n}.json`).sort();
+    expect(files).toEqual(expected);
+  });
+
+  for (const name of SHIPPED_GALLERY) {
+    it(`${name} loads, names itself after its file, and every role is a valid colour`, async () => {
+      const theme = await loadTheme(path.join(themesDir, `${name}.json`));
+      expect(theme.name).toBe(name);
+      expect(theme.name).toMatch(KEBAB_CASE);
+      for (const role of THEME_ROLES) {
+        // parseColour is the colour-depth degradation precondition (gate-16);
+        // loadTheme already enforces isColour, so this is the check worth keeping.
+        expect(() => parseColour(theme.palette[role])).not.toThrow();
+      }
+    });
+  }
+
+  it("ansi-minimal uses only named ANSI colours so it degrades to a 16-colour terminal unchanged", async () => {
+    const theme = await loadTheme(path.join(themesDir, "ansi-minimal.json"));
+    for (const role of THEME_ROLES) {
+      expect(parseColour(theme.palette[role]).kind).toBe("named");
+    }
+    // No Nerd-font powerline caps — the minimal theme stays glyph-free.
+    expect(theme.powerline.capsStart).toBe("");
+    expect(theme.powerline.capsEnd).toBe("");
   });
 });

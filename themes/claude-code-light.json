@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/odere-pro/claude-agentline/main/schemas/theme.schema.json",
+  "name": "claude-code-light",
+  "palette": {
+    "accent": "#a8542f",
+    "info": "#9a6a3a",
+    "success": "#3f7a2e",
+    "warning": "#8a5e12",
+    "danger": "#c0392b",
+    "muted": "#8a8175",
+    "git-clean": "#3f7a2e",
+    "git-dirty": "#8a5e12",
+    "tokens-low": "#3f7a2e",
+    "tokens-mid": "#8a5e12",
+    "tokens-high": "#c0392b",
+    "bg-section": "#f3ece1",
+    "bg-emphasis": "#e7dcc9"
+  },
+  "powerline": {
+    "caps.start": "",
+    "caps.end": ""
+  }
+}

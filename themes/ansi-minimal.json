@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/odere-pro/claude-agentline/main/schemas/theme.schema.json",
+  "name": "ansi-minimal",
+  "palette": {
+    "accent": "cyan",
+    "info": "bright-blue",
+    "success": "green",
+    "warning": "yellow",
+    "danger": "red",
+    "muted": "bright-black",
+    "git-clean": "green",
+    "git-dirty": "yellow",
+    "tokens-low": "green",
+    "tokens-mid": "yellow",
+    "tokens-high": "red",
+    "bg-section": "black",
+    "bg-emphasis": "black"
+  }
+}
