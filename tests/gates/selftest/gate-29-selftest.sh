@@ -26,7 +26,9 @@ GATES_DIR="$(cd "${THIS_DIR}/.." && pwd)"
 . "${GATES_DIR}/lib/common.sh"
 
 CHECK_SCRIPT="${REPO_ROOT}/scripts/check-host-contract.mjs"
-REAL_FIXTURE="${REPO_ROOT}/tests/fixtures/host-payload-2.1.193.json"
+# The active gate-29 fixture (carries the IGNORED `fast_mode` key, so case (a)
+# also proves a present-but-ignored host field still passes the checker).
+REAL_FIXTURE="${REPO_ROOT}/tests/fixtures/host-payload-2.1.195.json"
 REAL_DOC="${REPO_ROOT}/docs/cookbook/06-data-contracts.md"
 
 if ! have_cmd node; then
