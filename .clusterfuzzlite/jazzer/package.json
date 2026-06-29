@@ -5,5 +5,9 @@
   "description": "CI-only Jazzer.js fuzzing driver. Kept out of the root pnpm tree on purpose (its native agent corrupts pnpm's isolated store); installed standalone via `npm ci` so the dependency is hash-pinned by package-lock.json — see .github/workflows/cflite-pr.yml.",
   "dependencies": {
     "@jazzer.js/core": "4.0.0"
+  },
+  "overrides": {
+    "tar": "7.5.19",
+    "@babel/core": "7.29.7"
   }
 }
