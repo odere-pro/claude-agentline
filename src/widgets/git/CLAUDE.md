@@ -15,7 +15,7 @@ src/widgets/git/
 ├── ahead-behind/    git-ahead-behind ahead / behind counters vs upstream; also git-conflicts
 ├── pr/              git-pr           optional PR widget (absent ⇒ hidden cell)
 ├── remote/          git-remote       git-upstream + git-origin-repo
-└── sha/             git-worktree     worktree name when inside a worktree checkout
+└── worktree/        git-worktree     worktree name when inside a worktree checkout
 
   All widgets consume data/git/snapshot/ (never invoke git themselves).
   Pure (ctx, settings) → Cell; absent snapshot ⇒ hidden cell.

@@ -34,7 +34,7 @@ src/<area>/foo/
 └── foo.test.ts
 ```
 
-Same shape for widgets (`src/widgets/git/sha/sha.ts` + `sha.test.ts`),
+Same shape for widgets (`src/widgets/git/worktree/worktree.ts` + `worktree.test.ts`),
 data resolvers, render stages, and TUI modules. Aggregate tests
 (`git-widgets.test.ts`, `rate-limit-widgets.test.ts`) are transitional —
 they cover several widgets whose source files have not yet been folder-

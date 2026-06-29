@@ -8,7 +8,7 @@
  * `render()` (§1.2 N3 budget).
  */
 
-import { isPlainObject, pickString, pickStringArray } from "../../core/lib/object/object.js";
+import { isPlainObject, pickString } from "../../core/lib/object/object.js";
 import type { StdinPayload } from "../../core/stdin/index.js";
 import {
   readAuthFile,
@@ -24,13 +24,11 @@ export interface ResolvedSessionFields {
   readonly version?: string;
   readonly outputStyle?: string;
   readonly sessionId?: string;
-  readonly sessionName?: string;
   readonly accountEmail?: string;
   readonly loginMethod?: string;
   readonly orgSlug?: string;
   readonly thinkingEffort?: string;
   readonly vimMode?: string;
-  readonly skills?: readonly string[];
 }
 
 function readUserBlock(payload: StdinPayload): Record<string, unknown> | undefined {
@@ -76,7 +74,6 @@ export function resolveSessionFields(
     ...(payload.version ? { version: payload.version } : {}),
     ...(payload.outputStyle ? { outputStyle: payload.outputStyle } : {}),
     ...(payload.sessionId ? { sessionId: payload.sessionId } : {}),
-    ...(payload.sessionName ? { sessionName: payload.sessionName } : {}),
     ...((pickString(user, "email") ?? authFallback?.email) !== undefined
       ? { accountEmail: pickString(user, "email") ?? authFallback?.email }
       : {}),
@@ -88,9 +85,6 @@ export function resolveSessionFields(
       : {}),
     ...(payload.thinkingEffort ? { thinkingEffort: payload.thinkingEffort } : {}),
     ...(payload.vimMode ? { vimMode: payload.vimMode } : {}),
-    ...((pickStringArray(payload.raw, "skills") ?? []).length
-      ? { skills: pickStringArray(payload.raw, "skills") }
-      : {}),
   };
 }
 

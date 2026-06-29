@@ -14,7 +14,7 @@ import { gitAheadBehindWidget, gitConflictsWidget } from "./ahead-behind/ahead-b
 import { gitBranchWidget } from "./branch.js";
 import { gitChangesWidget } from "./changes.js";
 import { gitOriginRepoWidget, gitUpstreamWidget } from "./remote/remote.js";
-import { gitWorktreeWidget } from "./sha/sha.js";
+import { gitWorktreeWidget } from "./worktree/worktree.js";
 import { gitPrReviewWidget } from "./pr-review/pr-review.js";
 import { GIT_WIDGETS, registerGitWidgets } from "./index.js";
 

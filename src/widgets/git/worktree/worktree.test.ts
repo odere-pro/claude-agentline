@@ -7,7 +7,7 @@ import type { StdinPayload } from "../../../core/stdin/index.js";
 import { frozenClock } from "../../clock/clock.js";
 import type { WidgetContext } from "../../types.js";
 
-import { gitWorktreeWidget } from "./sha.js";
+import { gitWorktreeWidget } from "./worktree.js";
 
 const baseStdin: StdinPayload = { raw: {}, truncated: false };
 

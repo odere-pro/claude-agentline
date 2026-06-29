@@ -18,7 +18,6 @@ function convenience(raw: Record<string, unknown>): Partial<StdinPayload> {
     ...(pick("version") ? { version: pick("version") } : {}),
     ...(pick("outputStyle") ? { outputStyle: pick("outputStyle") } : {}),
     ...(pick("sessionId") ? { sessionId: pick("sessionId") } : {}),
-    ...(pick("sessionName") ? { sessionName: pick("sessionName") } : {}),
     ...(pick("thinkingEffort") ? { thinkingEffort: pick("thinkingEffort") } : {}),
     ...(pick("vimMode") ? { vimMode: pick("vimMode") } : {}),
   };
@@ -47,16 +46,6 @@ describe("resolveSessionFields", () => {
       accountEmail: "fallback@example.com",
       loginMethod: "enterprise",
     });
-  });
-
-  it("renders skills from stdin", () => {
-    const stdin = payload({ skills: ["a", "b", "c"] });
-    expect(resolveSessionFields(stdin, null).skills).toEqual(["a", "b", "c"]);
-  });
-
-  it("filters non-string skill entries", () => {
-    const stdin = payload({ skills: ["a", 42, "", null, "b"] });
-    expect(resolveSessionFields(stdin, null).skills).toEqual(["a", "b"]);
   });
 
   it("emits empty resolved record when nothing is available", () => {
