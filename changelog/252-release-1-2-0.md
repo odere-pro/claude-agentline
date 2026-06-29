@@ -1,1 +1,0 @@
-- Release v1.2.0: fold the pending fragments into a curated `[1.2.0]` section of `CHANGELOG.md`, clear the folded fragments, and bump the package, bundled bin, and landing-page version to 1.2.0.
