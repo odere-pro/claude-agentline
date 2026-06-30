@@ -125,14 +125,15 @@ Anything else is a schema error.
 
 A scenario directory contains:
 
-| File            | Contents                                            |
-| --------------- | --------------------------------------------------- |
-| `stdin.json`    | Recorded host stdin payload                         |
-| `config.json`   | Active config                                       |
-| `clock.txt`     | Frozen wall-clock value (ISO 8601 UTC)              |
-| `expected.ansi` | Byte-exact expected stdout (including ANSI escapes) |
+| File            | Contents                                                                                      |
+| --------------- | --------------------------------------------------------------------------------------------- |
+| `stdin.json`    | Recorded host stdin payload                                                                   |
+| `config.json`   | Active config                                                                                 |
+| `clock.txt`     | Frozen wall-clock value (ISO 8601 UTC)                                                        |
+| `git.json`      | _Optional._ Static `GitState` injected via `--git` so git widgets render (no real `git`/`gh`) |
+| `expected.ansi` | Byte-exact expected stdout (including ANSI escapes)                                           |
 
-`<bin> render --fixture <scenario-dir>` reproduces the line. The gate iterates every scenario.
+`<bin> render --fixture <scenario-dir>` reproduces the line (add `--git <path>` to inject a static git snapshot). The gate iterates every scenario.
 
 ---
 

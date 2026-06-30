@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { renderForFixture } from "./fixture/fixture-runner.js";
+import { parseGitFixture } from "./fixture/parse-git-fixture.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GOLDEN_ROOT = resolve(__dirname, "..", "..", "..", "tests", "golden");
@@ -25,6 +26,13 @@ interface Scenario {
   readonly configPath: string;
   readonly clockPath: string;
   readonly expectedPath: string;
+  /**
+   * Optional sibling `git.json` — a serialized `GitState` injected so git
+   * widgets render deterministically (no real `git`/`gh`). The bin path
+   * (gate-12) reads the same file via `render --fixture --git`, keeping the
+   * source harness and the published bin in parity (#255).
+   */
+  readonly gitPath?: string;
 }
 
 function findScenarios(): readonly Scenario[] {
@@ -45,7 +53,15 @@ function findScenarios(): readonly Scenario[] {
     ) {
       continue;
     }
-    out.push({ name: entry, stdinPath, configPath, clockPath, expectedPath });
+    const gitPath = resolve(dir, "git.json");
+    out.push({
+      name: entry,
+      stdinPath,
+      configPath,
+      clockPath,
+      expectedPath,
+      ...(existsSync(gitPath) ? { gitPath } : {}),
+    });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -75,6 +91,12 @@ describe("golden render scenarios", () => {
         env: { NO_COLOR: "1", AGENTLINE_GLYPHS: "ascii", TZ: "UTC" },
         flags: { noColor: true, noUnicode: false },
         width: 80,
+        // Inject the scenario's synthetic git snapshot when present, through
+        // the same parser the bin uses — so git widgets are exercised
+        // deterministically and the source harness matches gate-12 byte-for-byte.
+        ...(scenario.gitPath
+          ? { git: parseGitFixture(readFileSync(scenario.gitPath, "utf8")) }
+          : {}),
       });
       expect(actual).toBe(expected);
     });

@@ -1,0 +1,23 @@
+{
+  "available": true,
+  "cwd": "/repo",
+  "branch": "feat/widgets",
+  "detached": false,
+  "sha": "0123456789abcdef0123456789abcdef01234567",
+  "shortSha": "0123456",
+  "status": { "staged": 0, "unstaged": 0, "untracked": 0, "conflicts": 0, "modified": 0, "added": 0 },
+  "diff": { "insertions": 0, "deletions": 0, "filesChanged": 0 },
+  "diffStaged": { "insertions": 0, "deletions": 0, "filesChanged": 0 },
+  "aheadBehind": { "ahead": 0, "behind": 0 },
+  "upstream": null,
+  "origin": null,
+  "upstreamRemote": null,
+  "worktreeName": null,
+  "inWorktree": false,
+  "pr": {
+    "number": 42,
+    "url": "https://github.com/odere-pro/claude-agentline/pull/42",
+    "title": ""
+  },
+  "prSource": "host"
+}

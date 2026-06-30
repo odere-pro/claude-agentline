@@ -62,6 +62,15 @@ render_scenario() {
   __out_file="$2"
   __err_file="$3"
   __clock="$(cat "${__scenario_dir}/clock.txt")"
+  # Optional synthetic-git snapshot: when the scenario carries a git.json,
+  # inject it so git widgets are exercised deterministically (no real
+  # git/gh, #255). The source harness auto-detects the same sibling file, so
+  # both inject byte-identical snapshots. Scenarios without git.json are
+  # unchanged.
+  __git_args=""
+  if [ -f "${__scenario_dir}/git.json" ]; then
+    __git_args="--git ${__scenario_dir}/git.json"
+  fi
   # shellcheck disable=SC2086
   env -i \
     PATH="${PATH}" \
@@ -73,6 +82,7 @@ render_scenario() {
       --fixture "${__scenario_dir}/stdin.json" \
       --config "${__scenario_dir}/config.json" \
       --frozen-clock "${__clock}" \
+      ${__git_args} \
       --width 80 \
       --no-color \
     >"${__out_file}" 2>"${__err_file}"

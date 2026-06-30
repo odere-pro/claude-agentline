@@ -1,0 +1,1 @@
+- Deterministic git goldens: a golden scenario may now carry an optional `git.json` (a serialized `GitState`) that both the source harness and the published bin (`render --fixture --git`) inject as a static snapshot — no real `git`/`gh` — so git widgets get byte-stable goldens; adds `git-pr` scenarios covering the host-renders, network-hides, and network-opt-in-renders cases.

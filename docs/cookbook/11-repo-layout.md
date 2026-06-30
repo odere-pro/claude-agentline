@@ -58,6 +58,7 @@
 │   │       ├── stdin.json
 │   │       ├── config.json
 │   │       ├── clock.txt
+│   │       ├── git.json             Optional: static GitState for git widgets
 │   │       └── expected.ansi
 │   ├── integration/                  Install/uninstall lifecycle on real disk
 │   ├── widgets/                      Per-widget unit tests

@@ -140,7 +140,7 @@ A recorded fixture scenario for byte-exact render comparison. Lives under `tests
 
 ### `fixture`
 
-A scenario directory containing `stdin.json`, `config.json`, `clock.txt`, `expected.ansi`. Used by goldens and by the `<bin> render --fixture` verb.
+A scenario directory containing `stdin.json`, `config.json`, `clock.txt`, `expected.ansi`, and optionally `git.json` (a static `GitState` injected via `--git` so git widgets render deterministically). Used by goldens and by the `<bin> render --fixture` verb.
 
 ### `frozen clock`
 

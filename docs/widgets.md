@@ -302,13 +302,19 @@ Three reference fixtures ship under `tests/golden/`:
 
 Each scenario has `stdin.json` (the payload), `config.json` (the active
 config), `clock.txt` (frozen clock for determinism), and `expected.ansi`
-(the byte-for-byte expected output).
+(the byte-for-byte expected output). A git-widget scenario may add an
+optional `git.json` (a static `GitState` injected via `--git`) so the git
+family renders deterministically with no real `git`/`gh`.
 
-To regenerate a golden after an intentional renderer change:
+To regenerate a golden after an intentional renderer change (record under the
+same env gate-12 pins, and add `--git` for a git scenario):
 
 ```bash
-agentline render --fixture tests/golden/<name>/stdin.json \
+env NO_COLOR=1 AGENTLINE_GLYPHS=ascii TZ=UTC \
+  agentline render --fixture tests/golden/<name>/stdin.json \
   --config tests/golden/<name>/config.json \
   --frozen-clock "$(cat tests/golden/<name>/clock.txt)" \
+  --git tests/golden/<name>/git.json \
+  --width 80 --no-color \
   > tests/golden/<name>/expected.ansi
 ```
