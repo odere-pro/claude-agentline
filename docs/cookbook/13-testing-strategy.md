@@ -54,8 +54,11 @@ tests/golden/<scenario>/
 ├── stdin.json       # The recorded host stdin payload.
 ├── config.json      # The active config (or empty for "use defaults").
 ├── clock.txt        # Frozen wall-clock value (ISO 8601 UTC, one line).
+├── git.json         # Optional: a static GitState injected so git widgets render deterministically.
 └── expected.ansi    # Byte-exact expected stdout (includes ANSI escapes).
 ```
+
+A git widget hides unless `ctx.git` is populated, and loading real git in a golden would be non-deterministic. The optional `git.json` (a serialized `GitState`) is injected as a static snapshot — both the source harness and the published bin (`render --fixture --git <path>`, exercised by gate-12) read it through one parser, so they stay in parity with no real `git`/`gh`. `git-pr-host-pr`, `git-pr-network-no-optin`, and `git-pr-network-optin` are the worked examples.
 
 Suggested initial scenarios:
 
@@ -76,7 +79,12 @@ Add scenarios when:
 A renderer change that intentionally alters output:
 
 1. Make the code change in the same PR.
-2. Re-record the affected goldens (`<bin> render --fixture <scenario> --update`).
+2. Re-record the affected goldens. Either run the source harness with
+   `pnpm exec vitest run src/render/render -u` (records under the pinned env
+   automatically), or redirect the bin's output following the recipe in
+   `tests/golden/README.md` — record under the same env gate-12 pins
+   (`NO_COLOR=1 AGENTLINE_GLYPHS=ascii TZ=UTC`, `--width 80 --no-color`), and
+   add `--git <scenario>/git.json` for a git scenario, or the bytes won't match.
 3. Commit the updated `expected.ansi`.
 4. Add a changelog fragment under `changelog/<NN>-<slug>` describing the user-visible effect.
 

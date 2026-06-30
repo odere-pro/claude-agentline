@@ -4,6 +4,10 @@
  *   - default        read stdin, render, exit.
  *   - --fixture <p>  read the JSON payload from disk instead.
  *   - --config <p>   pin a specific config file (golden harness).
+ *   - --git <p>      inject a static `GitState` snapshot from disk so git
+ *                    widgets render deterministically in a golden, with no
+ *                    real `git`/`gh` (§11.3 goldens, #255). Requires
+ *                    `--fixture` — it must never reach the live statusline.
  *   - --frozen-clock <iso>  inject a deterministic clock so the
  *                            same fixture renders byte-identically
  *                            on every host (§11.3 goldens).
@@ -34,17 +38,21 @@ import { readStdinPayload } from "../../../core/stdin/index.js";
 import { parseAccessibilityArgs, type AccessibilityFlags } from "../accessibility/accessibility.js";
 import { loadLiveSnapshots } from "../context.js";
 import { renderForFixture, type RenderForFixtureOptions } from "./fixture-runner.js";
+import { parseGitFixture } from "./parse-git-fixture.js";
+import type { GitState } from "../../../data/git/index.js";
 
 const HELP = `agentline render — re-render a recorded stdin payload
 
 Usage:
-  agentline render [--fixture <path>] [--config <path>]
+  agentline render [--fixture <path>] [--config <path>] [--git <path>]
                    [--frozen-clock <iso>] [--width <n>]
                    [--no-color | --no-unicode | --ascii ...]
 
 Options:
   --fixture <path>      read JSON payload from disk instead of stdin
   --config <path>       pin a specific config file (golden harness)
+  --git <path>          inject a static GitState snapshot, requires --fixture
+                        (see tests/golden/README.md for the git.json shape)
   --frozen-clock <iso>  inject a deterministic clock for byte-identical output
   --width <n>           force terminal width
   --no-color, --ascii   accessibility flags
@@ -57,6 +65,8 @@ this subcommand exists for replaying fixtures and goldens.
 export interface RenderCommandArgs {
   readonly fixture?: string;
   readonly configPath?: string;
+  /** Path to a serialized `GitState` injected on the replay path (#255). */
+  readonly git?: string;
   readonly frozenClockISO?: string;
   readonly width?: number;
   readonly accessibility: AccessibilityFlags;
@@ -76,6 +86,14 @@ const ACCESSIBILITY_FLAGS: ReadonlySet<string> = new Set([
 
 export async function runRenderCommand(input: RenderCommandInput): Promise<number> {
   const { fixture } = input.args;
+  // Defense in depth: parseRenderArgs enforces `--git requires --fixture` for
+  // the CLI, but runRenderCommand is exported — re-assert the load-bearing
+  // invariant here so an injected git snapshot can never reach the live
+  // statusline, even if a direct caller hand-builds the args (#255).
+  if (input.args.git !== undefined && fixture === undefined) {
+    process.stderr.write("agentline render: --git requires --fixture\n");
+    return 1;
+  }
   let payload: string;
   if (fixture) {
     try {
@@ -107,6 +125,31 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
   if (!fixture && input.args.configPath === undefined) {
     await maybeEmitFirstRunHint();
   }
+  // Optional synthetic git snapshot (#255). Parsed only on the replay path —
+  // `--git` requires `--fixture` (enforced in parseRenderArgs), so `isLive`
+  // is always false here and the injected snapshot can never override the
+  // live loader or paint fake git into the real statusline. Read/parse
+  // failures fail loud with a clean diagnostic, mirroring `--fixture` above.
+  let injectedGit: GitState | undefined;
+  if (input.args.git !== undefined) {
+    let gitRaw: string;
+    try {
+      gitRaw = await fs.readFile(input.args.git, "utf8");
+    } catch (err) {
+      process.stderr.write(
+        `agentline render: unable to read git fixture ${input.args.git}: ${(err as Error).message}\n`,
+      );
+      return 1;
+    }
+    try {
+      injectedGit = parseGitFixture(gitRaw);
+    } catch (err) {
+      process.stderr.write(
+        `agentline render: invalid git fixture ${input.args.git}: ${(err as Error).message}\n`,
+      );
+      return 1;
+    }
+  }
   const isLive = !fixture && input.args.configPath === undefined;
   const liveConfig = isLive ? await loadLiveConfig() : undefined;
   const liveSnapshots = isLive ? await loadLiveSnapshotsForRender(payload, liveConfig) : {};
@@ -119,6 +162,10 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     ...(input.args.width !== undefined ? { width: input.args.width } : {}),
     flags: input.args.accessibility,
     ...liveSnapshots,
+    // Spread last: `liveSnapshots` is always `{}` on the replay path (an
+    // injected git is the only git source here), so this ordering guards
+    // against future changes to `liveSnapshots` rather than an active conflict.
+    ...(injectedGit !== undefined ? { git: injectedGit } : {}),
   });
   process.stdout.write(out);
   /*
@@ -282,6 +329,7 @@ function requirePositiveInt(name: string, value: string | undefined): number {
 export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {
   let fixture: string | undefined;
   let configPath: string | undefined;
+  let git: string | undefined;
   let frozenClockISO: string | undefined;
   let width: number | undefined;
   const accessibilityArgv: string[] = [];
@@ -304,6 +352,12 @@ export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {
       i += configMatch.advance - 1;
       continue;
     }
+    const gitMatch = matchFlag(arg, rest, i, "--git");
+    if (gitMatch) {
+      git = requirePathValue("--git", gitMatch.value, "a path");
+      i += gitMatch.advance - 1;
+      continue;
+    }
     const clockMatch = matchFlag(arg, rest, i, "--frozen-clock");
     if (clockMatch) {
       frozenClockISO = requirePathValue("--frozen-clock", clockMatch.value, "an ISO timestamp");
@@ -323,11 +377,18 @@ export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {
       throw new Error(`agentline render: unknown argument '${arg}'`);
     }
   }
+  // `--git` injects a snapshot into a deterministic replay only; it must
+  // never reach the live statusline (where it could override a real snapshot
+  // or be silently dropped), so require `--fixture` alongside it (#255).
+  if (git !== undefined && fixture === undefined) {
+    throw new Error("agentline render: --git requires --fixture");
+  }
   const out: RenderCommandArgs = {
     accessibility: parseAccessibilityArgs(accessibilityArgv),
   };
   if (fixture !== undefined) (out as { fixture: string }).fixture = fixture;
   if (configPath !== undefined) (out as { configPath: string }).configPath = configPath;
+  if (git !== undefined) (out as { git: string }).git = git;
   if (frozenClockISO !== undefined)
     (out as { frozenClockISO: string }).frozenClockISO = frozenClockISO;
   if (width !== undefined) (out as { width: number }).width = width;

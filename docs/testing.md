@@ -81,12 +81,13 @@ keep a thin file-local wrapper that composes the shared factory.
 The renderer must produce byte-identical output for the same inputs
 across hosts and runs. Each scenario under `tests/golden/` ships:
 
-| File            | Contents                                   |
-| --------------- | ------------------------------------------ |
-| `stdin.json`    | the Claude Code stdin payload              |
-| `config.json`   | the `AgentlineConfig` to render against    |
-| `clock.txt`     | ISO timestamp the renderer freezes time at |
-| `expected.ansi` | the exact bytes the renderer must emit     |
+| File            | Contents                                                                    |
+| --------------- | --------------------------------------------------------------------------- |
+| `stdin.json`    | the Claude Code stdin payload                                               |
+| `config.json`   | the `AgentlineConfig` to render against                                     |
+| `clock.txt`     | ISO timestamp the renderer freezes time at                                  |
+| `git.json`      | _optional_ — a static `GitState` injected via `--git` so git widgets render |
+| `expected.ansi` | the exact bytes the renderer must emit                                      |
 
 The harness in `src/render/render/__golden__.test.ts` walks every directory
 and asserts `renderForFixture(...) === expected.ansi`.

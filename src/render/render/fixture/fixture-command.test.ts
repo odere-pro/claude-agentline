@@ -4,9 +4,20 @@ import { join } from "node:path";
 import { Readable } from "node:stream";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { DEFAULT_CONFIG } from "../../../data/config/defaults/defaults.js";
 import { ConfigValidationError } from "../../../data/config/validate/validate.js";
 import type * as ConfigLoadModule from "../../../data/config/load/load.js";
+import { makeGitSnapshot } from "../../../test-helpers/index.js";
 import { parseRenderArgs, runRenderCommand } from "./fixture-command.js";
+
+/** A complete serialized `GitState` with a host-provided PR (#255). */
+const HOST_PR_SNAPSHOT = makeGitSnapshot({
+  pr: { number: 42, url: "https://example.test/pull/42", title: "" },
+  prSource: "host",
+});
+
+/** A config whose only widget is `git-pr` (default `number` variant). */
+const GIT_PR_CONFIG = { ...DEFAULT_CONFIG, lines: [{ widgets: [{ type: "git-pr" }] }] };
 
 // Module-level mock so vitest can hoist it. Only the "invalid-config
 // diagnostic" suite overrides the mock behaviour per-test; the
@@ -77,6 +88,26 @@ describe("parseRenderArgs", () => {
     expect(() => parseRenderArgs(["--fixture"])).toThrow(/requires a path/);
     expect(() => parseRenderArgs(["--frozen-clock"])).toThrow(/ISO timestamp/);
   });
+
+  it("--git <path> alongside --fixture", () => {
+    expect(parseRenderArgs(["--fixture", "/x.json", "--git", "/g.json"])).toMatchObject({
+      fixture: "/x.json",
+      git: "/g.json",
+    });
+    expect(parseRenderArgs(["--fixture=/x.json", "--git=/g.json"])).toMatchObject({
+      git: "/g.json",
+    });
+  });
+
+  it("rejects --git without --fixture", () => {
+    // --git can only ever inject into a deterministic replay, never the live
+    // statusline — so it requires --fixture (architect condition 1, #255).
+    expect(() => parseRenderArgs(["--git", "/g.json"])).toThrow(/--git requires --fixture/);
+  });
+
+  it("rejects --git without a value", () => {
+    expect(() => parseRenderArgs(["--fixture", "/x.json", "--git"])).toThrow(/requires a path/);
+  });
 });
 
 describe("runRenderCommand", () => {
@@ -109,6 +140,65 @@ describe("runRenderCommand", () => {
       args: { fixture: "/no-such-file.json", accessibility: NO_FLAGS },
     });
     expect(code).toBe(1);
+  });
+
+  it("injects a synthetic git snapshot via args.git so git widgets render", async () => {
+    const fixture = join(tmp, "stdin.json");
+    writeFileSync(fixture, JSON.stringify({ model: "claude-opus-4-7" }));
+    const config = join(tmp, "config.json");
+    writeFileSync(config, JSON.stringify(GIT_PR_CONFIG));
+    const gitFile = join(tmp, "git.json");
+    writeFileSync(gitFile, JSON.stringify(HOST_PR_SNAPSHOT));
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const code = await runRenderCommand({
+      args: {
+        fixture,
+        configPath: config,
+        git: gitFile,
+        accessibility: { noColor: true, noUnicode: false },
+      },
+    });
+    expect(code).toBe(0);
+    const out = stdout.mock.calls.map((c) => String(c[0])).join("");
+    expect(out).toContain("#42");
+  });
+
+  it("returns 1 on a missing git file", async () => {
+    const fixture = join(tmp, "stdin.json");
+    writeFileSync(fixture, JSON.stringify({ model: "claude-opus-4-7" }));
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = await runRenderCommand({
+      args: { fixture, git: "/no-such-git.json", accessibility: NO_FLAGS },
+    });
+    expect(code).toBe(1);
+  });
+
+  it("returns 1 on an invalid git fixture (fails loud)", async () => {
+    const fixture = join(tmp, "stdin.json");
+    writeFileSync(fixture, JSON.stringify({ model: "claude-opus-4-7" }));
+    const gitFile = join(tmp, "git.json");
+    writeFileSync(gitFile, JSON.stringify({ branch: "main" })); // no boolean `available`
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = await runRenderCommand({
+      args: { fixture, git: gitFile, accessibility: NO_FLAGS },
+    });
+    expect(code).toBe(1);
+  });
+
+  it("rejects git injection on the live path (defense in depth) even if args bypass the parser", async () => {
+    // parseRenderArgs enforces `--git requires --fixture`, but runRenderCommand
+    // is exported — a direct caller could hand-build args. Re-assert the
+    // load-bearing invariant at the runtime boundary so an injected snapshot
+    // can never reach the live statusline.
+    const gitFile = join(tmp, "git.json");
+    writeFileSync(gitFile, JSON.stringify(HOST_PR_SNAPSHOT));
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const code = await runRenderCommand({
+      args: { git: gitFile, accessibility: NO_FLAGS },
+      stdin: Readable.from([Buffer.from(JSON.stringify({ model: "claude-opus-4-7" }))]),
+    });
+    expect(code).toBe(1);
+    expect(stderr.mock.calls.map((c) => String(c[0])).join("")).toMatch(/--git requires --fixture/);
   });
 
   it("falls back to stdin when no fixture is supplied", async () => {
