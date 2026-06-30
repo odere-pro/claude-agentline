@@ -1,0 +1,1 @@
+- Release v1.3.1: fold the pending changelog fragment into a curated `[1.3.1]` section of `CHANGELOG.md`, clear the folded fragment, and bump the package, bundled bin, and landing-page version to 1.3.1.
