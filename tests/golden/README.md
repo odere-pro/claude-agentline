@@ -28,6 +28,12 @@ injected snapshot must never reach the live statusline. See `git-pr-host-pr/`
 `git-pr-network-optin/` (the same network PR renders once `allowNetwork: true`
 is set).
 
+> **Lockstep:** `git-pr-network-no-optin/git.json` and
+> `git-pr-network-optin/git.json` are intentionally byte-identical — the only
+> difference between the two scenarios is `allowNetwork` in their `config.json`.
+> If you edit one `git.json`, edit the other to match, or the pair stops
+> isolating the opt-in toggle.
+
 To author a `git.json`, **start from an existing one**
 (`cp tests/golden/git-pr-host-pr/git.json …`) and edit it — the full shape is
 `GitState` in `src/data/git/snapshot/snapshot.ts`. The parser validates the

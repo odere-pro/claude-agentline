@@ -26,7 +26,11 @@ import { parseInstallArgs, runInstallCommand } from "../commands/install/command
 import { parseResetArgs, runResetCommand } from "../commands/reset/command.js";
 import { parseStartArgs, runStartCommand } from "../commands/start/command.js";
 import { parseUninstallArgs, runUninstallCommand } from "../commands/uninstall/command.js";
-import { parseRenderArgs, runRenderCommand } from "../render/render/fixture/fixture-command.js";
+import {
+  parseRenderArgs,
+  runRenderCommand,
+  RenderUsageError,
+} from "../render/render/fixture/fixture-command.js";
 import { detectColourDepth } from "../render/render/colour-depth/colour-depth.js";
 import { effectiveDepth, honourNoColorEnv } from "../render/render/accessibility/accessibility.js";
 import { runWidgetSubgroup } from "../data/config/widget-command/widget-command.js";
@@ -76,6 +80,22 @@ async function runRender(rest: readonly string[]): Promise<number> {
           `agentline: ${(err as Error).message}`,
           "  expected: a JSON object on stdin (Claude Code statusline contract)",
           "  try: agentline doctor      # diagnose host wiring",
+          "",
+        ].join("\n"),
+      );
+      return 1;
+    }
+    if (err instanceof RenderUsageError) {
+      /*
+       * A bad flag is a usage mistake, not a runtime failure — point at the
+       * command's own help, not the doctor/edit hints below (those are for
+       * host-wiring / config problems). The thrown message is the bare
+       * reason, so prefix it exactly once here (#273).
+       */
+      process.stderr.write(
+        [
+          `agentline render: ${(err as Error).message}`,
+          "  try: agentline render --help       # usage and flags",
           "",
         ].join("\n"),
       );
