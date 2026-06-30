@@ -1,1 +1,0 @@
-- Keep gate-29 honest across host upgrades: capture the Claude Code v2.1.195 host-payload fixture and add the observed-but-undocumented `fast_mode` field to the conformance ignore allowlist.
