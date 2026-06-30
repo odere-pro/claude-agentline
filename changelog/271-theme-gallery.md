@@ -1,1 +1,0 @@
-- Curated theme gallery: four new built-in themes ship alongside `claude-code-dark` — `claude-code-light` (warm light), `high-contrast` (bright on near-black), `ansi-minimal` (named ANSI only; 16-colour-safe, no truecolor needed), and `midnight` (cool slate) — so choosing a shipped theme is now a real choice.

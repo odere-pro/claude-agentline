@@ -1,1 +1,0 @@
-- Security: cleared five Dependabot advisories in dev/CI dependencies — bumped `vite` to 8.0.16 and `esbuild` to 0.28.1 via pnpm overrides, and `tar` to 7.5.19 and `@babel/core` to 7.29.7 in the Jazzer fuzzing lockfile. No shipped artefact or runtime dependency changed.

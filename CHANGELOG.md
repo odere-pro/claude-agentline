@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-06-30
+
+### Added
+
+- `5c5d6d8` — Security: cleared five Dependabot advisories in dev/CI dependencies — bumped `vite` to 8.0.16 and `esbuild` to 0.28.1 via pnpm overrides, and `tar` to 7.5.19 and `@babel/core` to 7.29.7 in the Jazzer fuzzing lockfile. No shipped artefact or runtime dependency changed.
+- `ed9acf6` — Security: cleared the `js-yaml` quadratic-complexity DoS advisory (GHSA-h67p-54hq-rp68) by pinning the transitive eslint dependency to 4.2.0 via a pnpm override. Development-only; no runtime dependency or shipped artefact changed.
+- `6181fce` — Internal hygiene: renamed the `git-worktree` widget's source folder from `sha/` to `worktree/` to match the widget it exports, and dropped the unused `sessionName` and `skills` carriers from the session resolver (the host-contract gate now allowlists `skills`).
+- `a894619` — Keep gate-29 honest across host upgrades: capture the Claude Code version 2.1.195 host-payload fixture and add the observed-but-undocumented `fast_mode` field to the conformance ignore allowlist.
+- `039dccf` — Maintainability: the `model` widget's id→name fallback now derives names like `Opus 4.8`, `Opus 3`, and `Fable 5` directly from the model id, so adding a new model no longer needs a per-release table row. This path only runs when the host omits `display_name`, so live renders are byte-unchanged.
+- `99c0dc1` — First-run guidance: a successful `agentline install` or `agentline reset` now prints a next-steps nudge — restart your Claude Code session to see the statusline, then `agentline edit` to customize or `agentline uninstall` to remove it (no nudge on `--dry-run` or a failed wire).
+- `0c7336b` — Curated theme gallery: four new built-in themes ship alongside `claude-code-dark` — `claude-code-light` (warm light), `high-contrast` (bright on near-black), `ansi-minimal` (named ANSI only; 16-colour-safe, no truecolor needed), and `midnight` (cool slate) — so choosing a shipped theme is now a real choice.
+- `a475210` — Deterministic git goldens: a golden scenario may now carry an optional `git.json` (a serialized `GitState`) that both the source harness and the published bin (`render --fixture --git`) inject as a static snapshot — no real `git`/`gh` — so git widgets get byte-stable goldens; adds `git-pr` scenarios covering the host-renders, network-hides, and network-opt-in-renders cases.
+
 ## [1.2.1] — 2026-06-29
 
 ### Added

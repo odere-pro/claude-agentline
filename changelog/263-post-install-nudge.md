@@ -1,1 +1,0 @@
-- First-run guidance: a successful `agentline install` or `agentline reset` now prints a next-steps nudge — restart Claude Code to see the statusline, then `agentline edit` to customize or `agentline uninstall` to remove it (no nudge on `--dry-run` or a failed wire).
