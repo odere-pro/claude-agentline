@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] — 2026-06-30
+
+### Added
+
+- `434185d` — DX polish for the synthetic-git golden channel: make `render --help` self-contained (drop the repo-only `tests/golden/README.md` pointer, advertise every accessibility flag), route `render` usage errors to `render --help` without the doubled `agentline:` prefix, correct the `--fixture`/`--git` example paths in the golden docs, note the byte-identical network-fixture pair, and extend gate-14 to prove the `--git` replay vector renders offline.
+
 ## [1.3.0] — 2026-06-30
 
 ### Added
