@@ -90,8 +90,6 @@ Restores agentline to its shipped default state. This is the user/agent-facing e
 
 **Destructive scope:** only `config.json` is overwritten. Themes/skills you edited and any pre-install `statusLine` backup are preserved (the backup is first-writer-wins, so re-running `reset` never clobbers the genuine pre-install snapshot).
 
-**Next steps on success:** `reset` prints a short nudge — restart Claude Code to see the statusline, then `agentline edit` to customize or `agentline uninstall` to remove it. It is suppressed on `--dry-run` and on a failed wire. The hidden [`install`](#install-hidden) verb prints the same nudge; [`start`](#start) shows a live preview instead.
-
 **Examples:**
 
 ```bash
@@ -132,8 +130,6 @@ Wires agentline into Claude Code. Delegates to `scripts/install.sh`; flags are f
 **Existing `statusLine` preservation:** if `statusLine` already contains a foreign value, it is backed up to `${CLAUDE_CONFIG_DIR:-~/.config/agentline}/state/settings-backup.json` before being overwritten. `agentline uninstall` reads this backup to restore the original value.
 
 **Exit codes:** passes through the exit code from `scripts/install.sh` · `0` success
-
-**Next steps on success:** prints the same nudge as [`reset`](#reset) (restart Claude Code, then `agentline edit` / `agentline uninstall`); suppressed on `--dry-run` and on a failed wire.
 
 **Examples:**
 
@@ -422,7 +418,7 @@ Colour-depth auto-detection reads `COLORTERM`, `TERM`, and `TERM_PROGRAM`. Detec
 **`AGENTLINE_*` override examples:**
 
 ```bash
-AGENTLINE_THEME=vscode-dark           # change theme without editing config
+AGENTLINE_THEME=midnight              # change theme without editing config
 AGENTLINE_GLOBAL_PADDING=0            # tighter spacing
 AGENTLINE_POWERLINE_ENABLED=true      # force-enable powerline glyphs
 ```

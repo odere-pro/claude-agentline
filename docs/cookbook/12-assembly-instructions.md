@@ -52,7 +52,7 @@ Group IDs (Gn) are stable. A group ends when its exit criteria are met; the gate
 ## G7 · Theme engine + presets
 
 - **Prereq.** G6.
-- **Produces.** `src/data/theme/`, `schemas/theme.schema`, four shipped themes under `themes/`.
+- **Produces.** `src/data/theme/`, `schemas/theme.schema`, five shipped themes under `themes/`.
 - **Exit.** A theme by name resolves to a palette; missing roles fall back to compiled defaults.
 
 ## G8 · Render pipeline

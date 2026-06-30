@@ -67,9 +67,9 @@ What it does, in order:
 3. Copies `templates/default.config.json` to
    `${CLAUDE_CONFIG_DIR:-$HOME/.config}/agentline/config.json` if no user
    config exists yet. Existing config is left untouched.
-4. Copies the four shipped themes (`vscode-dark`, `vscode-light`,
-   `claude-code-dark`, `claude-code-light`) into the same directory's
-   `themes/` subfolder.
+4. Copies the five shipped themes (`claude-code-dark`,
+   `claude-code-light`, `high-contrast`, `ansi-minimal`, `midnight`)
+   into the same directory's `themes/` subfolder.
 5. Writes a `statusLine` entry into `~/.claude/settings.json` if and
    only if the key is currently unset. To overwrite a foreign value,
    pass `--force`. The entry's `refreshInterval` is set from the

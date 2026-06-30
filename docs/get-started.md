@@ -64,7 +64,7 @@ See [doctor.md](./doctor.md) for the full check list.
 
 The five installed skills give any Claude Code session enough context to drive agentline configuration without leaving the session. Just ask:
 
-- _"switch the theme to vscode-dark"_
+- _"switch the theme to midnight"_
 - _"add a context-percentage widget"_
 - _"remove the git-changes widget"_
 - _"restore the default layout"_

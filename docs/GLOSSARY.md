@@ -252,7 +252,7 @@ flag is `--preset` but in prose and docs always say "config template".
 
 > An `AGENTLINE_<DOTPATH>` environment variable that overrides any config
 > leaf at render time without editing the config file.
-> Example: `AGENTLINE_THEME=vscode-dark`.
+> Example: `AGENTLINE_THEME=midnight`.
 
 **Used in:** `src/data/config/env/env.ts`, spec §4.
 
@@ -322,10 +322,11 @@ flag is `--preset` but in prose and docs always say "config template".
 ### `theme preset`
 
 > A shipped theme JSON file bundled with agentline.
-> Currently only `claude-code-dark` ships; user-authored themes
+> Five ship: `claude-code-dark` (the default), `claude-code-light`,
+> `high-contrast`, `ansi-minimal`, and `midnight`. User-authored themes
 > go in `${CLAUDE_CONFIG_DIR:-~/.config}/agentline/themes/`.
 
-**Used in:** `themes/claude-code-dark.json`, install flow, themes docs.  
+**Used in:** `themes/*.json`, install flow, themes docs.  
 **Distinct from:** "config template" (a shipped default config, not a theme).
 
 ---
