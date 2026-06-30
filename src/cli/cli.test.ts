@@ -107,3 +107,34 @@ describe("COMMANDS.edit --help", () => {
     expect(code).toBe(0);
   });
 });
+
+describe("COMMANDS.render usage errors (#273)", () => {
+  let stderrChunks: string[];
+  let originalWrite: typeof process.stderr.write;
+
+  beforeEach(() => {
+    stderrChunks = [];
+    originalWrite = process.stderr.write.bind(process.stderr);
+    process.stderr.write = ((chunk: unknown) => {
+      stderrChunks.push(String(chunk));
+      return true;
+    }) as typeof process.stderr.write;
+  });
+
+  afterEach(() => {
+    process.stderr.write = originalWrite;
+  });
+
+  it("routes a usage error to `render --help`, with a single prefix and no doctor/edit noise", async () => {
+    const code = await COMMANDS.render!(["--git", "/g.json"]);
+    expect(code).toBe(1);
+    const out = stderrChunks.join("");
+    // Single, un-doubled prefix.
+    expect(out).toContain("agentline render: --git requires --fixture");
+    expect(out).not.toContain("render error:");
+    // Usage errors point at help, not at the diagnostic verbs.
+    expect(out).toContain("agentline render --help");
+    expect(out).not.toContain("agentline doctor");
+    expect(out).not.toContain("agentline edit");
+  });
+});

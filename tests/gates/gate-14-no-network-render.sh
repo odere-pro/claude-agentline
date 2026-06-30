@@ -48,33 +48,43 @@ JSON
 stdout_file="${work_dir}/stdout.txt"
 stderr_file="${work_dir}/stderr.txt"
 
-run_under_sandbox() {
-  __os_kind="$1"
-  case "${__os_kind}" in
-    darwin)
-      # sandbox-exec is part of base macOS. The profile allows everything
-      # except network access (`network*` covers inet, unix, etc.).
-      profile="${work_dir}/no-net.sb"
-      cat >"${profile}" <<'SBPL'
-(version 1)
-(allow default)
-(deny network*)
-SBPL
-      sandbox-exec -f "${profile}" \
-        node "${bin}" \
-        <"${fixture}" \
-        >"${stdout_file}" 2>"${stderr_file}"
-      ;;
-    linux)
-      # `unshare -nr` opens a fresh network namespace and maps the caller
-      # to root inside it; the loopback interface stays down so any
-      # outbound socket attempt fails with ENETUNREACH / EHOSTUNREACH.
-      unshare -nr \
-        node "${bin}" \
-        <"${fixture}" \
-        >"${stdout_file}" 2>"${stderr_file}"
-      ;;
+# Run a command under the OS network sandbox. The caller supplies the full
+# argv (node + bin + flags) and owns stdio redirection. `os_kind` / `profile`
+# are set by the OS-detection block below before the first call.
+#   darwin: sandbox-exec is part of base macOS; the profile allows everything
+#           except network (`network*` covers inet, unix, etc.).
+#   linux:  `unshare -nr` opens a fresh network namespace mapped to root, with
+#           loopback down, so any outbound socket fails ENETUNREACH/EHOSTUNREACH.
+sandbox_run() {
+  case "${os_kind}" in
+    darwin) sandbox-exec -f "${profile}" "$@" ;;
+    linux) unshare -nr "$@" ;;
   esac
+}
+
+# Assert a sandboxed render exited cleanly and wrote a non-empty line.
+# A non-zero exit with no network is the signature of an attempted outbound
+# call on the hot path; an empty stdout means the host UI would go blank.
+assert_offline_ok() {
+  __rc="$1"
+  __out="$2"
+  __err="$3"
+  __label="$4"
+  if [ "${__rc}" -ne 0 ]; then
+    log_info "${__label} exited with rc=${__rc} under network sandbox"
+    if [ -s "${__err}" ]; then
+      log_info "${__label} stderr:"
+      sed 's/^/    /' "${__err}" >&2
+    fi
+    if [ -s "${__out}" ]; then
+      log_info "${__label} stdout:"
+      sed 's/^/    /' "${__out}" >&2
+    fi
+    fail_gate "${__label} failed with no network — the hot path likely makes an outbound call"
+  fi
+  if [ ! -s "${__out}" ]; then
+    fail_gate "${__label} produced empty stdout under network sandbox"
+  fi
 }
 
 # OS detection. Bash 3.2 friendly — no [[ =~ ]] regex.
@@ -85,6 +95,12 @@ case "${uname_out}" in
       skip_gate "sandbox-exec missing on Darwin; cannot block network"
     fi
     os_kind="darwin"
+    profile="${work_dir}/no-net.sb"
+    cat >"${profile}" <<'SBPL'
+(version 1)
+(allow default)
+(deny network*)
+SBPL
     ;;
   Linux)
     if ! have_cmd unshare; then
@@ -103,26 +119,36 @@ case "${uname_out}" in
     ;;
 esac
 
+# 1) Default render path: payload on stdin, no widget fan-out.
 set +e
-run_under_sandbox "${os_kind}"
+sandbox_run node "${bin}" <"${fixture}" >"${stdout_file}" 2>"${stderr_file}"
 rc=$?
 set -e
+assert_offline_ok "${rc}" "${stdout_file}" "${stderr_file}" "default render"
 
-if [ "${rc}" -ne 0 ]; then
-  log_info "render exited with rc=${rc} under network sandbox"
-  if [ -s "${stderr_file}" ]; then
-    log_info "render stderr:"
-    sed 's/^/    /' "${stderr_file}" >&2
-  fi
-  if [ -s "${stdout_file}" ]; then
-    log_info "render stdout:"
-    sed 's/^/    /' "${stdout_file}" >&2
-  fi
-  fail_gate "render path failed with no network — the hot path likely makes an outbound call"
-fi
-
-if [ ! -s "${stdout_file}" ]; then
-  fail_gate "render produced empty stdout under network sandbox"
+# 2) The `--git` synthetic-git replay vector (#255/#273). The golden channel
+#    injects a static GitState from disk, so even the network-opt-in scenario
+#    (`allowNetwork: true`) must render fully offline — an injected snapshot
+#    never reaches the live PR loader. Replaying git-pr-network-optin under the
+#    same sandbox locks that in, so a future regression wiring `--git` to a live
+#    fetch fails here instead of shipping.
+git_scenario="$(repo_path tests/golden/git-pr-network-optin)"
+if [ -d "${git_scenario}" ]; then
+  git_stdout="${work_dir}/git-stdout.txt"
+  git_stderr="${work_dir}/git-stderr.txt"
+  set +e
+  sandbox_run node "${bin}" render \
+    --fixture "${git_scenario}/stdin.json" \
+    --config "${git_scenario}/config.json" \
+    --git "${git_scenario}/git.json" \
+    --frozen-clock "$(cat "${git_scenario}/clock.txt")" \
+    --width 80 --no-color \
+    </dev/null >"${git_stdout}" 2>"${git_stderr}"
+  git_rc=$?
+  set -e
+  assert_offline_ok "${git_rc}" "${git_stdout}" "${git_stderr}" "--git replay (git-pr-network-optin)"
+else
+  log_info "git-pr-network-optin scenario absent; skipping --git sandbox check"
 fi
 
 pass_gate "render path runs offline (${os_kind} sandbox)"

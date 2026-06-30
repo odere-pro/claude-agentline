@@ -51,16 +51,32 @@ Usage:
 Options:
   --fixture <path>      read JSON payload from disk instead of stdin
   --config <path>       pin a specific config file (golden harness)
-  --git <path>          inject a static GitState snapshot, requires --fixture
-                        (see tests/golden/README.md for the git.json shape)
+  --git <path>          inject a static GitState snapshot (serialized GitState
+                        JSON); requires --fixture
   --frozen-clock <iso>  inject a deterministic clock for byte-identical output
   --width <n>           force terminal width
-  --no-color, --ascii   accessibility flags
+  --no-color, --no-colour, --no-unicode, --ascii
+                        accessibility flags
   -h, --help            show this message
 
 The default invocation (no \`render\` subcommand) reads stdin directly;
 this subcommand exists for replaying fixtures and goldens.
 `;
+
+/**
+ * Thrown by \`parseRenderArgs\` for an argument/usage mistake — an unknown
+ * flag, a flag missing its value, or \`--git\` without \`--fixture\`. Kept
+ * distinct from a render-time failure so the CLI can route it to
+ * \`render --help\` under a single \`agentline render:\` prefix, instead of
+ * the doctor/edit hints meant for runtime errors (#273). The message is the
+ * bare reason — the CLI owns the prefix, so it must not be repeated here.
+ */
+export class RenderUsageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RenderUsageError";
+  }
+}
 
 export interface RenderCommandArgs {
   readonly fixture?: string;
@@ -313,7 +329,7 @@ function matchFlag(
 
 function requirePathValue(name: string, value: string | undefined, label: string): string {
   if (!value || value.startsWith("-")) {
-    throw new Error(`agentline render: ${name} requires ${label}`);
+    throw new RenderUsageError(`${name} requires ${label}`);
   }
   return value;
 }
@@ -321,7 +337,7 @@ function requirePathValue(name: string, value: string | undefined, label: string
 function requirePositiveInt(name: string, value: string | undefined): number {
   const parsed = value !== undefined ? Number.parseInt(value, 10) : Number.NaN;
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error(`agentline render: ${name} requires a positive integer`);
+    throw new RenderUsageError(`${name} requires a positive integer`);
   }
   return parsed;
 }
@@ -374,14 +390,14 @@ export function parseRenderArgs(rest: readonly string[]): RenderCommandArgs {
     if (arg && ACCESSIBILITY_FLAGS.has(arg)) {
       accessibilityArgv.push(arg);
     } else if (arg) {
-      throw new Error(`agentline render: unknown argument '${arg}'`);
+      throw new RenderUsageError(`unknown argument '${arg}'`);
     }
   }
   // `--git` injects a snapshot into a deterministic replay only; it must
   // never reach the live statusline (where it could override a real snapshot
   // or be silently dropped), so require `--fixture` alongside it (#255).
   if (git !== undefined && fixture === undefined) {
-    throw new Error("agentline render: --git requires --fixture");
+    throw new RenderUsageError("--git requires --fixture");
   }
   const out: RenderCommandArgs = {
     accessibility: parseAccessibilityArgs(accessibilityArgv),

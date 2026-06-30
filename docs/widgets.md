@@ -310,6 +310,7 @@ To regenerate a golden after an intentional renderer change (record under the
 same env gate-12 pins, and add `--git` for a git scenario):
 
 ```bash
+# Drop the `--git` line for a non-git scenario.
 env NO_COLOR=1 AGENTLINE_GLYPHS=ascii TZ=UTC \
   agentline render --fixture tests/golden/<name>/stdin.json \
   --config tests/golden/<name>/config.json \

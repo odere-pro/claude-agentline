@@ -133,7 +133,7 @@ A scenario directory contains:
 | `git.json`      | _Optional._ Static `GitState` injected via `--git` so git widgets render (no real `git`/`gh`) |
 | `expected.ansi` | Byte-exact expected stdout (including ANSI escapes)                                           |
 
-`<bin> render --fixture <scenario-dir>` reproduces the line (add `--git <path>` to inject a static git snapshot). The gate iterates every scenario.
+`<bin> render --fixture <dir>/stdin.json` reproduces the line (`--fixture` takes the payload file, not the directory; add `--git <dir>/git.json` to inject a static git snapshot). The gate iterates every scenario.
 
 ---
 

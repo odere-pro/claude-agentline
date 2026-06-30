@@ -8,7 +8,8 @@ import { DEFAULT_CONFIG } from "../../../data/config/defaults/defaults.js";
 import { ConfigValidationError } from "../../../data/config/validate/validate.js";
 import type * as ConfigLoadModule from "../../../data/config/load/load.js";
 import { makeGitSnapshot } from "../../../test-helpers/index.js";
-import { parseRenderArgs, runRenderCommand } from "./fixture-command.js";
+import { HelpRequestedError } from "../../../core/lib/help/help.js";
+import { parseRenderArgs, runRenderCommand, RenderUsageError } from "./fixture-command.js";
 
 /** A complete serialized `GitState` with a host-provided PR (#255). */
 const HOST_PR_SNAPSHOT = makeGitSnapshot({
@@ -107,6 +108,33 @@ describe("parseRenderArgs", () => {
 
   it("rejects --git without a value", () => {
     expect(() => parseRenderArgs(["--fixture", "/x.json", "--git"])).toThrow(/requires a path/);
+  });
+
+  it("parse failures throw RenderUsageError with a bare, unprefixed reason (#273)", () => {
+    // The CLI catch owns the single `agentline render:` prefix; the thrown
+    // message must not carry its own, or the surfaced error stutters.
+    try {
+      parseRenderArgs(["--git", "/g.json"]);
+      throw new Error("expected parseRenderArgs to throw");
+    } catch (err) {
+      expect(err).toBeInstanceOf(RenderUsageError);
+      expect((err as Error).message).toBe("--git requires --fixture");
+    }
+  });
+
+  it("--help body is self-contained and lists every accessibility flag (#273)", () => {
+    // The shipped help must not point an npm consumer at a repo-only file
+    // (`tests/` is not in package.json#files), and the Options block must
+    // advertise the same flags the Usage line does.
+    try {
+      parseRenderArgs(["--help"]);
+      throw new Error("expected HelpRequestedError");
+    } catch (err) {
+      if (!(err instanceof HelpRequestedError)) throw err;
+      expect(err.body).not.toContain("tests/golden/README.md");
+      expect(err.body).toContain("--no-unicode");
+      expect(err.body).toContain("--no-colour");
+    }
   });
 });
 
