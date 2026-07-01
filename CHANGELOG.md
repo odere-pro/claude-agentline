@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `74288b8` — Recognise the `ultracode` effort level as a forward-compat tier: the `thinking-effort` widget now normalises it (case-insensitively) alongside the existing `low`…`max`, from a single ordered membership list. The host reports `xhigh` for ultracode mode and emits no `ultracode` level today, so the value stays inert until the host exposes it.
 - `d935bfe` — Refresh the editor preview's fallback demo session: it now shows a current model (`Opus 4.8`) and the top effort tier the host emits today (`max`) instead of `Opus 4.7` / `high`, so `agentline edit` previews a representative session when no cache or transcript exists.
+- `a213662` — Add an opt-in `emphasis` variant to the `thinking-effort` widget: it colour-ramps the tier (low→muted, medium→info, high/xhigh→accent, max→success) via the blessed `Cell.signal` state-colour, and gives `ultracode` its own signature purple so the mode reads as special rather than folding into the accent. The default (non-variant) rendering stays flat in the family accent, and the tier name always stays in the text so `--no-color` remains legible.
 
 ## [1.3.1] — 2026-06-30
 
