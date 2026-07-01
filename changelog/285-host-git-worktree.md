@@ -1,1 +1,0 @@
-- Host-provided worktree name: when the host sends `workspace.git_worktree` (or the top-level `worktree` block), the git snapshot uses it directly for the `git-worktree` widget and skips the `git rev-parse --git-dir --show-toplevel` subprocess, falling back to the git-derived path otherwise. No new widget.
