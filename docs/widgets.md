@@ -71,6 +71,15 @@ Surface state from the stdin payload that Claude Code emits.
 (`project` / `project-dir` moved to the **git** family; `clock` /
 `added-dirs` / `output-style` / `vim-mode` moved to the **other** family.)
 
+Emphasis variant: `thinking-effort` has an opt-in `emphasis` variant
+(`options.emphasis: true`) that colour-ramps the tier — `low`→muted,
+`medium`→info, `high`/`xhigh`→accent, `max`→success — and renders
+`ultracode` in its own signature purple. (The host reports `xhigh` for
+ultracode mode and does not emit `ultracode` as a level, so that purple is
+forward-compat — recognised for the day the host exposes it.) The default
+(non-variant) rendering stays flat in the session family accent, and the tier
+name always stays in the text so `--no-color` remains legible.
+
 Auth-file fallback: when the stdin payload omits the account email,
 `account-email` transparently re-reads `${CLAUDE_CONFIG_DIR}/.credentials.json`
 so the line is never blank for an authenticated user.
