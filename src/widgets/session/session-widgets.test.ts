@@ -30,7 +30,7 @@ import { modelDisplayName, modelWidget } from "./model.js";
 import { planWidget } from "./plan.js";
 import { pathBasename, projectWidget } from "./project.js";
 import { sessionIdWidget } from "./session-id.js";
-import { thinkingEffortWidget } from "./thinking-effort.js";
+import { thinkingEffortWidget, ULTRACODE_COLOUR } from "./thinking-effort.js";
 import { versionWidget } from "./version.js";
 import { registerSessionWidgets, SESSION_WIDGETS } from "./index.js";
 
@@ -420,6 +420,69 @@ describe("thinking-effort widget", () => {
       rawValue: false,
     });
     expect(cell.text).toBe("low");
+  });
+
+  // ── emphasis variant (opt-in tier colour ramp, issue #280) ──────────────
+
+  it.each([
+    ["low", "muted"],
+    ["medium", "info"],
+    ["high", "accent"],
+    ["xhigh", "accent"],
+    ["max", "success"],
+  ] as const)(
+    "emphasis variant colours '%s' with the '%s' role and sets signal",
+    (effort, role) => {
+      const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: effort }), {
+        options: { emphasis: true },
+        rawValue: false,
+      });
+      expect(cell.text).toBe(effort);
+      expect(cell.fg).toBe(DEFAULT_PALETTE[role]);
+      expect(cell.signal).toBe(true);
+    },
+  );
+
+  it("emphasis gives ultracode a distinct signature colour, not the accent ramp", () => {
+    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "ultracode" }), {
+      options: { emphasis: true },
+      rawValue: false,
+    });
+    expect(cell.text).toBe("ultracode");
+    expect(cell.fg).toBe(ULTRACODE_COLOUR);
+    expect(cell.fg).not.toBe(DEFAULT_PALETTE.accent);
+    expect(cell.signal).toBe(true);
+  });
+
+  it("emphasis: false renders flat (no fg, no signal) — default behaviour", () => {
+    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "max" }), {
+      options: { emphasis: false },
+      rawValue: false,
+    });
+    expect(cell.text).toBe("max");
+    expect(cell.fg).toBeUndefined();
+    expect(cell.signal).toBeUndefined();
+  });
+
+  it("emphasis with an unrecognised level renders verbatim, neutral (no fg/signal)", () => {
+    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "weird" }), {
+      options: { emphasis: true },
+      rawValue: false,
+    });
+    expect(cell.text).toBe("weird");
+    expect(cell.hidden).not.toBe(true);
+    expect(cell.fg).toBeUndefined();
+    expect(cell.signal).toBeUndefined();
+  });
+
+  it("emphasis colour still applies in rawValue mode (label suppressed, colour kept)", () => {
+    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "max" }), {
+      options: { emphasis: true, label: "effort:" },
+      rawValue: true,
+    });
+    expect(cell.text).toBe("max");
+    expect(cell.fg).toBe(DEFAULT_PALETTE.success);
+    expect(cell.signal).toBe(true);
   });
 
   it("falls back to stdin.thinkingEffort when session is absent", () => {
