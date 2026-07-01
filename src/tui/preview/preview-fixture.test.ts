@@ -101,7 +101,8 @@ describe("previewWidget — mock mode (no cache, no transcript)", () => {
 
   it("renders representative values for core widget families", () => {
     setPreviewModeForTesting(mock);
-    expect(previewWidget("model").text).toContain("Opus 4.7");
+    expect(previewWidget("model").text).toContain("Opus 4.8");
+    expect(previewWidget("thinking-effort").text).toContain("max");
     expect(previewWidget("git-branch").text).toContain("main");
     expect(previewWidget("account-email").text).toContain("you@example.com");
   });
