@@ -135,6 +135,22 @@ export interface LoadGitSnapshotInput {
     readonly url?: string;
   };
   /**
+   * Host-provided worktree name from `StdinPayload.worktree`. When `name`
+   * is a non-empty string, the loader sets `inWorktree = true` and
+   * `worktreeName` from it and skips the
+   * `git rev-parse --git-dir --show-toplevel` spawn — the host already
+   * knows this fact, so we avoid a render-path subprocess. When absent or
+   * empty, the loader falls back to the git-derived worktree path (which
+   * also reports the not-in-a-worktree case the host omits).
+   *
+   * Defined locally here (not imported from `StdinPayload`) to keep the
+   * loader contract-narrow; gate-25 prohibits `data/git` from importing
+   * `core/stdin`. Mirrors the `hostPr` bridge above.
+   */
+  readonly hostWorktree?: {
+    readonly name?: string;
+  };
+  /**
    * Last-known-good snapshot for this `cwd` (from the git-snapshot
    * cache). When a `git` call fails *transiently*, the matching field
    * falls back to this value instead of blanking — the anti-flicker
@@ -242,28 +258,41 @@ export function loadGitSnapshot(input: LoadGitSnapshotInput): GitState {
     prev?.upstreamRemote,
   );
 
-  // Worktree pair in one spawn: line 0 = git-dir, line 1 = toplevel.
-  const worktree = gitRunOutcome(["rev-parse", "--git-dir", "--show-toplevel"], opts);
+  // Host-first worktree bridge: when the host names the current worktree
+  // (non-empty string), use it directly and skip the `rev-parse` spawn — the
+  // host sends this only while inside a linked worktree, so its presence is
+  // itself the `inWorktree` signal. Only when the host name is absent/empty do
+  // we fall through to the git-derived path, which also covers the
+  // not-in-a-worktree case the host omits.
+  const hostWorktreeName = input.hostWorktree?.name;
+  const hostWorktreeUsable = typeof hostWorktreeName === "string" && hostWorktreeName !== "";
   let inWorktree: boolean;
   let worktreeName: string | null;
-  if (worktree.ok) {
-    const lines = worktree.value.split("\n");
-    const gitDir = (lines[0] ?? "").trim();
-    inWorktree = gitDir.includes("/worktrees/") || gitDir.includes("\\worktrees\\");
-    worktreeName = null;
-    if (inWorktree) {
-      const top = (lines[1] ?? "").trim();
-      if (top) {
-        const segs = top.replace(/\\/g, "/").split("/");
-        worktreeName = segs[segs.length - 1] ?? null;
-      }
-    }
-  } else if (worktree.reason === "transient" && prev) {
-    inWorktree = prev.inWorktree;
-    worktreeName = prev.worktreeName;
+  if (hostWorktreeUsable && hostWorktreeName !== undefined) {
+    inWorktree = true;
+    worktreeName = hostWorktreeName;
   } else {
-    inWorktree = false;
-    worktreeName = null;
+    // Worktree pair in one spawn: line 0 = git-dir, line 1 = toplevel.
+    const worktree = gitRunOutcome(["rev-parse", "--git-dir", "--show-toplevel"], opts);
+    if (worktree.ok) {
+      const lines = worktree.value.split("\n");
+      const gitDir = (lines[0] ?? "").trim();
+      inWorktree = gitDir.includes("/worktrees/") || gitDir.includes("\\worktrees\\");
+      worktreeName = null;
+      if (inWorktree) {
+        const top = (lines[1] ?? "").trim();
+        if (top) {
+          const segs = top.replace(/\\/g, "/").split("/");
+          worktreeName = segs[segs.length - 1] ?? null;
+        }
+      }
+    } else if (worktree.reason === "transient" && prev) {
+      inWorktree = prev.inWorktree;
+      worktreeName = prev.worktreeName;
+    } else {
+      inWorktree = false;
+      worktreeName = null;
+    }
   }
 
   let pr: GitPullRequestInfo | null = null;

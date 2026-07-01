@@ -207,8 +207,8 @@ describe("adaptStatuslinePayload — translator version", () => {
     expect(out.translatorVersion).toBe(STATUSLINE_TRANSLATOR_VERSION);
   });
 
-  it("STATUSLINE_TRANSLATOR_VERSION is 5 (bumped when pr / workspace.repo accessors added)", () => {
-    expect(STATUSLINE_TRANSLATOR_VERSION).toBe(5);
+  it("STATUSLINE_TRANSLATOR_VERSION is 6 (bumped when the worktree accessor was added)", () => {
+    expect(STATUSLINE_TRANSLATOR_VERSION).toBe(6);
   });
 });
 
@@ -422,6 +422,59 @@ describe("adaptStatuslinePayload — workspaceRepo block", () => {
 
   it("returns undefined when workspace.repo has no recognised fields", () => {
     expect(adaptStatuslinePayload({ workspace: { repo: {} } }).workspaceRepo).toBeUndefined();
+  });
+});
+
+describe("adaptStatuslinePayload — worktree block", () => {
+  it("maps the top-level worktree.name, ignoring the richer sibling fields", () => {
+    const out = adaptStatuslinePayload({
+      worktree: {
+        name: "issue-278",
+        path: "/repo/.claude/worktrees/issue-278",
+        branch: "worktree-issue-278",
+        original_cwd: "/repo",
+        original_branch: "main",
+      },
+    });
+    expect(out.worktree).toEqual({ name: "issue-278" });
+  });
+
+  it("prefers nested workspace.git_worktree over top-level worktree.name", () => {
+    const out = adaptStatuslinePayload({
+      workspace: { current_dir: "/repo", git_worktree: "from-workspace" },
+      worktree: { name: "from-top-level" },
+    });
+    expect(out.worktree).toEqual({ name: "from-workspace" });
+  });
+
+  it("maps nested workspace.git_worktree when no top-level worktree block is sent", () => {
+    const out = adaptStatuslinePayload({
+      workspace: { current_dir: "/repo", git_worktree: "issue-211" },
+    });
+    expect(out.worktree).toEqual({ name: "issue-211" });
+  });
+
+  it("returns undefined when neither source names a worktree", () => {
+    expect(adaptStatuslinePayload({ session_id: "s" }).worktree).toBeUndefined();
+    expect(adaptStatuslinePayload({ workspace: { current_dir: "/repo" } }).worktree).toBeUndefined();
+  });
+
+  it("returns undefined when the top-level worktree is not a plain object", () => {
+    expect(adaptStatuslinePayload({ worktree: "bad" }).worktree).toBeUndefined();
+    expect(adaptStatuslinePayload({ worktree: 42 }).worktree).toBeUndefined();
+    expect(adaptStatuslinePayload({ worktree: null }).worktree).toBeUndefined();
+  });
+
+  it("returns undefined when the worktree name is an empty string and no git_worktree", () => {
+    expect(adaptStatuslinePayload({ worktree: { name: "" } }).worktree).toBeUndefined();
+  });
+
+  it("falls back to worktree.name when workspace.git_worktree is an empty string", () => {
+    const out = adaptStatuslinePayload({
+      workspace: { current_dir: "/repo", git_worktree: "" },
+      worktree: { name: "issue-278" },
+    });
+    expect(out.worktree).toEqual({ name: "issue-278" });
   });
 });
 

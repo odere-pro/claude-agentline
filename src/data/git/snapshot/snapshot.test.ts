@@ -281,6 +281,62 @@ describe("loadGitSnapshot", () => {
     });
   });
 
+  describe("host-first worktree bridge", () => {
+    // The temp repo is a PLAIN checkout, not a linked worktree — so the
+    // git-derived path would report `inWorktree: false` / `worktreeName: null`.
+    // When the host names a worktree, the snapshot must reflect the host value
+    // instead, proving the `rev-parse --git-dir --show-toplevel` fact came from
+    // stdin and the subprocess-derived worktree state was skipped.
+    it("uses hostWorktree.name, overriding the git-derived worktree state", () => {
+      const r = makeTmpRepo();
+      try {
+        const snap = loadGitSnapshot({ cwd: r, hostWorktree: { name: "issue-278" } });
+        if (!snap.available) throw new Error("expected available");
+        expect(snap.inWorktree).toBe(true);
+        expect(snap.worktreeName).toBe("issue-278");
+      } finally {
+        rmSync(r, { recursive: true, force: true });
+      }
+    });
+
+    it("falls through to the git-derived path when hostWorktree is absent", () => {
+      const r = makeTmpRepo();
+      try {
+        const snap = loadGitSnapshot({ cwd: r });
+        if (!snap.available) throw new Error("expected available");
+        // A plain temp repo is not a linked worktree.
+        expect(snap.inWorktree).toBe(false);
+        expect(snap.worktreeName).toBeNull();
+      } finally {
+        rmSync(r, { recursive: true, force: true });
+      }
+    });
+
+    it("ignores an empty hostWorktree name (falls through to git-derived path)", () => {
+      const r = makeTmpRepo();
+      try {
+        const snap = loadGitSnapshot({ cwd: r, hostWorktree: { name: "" } });
+        if (!snap.available) throw new Error("expected available");
+        expect(snap.inWorktree).toBe(false);
+        expect(snap.worktreeName).toBeNull();
+      } finally {
+        rmSync(r, { recursive: true, force: true });
+      }
+    });
+
+    it("ignores a hostWorktree with no name (falls through to git-derived path)", () => {
+      const r = makeTmpRepo();
+      try {
+        const snap = loadGitSnapshot({ cwd: r, hostWorktree: {} });
+        if (!snap.available) throw new Error("expected available");
+        expect(snap.inWorktree).toBe(false);
+        expect(snap.worktreeName).toBeNull();
+      } finally {
+        rmSync(r, { recursive: true, force: true });
+      }
+    });
+  });
+
   describe("last-known-good fallback", () => {
     it("holds the previous snapshot when the gate read fails transiently", () => {
       // A non-existent cwd makes git's spawn fail (ENOENT) — a transient

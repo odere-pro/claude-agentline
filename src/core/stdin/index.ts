@@ -33,8 +33,10 @@ const MAX_PAYLOAD_BYTES = 256 * 1024;
  * Version history:
  *   4 — `vim.mode` nested block (vim_mode flat fallback retained)
  *   5 — `pr` block + `workspace.repo` nested block accessors
+ *   6 — `worktree` accessor (nested `workspace.git_worktree` preferred over
+ *       the top-level `worktree.name`)
  */
-export const STATUSLINE_TRANSLATOR_VERSION = 5;
+export const STATUSLINE_TRANSLATOR_VERSION = 6;
 
 export interface StdinPayload {
   /** Original parsed JSON, fields untouched. */
@@ -228,6 +230,26 @@ export interface StdinPayload {
     readonly owner?: string;
     readonly name?: string;
   };
+  /**
+   * Host-provided worktree identity. Bridges the worktree name the host
+   * already knows into the git snapshot so `git-worktree` can render it
+   * without the `git rev-parse --git-dir --show-toplevel` subprocess.
+   *
+   *   - `name` ← nested `workspace.git_worktree` (preferred), else the
+   *     top-level `worktree.name`.
+   *
+   * The host sends this only while the session is inside a linked
+   * worktree; it is absent on a plain checkout and on older host
+   * versions. The block is emitted only when a non-empty name is found,
+   * so `name` is always present when `worktree` is. The host's richer
+   * top-level `worktree` sibling fields (`path`, `branch`, `original_cwd`,
+   * `original_branch`) are intentionally not surfaced — the existing
+   * `git-worktree` widget renders only the name (issue #278, per #244's
+   * data-source-not-a-widget deferral).
+   */
+  worktree?: {
+    readonly name?: string;
+  };
 }
 
 export class StdinParseError extends Error {
@@ -277,6 +299,10 @@ export function adaptStatuslinePayload(
   const cost = adaptCost(raw["cost"]);
   const pr = adaptPr(raw["pr"]);
   const workspaceRepo = adaptWorkspaceRepo(workspaceBlock?.["repo"]);
+  // `raw["worktree"]` is read eagerly (as a call argument) so the host-contract
+  // conformance check (gate-29) records `worktree` as a consumed top-level key
+  // even when the nested `workspace.git_worktree` wins the precedence below.
+  const worktree = adaptWorktree(raw["worktree"], workspaceBlock);
   const agentName = pickString(agentBlock, "name");
   const projectDir = pickString(workspaceBlock, "project_dir");
   const addedDirs = pickStringArray(workspaceBlock, "added_dirs");
@@ -306,6 +332,7 @@ export function adaptStatuslinePayload(
     ...(cost ? { cost } : {}),
     ...(pr ? { pr } : {}),
     ...(workspaceRepo ? { workspaceRepo } : {}),
+    ...(worktree ? { worktree } : {}),
   };
 }
 
@@ -368,6 +395,29 @@ function adaptWorkspaceRepo(value: unknown): StdinPayload["workspaceRepo"] | und
     ...(owner !== undefined ? { owner } : {}),
     ...(name !== undefined ? { name } : {}),
   };
+}
+
+/**
+ * Resolve the worktree name from the host's two overlapping signals:
+ *   - nested `workspace.git_worktree` — the basename string, preferred;
+ *   - top-level `worktree.name` — the canonical `worktree` block's name,
+ *     used as a fallback (`topLevel` is passed in from `raw["worktree"]`
+ *     so the access is recorded by the gate-29 conformance proxy).
+ *
+ * Returns `undefined` when neither yields a non-empty string, so the
+ * loader falls back to the git-derived worktree state. `pickString`
+ * rejects empty strings and non-strings, so an empty `git_worktree`
+ * transparently falls through to `worktree.name`.
+ */
+function adaptWorktree(
+  topLevel: unknown,
+  workspaceBlock: Record<string, unknown> | undefined,
+): StdinPayload["worktree"] | undefined {
+  const nested = pickString(workspaceBlock, "git_worktree");
+  const block = isPlainObject(topLevel) ? topLevel : undefined;
+  const name = nested ?? pickString(block, "name");
+  if (name === undefined) return undefined;
+  return { name };
 }
 
 /**

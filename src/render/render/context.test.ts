@@ -195,6 +195,38 @@ describe("loadLiveSnapshots — hostPr threading", () => {
   });
 });
 
+describe("loadLiveSnapshots — hostWorktree threading", () => {
+  beforeEach(() => {
+    mockLoadGitSnapshot.mockClear();
+    mockLoadGitSnapshot.mockReturnValue({ available: false });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("passes hostWorktree to loadGitSnapshot when payload.worktree has a name", () => {
+    const payload = makeStdinPayload({ cwd: "/repo", worktree: { name: "issue-278" } });
+    loadLiveSnapshots(payload);
+    const callArg = mockLoadGitSnapshot.mock.calls[0]?.[0];
+    expect(callArg?.hostWorktree).toEqual({ name: "issue-278" });
+  });
+
+  it("omits hostWorktree when payload.worktree is absent", () => {
+    const payload = makeStdinPayload({ cwd: "/repo" });
+    loadLiveSnapshots(payload);
+    const callArg = mockLoadGitSnapshot.mock.calls[0]?.[0];
+    expect(callArg?.hostWorktree).toBeUndefined();
+  });
+
+  it("omits hostWorktree when worktree.name is an empty string", () => {
+    const payload = makeStdinPayload({ cwd: "/repo", worktree: { name: "" } });
+    loadLiveSnapshots(payload);
+    const callArg = mockLoadGitSnapshot.mock.calls[0]?.[0];
+    expect(callArg?.hostWorktree).toBeUndefined();
+  });
+});
+
 describe("loadLiveSnapshots — last-known-good threading", () => {
   let tmp: string;
   let env: NodeJS.ProcessEnv;
