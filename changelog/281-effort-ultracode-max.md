@@ -1,0 +1,1 @@
+- Recognise the `ultracode` effort level as a forward-compat tier: the `thinking-effort` widget now normalises it (case-insensitively) alongside the existing `low`…`max`, from a single ordered membership list. The host reports `xhigh` for ultracode mode and emits no `ultracode` level today, so the value stays inert until the host exposes it.

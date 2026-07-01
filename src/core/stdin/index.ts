@@ -71,11 +71,14 @@ export interface StdinPayload {
   sessionName?: string;
   cwd?: string;
   /**
-   * Known values: `"low"`, `"medium"`, `"high"`, `"xhigh"`, `"max"`. Typed
-   * as `string` so the `thinking-effort` widget can pass an unknown
-   * future level through uncoloured rather than hide it. Consumers
-   * that need a colour role or bucketing key narrow it themselves
-   * (see `widgets/session/thinking-effort.ts`).
+   * Host-emitted levels: `"low"`, `"medium"`, `"high"`, `"xhigh"`, `"max"`.
+   * The `thinking-effort` widget additionally recognises `"ultracode"` as a
+   * forward-compat tier, though the host does not currently send it as a
+   * level (its ultracode orchestration mode reports effort as `"xhigh"`).
+   * Typed as `string` so the widget can pass an unknown future level through
+   * uncoloured rather than hide it. Consumers that need a colour role or
+   * bucketing key narrow it themselves (see
+   * `widgets/session/thinking-effort.ts`).
    */
   thinkingEffort?: string;
   /**

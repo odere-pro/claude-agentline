@@ -16,7 +16,7 @@ export const SESSION_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.free
   version: entry("Version", "Claude Code version", "session"),
   "thinking-effort": entry(
     "Thinking effort",
-    "Thinking-effort tier: low, medium, or high",
+    "Thinking-effort tier: low through max, plus ultracode",
     "session",
   ),
   "thinking-enabled": entry(

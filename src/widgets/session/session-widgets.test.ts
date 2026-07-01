@@ -373,7 +373,7 @@ describe("thinking-effort widget", () => {
     );
   });
 
-  it.each(["low", "medium", "high", "xhigh", "max"])(
+  it.each(["low", "medium", "high", "xhigh", "max", "ultracode"])(
     "renders '%s' as plain text with no state-signal colour (family accent applies)",
     (effort) => {
       const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: effort }), {
@@ -386,12 +386,23 @@ describe("thinking-effort widget", () => {
     },
   );
 
-  it("normalises 'MAX' to 'max' — the union/guard recognise the new top level", () => {
+  it("normalises 'MAX' to 'max' — the tier list recognises the documented top level", () => {
     const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "MAX" }), {
       options: {},
       rawValue: false,
     });
     expect(cell.text).toBe("max");
+  });
+
+  it("normalises 'ULTRACODE' to 'ultracode' — recognised as a first-class tier", () => {
+    // `ultracode` is a forced forward-compat tier: the host does not currently
+    // emit it as a level (its ultracode mode reports effort as `xhigh`), but the
+    // widget recognises it so it renders normalised the day the host exposes it.
+    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "ULTRACODE" }), {
+      options: {},
+      rawValue: false,
+    });
+    expect(cell.text).toBe("ultracode");
   });
 
   it("renders unknown effort verbatim with no colour", () => {

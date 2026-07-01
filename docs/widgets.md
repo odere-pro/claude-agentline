@@ -60,7 +60,7 @@ Surface state from the stdin payload that Claude Code emits.
 | `version`          | Claude Code version                                                  |
 | `session-id`       | short session id                                                     |
 | `account-email`    | logged-in account email                                              |
-| `thinking-effort`  | thinking-effort tier (low / medium / high)                           |
+| `thinking-effort`  | thinking-effort tier (low through max, plus ultracode)               |
 | `thinking-enabled` | whether extended thinking is on (`thinking` / `no-thinking`)         |
 | `plan`             | active plan name (newest file in plans dir)                          |
 | `cwd-path`         | current working-directory path, home-collapsed and truncatable       |
