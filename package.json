@@ -1,6 +1,6 @@
 {
   "name": "@odere-pro/agentline",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "Fast, powerline statusline for Claude Code: git, tokens, context window, rate limits and session info across 30 configurable widgets, with a live TUI editor.",
   "author": {
     "name": "agentline maintainers",

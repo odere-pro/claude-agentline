@@ -1,0 +1,1 @@
+- Release v1.4.0: fold the pending changelog fragments into a curated `[1.4.0]` section of `CHANGELOG.md`, clear the folded fragments, and bump the package, bundled bin, and landing-page version to 1.4.0.
