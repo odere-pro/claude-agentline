@@ -3,16 +3,24 @@
   "session_id": "0f3a9c2e-7b1d-4e6a-9c5f-2a8b1d4e6f00",
   "session_name": "demo-session",
   "transcript_path": "/home/dev/.config/claude/projects/repo/0f3a9c2e.jsonl",
-  "cwd": "/home/dev/repo",
+  "cwd": "/home/dev/repo/.claude/worktrees/issue-278",
   "version": "2.1.195",
   "model": { "id": "claude-opus-4-8", "display_name": "Opus 4.8 (1M context)" },
   "output_style": { "name": "default" },
   "effort": { "level": "high" },
   "workspace": {
-    "current_dir": "/home/dev/repo",
+    "current_dir": "/home/dev/repo/.claude/worktrees/issue-278",
     "project_dir": "/home/dev/repo",
     "added_dirs": ["/home/dev/shared"],
+    "git_worktree": "issue-278",
     "repo": { "host": "github.com", "owner": "odere-pro", "name": "agentline" }
+  },
+  "worktree": {
+    "name": "issue-278",
+    "path": "/home/dev/repo/.claude/worktrees/issue-278",
+    "branch": "worktree-issue-278",
+    "original_cwd": "/home/dev/repo",
+    "original_branch": "main"
   },
   "pr": { "number": 244, "url": "https://github.com/odere-pro/agentline/pull/244", "review_state": "approved" },
   "agent": { "name": "agentline-dev-lead" },

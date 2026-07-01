@@ -115,6 +115,13 @@ export function loadLiveSnapshots(
     typeof hostPrUrl === "string" &&
     hostPrUrl !== "";
   /*
+   * Host-first worktree bridge: when the host names the worktree, pass it to
+   * the snapshot loader so it can skip the `rev-parse --git-dir --show-toplevel`
+   * spawn. "Usable" mirrors the loader's non-empty-string guard.
+   */
+  const hostWorktreeName = payload.worktree?.name;
+  const hostWorktreeUsable = typeof hostWorktreeName === "string" && hostWorktreeName !== "";
+  /*
    * Last-known-good fallback (anti-flicker): read the prior tick's git
    * snapshot for this cwd and hand it to the loader. When a `git` call
    * fails transiently, the loader reuses the cached field instead of
@@ -130,6 +137,9 @@ export function loadLiveSnapshots(
     ...(previousGit ? { previous: previousGit } : {}),
     ...(hostPrUsable && hostPrNum !== undefined && hostPrUrl !== undefined
       ? { hostPr: { number: hostPrNum, url: hostPrUrl } }
+      : {}),
+    ...(hostWorktreeUsable && hostWorktreeName !== undefined
+      ? { hostWorktree: { name: hostWorktreeName } }
       : {}),
   });
   /*
