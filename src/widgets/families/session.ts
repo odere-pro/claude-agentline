@@ -18,6 +18,10 @@ export const SESSION_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.free
     "Thinking effort",
     "Thinking-effort tier: low through max, plus ultracode",
     "session",
+    [
+      v("plain", "Plain tier text (family accent)", { emphasis: false }),
+      v("emphasis", "Colour-ramped by tier (ultracode in its own hue)", { emphasis: true }),
+    ],
   ),
   "thinking-enabled": entry(
     "Thinking enabled",
