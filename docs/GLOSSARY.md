@@ -155,7 +155,7 @@ All types are kebab-case strings. Source of truth: `src/widgets/families/catalog
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | `model`            | Active model id (e.g. Sonnet 4.6)                                                                                                           |
 | `version`          | Claude Code version                                                                                                                         |
-| `thinking-effort`  | Thinking-effort tier: low, medium, or high                                                                                                  |
+| `thinking-effort`  | Thinking-effort tier: low through max, plus ultracode                                                                                       |
 | `thinking-enabled` | Whether extended thinking is on (complements effort)                                                                                        |
 | `plan`             | Active plan for the current session — a `.claude/plans/` file basename (`ctx.plan`); not the subscription tier (cf. `session-weekly-usage`) |
 | `cwd-path`         | Current working-directory path, home-collapsed/truncatable                                                                                  |
