@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-07-01
+
+### Added
+
+- `3b1c959` — Recognise the host's new top-level `prompt_id` field (added in host 2.1.196) as an intentionally-unused passthrough identifier, keeping host-contract conformance green after the host upgrade; no statusline, editor, or CLI behaviour changes.
+- `7bb9e13` — Host-provided worktree name: when the host sends `workspace.git_worktree` (or the top-level `worktree` block), the git snapshot uses it directly for the `git-worktree` widget and skips the `git rev-parse --git-dir --show-toplevel` subprocess, falling back to the git-derived path otherwise. No new widget.
+
 ## [1.4.0] — 2026-07-01
 
 ### Added
