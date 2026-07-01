@@ -8,12 +8,14 @@
 #
 # The checker always bundles the REAL adapter / session / usage readers from
 # src/, so only the fixture payload and the doc table vary here (via the
-# HOST_CONTRACT_FIXTURE / HOST_CONTRACT_DOC env overrides). Four cases:
+# HOST_CONTRACT_FIXTURE / HOST_CONTRACT_DOC env overrides). Five cases:
 #   (a) good fixture + good doc        → checker passes
 #   (b) fixture sends an unconsumed,
 #       non-allowlisted key            → checker fails  (Assertion A1)
 #   (c) doc drops a consumed row       → checker fails  (Assertion B missing)
 #   (d) doc adds a phantom Raw key row → checker fails  (Assertion B phantom)
+#   (e) fixture sends an allowlisted
+#       key (prompt_id)                → checker passes (A1 exempt via IGNORED)
 #
 # Run directly:  bash tests/gates/selftest/gate-29-selftest.sh
 # Exits 0 when all proofs pass, 1 when any proof fails.
@@ -116,9 +118,29 @@ else
   OVERALL=1
 fi
 
+# ── (e) fixture sends an allowlisted key (prompt_id) → pass (A1 exempt) ───────
+# Proves the IGNORED entry for prompt_id does its job: a real 2.1.196 host field
+# that no widget surfaces still passes the checker, WITHOUT refreshing the live
+# fixture. The value is irrelevant to the checker (it keys on the top-level name
+# only); an all-zero UUID keeps it obviously synthetic and secret-scan-clean.
+GOOD_E="${FIXTURE_BASE}/good-e.json"
+node -e '
+  const fs = require("fs");
+  const o = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  o.prompt_id = "00000000-0000-0000-0000-000000000000";
+  fs.writeFileSync(process.argv[2], JSON.stringify(o, null, 2));
+' "${GOOD_FIXTURE}" "${GOOD_E}"
+rc_e=$(run_check "${GOOD_E}" "${GOOD_DOC}")
+if [ "${rc_e}" -eq 0 ]; then
+  log_pass "gate-29-selftest: (e) allowlisted prompt_id present → checker PASSED (expected)"
+else
+  log_fail "gate-29-selftest: (e) allowlisted prompt_id present → returned ${rc_e}, expected 0"
+  OVERALL=1
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 if [ "${OVERALL}" -eq 0 ]; then
-  log_pass "gate-29-selftest: all 4 fixture proofs pass"
+  log_pass "gate-29-selftest: all 5 fixture proofs pass"
   exit 0
 else
   log_fail "gate-29-selftest: one or more fixture proofs failed"

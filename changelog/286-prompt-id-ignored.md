@@ -1,0 +1,1 @@
+- Recognise Claude Code 2.1.196's new top-level `prompt_id` field as an intentionally-unused passthrough identifier, keeping host-contract conformance green after the host upgrade; no statusline, editor, or CLI behaviour changes.

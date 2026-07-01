@@ -70,6 +70,10 @@ const IGNORED = new Set([
   // Opus fast-mode signal. Observed in 2.1.195; undocumented in the public
   // statusline spec — no widget surface until documented.
   "fast_mode",
+  // Per-prompt UUID. Added top-level in 2.1.196; a pure passthrough identifier
+  // surfaced by no widget — no adapter field, no STATUSLINE_TRANSLATOR_VERSION
+  // bump. Allowlisted ahead of the fixture refresh (issue #277).
+  "prompt_id",
 ]);
 
 /**
