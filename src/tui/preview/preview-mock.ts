@@ -29,8 +29,8 @@ export interface MockPreview {
 }
 
 /** Fallback model id/label used by discovered mode when a transcript carries none. */
-export const MOCK_MODEL = "claude-opus-4-7";
-export const MOCK_MODEL_LABEL = "Opus 4.7";
+export const MOCK_MODEL = "claude-opus-4-8";
+export const MOCK_MODEL_LABEL = "Opus 4.8";
 const MOCK_CWD = "/agentline";
 const MOCK_SESSION_ID = "preview0000mock";
 const MINUTE = 60_000;
@@ -53,7 +53,7 @@ export function buildMockPreview(now: number = Date.now()): MockPreview {
     sessionId: MOCK_SESSION_ID,
     sessionName: "preview",
     cwd: MOCK_CWD,
-    thinkingEffort: "high",
+    thinkingEffort: "max",
     vimMode: "INSERT",
     rateLimits: {
       fiveHour: { usedPercentage: 21, resetsAt: fiveHourReset },
@@ -79,7 +79,7 @@ export function buildMockPreview(now: number = Date.now()): MockPreview {
     accountEmail: "you@example.com",
     loginMethod: "oauth",
     orgSlug: "agentline",
-    thinkingEffort: "high",
+    thinkingEffort: "max",
     vimMode: "INSERT",
   };
 
@@ -90,7 +90,7 @@ export function buildMockPreview(now: number = Date.now()): MockPreview {
       {
         timestamp: now - 30 * MINUTE,
         model: MOCK_MODEL,
-        effort: "high",
+        effort: "max",
         inputTokens: 0,
         outputTokens: 0,
         cachedTokens: 0,
@@ -99,7 +99,7 @@ export function buildMockPreview(now: number = Date.now()): MockPreview {
       {
         timestamp: now - MINUTE,
         model: MOCK_MODEL,
-        effort: "high",
+        effort: "max",
         inputTokens: 12_345,
         outputTokens: 6_789,
         cachedTokens: 4_321,

@@ -1,0 +1,1 @@
+- Refresh the editor preview's fallback demo session: it now shows a current model (`Opus 4.8`) and the top effort tier the host emits today (`max`) instead of `Opus 4.7` / `high`, so `agentline edit` previews a representative session when no cache or transcript exists.
