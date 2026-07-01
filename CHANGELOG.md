@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-07-01
+
+### Added
+
+- `74288b8` — Recognise the `ultracode` effort level as a forward-compat tier: the `thinking-effort` widget now normalises it (case-insensitively) alongside the existing `low`…`max`, from a single ordered membership list. The host reports `xhigh` for ultracode mode and emits no `ultracode` level today, so the value stays inert until the host exposes it.
+- `d935bfe` — Refresh the editor preview's fallback demo session: it now shows a current model (`Opus 4.8`) and the top effort tier the host emits today (`max`) instead of `Opus 4.7` / `high`, so `agentline edit` previews a representative session when no cache or transcript exists.
+
 ## [1.3.1] — 2026-06-30
 
 ### Added
