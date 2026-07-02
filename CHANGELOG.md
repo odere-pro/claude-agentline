@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] — 2026-07-02
+
+### Added
+
+- `e7fa21f` — Ultracode is now surfaced on the statusline: `thinking-effort` gains an `effort-ultracode` theme role and always renders `ultracode` in its signature violet — a single fixed value matching the host CLI's ultracode indicator, kept identical across every shipped theme. Because the host reports ultracode mode as `xhigh` (no distinct level), a new opt-in `ultracode` variant (`options.assumeUltracode: true`) surfaces a recognised `xhigh` as `ultracode`; it is off by default and auto-defers to a real `ultracode` level if the host ever emits one.
+
 ## [1.5.0] — 2026-07-01
 
 ### Added

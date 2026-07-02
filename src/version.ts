@@ -3,4 +3,4 @@
  * Kept independent of package.json reads so the bundled output
  * has no runtime fs dependency on its own manifest.
  */
-export const AGENTLINE_VERSION = "1.5.0";
+export const AGENTLINE_VERSION = "1.6.0";
