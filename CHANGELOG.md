@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] — 2026-07-02
+
+### Added
+
+- `d12f7b6` — Ultracode on by default: the `thinking-effort` widget now relabels a reported `xhigh` reasoning effort as `ultracode` out of the box — reaching both fresh installs and existing frozen configs on the next render — with a clean opt-out (`assumeUltracode: false`, or the new `literal` variant), a one-time `agentline start` upgrade notice, and a new `agentline doctor` check (D12) that warns on unrecognised widget options.
+
 ## [1.6.0] — 2026-07-02
 
 ### Added
