@@ -14,6 +14,7 @@ import { checkD05 } from "./d05-git-on-path.js";
 import { checkD08 } from "./d08-render-fixture.js";
 import { checkD09 } from "./d09-refresh-interval.js";
 import { checkD11 } from "./d11-widget-sanity.js";
+import { checkD12 } from "./d12-widget-options.js";
 
 /*
  * Per-check direct unit tests. Each builds a minimal `CheckCtx` and
@@ -369,5 +370,84 @@ describe("checkD11", () => {
     expect(res.status).toBe("warn");
     expect(res.message).toContain("git-untracked");
     expect(res.message).not.toMatch(/allowNetwork/);
+  });
+});
+
+describe("checkD12", () => {
+  it("passes with a note when config is not loaded", async () => {
+    const res = await checkD12(makeCtx({ config: null }));
+    expect(res.id).toBe("D12");
+    expect(res.status).toBe("pass");
+    expect(res.message).toMatch(/config not loaded/);
+  });
+
+  it("passes when every widget option is recognised", async () => {
+    const res = await checkD12(
+      makeCtx({
+        config: makeConfig({
+          lines: [
+            {
+              widgets: [
+                { type: "thinking-effort", options: { assumeUltracode: false } },
+                { type: "git-pr", options: { variant: "compact" } },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+    expect(res.id).toBe("D12");
+    expect(res.status).toBe("pass");
+    expect(res.message).toMatch(/recognised/);
+  });
+
+  it("warns, names the option, AND lists the valid keys for the widget (issue #295)", async () => {
+    // `variant` is valid on git-pr but silently ignored on thinking-effort —
+    // the exact footgun issue #295 calls out. The message must surface the
+    // valid set so the user can self-correct.
+    const res = await checkD12(
+      makeCtx({
+        config: makeConfig({
+          lines: [{ widgets: [{ type: "thinking-effort", options: { variant: "ultracode" } }] }],
+        }),
+      }),
+    );
+    expect(res.id).toBe("D12");
+    expect(res.status).toBe("warn");
+    expect(res.message).toContain("thinking-effort");
+    expect(res.message).toContain("variant");
+    // The valid-key list is the datum that resolves the footgun.
+    expect(res.message).toContain("assumeUltracode");
+    expect(res.hint).toMatch(/edit/);
+  });
+
+  it("does not double-report the same widget/option pair", async () => {
+    const res = await checkD12(
+      makeCtx({
+        config: makeConfig({
+          lines: [
+            { widgets: [{ type: "model", options: { bogus: 1 } }] },
+            { widgets: [{ type: "model", options: { bogus: 2 } }] },
+          ],
+        }),
+      }),
+    );
+    expect(res.status).toBe("warn");
+    // One deduped entry naming the offending key on the widget.
+    expect(res.message.match(/'bogus'/g)).toHaveLength(1);
+    expect(res.message).toContain("model");
+  });
+
+  it("flags an out-of-range enum value too", async () => {
+    const res = await checkD12(
+      makeCtx({
+        config: makeConfig({
+          lines: [{ widgets: [{ type: "clock", options: { format: "48h" } }] }],
+        }),
+      }),
+    );
+    expect(res.status).toBe("warn");
+    expect(res.message).toContain("clock");
+    expect(res.message).toContain("format");
   });
 });

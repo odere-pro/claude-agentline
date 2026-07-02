@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 
 import { HelpRequestedError } from "../../core/lib/help/help.js";
 
@@ -96,6 +96,8 @@ describe("runStartCommand — project gate", () => {
 describe("runStartCommand — wiring + preview", () => {
   let tmp: string;
   let writeSpy: ReturnType<typeof vi.spyOn>;
+  // Injected so the real one-time notice never touches the user's state dir.
+  let notifyMock: Mock<() => Promise<boolean>>;
 
   beforeEach(() => {
     // A directory that IS a Claude project so the gate proceeds.
@@ -105,6 +107,7 @@ describe("runStartCommand — wiring + preview", () => {
     refreshMock.mockClear();
     spawnMock.mockReturnValue({ status: 0, error: undefined } as never);
     writeSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    notifyMock = vi.fn<() => Promise<boolean>>(async () => false);
   });
 
   afterEach(() => {
@@ -120,7 +123,7 @@ describe("runStartCommand — wiring + preview", () => {
   it("never forwards --reset (config is preserved)", async () => {
     await runStartCommand(
       { fromSource: true, force: true, dryRun: false, noPreview: true },
-      { cwd: tmp, renderPreview: async () => undefined },
+      { cwd: tmp, renderPreview: async () => undefined, showUpgradeNotice: notifyMock },
     );
     expect(spawnMock).toHaveBeenCalledTimes(1);
     expect(argvOf()).not.toContain("--reset");
@@ -131,23 +134,25 @@ describe("runStartCommand — wiring + preview", () => {
     const preview = vi.fn(async () => "BAR\n");
     const code = await runStartCommand(
       { fromSource: false, force: false, dryRun: true, noPreview: false },
-      { cwd: tmp, renderPreview: preview },
+      { cwd: tmp, renderPreview: preview, showUpgradeNotice: notifyMock },
     );
     expect(code).toBe(0);
     expect(argvOf()).toEqual(["--dry-run"]);
     expect(refreshMock).not.toHaveBeenCalled();
     expect(preview).not.toHaveBeenCalled();
+    expect(notifyMock).not.toHaveBeenCalled();
   });
 
   it("on success renders the preview and refreshes the update cache", async () => {
     const preview = vi.fn(async () => "[s] model\n");
     const code = await runStartCommand(
       { fromSource: false, force: false, dryRun: false, noPreview: false },
-      { cwd: tmp, renderPreview: preview },
+      { cwd: tmp, renderPreview: preview, showUpgradeNotice: notifyMock },
     );
     expect(code).toBe(0);
     expect(preview).toHaveBeenCalledTimes(1);
     expect(refreshMock).toHaveBeenCalledTimes(1);
+    expect(notifyMock).toHaveBeenCalledTimes(1);
     const printed = writeSpy.mock.calls.map((c: readonly unknown[]) => String(c[0])).join("");
     expect(printed).toContain("[s] model");
   });
@@ -156,7 +161,7 @@ describe("runStartCommand — wiring + preview", () => {
     const preview = vi.fn(async () => "[s] model\n");
     await runStartCommand(
       { fromSource: false, force: false, dryRun: false, noPreview: true },
-      { cwd: tmp, renderPreview: preview },
+      { cwd: tmp, renderPreview: preview, showUpgradeNotice: notifyMock },
     );
     expect(preview).not.toHaveBeenCalled();
   });
@@ -164,7 +169,7 @@ describe("runStartCommand — wiring + preview", () => {
   it("prints the unavailable notice when the preview cannot render", async () => {
     await runStartCommand(
       { fromSource: false, force: false, dryRun: false, noPreview: false },
-      { cwd: tmp, renderPreview: async () => undefined },
+      { cwd: tmp, renderPreview: async () => undefined, showUpgradeNotice: notifyMock },
     );
     const printed = writeSpy.mock.calls.map((c: readonly unknown[]) => String(c[0])).join("");
     expect(printed).toContain("preview unavailable");
@@ -175,7 +180,7 @@ describe("runStartCommand — wiring + preview", () => {
     spawnMock.mockReturnValue({ status: 3, error: undefined } as never);
     const code = await runStartCommand(
       { fromSource: false, force: false, dryRun: false, noPreview: false },
-      { cwd: tmp, renderPreview: preview },
+      { cwd: tmp, renderPreview: preview, showUpgradeNotice: notifyMock },
     );
     expect(code).toBe(3);
     expect(preview).not.toHaveBeenCalled();

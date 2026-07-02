@@ -8,6 +8,7 @@ import {
   readVersionCheckSync,
   resolveVersionCheckPaths,
   saveVersionCheck,
+  stampNotifyVersion,
   VERSION_CHECK_CACHE_VERSION,
 } from "./version-check-cache.js";
 
@@ -103,6 +104,69 @@ describe("saveVersionCheck + readVersionCheckSync", () => {
         blockerEnv,
       ),
     ).resolves.toBeUndefined();
+  });
+
+  it("round-trips an optional lastNotifyVersion field", async () => {
+    await saveVersionCheck(
+      {
+        savedAt: "2026-05-14T00:00:00.000Z",
+        current: "1.6.1",
+        latest: null,
+        lastNotifyVersion: "1.6.1",
+      },
+      env,
+    );
+    expect(readVersionCheckSync(env)?.lastNotifyVersion).toBe("1.6.1");
+  });
+
+  it("omits lastNotifyVersion from the round-trip when never stamped", async () => {
+    await saveVersionCheck(
+      { savedAt: "2026-05-14T00:00:00.000Z", current: "1.6.1", latest: null },
+      env,
+    );
+    expect(readVersionCheckSync(env)?.lastNotifyVersion).toBeUndefined();
+  });
+
+  it("preserves an existing lastNotifyVersion when a later probe omits it", async () => {
+    await stampNotifyVersion("1.6.1", "1.6.1", env);
+    // A subsequent registry probe writes fresh current/latest but no notify stamp.
+    await saveVersionCheck(
+      { savedAt: "2026-06-01T00:00:00.000Z", current: "1.6.1", latest: "1.7.0" },
+      env,
+    );
+    const got = readVersionCheckSync(env);
+    expect(got?.latest).toBe("1.7.0");
+    expect(got?.lastNotifyVersion).toBe("1.6.1");
+  });
+
+  it("returns null when lastNotifyVersion is the wrong type", () => {
+    const { stateDir, cacheFile } = resolveVersionCheckPaths(env);
+    mkdirSync(stateDir, { recursive: true });
+    writeFileSync(
+      cacheFile,
+      JSON.stringify({ version: 1, savedAt: "x", current: "1.6.1", latest: null, lastNotifyVersion: 5 }),
+    );
+    expect(readVersionCheckSync(env)).toBeNull();
+  });
+
+  it("stampNotifyVersion preserves a prior probe's savedAt/current/latest", async () => {
+    await saveVersionCheck(
+      { savedAt: "2026-05-14T00:00:00.000Z", current: "1.6.0", latest: "1.6.1" },
+      env,
+    );
+    await stampNotifyVersion("1.6.1", "1.6.1", env);
+    const got = readVersionCheckSync(env);
+    expect(got?.savedAt).toBe("2026-05-14T00:00:00.000Z");
+    expect(got?.latest).toBe("1.6.1");
+    expect(got?.lastNotifyVersion).toBe("1.6.1");
+  });
+
+  it("stampNotifyVersion writes a fresh entry when no cache exists", async () => {
+    await stampNotifyVersion("1.6.1", "1.6.1", env);
+    const got = readVersionCheckSync(env);
+    expect(got?.lastNotifyVersion).toBe("1.6.1");
+    expect(got?.current).toBe("1.6.1");
+    expect(typeof got?.savedAt).toBe("string");
   });
 
   it("persists the file under state/version-check.json", async () => {

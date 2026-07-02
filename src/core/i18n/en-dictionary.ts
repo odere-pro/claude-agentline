@@ -168,6 +168,12 @@ export const EN_DICTIONARY = {
     "unknown widget type{s} (removed or mistyped): {types} — will render as hidden",
   "cmd.doctor.d11.hint-unknown":
     "remove or replace them with `agentline edit`, or delete the entries from your config",
+  "cmd.doctor.d12.title": "Widget option validity",
+  "cmd.doctor.d12.no-config": "config not loaded — see D03",
+  "cmd.doctor.d12.ok": "all widget options recognised",
+  "cmd.doctor.d12.unknown": "unrecognised or out-of-range widget option{s} — {details}",
+  "cmd.doctor.d12.hint":
+    "fix or remove the option with `agentline edit`; the widget still renders, the stray option just has no effect",
 
   // ── cmd.install.*, cmd.uninstall.*, cmd.reset.* — verb help blocks ────
   "cmd.install.help": `agentline install — wire @odere-pro/agentline into Claude Code's statusline
@@ -196,7 +202,10 @@ Steps performed:
     "\n" +
     "Next steps:\n" +
     "  `agentline edit`       customize your statusline\n" +
-    "  `agentline uninstall`  remove agentline",
+    "  `agentline uninstall`  remove agentline\n" +
+    "\n" +
+    "Tip: an `xhigh` reasoning effort shows as `ultracode` by default — pick the\n" +
+    "`literal` variant on the thinking-effort widget (`agentline edit`) to keep the raw label.",
   "cmd.uninstall.help": `agentline uninstall — remove agentline from this host
 
 Usage:
@@ -259,6 +268,9 @@ template instead, use \`agentline reset\`.
   "cmd.start.preview-label": "Statusline preview (your config):",
   "cmd.start.preview-unavailable":
     "Statusline preview unavailable — run `agentline doctor` to check your config.",
+  "cmd.start.ultracode-notice":
+    "What's new: an `xhigh` reasoning effort now shows as `ultracode` by default.\n" +
+    "To keep the raw `xhigh` label, pick the `literal` variant on your thinking-effort widget (`agentline edit`), or set `assumeUltracode: false` in your config.",
 } as const;
 
 export type DictionaryId = keyof typeof EN_DICTIONARY;

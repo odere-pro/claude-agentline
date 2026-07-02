@@ -6,7 +6,7 @@
     {
       "widgets": [
         { "type": "model" },
-        { "type": "thinking-effort" },
+        { "type": "thinking-effort", "options": { "assumeUltracode": true } },
         { "type": "git-branch" },
         { "type": "git-changes" }
       ]

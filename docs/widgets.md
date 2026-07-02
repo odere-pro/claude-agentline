@@ -83,11 +83,14 @@ tier name always stays in the text so `--no-color` remains legible.
 
 Surfacing ultracode: the host does not emit `ultracode` as an effort level —
 its ultracode mode reports `xhigh`, indistinguishable from a plain-`xhigh`
-session. The `ultracode` variant (`options.assumeUltracode: true`) opts in to
-surface it: a recognised `xhigh` then renders as `ultracode` in the signature
-violet. Off by default (a plain-`xhigh` session would otherwise be
-mislabelled). If Claude Code ever emits a real `ultracode` level, it is shown
-directly, regardless of the flag.
+session. `thinking-effort` therefore relabels a recognised `xhigh` as
+`ultracode` (in the signature violet) **by default** — `options.assumeUltracode`
+is on unless you set it to `false`. Because the default lives in the renderer,
+not in stored config, it reaches both fresh installs and existing (frozen)
+configs on the next render, with no manual edit. The `literal` variant
+(`options.assumeUltracode: false`) opts out and keeps a raw `xhigh` as `xhigh` —
+pick it for a plain-`xhigh`, non-ultracode workflow. If Claude Code ever emits a
+real `ultracode` level, it is shown directly, regardless of the flag.
 
 Auth-file fallback: when the stdin payload omits the account email,
 `account-email` transparently re-reads `${CLAUDE_CONFIG_DIR}/.credentials.json`
