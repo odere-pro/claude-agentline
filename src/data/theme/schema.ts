@@ -5,7 +5,7 @@
  * exported so editors can pick it up without a network round-trip.
  */
 
-import { THEME_ROLES } from "./roles.js";
+import { REQUIRED_THEME_ROLES, THEME_ROLES } from "./roles.js";
 
 const COLOUR_PATTERN =
   "^(#[0-9a-fA-F]{6}|colour:(0|[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-5])|black|red|green|yellow|blue|magenta|cyan|white|bright-(black|red|green|yellow|blue|magenta|cyan|white))$";
@@ -28,7 +28,10 @@ export const THEME_JSON_SCHEMA = {
     palette: {
       type: "object",
       additionalProperties: false,
-      required: [...THEME_ROLES],
+      // Only the required tier is mandatory; optional roles (e.g.
+      // `effort-ultracode`) are allowed properties that fall back to the
+      // compiled default when omitted — so older / user themes still validate.
+      required: [...REQUIRED_THEME_ROLES],
       properties: Object.fromEntries(
         THEME_ROLES.map((role) => [role, { type: "string", pattern: COLOUR_PATTERN }]),
       ),

@@ -114,7 +114,7 @@ Anything else is a schema error.
 }
 ```
 
-**Roles** consumed by built-in widgets: `accent`, `info`, `success`, `warning`, `danger`, `muted`, `git-clean`, `git-dirty`, `tokens-low`, `tokens-mid`, `tokens-high`, `bg-section`, `bg-emphasis`. Themes MUST define every role; missing roles fall back to compiled defaults.
+**Roles** consumed by built-in widgets: `accent`, `info`, `success`, `warning`, `danger`, `muted`, `git-clean`, `git-dirty`, `tokens-low`, `tokens-mid`, `tokens-high`, `bg-section`, `bg-emphasis` (required), plus the optional `effort-ultracode` (ultracode's signature colour). Themes MUST define every required role; optional roles — and any omitted role — fall back to compiled defaults.
 
 **Strictness.** Root: `additionalProperties: false`. `palette` is extensible.
 

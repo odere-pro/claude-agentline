@@ -93,14 +93,23 @@ Required roles (every theme must supply all 13):
 
 Optional roles (missing roles fall back to the compiled defaults):
 
-| Role | Used by                                         |
-| ---- | ----------------------------------------------- |
-| `fg` | default foreground when no widget colour is set |
-| `bg` | default background                              |
+| Role               | Used by                                                     |
+| ------------------ | ----------------------------------------------------------- |
+| `fg`               | default foreground when no widget colour is set             |
+| `bg`               | default background                                          |
+| `effort-ultracode` | `thinking-effort` (emphasis) — ultracode's signature colour |
+
+Of these, `effort-ultracode` is a validated, optional `palette` key: set
+it in a theme's `palette` to override the default violet, or omit it to
+inherit the compiled default. `fg` / `bg` are the per-widget colour
+fallbacks a widget uses when it declares no colour of its own — not
+`palette` keys.
 
 Themes can supply a subset of the role keys; missing roles fall back to
 the in-code defaults so an old theme keeps working when new widgets
-ship.
+ship. `effort-ultracode` is deliberately set to the **same** violet in
+every shipped theme (matching the Claude Code CLI) so ultracode reads
+consistently everywhere — a user theme may still override it.
 
 ## Authoring a theme
 
