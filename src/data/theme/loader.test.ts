@@ -13,6 +13,7 @@ import {
   resolveRole,
 } from "./index.js";
 import { parseColour } from "./colours/colours.js";
+import { REQUIRED_THEME_ROLES } from "./roles.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const themesDir = path.resolve(here, "..", "..", "..", "themes");
@@ -57,6 +58,22 @@ describe("loadThemeFromString", () => {
     expect(() => loadThemeFromString(JSON.stringify(json))).toThrow(/schema validation/);
   });
 
+  it("accepts a theme omitting the optional effort-ultracode role", () => {
+    // Only the required tier is supplied — no effort-ultracode key.
+    const palette = Object.fromEntries(REQUIRED_THEME_ROLES.map((r) => [r, "#000000"]));
+    const theme = loadThemeFromString(JSON.stringify({ name: "no-optional", palette }));
+    // The omitted optional role falls back to the compiled default, so it is
+    // non-breaking: an older/user theme that never set it still resolves.
+    expect(theme.palette["effort-ultracode"]).toBe(DEFAULT_PALETTE["effort-ultracode"]);
+  });
+
+  it("honours an explicit effort-ultracode value when supplied", () => {
+    const palette = Object.fromEntries(THEME_ROLES.map((r) => [r, "#000000"]));
+    palette["effort-ultracode"] = "#6d28d9";
+    const theme = loadThemeFromString(JSON.stringify({ name: "with-optional", palette }));
+    expect(theme.palette["effort-ultracode"]).toBe("#6d28d9");
+  });
+
   it("rejects invalid colour value", () => {
     const palette = Object.fromEntries(THEME_ROLES.map((r) => [r, "#000000"]));
     palette.accent = "not-a-colour";
@@ -92,6 +109,7 @@ describe("resolveRole", () => {
   it("falls back to compiled defaults when theme is null", () => {
     expect(resolveRole(null, "accent")).toBe(DEFAULT_PALETTE.accent);
     expect(resolveRole(null, "danger")).toBe(DEFAULT_PALETTE.danger);
+    expect(resolveRole(null, "effort-ultracode")).toBe(DEFAULT_PALETTE["effort-ultracode"]);
   });
 });
 
@@ -139,6 +157,11 @@ describe("shipped theme gallery", () => {
   it("ansi-minimal uses only named ANSI colours so it degrades to a 16-colour terminal unchanged", async () => {
     const theme = await loadTheme(path.join(themesDir, "ansi-minimal.json"));
     for (const role of THEME_ROLES) {
+      // `effort-ultracode` is the one exception: ultracode's signature violet is
+      // a single fixed value kept identical across every theme (matching the
+      // Claude Code CLI), so it is carried as truecolor even here. It degrades
+      // to the nearest named colour at render time on a 16-colour terminal.
+      if (role === "effort-ultracode") continue;
       expect(parseColour(theme.palette[role]).kind).toBe("named");
     }
     // No Nerd-font powerline caps — the minimal theme stays glyph-free.

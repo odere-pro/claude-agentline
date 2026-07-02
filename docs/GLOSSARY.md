@@ -364,10 +364,15 @@ Required roles (must be present in every theme):
 
 Optional roles (missing roles fall back to the compiled defaults):
 
-| Role | Used by                                         |
-| ---- | ----------------------------------------------- |
-| `fg` | default foreground when no widget colour is set |
-| `bg` | default background                              |
+| Role               | Used by                                                     |
+| ------------------ | ----------------------------------------------------------- |
+| `fg`               | default foreground when no widget colour is set             |
+| `bg`               | default background                                          |
+| `effort-ultracode` | `thinking-effort` (emphasis) — ultracode's signature colour |
+
+`effort-ultracode` is a validated, optional `palette` key (set it to
+override, omit it to inherit the compiled default). `fg` / `bg` are
+per-widget colour fallbacks, not writable `palette` keys.
 
 **Distinct from:** `fg`/`bg` per-widget overrides in `WidgetConfig`.
 

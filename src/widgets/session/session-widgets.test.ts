@@ -30,7 +30,8 @@ import { modelDisplayName, modelWidget } from "./model.js";
 import { planWidget } from "./plan.js";
 import { pathBasename, projectWidget } from "./project.js";
 import { sessionIdWidget } from "./session-id.js";
-import { thinkingEffortWidget, ULTRACODE_COLOUR } from "./thinking-effort.js";
+import { thinkingEffortWidget } from "./thinking-effort.js";
+import { loadThemeFromString, THEME_ROLES } from "../../data/theme/index.js";
 import { versionWidget } from "./version.js";
 import { registerSessionWidgets, SESSION_WIDGETS } from "./index.js";
 
@@ -373,7 +374,9 @@ describe("thinking-effort widget", () => {
     );
   });
 
-  it.each(["low", "medium", "high", "xhigh", "max", "ultracode"])(
+  // `ultracode` is excluded: it is a signature mode that always renders in its
+  // own violet (see the dedicated test below), so it is never plain.
+  it.each(["low", "medium", "high", "xhigh", "max"])(
     "renders '%s' as plain text with no state-signal colour (family accent applies)",
     (effort) => {
       const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: effort }), {
@@ -449,9 +452,69 @@ describe("thinking-effort widget", () => {
       rawValue: false,
     });
     expect(cell.text).toBe("ultracode");
-    expect(cell.fg).toBe(ULTRACODE_COLOUR);
+    // No theme configured → the ultracode role resolves to the compiled default.
+    expect(cell.fg).toBe(DEFAULT_PALETTE["effort-ultracode"]);
     expect(cell.fg).not.toBe(DEFAULT_PALETTE.accent);
     expect(cell.signal).toBe(true);
+  });
+
+  it("emphasis resolves ultracode through the effort-ultracode theme role", () => {
+    // A theme that overrides effort-ultracode (e.g. a light theme tuning it for
+    // contrast) must drive the ultracode colour, not the compiled default.
+    const palette = Object.fromEntries(THEME_ROLES.map((r) => [r, "#000000"]));
+    palette["effort-ultracode"] = "#6d28d9";
+    const theme = loadThemeFromString(JSON.stringify({ name: "override", palette }));
+    const cell = thinkingEffortWidget.render(
+      makeCtx({ thinkingEffort: "ultracode" }, {}, { theme }),
+      { options: { emphasis: true }, rawValue: false },
+    );
+    expect(cell.text).toBe("ultracode");
+    expect(cell.fg).toBe("#6d28d9");
+    expect(cell.fg).not.toBe(DEFAULT_PALETTE["effort-ultracode"]);
+    expect(cell.signal).toBe(true);
+  });
+
+  // ── ultracode signature + opt-in surfacing (issue #287) ─────────────────
+
+  it("renders ultracode in its signature violet even without emphasis (always noticeable)", () => {
+    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "ultracode" }), {
+      options: {},
+      rawValue: false,
+    });
+    expect(cell.text).toBe("ultracode");
+    expect(cell.fg).toBe(DEFAULT_PALETTE["effort-ultracode"]);
+    expect(cell.signal).toBe(true);
+  });
+
+  it("assumeUltracode surfaces an xhigh effort as ultracode in its signature violet", () => {
+    // The host reports ultracode mode as `xhigh`; the opt-in promotes it.
+    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "xhigh" }), {
+      options: { assumeUltracode: true },
+      rawValue: false,
+    });
+    expect(cell.text).toBe("ultracode");
+    expect(cell.fg).toBe(DEFAULT_PALETTE["effort-ultracode"]);
+    expect(cell.signal).toBe(true);
+  });
+
+  it("without assumeUltracode, xhigh stays xhigh and renders flat", () => {
+    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "xhigh" }), {
+      options: {},
+      rawValue: false,
+    });
+    expect(cell.text).toBe("xhigh");
+    expect(cell.fg).toBeUndefined();
+    expect(cell.signal).toBeUndefined();
+  });
+
+  it("assumeUltracode only promotes xhigh, never another tier", () => {
+    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "high" }), {
+      options: { assumeUltracode: true },
+      rawValue: false,
+    });
+    expect(cell.text).toBe("high");
+    expect(cell.fg).toBeUndefined();
+    expect(cell.signal).toBeUndefined();
   });
 
   it("emphasis: false renders flat (no fg, no signal) — default behaviour", () => {

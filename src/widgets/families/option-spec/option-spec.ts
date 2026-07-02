@@ -59,7 +59,7 @@ const WIDGET_OPTIONS: Readonly<Record<string, WidgetOptionSpec>> = Object.freeze
   // ── session ──────────────────────────────────────────────────────────
   model: {},
   version: {},
-  "thinking-effort": { emphasis: FREE },
+  "thinking-effort": { emphasis: FREE, assumeUltracode: FREE },
   "thinking-enabled": { showOff: FREE },
   plan: {},
   project: {},

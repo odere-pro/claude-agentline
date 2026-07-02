@@ -14,7 +14,8 @@
     "tokens-mid": "#f2cc7a",
     "tokens-high": "#ee6e6e",
     "bg-section": "#1f1d1b",
-    "bg-emphasis": "#2d2a26"
+    "bg-emphasis": "#2d2a26",
+    "effort-ultracode": "#b1a7f5"
   },
   "powerline": {
     "caps.start": "",

@@ -21,6 +21,9 @@ export const DEFAULT_PALETTE: Readonly<Record<ThemeRole, Colour>> = Object.freez
   "tokens-high": "#f7768e",
   "bg-section": "#1a1b26",
   "bg-emphasis": "#24283b",
+  // ultracode's signature violet — a single fixed value kept identical across
+  // every shipped theme (see themes/*.json), matching the host CLI's hue.
+  "effort-ultracode": "#b1a7f5",
 });
 
 export const DEFAULT_THEME_NAME = "neutral-dark-fallback";
