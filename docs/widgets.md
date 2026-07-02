@@ -46,7 +46,7 @@ widget instances with different `reset` axes.
 
 ## Built-in widgets
 
-38 widgets ship in v0.3.x, organised into six families. The
+39 widgets ship, organised into six families. The
 authoritative registry is `src/widgets/registry/registry.ts`; this page tracks
 it.
 
@@ -190,25 +190,26 @@ keeps a Thursday-12:00 weekly estimate for older Claude Code. A stale
 (past) host reset renders `0m` for the countdown and the past wall-clock
 for the at-\* variants, self-correcting on the next render.
 
-### Git (10)
+### Git (11)
 
 Git widgets activate only when the working directory is a git checkout;
 otherwise they hide themselves. They share a single per-render snapshot
 so a line with several git widgets only spawns `git` once. `project` and
 `project-dir` sit here too — the project name is git-repo-derived.
 
-| Type               | Renders                                                                          |
-| ------------------ | -------------------------------------------------------------------------------- |
-| `project`          | project name — git repo (origin) or working-dir folder                           |
-| `project-dir`      | launch-directory basename (the dir the host started in)                          |
-| `git-branch`       | current branch (or short SHA when detached)                                      |
-| `git-worktree`     | basename of the current worktree                                                 |
-| `git-changes`      | summary of insertions / deletions from `git diff --shortstat`                    |
-| `git-conflicts`    | merge-conflict file count                                                        |
-| `git-ahead-behind` | commits ahead of and behind upstream                                             |
-| `git-upstream`     | upstream branch (`origin/main`)                                                  |
-| `git-origin-repo`  | repo segment of the `origin` remote URL                                          |
-| `git-pr`           | PR number / URL / title for HEAD's branch (host-provided by default — see below) |
+| Type               | Renders                                                                                 |
+| ------------------ | --------------------------------------------------------------------------------------- |
+| `project`          | project name — git repo (origin) or working-dir folder                                  |
+| `project-dir`      | launch-directory basename (the dir the host started in)                                 |
+| `git-branch`       | current branch (or short SHA when detached)                                             |
+| `git-worktree`     | basename of the current worktree                                                        |
+| `git-changes`      | summary of insertions / deletions from `git diff --shortstat`                           |
+| `git-conflicts`    | merge-conflict file count                                                               |
+| `git-ahead-behind` | commits ahead of and behind upstream                                                    |
+| `git-upstream`     | upstream branch (`origin/main`)                                                         |
+| `git-origin-repo`  | repo segment of the `origin` remote URL                                                 |
+| `git-pr`           | PR number / URL / title for HEAD's branch (host-provided by default — see below)        |
+| `git-pr-review`    | PR review state for HEAD's branch — approved / changes-requested / etc. (host-provided) |
 
 **`git-pr`, the host bridge, and the no-network rule.** The render hot
 path (§1.2 N5) forbids outbound calls. PR metadata lives outside the
