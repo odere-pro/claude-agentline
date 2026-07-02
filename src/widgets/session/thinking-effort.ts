@@ -11,10 +11,13 @@
  *
  * The host's statusline does not emit `ultracode` as a level — its ultracode
  * orchestration mode reports reasoning effort as `xhigh`, indistinguishable
- * from a plain `xhigh` session. The opt-in `assumeUltracode` option bridges
- * that: when set, a recognised `xhigh` is surfaced as `ultracode` (for users
- * who run ultracode and want it shown). When the host ever emits a real
- * `ultracode` level it is honoured directly, regardless of the flag.
+ * from a plain `xhigh` session. The `assumeUltracode` option bridges that: a
+ * recognised `xhigh` is surfaced as `ultracode`. It defaults **on**
+ * (issue #295) — an opt-*out*, not an opt-in — so both fresh installs and
+ * existing frozen configs show `ultracode` on the next render without any
+ * config edit; set `assumeUltracode: false` to keep a raw `xhigh` as `xhigh`.
+ * When the host ever emits a real `ultracode` level it is honoured directly,
+ * regardless of the flag.
  *
  * `ultracode` is a signature mode: it always renders in its own
  * `effort-ultracode` theme colour (a single violet, identical across shipped
@@ -46,9 +49,9 @@ interface ThinkingEffortOptions {
   readonly emphasis?: boolean;
   /**
    * Surface ultracode. The host reports ultracode mode as `xhigh` (no distinct
-   * level), so when this is set a recognised `xhigh` renders as `ultracode` in
-   * its signature violet. Off by default — a plain-`xhigh` session would
-   * otherwise be mislabelled.
+   * level), so a recognised `xhigh` renders as `ultracode` in its signature
+   * violet. **On by default** (issue #295) — set to `false` to keep a raw
+   * `xhigh` as `xhigh` (a plain-`xhigh`, non-ultracode session opts out here).
    */
   readonly assumeUltracode?: boolean;
 }
@@ -83,8 +86,11 @@ export const thinkingEffortWidget = defineWidget<ThinkingEffortOptions>(
     const raw = ctx.session?.thinkingEffort ?? ctx.stdin.thinkingEffort;
     if (!raw) return { text: "", hidden: true };
     let effort = normaliseEffort(raw);
-    // The host collapses ultracode mode to `xhigh`; opt in to surface it.
-    if (settings.options.assumeUltracode && effort === "xhigh") {
+    // The host collapses ultracode mode to `xhigh`. Surface it as `ultracode`
+    // by default (issue #295); only an explicit `assumeUltracode: false` opts
+    // out, so both new installs and existing frozen configs relabel on the
+    // next render without a config edit.
+    if (settings.options.assumeUltracode !== false && effort === "xhigh") {
       effort = "ultracode";
     }
     const label = settings.rawValue ? "" : (settings.options.label ?? "");

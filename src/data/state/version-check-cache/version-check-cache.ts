@@ -42,6 +42,14 @@ export interface VersionCheckCache {
   readonly current: string;
   /** Latest version advertised by npm, or `null` when the probe failed. */
   readonly latest: string | null;
+  /**
+   * Highest agentline version whose one-time upgrade notice has already been
+   * shown (issue #295). Absent until the first notice fires. Read by
+   * `agentline start` to show a what's-new line exactly once per upgrade;
+   * preserved across registry probes so a later `saveVersionCheck` never
+   * clears it.
+   */
+  readonly lastNotifyVersion?: string;
 }
 
 export interface VersionCheckCachePaths {
@@ -74,7 +82,18 @@ export async function saveVersionCheck(
   env: NodeJS.ProcessEnv = process.env,
 ): Promise<void> {
   const { cacheFile } = resolveVersionCheckPaths(env);
-  const body: VersionCheckCache = { version: VERSION_CHECK_CACHE_VERSION, ...entry };
+  // Preserve a prior one-time-notice stamp when a plain registry probe
+  // (which carries no `lastNotifyVersion`) rewrites the file — otherwise the
+  // async `maybeRefresh()` fired by `start` would clear the stamp we just set.
+  const existing = readVersionCheckSync(env);
+  const lastNotifyVersion = entry.lastNotifyVersion ?? existing?.lastNotifyVersion;
+  const body: VersionCheckCache = {
+    version: VERSION_CHECK_CACHE_VERSION,
+    savedAt: entry.savedAt,
+    current: entry.current,
+    latest: entry.latest,
+    ...(lastNotifyVersion !== undefined ? { lastNotifyVersion } : {}),
+  };
   try {
     await writeJsonIdempotent(cacheFile, body, { mode: 0o600, dirMode: 0o700 });
   } catch {
@@ -83,6 +102,31 @@ export async function saveVersionCheck(
      * is best-effort. The caller proceeds as if the write succeeded.
      */
   }
+}
+
+/**
+ * Stamp the one-time-notice marker (issue #295) without disturbing an
+ * existing probe result. Reads the current entry (if any), sets
+ * `lastNotifyVersion`, and rewrites — preserving `savedAt` / `current` /
+ * `latest` so a real "update available" hint is not clobbered. Best-effort;
+ * a failed write is swallowed by `saveVersionCheck`. `currentVersion` seeds
+ * `current` only when no cache exists yet.
+ */
+export async function stampNotifyVersion(
+  notifyVersion: string,
+  currentVersion: string,
+  env: NodeJS.ProcessEnv = process.env,
+): Promise<void> {
+  const existing = readVersionCheckSync(env);
+  await saveVersionCheck(
+    {
+      savedAt: existing?.savedAt ?? new Date().toISOString(),
+      current: existing?.current ?? currentVersion,
+      latest: existing?.latest ?? null,
+      lastNotifyVersion: notifyVersion,
+    },
+    env,
+  );
 }
 
 /**
@@ -110,10 +154,16 @@ export function readVersionCheckSync(
   if (typeof parsed.savedAt !== "string") return null;
   if (typeof parsed.current !== "string") return null;
   if (parsed.latest !== null && typeof parsed.latest !== "string") return null;
+  if (parsed.lastNotifyVersion !== undefined && typeof parsed.lastNotifyVersion !== "string") {
+    return null;
+  }
   return {
     version: VERSION_CHECK_CACHE_VERSION,
     savedAt: parsed.savedAt,
     current: parsed.current,
     latest: parsed.latest,
+    ...(typeof parsed.lastNotifyVersion === "string"
+      ? { lastNotifyVersion: parsed.lastNotifyVersion }
+      : {}),
   };
 }

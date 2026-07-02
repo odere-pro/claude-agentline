@@ -21,9 +21,8 @@ export const SESSION_CATALOG: Readonly<Record<string, WidgetMeta>> = Object.free
     [
       v("plain", "Plain tier text (family accent)", { emphasis: false }),
       v("emphasis", "Colour-ramped by tier (ultracode in its own hue)", { emphasis: true }),
-      v("ultracode", "Surface ultracode: show an xhigh effort as ultracode in its signature violet", {
-        emphasis: true,
-        assumeUltracode: true,
+      v("literal", "Opt out of the ultracode relabel — show a raw xhigh as xhigh", {
+        assumeUltracode: false,
       }),
     ],
   ),

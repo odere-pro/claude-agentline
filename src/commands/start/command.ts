@@ -22,6 +22,7 @@ import { projectGate } from "../../core/lib/claude-project/claude-project.js";
 import { resolveScript } from "../../core/lib/resolve-script.js";
 import { maybeRefresh } from "../update-check/index.js";
 import { renderStartPreview } from "./preview.js";
+import { maybeShowUpgradeNotice } from "./upgrade-notice.js";
 
 const HELP = EN_DICTIONARY["cmd.start.help"];
 
@@ -55,6 +56,8 @@ export interface StartRunOptions {
   readonly stdin?: NodeJS.ReadableStream & { readonly isTTY?: boolean };
   /** Preview renderer; injected in tests. Defaults to `renderStartPreview`. */
   readonly renderPreview?: typeof renderStartPreview;
+  /** One-time upgrade notice; injected in tests. Defaults to `maybeShowUpgradeNotice`. */
+  readonly showUpgradeNotice?: typeof maybeShowUpgradeNotice;
 }
 
 export async function runStartCommand(
@@ -82,6 +85,14 @@ export async function runStartCommand(
   if (result.error) throw result.error;
   const status = result.status ?? 1;
   if (args.dryRun || status !== 0) return status;
+
+  /*
+   * One-time upgrade notice (issue #295): surface the new ultracode default
+   * + opt-out exactly once per upgrade. Awaited before the fire-and-forget
+   * probe below so the notice's `lastNotifyVersion` stamp lands first and
+   * the async probe (which preserves the stamp) cannot race it away.
+   */
+  await (opts.showUpgradeNotice ?? maybeShowUpgradeNotice)();
 
   /*
    * Fire-and-forget npm-registry probe so a subsequent `agentline doctor`
