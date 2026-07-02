@@ -25,7 +25,8 @@ A fast, themeable statusline for Claude Code. Reads the stdin payload Claude Cod
 
 ```bash
 npm install -g @odere-pro/agentline   # 1. install the CLI
-agentline reset                       # 2. wire into Claude Code (statusLine + skills + themes)
+agentline install                     # 2. wire into Claude Code (statusLine + skills + themes)
+agentline reset                       # 2. rewire into Claude Code (statusLine + skills + themes)
 agentline doctor                      # 3. verify the wiring
 agentline edit                        # 4. customise widgets, theme, and layout (TUI)
 ```
