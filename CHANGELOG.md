@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.2] — 2026-07-09
+
+### Fixed
+
+- `4d4dfa2` — `scripts/changelog-aggregate.sh --apply` no longer leaves a stray `CHANGELOG.md.tmp` in the repo root when it cannot fold. awk writes the whole rewritten file before its `END` rule can fail, so the temp file already existed by the time the script aborted, and only the bullets file was trapped; the path was not ignored either, so the next `git add -A` staged it. The `mv` remains the commit point — a failed apply leaves the changelog and every fragment untouched. The failure that exposed it is gone too: the aggregator hard-required an `### Added` heading, so a Fixed-only release could not use it at all; it now creates the target heading when the block lacks one and takes `--section Fixed|Changed|Removed|Security` to pick it.
+
 ## [1.7.1] — 2026-07-09
 
 ### Fixed

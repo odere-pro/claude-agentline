@@ -1,1 +1,0 @@
-- fix: `scripts/changelog-aggregate.sh --apply` no longer leaves a stray `CHANGELOG.md.tmp` behind when it cannot fold, and it now creates the target section heading instead of refusing a release that has no `### Added` bullets (new `--section` flag).
