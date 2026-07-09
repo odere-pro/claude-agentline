@@ -20,13 +20,15 @@ export const FALLBACK_WIDTH = 80;
 
 /**
  * Sentinel "width" used when the terminal width cannot be detected
- * (no `COLUMNS`, no tty `stream.columns`). The host spawns the
- * statusline with a pipe for stdout and sends no width on stdin, so
- * this is the common live case. Composing against this value disables
- * width-based wrapping entirely — each configured line stays on one
- * row and the host handles horizontal overflow, rather than wrapping
- * against a guessed fallback (§8.2 step 1). Large enough that no real
- * line can exceed it; small enough to never overflow arithmetic.
+ * (no `COLUMNS`, no tty `stream.columns`). This is the *uncommon* case:
+ * the host spawns the statusline command with `COLUMNS`/`LINES` copied
+ * from its own tty, so a real width is normally present. It applies to
+ * pipes, cron, and `--fixture` replays. Composing against this value
+ * disables width-based elision entirely — each configured line stays on
+ * one row (as it always does, issue #304) and the host handles
+ * horizontal overflow, rather than eliding against a guessed fallback
+ * (§8.2 step 1). Large enough that no real line can exceed it; small
+ * enough to never overflow arithmetic.
  */
 export const NO_WRAP_WIDTH = 1_000_000;
 

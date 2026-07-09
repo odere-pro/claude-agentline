@@ -10,9 +10,13 @@
  *     separator + per-side padding (or `merge` / `merge-no-padding`
  *     overrides), then expands flex-separator slots so they fill
  *     remaining width. When a line's total visible width would exceed
- *     `options.width`, trailing cells wrap onto a new line rather than
- *     truncating mid-cell (Phase 2 item 8). Wrapping is capped at
- *     `MAX_LINES` so even a wildly-overflowed config stays bounded.
+ *     `options.width`, trailing cells are **elided at a cell boundary**
+ *     (never mid-cell) and an ellipsis marks the elision (issue #304).
+ *     A configured line therefore always occupies exactly one physical
+ *     row: the host paints one terminal row per `\n`-separated segment
+ *     of our stdout, so a row count that varied with content width made
+ *     the host's erase-and-redraw accounting flap between refreshes and
+ *     leak stale statusline copies into the scrollback.
  *   - **Powerline mode** — delegates to `applyPowerlineLines`. Flex
  *     slots are no-op'd; padding / separator are ignored; chevrons
  *     are inserted with adjoining colours. Powerline mode does not
@@ -55,11 +59,9 @@ export type ComposeStrategy = (
 
 export const plainCompose: ComposeStrategy = (lines, options) => {
   /*
-   * `MAX_LINES` bounds the number of *configured* lines (the editor
-   * caps line count there too), not physical rows. A line that wraps
-   * into several rows must not consume the budget of later configured
-   * lines — otherwise one long line silently deletes the lines after
-   * it. All wrapped rows of an in-budget line are emitted.
+   * `MAX_LINES` bounds the number of *configured* lines (the editor caps
+   * line count there too). Since a configured line now always yields at
+   * most one physical row, configured lines and rows coincide.
    */
   const out: Segment[][] = [];
   let lineCount = 0;
@@ -97,52 +99,75 @@ export function composeLines(
 }
 
 /**
- * Plain-mode composer for one config line. Returns an array because a
- * line whose composed width exceeds `options.width` wraps onto a new
- * line; callers concatenate the result respecting `MAX_LINES`.
+ * Plain-mode composer for one config line. Returns an array (of length 0 or
+ * 1) so `plainCompose` can skip a wholly-hidden line; a visible line always
+ * composes to exactly one physical row.
  */
 function composePlainLine(cells: readonly Cell[], options: ComposeOptions): Segment[][] {
   const visible = cells.filter((c) => !c.hidden);
   if (visible.length === 0) return [];
-  const packed = packIntoLines(visible, options);
-  return packed.map((line) => composeOneLine(line, options));
+  return [composeOneLine(fitToWidth(visible, options), options)];
+}
+
+/** Elision marker, degraded for hosts that cannot render unicode. */
+function ellipsisFor(options: ComposeOptions): Cell {
+  const text = options.glyphSupport === "ascii" ? "..." : "…";
+  // `merge` joins with a single space rather than the configured separator —
+  // the ellipsis stands for the dropped cells, it is not another widget.
+  return { text, merged: "merge" };
 }
 
 /**
- * Greedy packing: fit as many cells as possible into each output line
- * without exceeding `options.width`. The first cell on a line is never
- * dropped — even a single oversized cell stays on its own line (better
- * to overflow one cell than to silently lose it).
+ * Greedy fit: keep as many leading cells as fit within `options.width`, drop
+ * the rest at a cell boundary, and append an ellipsis marking the elision.
+ *
+ * The first cell is never dropped — even a single oversized cell is kept and
+ * left for the host to clip, since an empty row is worse than a clipped one.
+ * Whenever anything *was* dropped the marker is appended, even if that pushes
+ * the row past `options.width` (only reachable when a lone oversized cell ate
+ * the budget). Elision must never be silent; the host clips the tail either
+ * way, so the marker costs nothing.
  *
  * Flex cells contribute 0 measured width (they fill on demand in
- * `composeOneLine`), so they never trigger wrapping on their own.
+ * `composeOneLine`), so they never trigger elision on their own.
  */
-function packIntoLines(visible: readonly Cell[], options: ComposeOptions): Cell[][] {
-  // Width unknown — never wrap; the host clips the row horizontally.
-  if (options.noWrap === true) return [[...visible]];
-  const out: Cell[][] = [];
-  let current: Cell[] = [];
+function fitToWidth(visible: readonly Cell[], options: ComposeOptions): Cell[] {
+  // Width unknown — keep everything; the host clips the row horizontally.
+  if (options.noWrap === true) return [...visible];
+
+  const kept: Cell[] = [];
   let used = 0;
+  let elided = false;
+
   for (const cell of visible) {
     const cellWidth = cell.flex === true ? 0 : codePointLength(cell.text);
-    if (current.length === 0) {
-      current.push(cell);
+    if (kept.length === 0) {
+      kept.push(cell);
       used = cellWidth;
       continue;
     }
-    const joinWidth = codePointLength(computeJoin(cell, options.global));
-    const candidate = used + joinWidth + cellWidth;
+    const candidate = used + codePointLength(computeJoin(cell, options.global)) + cellWidth;
     if (candidate > options.width) {
-      out.push(current);
-      current = [cell];
-      used = cellWidth;
-      continue;
+      elided = true;
+      break;
     }
-    current.push(cell);
+    kept.push(cell);
     used = candidate;
   }
-  if (current.length > 0) out.push(current);
-  return out;
+
+  if (!elided) return kept;
+
+  // Make room for the marker by dropping further trailing cells if needed.
+  const marker = ellipsisFor(options);
+  const markerCost =
+    codePointLength(computeJoin(marker, options.global)) + codePointLength(marker.text);
+  while (kept.length > 1 && used + markerCost > options.width) {
+    const dropped = kept.pop() as Cell;
+    const droppedWidth = dropped.flex === true ? 0 : codePointLength(dropped.text);
+    used -= codePointLength(computeJoin(dropped, options.global)) + droppedWidth;
+  }
+  kept.push(marker);
+  return kept;
 }
 
 function composeOneLine(cells: readonly Cell[], options: ComposeOptions): Segment[] {

@@ -22,7 +22,11 @@
 
 import { detectColourDepth } from "../colour-depth/colour-depth.js";
 import { detectTerminalWidthInfo, applyWidthMode, NO_WRAP_WIDTH } from "../width/width.js";
-import { applyAccessibility, effectiveDepth, honourNoColorEnv } from "../accessibility/accessibility.js";
+import {
+  applyAccessibility,
+  effectiveDepth,
+  honourNoColorEnv,
+} from "../accessibility/accessibility.js";
 import { encodeSegments, SGR_RESET } from "../ansi/ansi.js";
 import { composeLines } from "../compose/compose.js";
 import { buildWidgetContext } from "../context.js";
@@ -65,10 +69,10 @@ export function renderFromInputs(inputs: RenderInputs): string {
   const clock: Clock = inputs.clock ?? realClock;
   /*
    * An explicit `inputs.width` (--width flag, golden fixture) is an
-   * authoritative width — wrap against it. Otherwise resolve from the
+   * authoritative width — elide against it. Otherwise resolve from the
    * environment; when nothing real is detected `noWrap` is set so the
-   * composer emits one row per configured line instead of wrapping
-   * against a guessed fallback.
+   * composer elides nothing and lets the host clip. Either way a
+   * configured line yields exactly one row (issue #304).
    */
   const resolved =
     inputs.width !== undefined
@@ -164,10 +168,11 @@ function resolveWidth(
   const detected = detectTerminalWidthInfo({ env });
   if (!detected.detected) {
     /*
-     * No real width signal (the live host case: piped stdout, no
-     * COLUMNS, no width on stdin). Don't apply `full-minus-40` to a
-     * guessed 80 — that yields 40 columns and wraps/drops lines. Emit
-     * one row per configured line and let the host clip horizontally.
+     * No real width signal. Not the live host case — the host copies
+     * `COLUMNS`/`LINES` from its own tty into the statusline command's
+     * env — but it does cover pipes, cron, and fixture replays. Don't
+     * apply `full-minus-40` to a guessed 80: that yields 40 columns and
+     * elides content for no reason. Let the host clip horizontally.
      */
     return { width: NO_WRAP_WIDTH, noWrap: true };
   }
