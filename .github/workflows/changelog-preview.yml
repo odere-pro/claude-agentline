@@ -98,7 +98,7 @@ jobs:
         # marocchino/sticky-pull-request-comment v3.0.4 — pinned by commit SHA
         # per the workflow invariant. Updates the existing comment with the
         # matching `header` instead of posting a new one on each push.
-        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: changelog-preview
           path: preview.md
