@@ -1,1 +1,0 @@
-- fix: the statusline now composes against the full terminal width instead of reserving 40 columns for host chrome that does not exist, so widgets no longer vanish behind an ellipsis while the terminal still has room; the inert `terminalWidth` config key is retired (still accepted, now ignored).
