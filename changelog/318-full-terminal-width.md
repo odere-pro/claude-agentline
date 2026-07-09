@@ -1,0 +1,2 @@
+- fix: the statusline now composes against the full terminal width instead of reserving 40 columns for host chrome that does not exist, so widgets no longer vanish behind an ellipsis while the terminal still has room; the inert `terminalWidth` config key is retired (still accepted, now ignored).
+- fix: the install/uninstall integration suite pins `npm_config_prefix` to its sandbox, so running the tests no longer uninstalls the developer's own globally-installed agentline.

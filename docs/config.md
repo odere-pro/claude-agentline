@@ -73,7 +73,6 @@ Full flag reference for all commands → [cli.md](./cli.md)
   "lines": [{ "widgets": [{ "type": "model" }, { "type": "version" }] }],
   "global": { "padding": 1, "separator": "|", "valueSeparator": "·" },
   "powerline": { "enabled": false },
-  "terminalWidth": { "mode": "full-minus-40", "compactThreshold": 60 },
   "keymap": {},
   "refreshInterval": 5
 }
@@ -87,7 +86,6 @@ Full flag reference for all commands → [cli.md](./cli.md)
 | `lines`           | array          | one default line         | ordered top-to-bottom; one or more                                                                                     |
 | `global`          | object         | see below                | global render options                                                                                                  |
 | `powerline`       | object         | `{ "enabled": false }`   | Powerline mode options                                                                                                 |
-| `terminalWidth`   | object         | `full-minus-40`          | width-detection mode                                                                                                   |
 | `keymap`          | object         | `{}`                     | keybinding overrides for `agentline config`                                                                            |
 | `refreshInterval` | int            | `5`                      | statusline re-render cadence in seconds; `0` disables (see below)                                                      |
 
@@ -113,12 +111,16 @@ stderr.
 | `overrideFg`     | colour \| null | `null`  | force foreground colour                                                                                                  |
 | `overrideBg`     | colour \| null | `null`  | force background colour                                                                                                  |
 
-### `terminalWidth`
+### `terminalWidth` (retired)
 
-| Key                | Type | Default         | Notes                                                |
-| ------------------ | ---- | --------------- | ---------------------------------------------------- |
-| `mode`             | enum | `full-minus-40` | one of `full`, `full-minus-40`, `full-until-compact` |
-| `compactThreshold` | int  | `60`            | columns below which the renderer switches to compact |
+Retired in v1.8.0. The renderer composes against the **full** width the host
+reports via `COLUMNS`, reserving no columns for host chrome; when no width can
+be detected it elides nothing and lets the host clip. The old `full-minus-40`
+default silently hid any widget past `COLUMNS - 40` (issue #318), and
+`compactThreshold` was never read.
+
+The key is still accepted so an existing config keeps validating. It is
+ignored — delete it whenever convenient.
 
 ### `refreshInterval`
 

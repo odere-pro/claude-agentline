@@ -5,37 +5,76 @@
   "lines": [
     {
       "widgets": [
-        { "type": "model" },
-        { "type": "thinking-effort" },
-        { "type": "plan" },
-        { "type": "project" },
-        { "type": "git-branch" },
-        { "type": "git-changes" },
-        { "type": "git-ahead-behind" }
+        {
+          "type": "model"
+        },
+        {
+          "type": "thinking-effort"
+        },
+        {
+          "type": "plan"
+        },
+        {
+          "type": "project"
+        },
+        {
+          "type": "git-branch"
+        },
+        {
+          "type": "git-changes"
+        },
+        {
+          "type": "git-ahead-behind"
+        }
       ]
     },
     {
       "widgets": [
-        { "type": "context-percentage" },
-        { "type": "token-speed" },
-        { "type": "tokens", "options": { "reset": "block" } },
-        { "type": "tokens-cached" }
+        {
+          "type": "context-percentage"
+        },
+        {
+          "type": "token-speed"
+        },
+        {
+          "type": "tokens",
+          "options": {
+            "reset": "block"
+          }
+        },
+        {
+          "type": "tokens-cached"
+        }
       ]
     },
     {
-      "widgets": [{ "type": "session-weekly-usage" }, { "type": "reset-timer" }]
+      "widgets": [
+        {
+          "type": "session-weekly-usage"
+        },
+        {
+          "type": "reset-timer"
+        }
+      ]
     },
     {
       "widgets": [
-        { "type": "account-email", "options": { "mask": "domain" } },
-        { "type": "version" }
+        {
+          "type": "account-email",
+          "options": {
+            "mask": "domain"
+          }
+        },
+        {
+          "type": "version"
+        }
       ]
     }
   ],
   "global": {
     "padding": 1,
     "separator": "|",
-    "valueSeparator": "·",
+    "valueSeparator": "\u00b7",
     "inheritColors": false,
     "bold": false,
     "italic": false,
@@ -46,13 +85,12 @@
   "powerline": {
     "enabled": false,
     "theme": null,
-    "caps": { "start": "", "end": "" },
+    "caps": {
+      "start": "",
+      "end": ""
+    },
     "autoAlign": false,
     "continueColors": false
-  },
-  "terminalWidth": {
-    "mode": "full-minus-40",
-    "compactThreshold": 60
   },
   "keymap": {},
   "language": "en",

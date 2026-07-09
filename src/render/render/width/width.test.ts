@@ -1,16 +1,14 @@
 /**
- * Unit tests for terminal width detection and width-mode application.
+ * Unit tests for terminal width detection.
  */
 
 import { describe, it, expect } from "vitest";
 import {
   detectTerminalWidth,
   detectTerminalWidthInfo,
-  applyWidthMode,
   FALLBACK_WIDTH,
   NO_WRAP_WIDTH,
   type WidthSource,
-  type WidthModeOptions,
 } from "./width.js";
 
 describe("detectTerminalWidth", () => {
@@ -110,85 +108,5 @@ describe("detectTerminalWidthInfo", () => {
 
   it("NO_WRAP_WIDTH is large enough that no real line can exceed it", () => {
     expect(NO_WRAP_WIDTH).toBeGreaterThan(100_000);
-  });
-});
-
-describe("applyWidthMode", () => {
-  const defaultOptions: WidthModeOptions = {
-    mode: "full",
-    compactThreshold: 120,
-  };
-
-  it("applies full mode", () => {
-    const result = applyWidthMode(100, defaultOptions);
-    expect(result.effectiveWidth).toBe(100);
-    expect(result.isCompact).toBe(true);
-    expect(result.detectedWidth).toBe(100);
-  });
-
-  it("applies full-minus-40 mode", () => {
-    const result = applyWidthMode(150, {
-      ...defaultOptions,
-      mode: "full-minus-40",
-    });
-    expect(result.effectiveWidth).toBe(110); // 150 - 40
-    expect(result.isCompact).toBe(false); // 150 >= 120
-    expect(result.detectedWidth).toBe(150);
-  });
-
-  it("applies full-until-compact mode", () => {
-    const result = applyWidthMode(100, {
-      ...defaultOptions,
-      mode: "full-until-compact",
-    });
-    expect(result.effectiveWidth).toBe(100);
-    expect(result.isCompact).toBe(true);
-    expect(result.detectedWidth).toBe(100);
-  });
-
-  it("never returns negative effective width", () => {
-    const result = applyWidthMode(30, {
-      ...defaultOptions,
-      mode: "full-minus-40",
-    });
-    expect(result.effectiveWidth).toBe(1); // max(1, 30 - 40)
-  });
-
-  it("never returns zero effective width", () => {
-    const result = applyWidthMode(1, {
-      ...defaultOptions,
-      mode: "full",
-    });
-    expect(result.effectiveWidth).toBe(1); // max(1, 1)
-  });
-
-  it("detects compact based on threshold", () => {
-    const threshold = 100;
-    const result1 = applyWidthMode(99, {
-      ...defaultOptions,
-      compactThreshold: threshold,
-    });
-    expect(result1.isCompact).toBe(true);
-
-    const result2 = applyWidthMode(100, {
-      ...defaultOptions,
-      compactThreshold: threshold,
-    });
-    expect(result2.isCompact).toBe(false);
-
-    const result3 = applyWidthMode(101, {
-      ...defaultOptions,
-      compactThreshold: threshold,
-    });
-    expect(result3.isCompact).toBe(false);
-  });
-
-  it("uses default compact threshold for invalid options", () => {
-    // Invalid compactThreshold should be ignored and DEFAULT_COMPACT_THRESHOLD (60) used
-    const result = applyWidthMode(50, {
-      mode: "full",
-      compactThreshold: -10,
-    });
-    expect(result.isCompact).toBe(true); // 50 < 60 (DEFAULT_COMPACT_THRESHOLD)
   });
 });

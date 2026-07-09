@@ -5,27 +5,51 @@
   "lines": [
     {
       "widgets": [
-        { "type": "model" },
-        { "type": "thinking-effort" },
-        { "type": "git-branch" },
-        { "type": "git-changes" }
+        {
+          "type": "model"
+        },
+        {
+          "type": "thinking-effort"
+        },
+        {
+          "type": "git-branch"
+        },
+        {
+          "type": "git-changes"
+        }
       ]
     },
     {
       "widgets": [
-        { "type": "context-percentage" },
-        { "type": "token-speed" },
-        { "type": "tokens", "options": { "reset": "block" } }
+        {
+          "type": "context-percentage"
+        },
+        {
+          "type": "token-speed"
+        },
+        {
+          "type": "tokens",
+          "options": {
+            "reset": "block"
+          }
+        }
       ]
     },
     {
-      "widgets": [{ "type": "session-weekly-usage" }, { "type": "reset-timer" }]
+      "widgets": [
+        {
+          "type": "session-weekly-usage"
+        },
+        {
+          "type": "reset-timer"
+        }
+      ]
     }
   ],
   "global": {
     "padding": 1,
     "separator": "|",
-    "valueSeparator": "·",
+    "valueSeparator": "\u00b7",
     "inheritColors": false,
     "bold": false,
     "italic": false,
@@ -36,13 +60,12 @@
   "powerline": {
     "enabled": false,
     "theme": null,
-    "caps": { "start": "", "end": "" },
+    "caps": {
+      "start": "",
+      "end": ""
+    },
     "autoAlign": false,
     "continueColors": false
-  },
-  "terminalWidth": {
-    "mode": "full-minus-40",
-    "compactThreshold": 60
   },
   "keymap": {},
   "language": "en",

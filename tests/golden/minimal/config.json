@@ -4,13 +4,17 @@
   "theme": null,
   "lines": [
     {
-      "widgets": [{ "type": "model" }]
+      "widgets": [
+        {
+          "type": "model"
+        }
+      ]
     }
   ],
   "global": {
     "padding": 1,
     "separator": "|",
-    "valueSeparator": "·",
+    "valueSeparator": "\u00b7",
     "inheritColors": false,
     "bold": false,
     "italic": false,
@@ -21,10 +25,12 @@
   "powerline": {
     "enabled": false,
     "theme": null,
-    "caps": { "start": "", "end": "" },
+    "caps": {
+      "start": "",
+      "end": ""
+    },
     "autoAlign": false,
     "continueColors": false
   },
-  "terminalWidth": { "mode": "full", "compactThreshold": 60 },
   "keymap": {}
 }

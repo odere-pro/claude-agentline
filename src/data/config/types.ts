@@ -106,11 +106,6 @@ export interface PowerlineConfig {
   glyphs?: PowerlineGlyphs;
 }
 
-export interface TerminalWidthConfig {
-  mode: "full" | "full-minus-40" | "full-until-compact";
-  compactThreshold: number;
-}
-
 export interface AgentlineConfig {
   $schema?: string;
   version: number;
@@ -118,7 +113,6 @@ export interface AgentlineConfig {
   lines: LineConfig[];
   global: GlobalConfig;
   powerline: PowerlineConfig;
-  terminalWidth: TerminalWidthConfig;
   keymap: Record<string, string>;
   language: string;
   /**
@@ -141,7 +135,6 @@ export type PartialAgentlineConfig = Partial<{
   lines: LineConfig[];
   global: Partial<GlobalConfig>;
   powerline: Partial<PowerlineConfig> & { caps?: Partial<PowerlineCaps>; glyphs?: PowerlineGlyphs };
-  terminalWidth: Partial<TerminalWidthConfig>;
   keymap: Record<string, string>;
   language: string;
   refreshInterval: number;

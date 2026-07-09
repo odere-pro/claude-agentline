@@ -4,13 +4,20 @@
   "theme": null,
   "lines": [
     {
-      "widgets": [{ "type": "model" }, { "type": "git-pr" }]
+      "widgets": [
+        {
+          "type": "model"
+        },
+        {
+          "type": "git-pr"
+        }
+      ]
     }
   ],
   "global": {
     "padding": 1,
     "separator": "|",
-    "valueSeparator": "·",
+    "valueSeparator": "\u00b7",
     "inheritColors": false,
     "bold": false,
     "italic": false,
@@ -21,10 +28,12 @@
   "powerline": {
     "enabled": false,
     "theme": null,
-    "caps": { "start": "", "end": "" },
+    "caps": {
+      "start": "",
+      "end": ""
+    },
     "autoAlign": false,
     "continueColors": false
   },
-  "terminalWidth": { "mode": "full", "compactThreshold": 60 },
   "keymap": {}
 }

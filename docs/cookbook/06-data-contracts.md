@@ -64,7 +64,6 @@ The **Raw key** column is the verbatim top-level JSON key the host sends; the **
 | `lines`           | array  | one default | Ordered list of `{ widgets: Widget[] }`                                                                  |
 | `global`          | object | defaults    | Render options: `padding`, `separator`, `inheritColors`, etc.                                            |
 | `powerline`       | object | defaults    | Powerline options (see `02-functional-requirements · F5`)                                                |
-| `terminalWidth`   | object | defaults    | Width-detection mode: `full`, `full-minus-N`, `full-until-compact`                                       |
 | `keymap`          | object | `{}`        | Editor keymap overrides                                                                                  |
 | `refreshInterval` | int    | `5`         | Statusline re-run period in seconds; `>= 0`. `0` disables, syncing the host so it re-runs on events only |
 
