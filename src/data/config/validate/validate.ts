@@ -5,6 +5,13 @@
  * dropping (catches typos like `globel.padding`). The schema embeds at
  * build time via `src/schema/embedded.ts`.
  *
+ * One deliberate exception: an unrecognised `widget.type` is tolerated
+ * (`isUnknownWidgetType`, issue #311). This mirrors the existing
+ * "retired top-level keys are dropped, never hard-failed" rule that
+ * `dropRetiredKeys` in `load.ts` applies — a config from a prior install
+ * must not brick the statusline on upgrade. Widget types simply never got
+ * the same treatment, so retiring one discarded the entire config.
+ *
  * AJV is constructed with `strict: false` so the schema's per-widget
  * `options` bag (intentionally `additionalProperties: true` for
  * forward-compat — new widget types ship with new option keys) does
@@ -37,10 +44,32 @@ function compiled(): ValidateFunction {
   return cached;
 }
 
+/** `/lines/<n>/widgets/<m>/type` — the one path where an enum miss is tolerated. */
+const WIDGET_TYPE_PATH = /^\/lines\/\d+\/widgets\/\d+\/type$/;
+
+/**
+ * True for the single error class we forgive: a `widget.type` outside the
+ * schema's enum (issue #311).
+ *
+ * The enum is generated from `WIDGET_CATALOG` (gate-28), so retiring a widget
+ * would otherwise invalidate every config still naming it — and AJV failure is
+ * all-or-nothing, so the user loses *every* line, not just that cell. PR #206
+ * shipped exactly that break for its eight retired types.
+ *
+ * Tolerating it lets the config load; the render then hides the unrenderable
+ * cell and `agentline doctor` D11 names the offending types. Authoring stays
+ * strict: `agentline config widget add` validates against the catalogue before
+ * writing, so a typo is caught where it is made, not silently at render.
+ */
+function isUnknownWidgetType(err: ErrorObject): boolean {
+  return err.keyword === "enum" && WIDGET_TYPE_PATH.test(err.instancePath);
+}
+
 export function validateConfig(value: unknown): asserts value is AgentlineConfig {
   const validate = compiled();
   if (!validate(value)) {
-    throw new ConfigValidationError(validate.errors ?? []);
+    const fatal = (validate.errors ?? []).filter((e) => !isUnknownWidgetType(e));
+    if (fatal.length > 0) throw new ConfigValidationError(fatal);
   }
   narrowColours(value as AgentlineConfig);
 }
