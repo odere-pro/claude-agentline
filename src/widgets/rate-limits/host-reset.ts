@@ -29,11 +29,21 @@ const MAX_DATE_MS = 8_640_000_000_000_000;
 
 /**
  * Host-provided next-reset instant for `window`, in epoch *milliseconds*,
- * or `undefined` when the host did not ship that window's `resets_at`
- * (the caller then uses its local fallback). `resets_at` is epoch
+ * or `undefined` when the host did not ship a usable `resets_at` for that
+ * window (the caller then uses its local fallback). `resets_at` is epoch
  * *seconds* on the wire (`src/stdin/index.ts:91`), so this multiplies by
  * 1000. The explicit finite check keeps the helper safe for the
  * direct-`adaptStatuslinePayload` and hand-built-context seams.
+ *
+ * An **elapsed** `resets_at` (at or before `now`) is rejected too (issue
+ * #307). The host refreshes `rate_limits` on API activity, not on a timer,
+ * so around a window rollover — or during a long idle — it keeps shipping
+ * the reset instant that has already passed. Subtracting it from `now`
+ * yields a negative remaining that `formatDuration` clamps to `0m`, and the
+ * widget then prints a confident "reset in 0m" indefinitely. Observed live
+ * as `reset in 0m · weekly 6d 23h 9m`, where the weekly window was healthy.
+ * Treating it as absent lets the caller's local block/week derivation supply
+ * a forward-looking answer.
  */
 export function hostResetMs(ctx: WidgetContext, window: ResetWindow): number | undefined {
   const limits = ctx.stdin.rateLimits;
@@ -42,5 +52,6 @@ export function hostResetMs(ctx: WidgetContext, window: ResetWindow): number | u
   if (typeof resetsAt !== "number" || !Number.isFinite(resetsAt)) return undefined;
   const ms = resetsAt * 1000;
   if (!Number.isFinite(ms) || Math.abs(ms) > MAX_DATE_MS) return undefined;
+  if (ms <= ctx.clock.now().getTime()) return undefined;
   return ms;
 }

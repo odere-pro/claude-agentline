@@ -264,7 +264,11 @@ describe("reset-timer widget — countdown (both windows)", () => {
     expect(cell.text).toBe("1h 30m");
   });
 
-  it("clamps a stale (past) host reset to 0m per window", () => {
+  it("falls back to the local anchor for a stale (past) host reset, per window", () => {
+    // Was: clamped both windows to `0m · weekly 0m`, which reads as
+    // "resetting right now" forever. The host only refreshes `rate_limits`
+    // on API activity, so an elapsed `resets_at` is a stale signal, not a
+    // countdown that reached zero (issue #307).
     const cell = resetTimerWidget.render(
       makeCtx(undefined, {
         stdin: stdinWith({
@@ -274,7 +278,8 @@ describe("reset-timer widget — countdown (both windows)", () => {
       }),
       { options: {}, rawValue: true },
     );
-    expect(cell.text).toBe("0m · weekly 0m");
+    expect(cell.text).not.toMatch(/0m · weekly 0m/);
+    expect(cell.text).toMatch(/^\d+h \d+m · weekly \d+d/);
   });
 
   it("falls back to the local block anchor for the session window when rate_limits is absent", () => {
@@ -359,12 +364,16 @@ describe("reset-timer widget — wall-clock (at-* variants, both windows)", () =
     expect(cell.text).toBe("6:00pm");
   });
 
-  it("renders a past host reset verbatim in wall-clock mode (no clamp)", () => {
+  it("falls back to the local anchor for a past host reset in wall-clock mode too", () => {
+    // Was: rendered `02:00` — an instant already an hour in the past, shown
+    // as if it were the next reset. Wall-clock mode has the same staleness
+    // problem as the countdown, so it takes the same fallback (issue #307).
     const cell = resetTimerWidget.render(
       makeCtx(undefined, { stdin: stdinWith({ fiveHour: { resetsAt: NOW_SEC - 3600 } }) }),
       { options: { format: "HH:mm", tz: "UTC" }, rawValue: true },
     );
-    expect(cell.text).toBe("02:00");
+    expect(cell.text).not.toBe("02:00");
+    expect(cell.text).toBe("08:00");
   });
 
   it("the host value wins over configured resetWeekday/resetHour (weekly wall-clock)", () => {
@@ -377,6 +386,61 @@ describe("reset-timer widget — wall-clock (at-* variants, both windows)", () =
       },
     );
     expect(cell.text).toBe("weekly Thu 7 12:00");
+  });
+});
+
+describe("reset-timer widget — elapsed resets_at (issue #307)", () => {
+  it("falls back to the local anchor instead of printing a confident 'reset in 0m'", () => {
+    // Observed on a live render: `◔ reset in 0m · weekly 6d 23h 9m`. The
+    // five-hour `resets_at` had elapsed while the weekly one was healthy, so
+    // the payload was not stale wholesale — the widget simply clamped a
+    // negative remaining to zero and kept printing it.
+    const cell = resetTimerWidget.render(
+      makeCtx(undefined, {
+        clock: frozenClock(new Date(FIXED_NOW_MS)),
+        stdin: stdinWith({ fiveHour: { resetsAt: (FIXED_NOW_MS - 60_000) / 1000 } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).not.toMatch(/reset in 0m/);
+    expect(cell.text).toMatch(/reset in \d/);
+  });
+
+  it("treats a resets_at exactly at now as elapsed", () => {
+    const cell = resetTimerWidget.render(
+      makeCtx(undefined, {
+        clock: frozenClock(new Date(FIXED_NOW_MS)),
+        stdin: stdinWith({ fiveHour: { resetsAt: FIXED_NOW_MS / 1000 } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).not.toMatch(/reset in 0m/);
+  });
+
+  it("still honours a future resets_at", () => {
+    const cell = resetTimerWidget.render(
+      makeCtx(undefined, {
+        clock: frozenClock(new Date(FIXED_NOW_MS)),
+        stdin: stdinWith({ fiveHour: { resetsAt: (FIXED_NOW_MS + 36 * 60_000) / 1000 } }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toMatch(/reset in 36m/);
+  });
+
+  it("an elapsed weekly resets_at falls back without disturbing the five-hour window", () => {
+    const cell = resetTimerWidget.render(
+      makeCtx(undefined, {
+        clock: frozenClock(new Date(FIXED_NOW_MS)),
+        stdin: stdinWith({
+          fiveHour: { resetsAt: (FIXED_NOW_MS + 36 * 60_000) / 1000 },
+          sevenDay: { resetsAt: (FIXED_NOW_MS - 60_000) / 1000 },
+        }),
+      }),
+      { options: {}, rawValue: false },
+    );
+    expect(cell.text).toMatch(/reset in 36m/);
+    expect(cell.text).not.toMatch(/weekly 0m/);
   });
 });
 
