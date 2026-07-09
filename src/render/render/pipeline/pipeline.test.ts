@@ -57,10 +57,17 @@ describe("renderFromInputs", () => {
     expect(typeof result).toBe("string");
   });
 
-  it("emits a warning line for an unknown widget type", () => {
+  // ── unknown widget types are silent on the statusline (issue #311) ─────
+  //
+  // The type is tolerated at load, the cell is hidden, and `agentline doctor`
+  // D11 is the reporting channel. Warning rows below the statusline would
+  // reintroduce the variable physical-row count that #304 removed — the very
+  // thing that corrupts the host's repaint accounting.
+
+  it("hides an unknown widget type and emits no warning row", () => {
     const config = {
       ...DEFAULT_CONFIG,
-      lines: [{ widgets: [{ type: "no-such-widget" }] }],
+      lines: [{ widgets: [{ type: "model" }, { type: "no-such-widget" }] }],
     };
     const result = renderFromInputs({
       payload: basePayload,
@@ -68,46 +75,39 @@ describe("renderFromInputs", () => {
       theme: null,
       env: { NO_COLOR: "1" },
     });
-    const lines = result.split("\n");
-    /*
-     * First "line" is the rendered statusline (empty since the widget hides);
-     * the next line carries the warning.
-     */
-    expect(lines.some((l) => /unknown widget type 'no-such-widget'/.test(l))).toBe(true);
+    expect(result).not.toMatch(/unknown widget type/);
+    expect(result).not.toMatch(/no-such-widget/);
   });
 
-  it("deduplicates repeated unknown widget types", () => {
+  it("an unknown widget type does not change the physical row count", () => {
+    const good = { ...DEFAULT_CONFIG, lines: [{ widgets: [{ type: "model" }] }] };
+    const withUnknown = {
+      ...DEFAULT_CONFIG,
+      lines: [{ widgets: [{ type: "model" }, { type: "bogus-a" }, { type: "bogus-b" }] }],
+    };
+    const rows = (config: typeof good) =>
+      renderFromInputs({ payload: basePayload, config, theme: null, env: { NO_COLOR: "1" } })
+        .split("\n")
+        .filter((l) => l.length > 0).length;
+    expect(rows(withUnknown)).toBe(rows(good));
+  });
+
+  it("keeps the surviving widgets on a line whose other type is unknown", () => {
+    // The retired-widget case: the user loses that cell, not the whole line.
     const config = {
       ...DEFAULT_CONFIG,
-      lines: [{ widgets: [{ type: "no-such-widget" }, { type: "no-such-widget" }] }],
+      lines: [{ widgets: [{ type: "no-such-widget" }, { type: "clock" }] }],
     };
     const result = renderFromInputs({
       payload: basePayload,
       config,
       theme: null,
       env: { NO_COLOR: "1" },
+      clock: { now: () => new Date("2026-05-17T12:00:00Z") },
     });
-    const matches = result.match(/unknown widget type 'no-such-widget'/g) ?? [];
-    expect(matches.length).toBe(1);
-  });
-
-  it("caps warning lines at MAX_WARNING_LINES (6) and emits them in sorted order", () => {
-    const types = Array.from({ length: 12 }, (_, i) => ({ type: `bogus-${i}` }));
-    const config = { ...DEFAULT_CONFIG, lines: [{ widgets: types }] };
-    const result = renderFromInputs({
-      payload: basePayload,
-      config,
-      theme: null,
-      env: { NO_COLOR: "1" },
-    });
-    const warningLines = result.split("\n").filter((l) => /unknown widget type/.test(l));
-    expect(warningLines).toHaveLength(6);
-    /*
-     * `buildWarningLines` deduplicates + sorts the unknown types so the
-     * surfaced lines stay stable across renders. Assert the sort.
-     */
-    const sorted = [...warningLines].sort();
-    expect(warningLines).toEqual(sorted);
+    // The clock renders in host-local time; assert it rendered at all.
+    expect(result).toMatch(/\d{2}:\d{2}/);
+    expect(result).not.toMatch(/no-such-widget/);
   });
 
   it("renders every configured line on its own row when width is undetected", () => {

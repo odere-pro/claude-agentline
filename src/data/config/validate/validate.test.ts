@@ -3,6 +3,62 @@ import { validateConfig, ConfigValidationError } from "./validate.js";
 import { DEFAULT_CONFIG } from "../defaults/defaults.js";
 
 describe("validateConfig", () => {
+  // ── unknown widget types must not discard the config (issue #311) ───────
+  //
+  // Retiring a widget type regenerates the schema's `widget.type` enum
+  // (gate-28). Before this, a config still naming a retired type failed
+  // validation outright and the user lost EVERY line, not just that cell —
+  // the break PR #206 shipped for its eight retired types.
+
+  it("accepts a config naming an unknown widget type", () => {
+    // `context-bar` is one of the eight types PR #206 retired; a config
+    // written before that upgrade must still load.
+    const cfg = {
+      ...DEFAULT_CONFIG,
+      lines: [{ widgets: [{ type: "model" }, { type: "context-bar" }] }],
+    };
+    expect(() => validateConfig(cfg)).not.toThrow();
+  });
+
+  it("keeps the unknown widget in the config so the render can hide it", () => {
+    const cfg = {
+      ...DEFAULT_CONFIG,
+      lines: [{ widgets: [{ type: "no-such-widget" }, { type: "model" }] }],
+    };
+    validateConfig(cfg);
+    expect(cfg.lines[0]!.widgets.map((w) => w.type)).toEqual(["no-such-widget", "model"]);
+  });
+
+  it("still rejects a genuinely malformed config (unknown top-level key)", () => {
+    const cfg = { ...DEFAULT_CONFIG, globel: { padding: 1 } };
+    expect(() => validateConfig(cfg)).toThrow(ConfigValidationError);
+  });
+
+  it("still rejects a bad value elsewhere even when an unknown widget type is present", () => {
+    const cfg = {
+      ...DEFAULT_CONFIG,
+      global: { ...DEFAULT_CONFIG.global, padding: "wide" },
+      lines: [{ widgets: [{ type: "no-such-widget" }] }],
+    };
+    expect(() => validateConfig(cfg)).toThrow(ConfigValidationError);
+  });
+
+  it("reports only the real errors, not the tolerated widget-type ones", () => {
+    const cfg = {
+      ...DEFAULT_CONFIG,
+      global: { ...DEFAULT_CONFIG.global, padding: "wide" },
+      lines: [{ widgets: [{ type: "no-such-widget" }] }],
+    };
+    try {
+      validateConfig(cfg);
+      throw new Error("expected validateConfig to throw");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ConfigValidationError);
+      const e = err as ConfigValidationError;
+      expect(e.errors.every((x) => !/\/widgets\/\d+\/type$/.test(x.instancePath))).toBe(true);
+    }
+  });
+
   it("accepts the default config", () => {
     expect(() => validateConfig(DEFAULT_CONFIG)).not.toThrow();
   });

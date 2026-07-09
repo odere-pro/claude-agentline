@@ -31,26 +31,16 @@ import { encodeSegments, SGR_RESET } from "../ansi/ansi.js";
 import { composeLines } from "../compose/compose.js";
 import { buildWidgetContext } from "../context.js";
 import type { RenderInputs } from "../inputs.js";
-import type { Segment } from "../segment/segment.js";
 
 import type { AgentlineConfig } from "../../../data/config/types.js";
 import { resolveEnv } from "../../../core/lib/env/env.js";
 import { detectGlyphSupport } from "../../powerline/index.js";
-import { resolveRole, type Theme } from "../../../data/theme/index.js";
 import type { Cell } from "../../../widgets/cell/cell.js";
 import { realClock, type Clock } from "../../../widgets/clock/clock.js";
 import { defaultRegistry, registerAllBuiltins } from "../../../widgets/index.js";
 import { renderWidget } from "../../../widgets/render-widget/render-widget.js";
 
 export type { RenderInputs } from "../inputs.js";
-
-/**
- * Maximum warning lines appended below the rendered statusline (Phase 2
- * item 9). Sized so a wildly-broken config can't bury the screen — six
- * is enough to surface the common bulk-mistype scenarios and short
- * enough to stay scannable.
- */
-export const MAX_WARNING_LINES = 6;
 
 function ensureRegistry(): void {
   const reg = defaultRegistry();
@@ -91,15 +81,16 @@ export function renderFromInputs(inputs: RenderInputs): string {
     plan: inputs.plan,
   });
 
+  /*
+   * An unrecognised widget type renders as a hidden cell and is otherwise
+   * silent (issue #311). `agentline doctor` D11 is the reporting channel:
+   * warning rows below the statusline would add physical rows, reintroducing
+   * the variable row count that #304 removed and that corrupts the host's
+   * erase-and-redraw accounting.
+   */
   const registry = defaultRegistry();
-  const unknownTypes = new Set<string>();
   const lines: Cell[][] = inputs.config.lines.map((line) =>
-    line.widgets
-      .map((w) => {
-        if (!registry.get(w.type)) unknownTypes.add(w.type);
-        return renderWidget(registry, w, ctx);
-      })
-      .filter((c) => !c.hidden),
+    line.widgets.map((w) => renderWidget(registry, w, ctx)).filter((c) => !c.hidden),
   );
 
   const composed = composeLines(lines, {
@@ -111,11 +102,8 @@ export function renderFromInputs(inputs: RenderInputs): string {
     glyphSupport: detectGlyphSupport(env),
   });
 
-  const warnings = buildWarningLines(unknownTypes, inputs.theme);
-  const allLines: Segment[][] = [...composed, ...warnings];
-
   const depth = effectiveDepth(detectColourDepth({ env }), flags);
-  const encoded = allLines
+  const encoded = composed
     .map((segs) => {
       const accessible = applyAccessibility(segs, flags);
       const text = encodeSegments(accessible, depth);
@@ -129,27 +117,6 @@ export function renderFromInputs(inputs: RenderInputs): string {
     })
     .join("\n");
   return `${encoded}\n`;
-}
-
-/**
- * Compose the trailing warning channel — one line per warning,
- * deduplicated and capped at `MAX_WARNING_LINES`. Each line is a
- * single coloured segment so the encoder treats it uniformly with
- * the regular render path.
- *
- * Currently only `unknown widget type: <type>` is surfaced. Other
- * warning sources (load-time validation failures, deprecated types)
- * can join the same pipeline by appending to the array before this
- * function is called.
- */
-function buildWarningLines(unknownTypes: ReadonlySet<string>, theme: Theme | null): Segment[][] {
-  if (unknownTypes.size === 0) return [];
-  const fg = resolveRole(theme, "danger");
-  const messages = [...unknownTypes]
-    .sort()
-    .slice(0, MAX_WARNING_LINES)
-    .map((type) => `agentline: unknown widget type '${type}'`);
-  return messages.map((text) => [{ text, fg }]);
 }
 
 function hasStyle(
