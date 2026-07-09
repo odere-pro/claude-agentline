@@ -46,3 +46,8 @@ Run `bash scripts/changelog-aggregate.sh` for a dry-run preview.
 Run `bash scripts/changelog-aggregate.sh --apply` to inline the fragments
 into `CHANGELOG.md` and remove them from `changelog/`. The release PR is
 the canonical place to do this.
+
+Bullets land under `### Added` inside `## [Unreleased]`. Pass
+`--section Fixed` (or `Changed`, `Removed`, `Security`) to fold somewhere
+else; the heading is created if the block does not already carry it. A
+failed `--apply` leaves `CHANGELOG.md` and every fragment untouched.
