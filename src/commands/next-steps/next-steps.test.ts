@@ -35,12 +35,12 @@ describe("printNextSteps", () => {
     expect(printed()).not.toContain("doctor");
   });
 
-  it("surfaces the ultracode default + opt-out so a fresh install discovers it (issue #295)", () => {
+  it("surfaces the ultracode opt-in so a fresh install discovers it (issue #303)", () => {
     printNextSteps();
     const out = printed();
     expect(out).toContain("ultracode");
-    // Points at the `literal` variant — the opt-out path the editor actually exposes.
-    expect(out).toContain("`literal` variant");
+    // Points at the `ultracode` variant — the opt-in path the editor exposes.
+    expect(out).toContain("`ultracode` variant");
   });
 
   it("describes uninstall accurately ('remove', not 'undo everything')", () => {

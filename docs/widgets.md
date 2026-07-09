@@ -81,16 +81,21 @@ variant, so it stays visible and noticeable. The default (non-variant)
 rendering of the other tiers stays flat in the session family accent, and the
 tier name always stays in the text so `--no-color` remains legible.
 
-Surfacing ultracode: the host does not emit `ultracode` as an effort level —
-its ultracode mode reports `xhigh`, indistinguishable from a plain-`xhigh`
-session. `thinking-effort` therefore relabels a recognised `xhigh` as
-`ultracode` (in the signature violet) **by default** — `options.assumeUltracode`
-is on unless you set it to `false`. Because the default lives in the renderer,
-not in stored config, it reaches both fresh installs and existing (frozen)
-configs on the next render, with no manual edit. The `literal` variant
-(`options.assumeUltracode: false`) opts out and keeps a raw `xhigh` as `xhigh` —
-pick it for a plain-`xhigh`, non-ultracode workflow. If Claude Code ever emits a
-real `ultracode` level, it is shown directly, regardless of the flag.
+Surfacing ultracode: **ultracode cannot be detected from the statusline
+payload.** The host tracks it as a separate boolean that it never serialises,
+so `/effort xhigh` and `/effort ultracode` send identical payloads. Nor is
+`effort.level` a mirror of your `/effort` choice: the host resolves it through
+a launch-effort pin (opus-4-7, opus-4-8 and fable-5 report the model's
+`default_effort`), the `CLAUDE_CODE_EFFORT_LEVEL` override, and an
+`xhigh`→`high` downgrade on models without the capability. An ultracode session
+on Opus 4.8 therefore reports `high`.
+
+`thinking-effort` consequently renders the reported tier verbatim. The
+`ultracode` variant (`options.assumeUltracode: true`) relabels a recognised
+`xhigh` as `ultracode` in the signature violet — a display preference, **off by
+default**, which will also relabel a plain non-ultracode `xhigh` session. If
+Claude Code ever emits a real `ultracode` level, it is shown directly,
+regardless of the flag.
 
 Auth-file fallback: when the stdin payload omits the account email,
 `account-email` transparently re-reads `${CLAUDE_CONFIG_DIR}/.credentials.json`

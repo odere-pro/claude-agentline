@@ -1,11 +1,12 @@
 /**
- * One-time upgrade notice for `agentline start` (issue #295).
+ * One-time upgrade notice for `agentline start` (issues #295, #303).
  *
- * `1.6.1` flips the thinking-effort `assumeUltracode` default on, so an
- * existing user who updates suddenly sees `ultracode` where they saw
- * `xhigh`. This surfaces a single what's-new + opt-out line the first time
- * `start` runs at or below that version, then stamps `lastNotifyVersion` in
- * the shared version-check cache so it never repeats.
+ * `1.6.1` flipped the thinking-effort `assumeUltracode` default on. That was
+ * wrong: the host never reports ultracode, so a plain `xhigh` session was
+ * mislabelled (#303). `1.6.2` reverts the default to opt-in, so anyone who
+ * saw `ultracode` appear now sees it disappear. This surfaces a single
+ * correction line the first time `start` runs, then stamps `lastNotifyVersion`
+ * in the shared version-check cache so it never repeats.
  *
  * Off the render path — `start` is a wiring verb, not stdin→stdout render —
  * so the cache read/write here is safe: it touches only the local state
@@ -24,7 +25,7 @@ import { AGENTLINE_VERSION } from "../../version.js";
  * The release whose notice this is. Shown once to anyone whose stamped
  * `lastNotifyVersion` is absent or older than this.
  */
-export const ULTRACODE_NOTICE_VERSION = "1.6.1";
+export const ULTRACODE_NOTICE_VERSION = "1.6.2";
 
 export interface UpgradeNoticeOptions {
   /** Env for cache resolution (honours `$CLAUDE_CONFIG_DIR`). */

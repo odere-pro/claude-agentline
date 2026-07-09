@@ -9,13 +9,19 @@
  * `ultracode` gets its own signature colour via the `effort-ultracode` theme
  * role, so each theme can pick a value readable on its background.
  *
- * The host's statusline does not emit `ultracode` as a level — its ultracode
- * orchestration mode reports reasoning effort as `xhigh`, indistinguishable
- * from a plain `xhigh` session. The `assumeUltracode` option bridges that: a
- * recognised `xhigh` is surfaced as `ultracode`. It defaults **on**
- * (issue #295) — an opt-*out*, not an opt-in — so both fresh installs and
- * existing frozen configs show `ultracode` on the next render without any
- * config edit; set `assumeUltracode: false` to keep a raw `xhigh` as `xhigh`.
+ * Ultracode is **not representable** in the statusline payload. The host keeps
+ * `ultracode` as a separate boolean in app state and never serialises it, so
+ * `/effort xhigh` and `/effort ultracode` produce byte-identical payloads. Nor
+ * is `effort.level` a mirror of the session's `/effort` selection: the host
+ * resolves it through a launch-effort pin (active for opus-4-7 / opus-4-8 /
+ * fable-5, which report the model's `default_effort`), a `CLAUDE_CODE_EFFORT_LEVEL`
+ * override, and an xhigh→high downgrade on models lacking the capability. So an
+ * ultracode session on Opus 4.8 reports `high`, and a plain xhigh session
+ * reports `xhigh`.
+ *
+ * `assumeUltracode` therefore cannot detect ultracode — it only relabels a
+ * recognised `xhigh`, guessing wrong in both directions. It is an opt-in display
+ * preference, **off by default** (issue #303 reverts the #295 default-on flip).
  * When the host ever emits a real `ultracode` level it is honoured directly,
  * regardless of the flag.
  *
@@ -48,10 +54,10 @@ interface ThinkingEffortOptions {
   /** Opt-in tier colour ramp (the `emphasis` variant). Default renders flat. */
   readonly emphasis?: boolean;
   /**
-   * Surface ultracode. The host reports ultracode mode as `xhigh` (no distinct
-   * level), so a recognised `xhigh` renders as `ultracode` in its signature
-   * violet. **On by default** (issue #295) — set to `false` to keep a raw
-   * `xhigh` as `xhigh` (a plain-`xhigh`, non-ultracode session opts out here).
+   * Relabel a recognised `xhigh` as `ultracode` in its signature violet. This
+   * is a display preference, not detection — the payload carries no ultracode
+   * signal (see the module docstring). **Off by default**; set to `true` if you
+   * run ultracode and accept that a plain `xhigh` session also relabels.
    */
   readonly assumeUltracode?: boolean;
 }
@@ -64,13 +70,13 @@ function normaliseEffort(value: string): Effort | null {
 /**
  * Emphasis ramp: each reasoning tier maps to a theme role, escalating to
  * `success` (premium / most-capable) at `max` rather than a warning hue.
- * `ultracode` is a special orchestration mode, not a normal reasoning tier
- * (the host reports `xhigh` for it), so it resolves through its own
- * `effort-ultracode` theme role rather than this ramp — giving it a distinct
- * signature colour each theme can tune for contrast. The tier name always
- * stays in the text so meaning is never colour-only, and colour drops
- * entirely under `--no-color`. (The value is inert until the host emits
- * `ultracode` at all — today ultracode reports as `xhigh`.)
+ * `ultracode` is a special orchestration mode, not a normal reasoning tier, so
+ * it resolves through its own `effort-ultracode` theme role rather than this
+ * ramp — giving it a distinct signature colour each theme can tune for
+ * contrast. The tier name always stays in the text so meaning is never
+ * colour-only, and colour drops entirely under `--no-color`. (The ramp is only
+ * reachable for `ultracode` via the opt-in relabel; the host emits no such
+ * level today.)
  */
 const TIER_ROLE: Readonly<Record<Exclude<Effort, "ultracode">, ThemeRole>> = Object.freeze({
   low: "muted",
@@ -86,11 +92,9 @@ export const thinkingEffortWidget = defineWidget<ThinkingEffortOptions>(
     const raw = ctx.session?.thinkingEffort ?? ctx.stdin.thinkingEffort;
     if (!raw) return { text: "", hidden: true };
     let effort = normaliseEffort(raw);
-    // The host collapses ultracode mode to `xhigh`. Surface it as `ultracode`
-    // by default (issue #295); only an explicit `assumeUltracode: false` opts
-    // out, so both new installs and existing frozen configs relabel on the
-    // next render without a config edit.
-    if (settings.options.assumeUltracode !== false && effort === "xhigh") {
+    // Opt-in only: `xhigh` does not imply ultracode, and ultracode does not
+    // imply a reported `xhigh` (issue #303). Guess only when asked to.
+    if (settings.options.assumeUltracode === true && effort === "xhigh") {
       effort = "ultracode";
     }
     const label = settings.rawValue ? "" : (settings.options.label ?? "");

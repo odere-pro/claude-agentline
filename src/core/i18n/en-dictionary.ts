@@ -204,8 +204,8 @@ Steps performed:
     "  `agentline edit`       customize your statusline\n" +
     "  `agentline uninstall`  remove agentline\n" +
     "\n" +
-    "Tip: an `xhigh` reasoning effort shows as `ultracode` by default — pick the\n" +
-    "`literal` variant on the thinking-effort widget (`agentline edit`) to keep the raw label.",
+    "Tip: the thinking-effort widget shows the reasoning tier the host reports.\n" +
+    "Ultracode is not part of that report — pick the `ultracode` variant (`agentline edit`) to relabel a raw `xhigh`.",
   "cmd.uninstall.help": `agentline uninstall — remove agentline from this host
 
 Usage:
@@ -269,8 +269,9 @@ template instead, use \`agentline reset\`.
   "cmd.start.preview-unavailable":
     "Statusline preview unavailable — run `agentline doctor` to check your config.",
   "cmd.start.ultracode-notice":
-    "What's new: an `xhigh` reasoning effort now shows as `ultracode` by default.\n" +
-    "To keep the raw `xhigh` label, pick the `literal` variant on your thinking-effort widget (`agentline edit`), or set `assumeUltracode: false` in your config.",
+    "Correction: 1.6.1 relabelled an `xhigh` reasoning effort as `ultracode` by default. That was wrong —\n" +
+    "the host never reports ultracode, so a plain `xhigh` session was mislabelled. The default is now off.\n" +
+    "To keep the relabel, pick the `ultracode` variant on your thinking-effort widget (`agentline edit`).",
 } as const;
 
 export type DictionaryId = keyof typeof EN_DICTIONARY;

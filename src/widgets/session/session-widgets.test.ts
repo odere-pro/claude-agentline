@@ -375,10 +375,10 @@ describe("thinking-effort widget", () => {
   });
 
   // `ultracode` is excluded: it is a signature mode that always renders in its
-  // own violet (see the dedicated test below), so it is never plain. `xhigh`
-  // is excluded too: `assumeUltracode` defaults on (issue #295), so a raw
-  // `xhigh` is surfaced as `ultracode` unless the user opts out.
-  it.each(["low", "medium", "high", "max"])(
+  // own violet (see the dedicated test below), so it is never plain. A raw
+  // `xhigh` stays `xhigh` — the host cannot express ultracode in the statusline
+  // payload, so nothing is inferred from it unless the user opts in.
+  it.each(["low", "medium", "high", "xhigh", "max"])(
     "renders '%s' as plain text with no state-signal colour (family accent applies)",
     (effort) => {
       const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: effort }), {
@@ -400,14 +400,47 @@ describe("thinking-effort widget", () => {
   });
 
   it("normalises 'ULTRACODE' to 'ultracode' — recognised as a first-class tier", () => {
-    // `ultracode` is a forced forward-compat tier: the host does not currently
-    // emit it as a level (its ultracode mode reports effort as `xhigh`), but the
-    // widget recognises it so it renders normalised the day the host exposes it.
+    // `ultracode` is a forward-compat tier: the host does not emit it as a level
+    // today, but the widget recognises it so it renders normalised the day the
+    // host exposes one.
     const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "ULTRACODE" }), {
       options: {},
       rawValue: false,
     });
     expect(cell.text).toBe("ultracode");
+  });
+
+  // ── ultracode is not inferable from the payload (issue #303) ────────────
+
+  it("does not infer ultracode from a raw xhigh by default", () => {
+    // The host resolves `effort.level` through launch-effort pinning and an
+    // xhigh capability downgrade, and never ships the `ultracode` boolean that
+    // actually distinguishes the mode. `/effort xhigh` and `/effort ultracode`
+    // therefore produce byte-identical payloads: guessing is wrong both ways.
+    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "xhigh" }), {
+      options: {},
+      rawValue: false,
+    });
+    expect(cell.text).toBe("xhigh");
+    expect(cell.fg).toBeUndefined();
+  });
+
+  it("relabels a raw xhigh as ultracode only when the user opts in", () => {
+    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "xhigh" }), {
+      options: { assumeUltracode: true },
+      rawValue: false,
+    });
+    expect(cell.text).toBe("ultracode");
+    expect(cell.fg).toBe(DEFAULT_PALETTE["effort-ultracode"]);
+  });
+
+  it("honours a host-emitted ultracode level regardless of the opt-in", () => {
+    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "ultracode" }), {
+      options: { assumeUltracode: false },
+      rawValue: false,
+    });
+    expect(cell.text).toBe("ultracode");
+    expect(cell.fg).toBe(DEFAULT_PALETTE["effort-ultracode"]);
   });
 
   it("renders unknown effort verbatim with no colour", () => {
@@ -429,13 +462,11 @@ describe("thinking-effort widget", () => {
 
   // ── emphasis variant (opt-in tier colour ramp, issue #280) ──────────────
 
-  // `xhigh` is omitted here: with `assumeUltracode` on by default (issue #295)
-  // an emphasis `xhigh` promotes to `ultracode` (its own violet, tested
-  // separately). Its accent ramp is only reachable with `assumeUltracode: false`.
   it.each([
     ["low", "muted"],
     ["medium", "info"],
     ["high", "accent"],
+    ["xhigh", "accent"],
     ["max", "success"],
   ] as const)(
     "emphasis variant colours '%s' with the '%s' role and sets signal",
@@ -450,13 +481,13 @@ describe("thinking-effort widget", () => {
     },
   );
 
-  it("emphasis colours a raw xhigh with the accent role when the user opts out", () => {
+  it("emphasis promotes a raw xhigh to ultracode's violet when the user opts in", () => {
     const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "xhigh" }), {
-      options: { emphasis: true, assumeUltracode: false },
+      options: { emphasis: true, assumeUltracode: true },
       rawValue: false,
     });
-    expect(cell.text).toBe("xhigh");
-    expect(cell.fg).toBe(DEFAULT_PALETTE.accent);
+    expect(cell.text).toBe("ultracode");
+    expect(cell.fg).toBe(DEFAULT_PALETTE["effort-ultracode"]);
     expect(cell.signal).toBe(true);
   });
 
@@ -492,18 +523,6 @@ describe("thinking-effort widget", () => {
 
   it("renders ultracode in its signature violet even without emphasis (always noticeable)", () => {
     const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "ultracode" }), {
-      options: {},
-      rawValue: false,
-    });
-    expect(cell.text).toBe("ultracode");
-    expect(cell.fg).toBe(DEFAULT_PALETTE["effort-ultracode"]);
-    expect(cell.signal).toBe(true);
-  });
-
-  it("surfaces a raw xhigh as ultracode by default (assumeUltracode on — issue #295)", () => {
-    // The host reports ultracode mode as `xhigh`; the default-on relabel
-    // promotes it so users see `ultracode` without editing config.
-    const cell = thinkingEffortWidget.render(makeCtx({ thinkingEffort: "xhigh" }), {
       options: {},
       rawValue: false,
     });
