@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] — 2026-07-09
+
+### Fixed
+
+- `a5e647c` — the statusline now composes against the full terminal width instead of reserving 40 columns for host chrome that does not exist. The `terminalWidth.mode` default of `full-minus-40` subtracted 40 columns from the width the host reports via `COLUMNS` before composing, so on an ~87-column pane the renderer composed against 47 and elided every widget past it behind an ellipsis while the terminal sat visibly empty to the right. The host hands the statusline command its own full width, so nothing needed to be held back. A line that genuinely overflows still elides, now at the real terminal width, and the undetected-width path is unchanged. The rest of the knob was inert and is retired: `compactThreshold` fed only an `isCompact` flag no caller read, and the `full` and `full-until-compact` modes were byte-identical. The `terminalWidth` key stays accepted by the schema — now deprecated and ignored — so an existing config keeps validating rather than being discarded.
+
 ## [1.7.0] — 2026-07-09
 
 ### Removed
