@@ -17,6 +17,7 @@ import { frozenClock } from "../clock/clock.js";
 import type { WidgetContext } from "../types.js";
 import { WidgetRegistry } from "../registry/registry.js";
 
+import { contextCachedWidget } from "../context/context-cached/context-cached.js";
 import { contextPercentageWidget } from "../context/percentage/percentage.js";
 import { registerContextWidgets, CONTEXT_WIDGETS } from "../context/index.js";
 
@@ -178,6 +179,28 @@ describe("token widgets", () => {
   it("tokens-cached hides when the context_window block is absent", () => {
     const ctx = cachedCtx(undefined);
     expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
+  });
+
+  it("tokens-cached and context-cached agree — one statusline, one cache figure", () => {
+    // Regression: tokens-cached read the frozen payload while context-cached
+    // aggregated the live transcript, so the same statusline could show 188k
+    // and 58.9M side by side.
+    const ctx = cachedCtx({ cachedTokens: 188_390, windowSize: 1_000_000 });
+    const cached = tokensCachedWidget.render(ctx, { options: {}, rawValue: true }).text;
+    const ctxCached = contextCachedWidget.render(ctx, { options: {}, rawValue: true }).text;
+    expect(cached).toBe("188k");
+    expect(ctxCached).toBe(cached);
+  });
+
+  it("context-cached falls back to the last transcript event, never a sum", () => {
+    const ctx = makeCtx(
+      makeSnapshot([
+        ev({ timestamp: 0, cachedTokens: 300_000 }),
+        ev({ timestamp: 100, cachedTokens: 320_000 }),
+      ]),
+    );
+    // Sum would be 620k; the last event's level is the honest stand-in.
+    expect(contextCachedWidget.render(ctx, { options: {}, rawValue: true }).text).toBe("320k");
   });
 
   it("tokens-cached honours the label option and rawValue", () => {
