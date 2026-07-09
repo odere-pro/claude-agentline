@@ -20,6 +20,27 @@ describe("validateConfig", () => {
     expect(() => validateConfig(cfg)).not.toThrow();
   });
 
+  it("accepts a config naming the retired cost widgets (issue #305)", () => {
+    // `cost-burn-rate` / `cost-efficiency` were retired for dividing by an
+    // idle-inclusive wall clock. A config that still names them must keep
+    // rendering every other cell.
+    const cfg = {
+      ...DEFAULT_CONFIG,
+      lines: [
+        {
+          widgets: [
+            { type: "model" },
+            { type: "cost-burn-rate" },
+            { type: "cost-usd" },
+            { type: "cost-efficiency" },
+          ],
+        },
+      ],
+    };
+    expect(() => validateConfig(cfg)).not.toThrow();
+    expect(cfg.lines[0]!.widgets).toHaveLength(4);
+  });
+
   it("keeps the unknown widget in the config so the render can hide it", () => {
     const cfg = {
       ...DEFAULT_CONFIG,

@@ -12,11 +12,7 @@ import { describe, expect, it } from "vitest";
 
 import { RESET_AXES } from "../../../data/tokens/index.js";
 import { WIDGET_CATALOG } from "../catalog.js";
-import {
-  KNOWN_OPTION_KEYS,
-  validateWidgetOption,
-  validateWidgetOptions,
-} from "./option-spec.js";
+import { KNOWN_OPTION_KEYS, validateWidgetOption, validateWidgetOptions } from "./option-spec.js";
 
 /**
  * The audited (widget type → option keys it reads) map. Mirrors every

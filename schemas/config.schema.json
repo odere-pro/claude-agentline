@@ -107,8 +107,6 @@
             "context-200k-flag",
             "context-cached",
             "context-percentage",
-            "cost-burn-rate",
-            "cost-efficiency",
             "cost-usd",
             "cost-vs-limit",
             "cwd-path",

@@ -103,26 +103,31 @@ so the line is never blank for an authenticated user.
 
 ### Tokens (8)
 
-| Type              | Renders                                             | Required `options.reset` |
-| ----------------- | --------------------------------------------------- | ------------------------ |
-| `tokens`          | input ↓ and output ↑ subtotals (`↓<in> · ↑<out>`)   | yes                      |
-| `tokens-cached`   | cached portion of the current context window        | no                       |
-| `token-speed`     | input ↓ and output ↑ tokens per second (rolling)    | no — uses `windowSec`    |
-| `cost-usd`        | host-reported session cost in USD (e.g. `$1.23`)    | no                       |
-| `cost-burn-rate`  | session spend rate, `$/hr` (e.g. `$1.20/hr`)        | no                       |
-| `api-duration`    | API wait time (`2.3s`; `percent: true` → % of wall) | no                       |
-| `cost-efficiency` | share of wall-clock spent in API calls, as a `%`    | no                       |
-| `cost-vs-limit`   | spend against a `budget` (e.g. `$1.20/$5`)          | no — needs `budget`      |
+| Type            | Renders                                             | Required `options.reset` |
+| --------------- | --------------------------------------------------- | ------------------------ |
+| `tokens`        | input ↓ and output ↑ subtotals (`↓<in> · ↑<out>`)   | yes                      |
+| `tokens-cached` | cached portion of the current context window        | no                       |
+| `token-speed`   | input ↓ and output ↑ tokens per second (rolling)    | no — uses `windowSec`    |
+| `cost-usd`      | host-reported session cost in USD (e.g. `$1.23`)    | no                       |
+| `api-duration`  | API wait time (`2.3s`; `percent: true` → % of wall) | no                       |
+| `cost-vs-limit` | spend against a `budget` (e.g. `$1.20/$5`)          | no — needs `budget`      |
 
 `tokens` and `token-speed` take optional `inputGlyph` / `outputGlyph`
 (defaults `↓` / `↑`). `token-speed` takes `windowSec` (default 60,
-clamped 1–3600) instead of a reset axis. The five cost widgets read
+clamped 1–3600) instead of a reset axis. The three cost widgets read
 host-provided scalars from the stdin `cost` block — they carry no reset
-axis and hide when their source field is absent (`cost-burn-rate` /
-`cost-efficiency` also hide on a zero wall-clock duration to avoid a
+axis and hide when their source field is absent (`api-duration` under
+`options.percent` also hides on a zero wall-clock duration to avoid a
 divide-by-zero). `cost-vs-limit` takes a required `budget` option (USD, a
 positive number); it hides without it and signals the theme `danger` role
 when spend reaches or exceeds the budget.
+
+`cost-burn-rate` and `cost-efficiency` were retired (issue #305). Both
+divided by `cost.total_duration_ms`, the host's idle-inclusive lifetime
+wall-clock, so a `$/hr` decayed toward zero across a resumed session and the
+"efficiency" percent tracked how long the terminal sat open rather than
+anything about cost. `api-duration` with `options.percent` reports the same
+API-active share under a name that says so.
 
 ### Context (3)
 
