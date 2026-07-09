@@ -23,7 +23,7 @@ install_gate_preflight
 
 WORK="${GATES_TMP_DIR}/gate-07"
 make_install_sandbox "${WORK}/sandbox"
-trap 'rm -rf "${WORK}/sandbox" "${WORK}/sandbox-npmc"' EXIT
+trap 'rm -rf "${WORK}/sandbox" "${WORK}/sandbox-npmc" "${WORK}/sandbox-npmp"' EXIT
 
 settings="$(sandbox_settings_file)"
 foreign='starship init bash'

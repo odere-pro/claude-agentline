@@ -39,7 +39,7 @@ install_gate_preflight() {
 # into the variables the run_* helpers read. Call once per gate.
 #
 # Sets globals: SANDBOX_ROOT, SANDBOX_HOME, SANDBOX_CFG, SANDBOX_BIN,
-#               SANDBOX_NPM_CACHE.
+#               SANDBOX_NPM_CACHE, SANDBOX_NPM_PREFIX.
 make_install_sandbox() {
   SANDBOX_ROOT="$1"
   rm -rf "${SANDBOX_ROOT}"
@@ -50,7 +50,15 @@ make_install_sandbox() {
   # pollute the tree/hash snapshots (matches the integration suite).
   SANDBOX_NPM_CACHE="${SANDBOX_ROOT}-npmc"
   rm -rf "${SANDBOX_NPM_CACHE}"
-  mkdir -p "${SANDBOX_HOME}" "${SANDBOX_CFG}" "${SANDBOX_BIN}" "${SANDBOX_NPM_CACHE}"
+  # npm's *global prefix*. HOME does not relocate it, so without pinning it
+  # `uninstall.sh`'s `npm ls -g` / `npm uninstall -g @odere-pro/agentline`
+  # resolve against the real global root and remove the developer's own
+  # installed agentline. Kept outside the snapshot root like the cache.
+  SANDBOX_NPM_PREFIX="${SANDBOX_ROOT}-npmp"
+  rm -rf "${SANDBOX_NPM_PREFIX}"
+  mkdir -p "${SANDBOX_HOME}" "${SANDBOX_CFG}" "${SANDBOX_BIN}" "${SANDBOX_NPM_CACHE}" \
+    "${SANDBOX_NPM_PREFIX}/lib/node_modules" "${SANDBOX_NPM_PREFIX}/node_modules" \
+    "${SANDBOX_NPM_PREFIX}/bin"
   # Fake `agentline` so install.sh's `command -v agentline` succeeds and
   # the global npm-install step is skipped — keeps the gate offline.
   printf '#!/usr/bin/env bash\nexit 0\n' >"${SANDBOX_BIN}/agentline"
@@ -69,6 +77,8 @@ run_install() {
   CLAUDE_CONFIG_DIR="${SANDBOX_CFG}" \
   PATH="${SANDBOX_BIN}:${PATH}" \
   npm_config_cache="${SANDBOX_NPM_CACHE}" \
+  npm_config_prefix="${SANDBOX_NPM_PREFIX}" \
+  NPM_CONFIG_PREFIX="${SANDBOX_NPM_PREFIX}" \
   npm_config_update_notifier=false \
     bash "${INSTALL_SH}" "$@" >"${__out}" 2>&1
   __rc=$?
@@ -85,6 +95,8 @@ run_uninstall() {
   CLAUDE_CONFIG_DIR="${SANDBOX_CFG}" \
   PATH="${SANDBOX_BIN}:${PATH}" \
   npm_config_cache="${SANDBOX_NPM_CACHE}" \
+  npm_config_prefix="${SANDBOX_NPM_PREFIX}" \
+  NPM_CONFIG_PREFIX="${SANDBOX_NPM_PREFIX}" \
   npm_config_update_notifier=false \
     bash "${UNINSTALL_SH}" "$@" >"${__out}" 2>&1
   __rc=$?
