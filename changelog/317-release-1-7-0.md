@@ -1,0 +1,1 @@
+- chore: release v1.7.0 — fold the pending fragments into a curated `[1.7.0]` section of `CHANGELOG.md`, clear the folded fragments, and bump the package, bundled bin, and landing-page version to 1.7.0.
