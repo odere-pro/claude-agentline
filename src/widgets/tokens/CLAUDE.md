@@ -4,9 +4,9 @@
 
 ## Scope
 
-The token widget family. The widgets themselves are defined in `fields.ts` (most via the `defineTokensFieldWidget` factory) and in `speed/`. The remaining folders hold shared helpers used across the family:
+The token widget family. The widgets themselves are defined in `fields.ts` and in `speed/`. The remaining folders hold shared helpers used across the family:
 
-- `fields.ts` — the field-style widgets (`tokens`, `tokens-cached`, …). One factory call per `type`.
+- `fields.ts` — `tokens` (an accumulator over the reset axis) and `tokens-cached` (a point-in-time gauge read from the host payload).
 - `speed/` — the tokens-per-minute widget.
 - `format/` — shared number-formatting helpers (k / M, locale-aware).
 - `options/` — shared option-shape helpers (reset axis, mode).
@@ -15,15 +15,15 @@ The token widget family. The widgets themselves are defined in `fields.ts` (most
 
 ```
 src/widgets/tokens/
-├── fields.ts   field-style widgets defined via defineTokensFieldWidget factory
-│                (tokens, tokens-cached, …)
+├── fields.ts   tokens (accumulator) + tokens-cached (point-in-time gauge)
 ├── speed/      the tokens-per-minute widget
 ├── format/     shared number-formatting helpers (k / M, locale-aware)
 └── options/    shared option-shape helpers (reset axis, mode)
 
-  Every token widget declares a reset axis from the enum
+  Every token *accumulator* declares a reset axis from the enum
   (session | block | day | week | model | effort).
   Mixed-axis aggregation refused at schema time (src/data/config/validate/).
+  `tokens-cached` is not an accumulator and declares no axis (issue #306).
 ```
 
 Patterns: **Pure-function widget** + **Reset-axis tag on accumulators** (`docs/cookbook/05-design-patterns.md`).
@@ -38,7 +38,8 @@ pnpm exec vitest run src/widgets/tokens
 
 ## Invariants you must not break
 
-- **Reset axis is mandatory and explicit.** Every accumulator widget here declares a `reset` axis (one of `session | block | day | week | model | effort`). Mixed-axis sums are rejected at schema time — never combine axes in a widget render function.
+- **Reset axis is mandatory and explicit for accumulators.** Every accumulator widget here declares a `reset` axis (one of `session | block | day | week | model | effort`). Mixed-axis sums are rejected at schema time — never combine axes in a widget render function. `tokens-cached` is exempt: it is a point-in-time gauge over `ctx.stdin.contextWindow`, with no window to aggregate.
+- **Never sum a per-turn cache figure.** Each turn re-reads essentially the whole prompt cache, so `cache_read_input_tokens` accumulated over a window is meaningless (163M against a true 322k on a real session). Cache is a level, not a flow.
 - **Widgets are pure.** Read `ctx.tokens` (frozen snapshot from `src/data/tokens/`); never re-aggregate or re-read the transcript here.
 - **Speed reads `ctx.clock`, never wall time.** Goldens stay stable across time zones and CI runners because speed is a function of the injected clock (D-006).
 - **Absent snapshot ⇒ hidden cell.** No transcript, no tokens, no model info → hide; never throw.
