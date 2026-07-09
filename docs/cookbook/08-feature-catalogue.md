@@ -27,12 +27,12 @@ Surface state from the host stdin payload.
 
 ### Tokens (4 widgets)
 
-`tokens` / `tokens-cached` declare `options.reset` ∈ {`session`, `block`, `day`, `week`, `model`, `effort`}; mixed-axis aggregation forbidden. `token-speed` uses `options.windowSec` instead.
+`tokens` declares `options.reset` ∈ {`session`, `block`, `day`, `week`, `model`, `effort`}; mixed-axis aggregation forbidden. `token-speed` uses `options.windowSec` instead. `tokens-cached` is a point-in-time gauge read from the host payload and declares no reset axis.
 
 | Type            | Renders                                             |
 | --------------- | --------------------------------------------------- |
 | `tokens`        | Input ↓ + output ↑ subtotals (`↓<in> · ↑<out>`)     |
-| `tokens-cached` | Cached subtotal (prompt-cache hits)                 |
+| `tokens-cached` | Cached portion of the current context window        |
 | `token-speed`   | Input ↓ + output ↑ tokens/sec over a rolling window |
 | `cost-usd`      | Host-reported session cost in USD (e.g. `$1.23`)    |
 

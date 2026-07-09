@@ -112,6 +112,13 @@ export interface StdinPayload {
     readonly usedTokens?: number;
     readonly windowSize?: number;
     readonly usedPercentage?: number;
+    /**
+     * `current_usage.cache_read + cache_creation` — the cached portion of
+     * the prompt the model just saw. Point-in-time, bounded by `windowSize`.
+     * Distinct from a cumulative sum of per-turn cache reads, which grows
+     * without bound because every turn re-reads the whole cache.
+     */
+    readonly cachedTokens?: number;
   };
   /**
    * Server-side usage-limit snapshot Claude Code reports in its
@@ -440,6 +447,10 @@ function adaptContextWindow(value: unknown): StdinPayload["contextWindow"] | und
     usedInput !== undefined || usedCacheRead !== undefined || usedCacheCreate !== undefined
       ? (usedInput ?? 0) + (usedCacheRead ?? 0) + (usedCacheCreate ?? 0)
       : undefined;
+  const cachedTokens =
+    usedCacheRead !== undefined || usedCacheCreate !== undefined
+      ? (usedCacheRead ?? 0) + (usedCacheCreate ?? 0)
+      : undefined;
   const windowSize = pickFiniteNumber(value, "context_window_size");
   const usedPercentage = pickFiniteNumber(value, "used_percentage");
   if (usedTokens === undefined && windowSize === undefined && usedPercentage === undefined) {
@@ -449,6 +460,7 @@ function adaptContextWindow(value: unknown): StdinPayload["contextWindow"] | und
     ...(usedTokens !== undefined ? { usedTokens } : {}),
     ...(windowSize !== undefined ? { windowSize } : {}),
     ...(usedPercentage !== undefined ? { usedPercentage } : {}),
+    ...(cachedTokens !== undefined ? { cachedTokens } : {}),
   };
 }
 

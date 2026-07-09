@@ -17,6 +17,7 @@ import { frozenClock } from "../clock/clock.js";
 import type { WidgetContext } from "../types.js";
 import { WidgetRegistry } from "../registry/registry.js";
 
+import { contextCachedWidget } from "../context/context-cached/context-cached.js";
 import { contextPercentageWidget } from "../context/percentage/percentage.js";
 import { registerContextWidgets, CONTEXT_WIDGETS } from "../context/index.js";
 
@@ -111,13 +112,11 @@ describe("token widgets", () => {
   it("hide when ctx.tokens is undefined", () => {
     const ctx = makeCtx(undefined);
     expect(tokensWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
-    expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
   });
 
   it("render 0 when the snapshot has no events", () => {
     const ctx = makeCtx(makeSnapshot([]));
     expect(tokensWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("↓0 · ↑0");
-    expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("0");
   });
 
   it("tokens renders input ↓ and output ↑ summed across the session", () => {
@@ -147,21 +146,71 @@ describe("token widgets", () => {
     ).toBe(">100 · <200");
   });
 
-  it("tokens-cached sums cache_read + cache_creation as one bucket", () => {
-    const ctx = makeCtx(
-      makeSnapshot([
-        ev({ timestamp: 0, cachedTokens: 500 }),
-        ev({ timestamp: 100, cachedTokens: 300 }),
-      ]),
-    );
-    expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("800");
+  // ── tokens-cached: point-in-time gauge, not an accumulator (issue #306) ──
+
+  const cachedCtx = (contextWindow: StdinPayload["contextWindow"]): WidgetContext =>
+    makeCtx(makeSnapshot([ev({ timestamp: 0, cachedTokens: 9_999_999 })]), {
+      stdin: { ...baseStdin, ...(contextWindow ? { contextWindow } : {}) },
+    });
+
+  it("tokens-cached renders the cached portion of the current context window", () => {
+    const ctx = cachedCtx({ cachedTokens: 323_428, windowSize: 1_000_000 });
+    expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("323k");
   });
 
-  it("tokens-cached does not include input or output tokens", () => {
+  it("tokens-cached ignores the transcript entirely — no cumulative sum", () => {
+    // Regression: summing per-turn cache reads produced 163M against a true
+    // cached context of 322k, because every turn re-reads the whole cache.
+    const ctx = cachedCtx({ cachedTokens: 500 });
+    expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("500");
+  });
+
+  it("tokens-cached never exceeds the context window", () => {
+    const ctx = cachedCtx({ cachedTokens: 200_000, windowSize: 200_000 });
+    const text = tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).text;
+    expect(text).toBe("200k");
+  });
+
+  it("tokens-cached hides when the host reports no cache figures", () => {
+    const ctx = cachedCtx({ usedTokens: 10, windowSize: 200_000 });
+    expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
+  });
+
+  it("tokens-cached hides when the context_window block is absent", () => {
+    const ctx = cachedCtx(undefined);
+    expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).hidden).toBe(true);
+  });
+
+  it("tokens-cached and context-cached agree — one statusline, one cache figure", () => {
+    // Regression: tokens-cached read the frozen payload while context-cached
+    // aggregated the live transcript, so the same statusline could show 188k
+    // and 58.9M side by side.
+    const ctx = cachedCtx({ cachedTokens: 188_390, windowSize: 1_000_000 });
+    const cached = tokensCachedWidget.render(ctx, { options: {}, rawValue: true }).text;
+    const ctxCached = contextCachedWidget.render(ctx, { options: {}, rawValue: true }).text;
+    expect(cached).toBe("188k");
+    expect(ctxCached).toBe(cached);
+  });
+
+  it("context-cached falls back to the last transcript event, never a sum", () => {
     const ctx = makeCtx(
-      makeSnapshot([ev({ timestamp: 0, inputTokens: 999, outputTokens: 999, cachedTokens: 100 })]),
+      makeSnapshot([
+        ev({ timestamp: 0, cachedTokens: 300_000 }),
+        ev({ timestamp: 100, cachedTokens: 320_000 }),
+      ]),
     );
-    expect(tokensCachedWidget.render(ctx, { options: {}, rawValue: false }).text).toBe("100");
+    // Sum would be 620k; the last event's level is the honest stand-in.
+    expect(contextCachedWidget.render(ctx, { options: {}, rawValue: true }).text).toBe("320k");
+  });
+
+  it("tokens-cached honours the label option and rawValue", () => {
+    const ctx = cachedCtx({ cachedTokens: 500 });
+    expect(
+      tokensCachedWidget.render(ctx, { options: { label: "cache " }, rawValue: false }).text,
+    ).toBe("cache 500");
+    expect(
+      tokensCachedWidget.render(ctx, { options: { label: "cache " }, rawValue: true }).text,
+    ).toBe("500");
   });
 
   it("respects options.reset axis", () => {
@@ -251,7 +300,6 @@ describe("context widgets", () => {
       expect(cell.signal).toBeUndefined();
     }
   });
-
 });
 
 describe("registries", () => {

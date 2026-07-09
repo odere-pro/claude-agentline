@@ -42,8 +42,12 @@ const UNIVERSAL_KEYS: ReadonlySet<string> = new Set(["label"]);
  * Widgets that take a `reset` axis (the token accumulators). The axis is
  * validated against `RESET_AXES`; `reset` is implicit (not re-listed in
  * `WIDGET_OPTIONS`) for these.
+ *
+ * `tokens-cached` is absent by design (issue #306): it reports the cached
+ * portion of the current context window, a point-in-time gauge, so there is
+ * no window to aggregate over.
  */
-const RESET_WIDGETS: ReadonlySet<string> = new Set(["tokens", "tokens-cached"]);
+const RESET_WIDGETS: ReadonlySet<string> = new Set(["tokens"]);
 
 /** A free-form-but-known option (any value accepted; the KEY is known). */
 const FREE: OptionRule = {};
@@ -76,7 +80,7 @@ const WIDGET_OPTIONS: Readonly<Record<string, WidgetOptionSpec>> = Object.freeze
   "lines-changed": {},
   // ── tokens (cost block: host scalars, no reset axis) ─────────────────
   tokens: { inputGlyph: FREE, outputGlyph: FREE },
-  "tokens-cached": { inputGlyph: FREE, outputGlyph: FREE },
+  "tokens-cached": {},
   "token-speed": { windowSec: FREE, inputGlyph: FREE, outputGlyph: FREE },
   "cost-usd": {},
   "cost-burn-rate": {},

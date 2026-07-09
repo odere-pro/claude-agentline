@@ -106,7 +106,7 @@ so the line is never blank for an authenticated user.
 | Type              | Renders                                             | Required `options.reset` |
 | ----------------- | --------------------------------------------------- | ------------------------ |
 | `tokens`          | input ↓ and output ↑ subtotals (`↓<in> · ↑<out>`)   | yes                      |
-| `tokens-cached`   | cached-token subtotal (prompt-cache hits)           | yes                      |
+| `tokens-cached`   | cached portion of the current context window        | no                       |
 | `token-speed`     | input ↓ and output ↑ tokens per second (rolling)    | no — uses `windowSec`    |
 | `cost-usd`        | host-reported session cost in USD (e.g. `$1.23`)    | no                       |
 | `cost-burn-rate`  | session spend rate, `$/hr` (e.g. `$1.20/hr`)        | no                       |

@@ -170,7 +170,7 @@ All types are kebab-case strings. Source of truth: `src/widgets/families/catalog
 | Type              | Description                                               |
 | ----------------- | --------------------------------------------------------- |
 | `tokens`          | Input ↓ + output ↑ subtotals for the chosen reset axis    |
-| `tokens-cached`   | Cached-token subtotal (prompt-cache hits)                 |
+| `tokens-cached`   | Cached portion of the current context window              |
 | `token-speed`     | Input ↓ + output ↑ tokens per second (rolling window)     |
 | `cost-usd`        | Host-reported session cost in USD (e.g. $1.23)            |
 | `cost-burn-rate`  | Session spend rate in USD per hour (e.g. $1.20/hr)        |

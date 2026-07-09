@@ -41,29 +41,28 @@ export function formatWindowLabel(window: number): string | null {
 }
 
 /**
- * Resolve the cached-token count for the current session — the same cache
- * source `context-percentage`'s usage path counts (the transcript
- * `TokensSnapshot` aggregated over the session). Returns `null` when no
- * snapshot is available or the session has no cached tokens. Used by the
- * `context-cached` widget and `context-percentage`'s `showCached` postfix.
+ * Resolve the cached portion of the **current** context window. Used by the
+ * `context-cached` widget and `context-percentage`'s `showCached` postfix,
+ * and matching what `tokens-cached` renders — one statusline must not report
+ * cache two different ways (issue #306).
  *
- * The live `context_window` block sums cache reads/writes into a single
- * `usedTokens` and never reports the cached portion separately, so the
- * cached figure is necessarily the transcript-derived one — the same
- * value `tokens-cached` shows.
+ * Prefers the host's `context_window.current_usage` cache figures. Falls back
+ * to the transcript only when the host sends none (older Claude Code), where
+ * the last event's cached count — not a sum across events — is the closest
+ * available stand-in: every turn re-reads essentially the whole prompt cache,
+ * so summing per-turn cache reads is meaningless (a real 484-turn session
+ * summed to 163M against a true cached context of 322k).
+ *
+ * Returns `null` when nothing is available or the count is zero.
  */
 export function resolveCachedTokens(ctx: WidgetContext): number | null {
+  const live = ctx.stdin.contextWindow?.cachedTokens;
+  if (live !== undefined) return live > 0 ? live : null;
   const snapshot = ctx.tokens;
   if (!snapshot) return null;
-  const totals = aggregate({
-    events: snapshot.events,
-    axis: "session",
-    now: snapshot.now,
-    sessionStart: snapshot.sessionStart,
-    model: ctx.stdin.model,
-    effort: ctx.stdin.thinkingEffort,
-  });
-  return totals.cached > 0 ? totals.cached : null;
+  const last = snapshot.events.at(-1);
+  if (!last) return null;
+  return last.cachedTokens > 0 ? last.cachedTokens : null;
 }
 
 export function resolveContextUsage(ctx: WidgetContext): { used: number; window: number } | null {
