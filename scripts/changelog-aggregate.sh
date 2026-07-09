@@ -5,9 +5,11 @@
 # introduced the fragment. Idempotent against an empty fragment dir.
 #
 # Usage:
-#   bash scripts/changelog-aggregate.sh            # dry-run; print to stdout
-#   bash scripts/changelog-aggregate.sh --apply    # rewrite CHANGELOG.md and
-#                                                  # remove the fragments
+#   bash scripts/changelog-aggregate.sh                     # dry-run; print to stdout
+#   bash scripts/changelog-aggregate.sh --apply             # rewrite CHANGELOG.md and
+#                                                           # remove the fragments
+#   bash scripts/changelog-aggregate.sh --apply \
+#     --section Fixed                                       # fold under `### Fixed`
 #
 # Hard rules:
 # - Fragment filenames are anything matching `changelog/*.md` except
@@ -24,9 +26,12 @@
 #        show something useful.
 # - Fragments are sorted by introducing commit date (oldest first), with
 #   uncommitted fragments appended at the end in lexical order.
-# - The aggregator inserts under the first `### Added` heading inside
-#   `## [Unreleased]`. If that heading is missing, the script exits 1 and
-#   asks the caller to add it.
+# - The aggregator inserts under the `### <section>` heading inside
+#   `## [Unreleased]` (`--section`, default `Added`). If that heading is
+#   missing it is created at the top of the `[Unreleased]` block — a
+#   Fixed-only or Security-only release needs no hand-editing first.
+# - On any failure `--apply` leaves CHANGELOG.md and the fragments untouched
+#   and removes its own temp files.
 
 set -Eeuo pipefail
 
@@ -36,15 +41,34 @@ FRAGMENTS_DIR="${REPO_ROOT}/changelog"
 CHANGELOG="${REPO_ROOT}/CHANGELOG.md"
 
 APPLY=0
-case "${1:-}" in
-  --apply) APPLY=1 ;;
-  ""|--dry-run) APPLY=0 ;;
-  -h|--help)
-    sed -n '2,18p' "$0"
-    exit 0
-    ;;
-  *)
-    printf 'changelog-aggregate: unknown option: %s\n' "$1" >&2
+SECTION="Added"
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --apply) APPLY=1 ;;
+    --dry-run) APPLY=0 ;;
+    --section)
+      shift || true
+      SECTION="${1:-}"
+      ;;
+    --section=*) SECTION="${1#--section=}" ;;
+    -h|--help)
+      sed -n '2,20p' "$0"
+      exit 0
+      ;;
+    "") ;;
+    *)
+      printf 'changelog-aggregate: unknown option: %s\n' "$1" >&2
+      exit 1
+      ;;
+  esac
+  shift || break
+done
+
+# The section name is interpolated into an awk program and a Markdown heading;
+# keep it to a bare Keep-a-Changelog word so neither can be injected into.
+case "${SECTION}" in
+  *[!A-Za-z]*|"")
+    printf 'changelog-aggregate: invalid --section %s (letters only)\n' "${SECTION}" >&2
     exit 1
     ;;
 esac
@@ -149,41 +173,61 @@ if [ "${APPLY}" -eq 0 ]; then
   exit 0
 fi
 
-# --apply path: insert under the first "### Added" inside "## [Unreleased]".
-# macOS `awk -v` rejects literal newlines inside variables; pass the bullet
-# block via a sentinel file instead.
+# --apply path: insert under "### ${SECTION}" inside "## [Unreleased]",
+# creating that heading when the block does not already carry it.
+#
+# awk writes the whole rewritten file before its END rule can fail, so
+# `${CHANGELOG}.tmp` exists by the time a failure aborts the script. Trap it
+# alongside the bullets file — a leaked tmp gets swept into the release commit
+# by `git add -A` (issue #321). The `mv` is the commit point: until it runs,
+# CHANGELOG.md and the fragments are untouched.
 bullets_file="$(mktemp -t changelog-aggregate.XXXXXX)"
-trap 'rm -f "${bullets_file}"' EXIT
+changelog_tmp="${CHANGELOG}.tmp"
+trap 'rm -f "${bullets_file}" "${changelog_tmp}"' EXIT
 printf '%s' "${bullets}" >"${bullets_file}"
 
-awk -v addfile="${bullets_file}" '
-  BEGIN {
-    in_unrel = 0
-    inserted = 0
-  }
-  /^## \[Unreleased\]/ { in_unrel = 1; print; next }
-  /^## \[/ && in_unrel { in_unrel = 0 }
-  in_unrel && !inserted && /^### Added/ {
-    print
-    print ""
+awk -v addfile="${bullets_file}" -v section="${SECTION}" '
+  function emit_bullets() {
     while ((getline line < addfile) > 0) {
       print line
     }
     close(addfile)
     inserted = 1
+  }
+  function emit_section() {
+    print "### " section
+    print ""
+    emit_bullets()
+    print ""
+  }
+  BEGIN {
+    in_unrel = 0
+    inserted = 0
+    seen_unrel = 0
+  }
+  /^## \[Unreleased\]/ { in_unrel = 1; seen_unrel = 1; print; next }
+  /^## \[/ && in_unrel {
+    if (!inserted) emit_section()
+    in_unrel = 0
+  }
+  in_unrel && !inserted && $0 == "### " section {
+    print
+    print ""
+    emit_bullets()
     next
   }
   { print }
   END {
-    if (!inserted) {
-      print "changelog-aggregate: no `### Added` under `[Unreleased]`" \
+    if (in_unrel && !inserted) emit_section()
+    if (!seen_unrel) {
+      print "changelog-aggregate: no `## [Unreleased]` heading in CHANGELOG.md" \
         > "/dev/stderr"
       exit 1
     }
   }
-' "${CHANGELOG}" >"${CHANGELOG}.tmp"
+' "${CHANGELOG}" >"${changelog_tmp}"
 
-mv "${CHANGELOG}.tmp" "${CHANGELOG}"
+mv "${changelog_tmp}" "${CHANGELOG}"
 
 # Remove the consumed fragments. README.md stays.
 while IFS=$'\t' read -r _ts _sha f; do

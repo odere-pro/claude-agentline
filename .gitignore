@@ -48,4 +48,7 @@ logs/
 
 # Per-developer scratch
 tmp/
+
+# Scratch file written by scripts/changelog-aggregate.sh --apply
+CHANGELOG.md.tmp
 scratch/
