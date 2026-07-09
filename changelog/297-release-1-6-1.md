@@ -1,1 +1,0 @@
-- Release v1.6.1: fold the pending ultracode-default fragment into a curated `[1.6.1]` section of `CHANGELOG.md`, clear the folded fragment, and bump the package, bundled bin, and landing-page version to 1.6.1.
