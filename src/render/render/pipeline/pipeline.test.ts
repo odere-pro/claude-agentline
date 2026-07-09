@@ -151,7 +151,10 @@ describe("renderFromInputs", () => {
     expect(rows).toHaveLength(1);
   });
 
-  it("still wraps when an explicit narrow width is supplied", () => {
+  it("stays on one row when an explicit narrow width is supplied (issue #304)", () => {
+    // A configured line never spills onto a second physical row: the host
+    // paints one row per `\n`, and a varying row count is what corrupts its
+    // erase-and-redraw accounting. Overflow is elided, not wrapped.
     const config = {
       ...DEFAULT_CONFIG,
       lines: [{ widgets: [{ type: "clock" }, { type: "clock" }, { type: "clock" }] }],
@@ -165,7 +168,7 @@ describe("renderFromInputs", () => {
       clock: { now: () => new Date("2026-05-17T12:00:00Z") },
     });
     const rows = result.split("\n").filter((l) => l.length > 0);
-    expect(rows.length).toBeGreaterThan(1);
+    expect(rows).toHaveLength(1);
   });
 
   it("strips control characters injected via stdin-derived widget text", () => {
