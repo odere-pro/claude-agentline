@@ -35,3 +35,12 @@ updates:
     commit-message:
       prefix: ci
       include: scope
+    groups:
+      # `codeql-action/init` and `codeql-action/analyze` MUST move together:
+      # the analyze post-action aborts with "Loaded a configuration file for
+      # version 'X', but running version 'Y'" when the two steps resolve to
+      # different releases. Ungrouped, Dependabot opened one PR per sub-action
+      # (#298, #299) and neither could ever go green on its own.
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
