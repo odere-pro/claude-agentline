@@ -39,7 +39,7 @@ Restart Claude Code after `reset` — the statusline appears at the bottom of th
 
 ## Highlights
 
-**39 widgets across 6 families**, each covering one slice of session status:
+**37 widgets across 6 families**, each covering one slice of session status:
 
 | Family        | What it shows                                                      |
 | ------------- | ------------------------------------------------------------------ |

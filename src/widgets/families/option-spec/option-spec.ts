@@ -83,9 +83,7 @@ const WIDGET_OPTIONS: Readonly<Record<string, WidgetOptionSpec>> = Object.freeze
   "tokens-cached": {},
   "token-speed": { windowSec: FREE, inputGlyph: FREE, outputGlyph: FREE },
   "cost-usd": {},
-  "cost-burn-rate": {},
   "api-duration": { percent: FREE },
-  "cost-efficiency": {},
   "cost-vs-limit": { budget: FREE },
   // ── context ──────────────────────────────────────────────────────────
   "context-percentage": { showCached: FREE },

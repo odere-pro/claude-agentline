@@ -28,9 +28,9 @@ describe("WIDGET_CATALOG", () => {
     expect({ missing, extra }).toEqual({ missing: [], extra: [] });
   });
 
-  it("covers all 39 shipped widgets", () => {
-    expect(Object.keys(WIDGET_CATALOG)).toHaveLength(39);
-    expect(builtinRegistry().size()).toBe(39);
+  it("covers all 37 shipped widgets", () => {
+    expect(Object.keys(WIDGET_CATALOG)).toHaveLength(37);
+    expect(builtinRegistry().size()).toBe(37);
   });
 
   it("every entry has a non-empty description of at most 80 chars", () => {
@@ -86,10 +86,7 @@ describe("WIDGET_CATALOG — variants", () => {
       "at-12h",
       "at-seconds",
     ]);
-    expect(widgetVariants("context-percentage").map((v) => v.id)).toEqual([
-      "plain",
-      "with-cached",
-    ]);
+    expect(widgetVariants("context-percentage").map((v) => v.id)).toEqual(["plain", "with-cached"]);
   });
 
   it("widgets without distinct rendering modes carry no variants", () => {
@@ -127,9 +124,7 @@ describe("activeVariantId", () => {
   });
 
   it("ignores extra keys when matching (variant only constrains the keys it declares)", () => {
-    expect(activeVariantId("reset-timer", { format: "clock", pad: 2 })).toBe(
-      "clock",
-    );
+    expect(activeVariantId("reset-timer", { format: "clock", pad: 2 })).toBe("clock");
   });
 
   it("returns null when no variant matches", () => {

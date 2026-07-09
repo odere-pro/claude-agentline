@@ -303,14 +303,12 @@ describe("context widgets", () => {
 });
 
 describe("registries", () => {
-  it("registerTokenWidgets installs all eight widgets", () => {
+  it("registerTokenWidgets installs all six widgets", () => {
     const r = new WidgetRegistry();
     registerTokenWidgets(r);
-    expect(r.size()).toBe(8);
+    expect(r.size()).toBe(6);
     expect(r.list()).toEqual([
       "api-duration",
-      "cost-burn-rate",
-      "cost-efficiency",
       "cost-usd",
       "cost-vs-limit",
       "token-speed",
