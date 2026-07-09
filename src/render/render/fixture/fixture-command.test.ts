@@ -9,7 +9,12 @@ import { ConfigValidationError } from "../../../data/config/validate/validate.js
 import type * as ConfigLoadModule from "../../../data/config/load/load.js";
 import { makeGitSnapshot } from "../../../test-helpers/index.js";
 import { HelpRequestedError } from "../../../core/lib/help/help.js";
-import { parseRenderArgs, runRenderCommand, RenderUsageError } from "./fixture-command.js";
+import {
+  countRenderedLines,
+  parseRenderArgs,
+  runRenderCommand,
+  RenderUsageError,
+} from "./fixture-command.js";
 
 /** A complete serialized `GitState` with a host-provided PR (#255). */
 const HOST_PR_SNAPSHOT = makeGitSnapshot({
@@ -384,5 +389,30 @@ describe("loadLiveConfig invalid-config diagnostic", () => {
     });
 
     expect(stderrOutput()).not.toMatch(/config invalid/);
+  });
+});
+
+describe("countRenderedLines", () => {
+  // `renderFromInputs` ends the frame with exactly one trailing newline, so a
+  // naive split counted a phantom empty segment: a 3-line render logged 4.
+  it("does not count the frame's trailing newline as a row", () => {
+    expect(countRenderedLines("a\nb\nc\n")).toBe(3);
+  });
+
+  it("counts a single row", () => {
+    expect(countRenderedLines("only\n")).toBe(1);
+  });
+
+  it("counts rows for a frame with no trailing newline", () => {
+    expect(countRenderedLines("a\nb")).toBe(2);
+  });
+
+  it("reports zero for an empty frame", () => {
+    expect(countRenderedLines("")).toBe(0);
+    expect(countRenderedLines("\n")).toBe(0);
+  });
+
+  it("counts a deliberately blank interior row", () => {
+    expect(countRenderedLines("a\n\nc\n")).toBe(3);
   });
 });

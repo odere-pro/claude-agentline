@@ -129,6 +129,14 @@ wall-clock, so a `$/hr` decayed toward zero across a resumed session and the
 anything about cost. `api-duration` with `options.percent` reports the same
 API-active share under a name that says so.
 
+Note that `api-duration`'s `percent` variant divides by the same
+idle-inclusive `cost.total_duration_ms`, so it falls toward zero the longer a
+session sits idle. That is kept deliberately: the widget claims only to report
+the share of wall-clock spent waiting on the API, which is exactly what it
+measures. Its default (absolute) presentation reads `cost.apiDurationMs`
+directly and is unaffected. Prefer the default unless you specifically want the
+wall-clock share.
+
 ### Context (3)
 
 | Type                 | Renders                                             |

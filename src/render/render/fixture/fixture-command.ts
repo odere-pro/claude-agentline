@@ -100,6 +100,21 @@ const ACCESSIBILITY_FLAGS: ReadonlySet<string> = new Set([
   "--ascii",
 ]);
 
+/**
+ * Number of statusline rows in a rendered frame.
+ *
+ * `renderFromInputs` terminates the frame with a single trailing newline, so a
+ * naive `split("\n").length` counts a phantom empty segment and reports N+1
+ * (a three-line render logged `lineCount: 4`). Diagnostic-only — this figure
+ * feeds the render-cache `meta` that backs `agentline uninstall`'s
+ * "last statusline" view — but a row count that is silently wrong is exactly
+ * the sort of thing an operator would trust while debugging a row-count bug.
+ */
+export function countRenderedLines(out: string): number {
+  const body = out.endsWith("\n") ? out.slice(0, -1) : out;
+  return body === "" ? 0 : body.split("\n").length;
+}
+
 export async function runRenderCommand(input: RenderCommandInput): Promise<number> {
   const { fixture } = input.args;
   // Defense in depth: parseRenderArgs enforces `--git requires --fixture` for
@@ -195,7 +210,7 @@ export async function runRenderCommand(input: RenderCommandInput): Promise<numbe
     await saveLastRender(out, {
       meta: {
         ...(input.args.width !== undefined ? { width: input.args.width } : {}),
-        lineCount: out === "" ? 0 : out.split("\n").length,
+        lineCount: countRenderedLines(out),
       },
     });
     if ("plan" in liveSnapshots && liveSnapshots.plan) {
