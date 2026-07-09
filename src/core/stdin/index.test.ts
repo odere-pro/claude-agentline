@@ -129,6 +129,8 @@ describe("adaptStatuslinePayload — context_window block", () => {
     });
     expect(out.contextWindow).toEqual({
       usedTokens: 3500,
+      // cache_read + cache_creation — the cached portion of the live prompt.
+      cachedTokens: 2500,
       windowSize: 200_000,
       usedPercentage: 1.75,
     });
@@ -138,7 +140,15 @@ describe("adaptStatuslinePayload — context_window block", () => {
     const out = adaptStatuslinePayload({
       context_window: { current_usage: { cache_read_input_tokens: 4000 } },
     });
-    expect(out.contextWindow).toEqual({ usedTokens: 4000 });
+    expect(out.contextWindow).toEqual({ usedTokens: 4000, cachedTokens: 4000 });
+  });
+
+  it("omits cachedTokens when the host reports no cache figures", () => {
+    const out = adaptStatuslinePayload({
+      context_window: { current_usage: { input_tokens: 900 }, context_window_size: 200_000 },
+    });
+    expect(out.contextWindow).toEqual({ usedTokens: 900, windowSize: 200_000 });
+    expect(out.contextWindow?.cachedTokens).toBeUndefined();
   });
 
   it("returns usedPercentage alone when current_usage is absent", () => {

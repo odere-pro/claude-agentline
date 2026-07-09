@@ -33,7 +33,9 @@ const AUDITED_OPTIONS: Readonly<Record<string, readonly string[]>> = {
   "thinking-enabled": ["label", "showOff"],
   "api-duration": ["label", "percent"],
   tokens: ["label", "inputGlyph", "outputGlyph", "reset"],
-  "tokens-cached": ["label", "inputGlyph", "outputGlyph", "reset"],
+  // Point-in-time gauge: no reset axis, and it renders one value so the
+  // input/output glyph pair never applied (issue #306).
+  "tokens-cached": ["label"],
   "token-speed": ["label", "windowSec", "inputGlyph", "outputGlyph"],
   "git-changes": ["label", "hideZero"],
   "git-ahead-behind": ["label", "aheadGlyph", "behindGlyph", "glyph", "hideEven"],
