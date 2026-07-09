@@ -135,6 +135,45 @@ describe("renderFromInputs", () => {
     expect(rows).toHaveLength(3);
   });
 
+  it("uses the whole detected width — a line that fits is never elided", () => {
+    /*
+     * Issue #318: the renderer used to reserve 40 columns of host chrome
+     * that does not exist, so a line comfortably inside the terminal was
+     * elided with an ellipsis. Five clocks + separators is ~37 columns —
+     * well inside COLUMNS=60, and well outside the 20 the old
+     * `full-minus-40` default would have allowed.
+     */
+    const config = {
+      ...DEFAULT_CONFIG,
+      lines: [{ widgets: Array.from({ length: 5 }, () => ({ type: "clock" })) }],
+    };
+    const result = renderFromInputs({
+      payload: basePayload,
+      config,
+      theme: null,
+      env: { NO_COLOR: "1", COLUMNS: "60" },
+      clock: { now: () => new Date("2026-05-17T12:00:00Z") },
+    });
+    expect(result).not.toContain("…");
+    expect(result.match(/\d{2}:\d{2}/g)).toHaveLength(5);
+  });
+
+  it("still elides at the real terminal width when a line genuinely overflows", () => {
+    const config = {
+      ...DEFAULT_CONFIG,
+      lines: [{ widgets: Array.from({ length: 10 }, () => ({ type: "clock" })) }],
+    };
+    const result = renderFromInputs({
+      payload: basePayload,
+      config,
+      theme: null,
+      env: { NO_COLOR: "1", COLUMNS: "30" },
+      clock: { now: () => new Date("2026-05-17T12:00:00Z") },
+    });
+    expect(result).toContain("…");
+    expect(result.split("\n")[0]!.length).toBeLessThanOrEqual(30);
+  });
+
   it("does not wrap a wide single line when width is undetected", () => {
     const config = {
       ...DEFAULT_CONFIG,

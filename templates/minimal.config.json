@@ -4,13 +4,23 @@
   "theme": "claude-code-dark",
   "lines": [
     {
-      "widgets": [{ "type": "model" }, { "type": "context-percentage" }, { "type": "git-branch" }]
+      "widgets": [
+        {
+          "type": "model"
+        },
+        {
+          "type": "context-percentage"
+        },
+        {
+          "type": "git-branch"
+        }
+      ]
     }
   ],
   "global": {
     "padding": 1,
     "separator": "|",
-    "valueSeparator": "·",
+    "valueSeparator": "\u00b7",
     "inheritColors": false,
     "bold": false,
     "italic": false,
@@ -21,13 +31,12 @@
   "powerline": {
     "enabled": false,
     "theme": null,
-    "caps": { "start": "", "end": "" },
+    "caps": {
+      "start": "",
+      "end": ""
+    },
     "autoAlign": false,
     "continueColors": false
-  },
-  "terminalWidth": {
-    "mode": "full-minus-40",
-    "compactThreshold": 60
   },
   "keymap": {},
   "language": "en",

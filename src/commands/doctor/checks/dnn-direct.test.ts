@@ -58,7 +58,6 @@ function makeConfig(overrides: Partial<AgentlineConfig> = {}): AgentlineConfig {
       autoAlign: false,
       continueColors: false,
     },
-    terminalWidth: { mode: "full", compactThreshold: 80 },
     keymap: {},
     language: "en",
     refreshInterval: 0,

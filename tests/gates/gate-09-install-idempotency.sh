@@ -23,7 +23,7 @@ install_gate_preflight
 
 WORK="${GATES_TMP_DIR}/gate-09"
 make_install_sandbox "${WORK}/sandbox"
-trap 'rm -rf "${WORK}/sandbox" "${WORK}/sandbox-npmc"' EXIT
+trap 'rm -rf "${WORK}/sandbox" "${WORK}/sandbox-npmc" "${WORK}/sandbox-npmp"' EXIT
 
 # Pre-create ~/.claude so the FIRST install already seeds skills — that
 # way the second run has nothing new to add and the trees can match. (A

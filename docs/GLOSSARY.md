@@ -399,7 +399,6 @@ Public types exported from `src/`. Source of truth over any doc that lists them.
 | `PowerlineConfig`        | `src/data/config/types.ts`               | `config.powerline` block                                         |
 | `PowerlineCaps`          | `src/data/config/types.ts`               | Start/end cap glyphs                                             |
 | `PowerlineGlyphs`        | `src/data/config/types.ts`               | Chevron glyph overrides                                          |
-| `TerminalWidthConfig`    | `src/data/config/types.ts`               | Width detection settings                                         |
 | `RawColour`              | `src/data/config/types.ts`               | Pre-validation colour string                                     |
 | `Cell`                   | `src/widgets/types.ts`                   | Atomic render unit output                                        |
 | `WidgetContext`          | `src/widgets/types.ts`                   | Render-time environment passed to each widget                    |

@@ -68,7 +68,6 @@ cat <<'JSON' > tests/golden/my-scenario/config.json
   "powerline": { "enabled": false, "theme": null,
                  "caps": { "start": "", "end": "" },
                  "autoAlign": false, "continueColors": false },
-  "terminalWidth": { "mode": "full", "compactThreshold": 60 },
   "keymap": {}
 }
 JSON

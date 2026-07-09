@@ -23,7 +23,7 @@ install_gate_preflight
 
 WORK="${GATES_TMP_DIR}/gate-10"
 make_install_sandbox "${WORK}/sandbox"
-trap 'rm -rf "${WORK}/sandbox" "${WORK}/sandbox-npmc"' EXIT
+trap 'rm -rf "${WORK}/sandbox" "${WORK}/sandbox-npmc" "${WORK}/sandbox-npmp"' EXIT
 
 # Give dry-run something to act on: a pre-existing ~/.claude with a
 # foreign statusLine (so it would back up + rewire) and an existing

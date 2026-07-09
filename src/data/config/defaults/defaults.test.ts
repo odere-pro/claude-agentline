@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_COMPACT_THRESHOLD, DEFAULT_CONFIG } from "./defaults.js";
+import { DEFAULT_CONFIG } from "./defaults.js";
 
 describe("DEFAULT_CONFIG", () => {
   it("pins schema version to 1", () => {
@@ -16,14 +16,8 @@ describe("DEFAULT_CONFIG", () => {
     expect(DEFAULT_CONFIG.powerline.enabled).toBe(false);
   });
 
-  it("uses full-minus-40 width mode with the shared compact threshold", () => {
-    expect(DEFAULT_CONFIG.terminalWidth.mode).toBe("full-minus-40");
-    expect(DEFAULT_CONFIG.terminalWidth.compactThreshold).toBe(DEFAULT_COMPACT_THRESHOLD);
-  });
-
-  it("DEFAULT_COMPACT_THRESHOLD is a sane positive integer", () => {
-    expect(Number.isInteger(DEFAULT_COMPACT_THRESHOLD)).toBe(true);
-    expect(DEFAULT_COMPACT_THRESHOLD).toBeGreaterThan(0);
+  it("carries no terminalWidth knob — the renderer uses the full width (#318)", () => {
+    expect(DEFAULT_CONFIG).not.toHaveProperty("terminalWidth");
   });
 
   it("seeds keymap as an empty object (user opt-in)", () => {

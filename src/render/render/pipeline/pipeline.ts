@@ -21,7 +21,7 @@
  */
 
 import { detectColourDepth } from "../colour-depth/colour-depth.js";
-import { detectTerminalWidthInfo, applyWidthMode, NO_WRAP_WIDTH } from "../width/width.js";
+import { detectTerminalWidthInfo, NO_WRAP_WIDTH } from "../width/width.js";
 import {
   applyAccessibility,
   effectiveDepth,
@@ -32,7 +32,6 @@ import { composeLines } from "../compose/compose.js";
 import { buildWidgetContext } from "../context.js";
 import type { RenderInputs } from "../inputs.js";
 
-import type { AgentlineConfig } from "../../../data/config/types.js";
 import { resolveEnv } from "../../../core/lib/env/env.js";
 import { detectGlyphSupport } from "../../powerline/index.js";
 import type { Cell } from "../../../widgets/cell/cell.js";
@@ -67,7 +66,7 @@ export function renderFromInputs(inputs: RenderInputs): string {
   const resolved =
     inputs.width !== undefined
       ? { width: inputs.width, noWrap: false }
-      : resolveWidth(inputs.config, env);
+      : resolveWidth(env);
   const width = resolved.width;
   const ctx = buildWidgetContext({
     payload: inputs.payload,
@@ -128,26 +127,21 @@ function hasStyle(
   return false;
 }
 
-function resolveWidth(
-  config: AgentlineConfig,
-  env: NodeJS.ProcessEnv,
-): { width: number; noWrap: boolean } {
+function resolveWidth(env: NodeJS.ProcessEnv): { width: number; noWrap: boolean } {
   const detected = detectTerminalWidthInfo({ env });
   if (!detected.detected) {
     /*
      * No real width signal. Not the live host case — the host copies
      * `COLUMNS`/`LINES` from its own tty into the statusline command's
-     * env — but it does cover pipes, cron, and fixture replays. Don't
-     * apply `full-minus-40` to a guessed 80: that yields 40 columns and
-     * elides content for no reason. Let the host clip horizontally.
+     * env — but it does cover pipes, cron, and fixture replays. Eliding
+     * against a guessed 80 would drop content for no reason. Let the
+     * host clip horizontally.
      */
     return { width: NO_WRAP_WIDTH, noWrap: true };
   }
-  return {
-    width: applyWidthMode(detected.width, {
-      mode: config.terminalWidth.mode,
-      compactThreshold: config.terminalWidth.compactThreshold,
-    }).effectiveWidth,
-    noWrap: false,
-  };
+  /*
+   * Compose against the full detected width. Reserving columns for host
+   * chrome only hides widgets the user asked for (issue #318).
+   */
+  return { width: detected.width, noWrap: false };
 }

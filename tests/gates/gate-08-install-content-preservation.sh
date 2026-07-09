@@ -22,7 +22,7 @@ install_gate_preflight
 WORK="${GATES_TMP_DIR}/gate-08"
 mkdir -p "${WORK}"
 make_install_sandbox "${WORK}/sandbox"
-trap 'rm -rf "${WORK}/sandbox" "${WORK}/sandbox-npmc"' EXIT
+trap 'rm -rf "${WORK}/sandbox" "${WORK}/sandbox-npmc" "${WORK}/sandbox-npmp"' EXIT
 
 settings="$(sandbox_settings_file)"
 mkdir -p "$(dirname "${settings}")"

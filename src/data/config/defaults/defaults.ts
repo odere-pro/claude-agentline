@@ -1,7 +1,5 @@
 import type { AgentlineConfig } from "../types.js";
 
-export const DEFAULT_COMPACT_THRESHOLD = 60;
-
 /** Default statusline re-render cadence, in seconds (§5.1). */
 export const DEFAULT_REFRESH_INTERVAL = 5;
 
@@ -34,10 +32,6 @@ export const DEFAULT_CONFIG: AgentlineConfig = {
     caps: { start: "", end: "" },
     autoAlign: false,
     continueColors: false,
-  },
-  terminalWidth: {
-    mode: "full-minus-40",
-    compactThreshold: DEFAULT_COMPACT_THRESHOLD,
   },
   keymap: {},
   language: "en",

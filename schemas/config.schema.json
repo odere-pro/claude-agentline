@@ -202,15 +202,9 @@
     },
     "terminalWidth": {
       "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "mode": {
-          "type": "string",
-          "enum": ["full", "full-minus-40", "full-until-compact"],
-          "default": "full-minus-40"
-        },
-        "compactThreshold": { "type": "integer", "minimum": 1, "default": 60 }
-      }
+      "deprecated": true,
+      "description": "Retired in v1.8.0 (issue #318) and ignored by the renderer, which now always composes against the full detected terminal width. Still accepted so an existing config that carries the key keeps validating; delete it at your leisure.",
+      "additionalProperties": true
     }
   }
 }

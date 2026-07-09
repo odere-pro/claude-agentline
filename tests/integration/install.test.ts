@@ -18,7 +18,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { rmrf } from "../../src/test-helpers/index.js";
 
@@ -49,6 +49,8 @@ interface Sandbox {
   binDir: string;
   /** npm cache + `_logs`, kept OUTSIDE `root` so the tree snapshot is PM-noise-free. */
   npmCache: string;
+  /** Sandbox global npm prefix, kept OUTSIDE `root` for the same reason. */
+  npmPrefix: string;
   env: NodeJS.ProcessEnv;
 }
 
@@ -66,6 +68,20 @@ async function setupSandbox(): Promise<Sandbox> {
    * idempotency / no-op snapshots. Keep the cache OUTSIDE `root`.
    */
   const npmCache = await fs.mkdtemp(join(tmpdir(), "agentline-npmc-"));
+  /*
+   * `uninstall.sh` probes `npm ls -g` and then runs `npm uninstall -g
+   * @odere-pro/agentline`. Both resolve against npm's *global prefix*, which
+   * HOME does not move. Without pinning `npm_config_prefix` the suite reaches
+   * out of its sandbox and uninstalls the developer's own globally-installed
+   * agentline — a real, observed side effect of running `pnpm test` on a
+   * machine that has the package. Give npm a prefix inside the sandbox.
+   */
+  const npmPrefix = await fs.mkdtemp(join(tmpdir(), "agentline-npmp-"));
+  // Create both global-root layouts (posix `lib/node_modules`, win `node_modules`)
+  // so npm finds an existing prefix whichever one it resolves to.
+  await fs.mkdir(join(npmPrefix, "lib", "node_modules"), { recursive: true });
+  await fs.mkdir(join(npmPrefix, "node_modules"), { recursive: true });
+  await fs.mkdir(join(npmPrefix, "bin"), { recursive: true });
   // Drop a no-op `agentline` shim so install.sh skips global npm install.
   const shim = join(binDir, "agentline");
   await fs.writeFile(shim, "#!/usr/bin/env bash\nexit 0\n", { mode: 0o755 });
@@ -75,12 +91,14 @@ async function setupSandbox(): Promise<Sandbox> {
     configDir,
     binDir,
     npmCache,
+    npmPrefix,
     env: {
-      ...process.env,
+      ...withoutNpmPrefix(process.env),
       HOME: home,
       CLAUDE_CONFIG_DIR: configDir,
       PATH: `${binDir}:${process.env.PATH ?? ""}`,
       npm_config_cache: npmCache,
+      npm_config_prefix: npmPrefix,
       npm_config_update_notifier: "false",
       npm_config_fund: "false",
       npm_config_audit: "false",
@@ -88,10 +106,57 @@ async function setupSandbox(): Promise<Sandbox> {
   };
 }
 
+/**
+ * Drop every case-variant of `npm_config_prefix` from an env snapshot.
+ *
+ * The GitHub Windows runner exports `NPM_CONFIG_PREFIX=C:\npm\prefix`.
+ * Spreading `process.env` into a plain object keeps that key *alongside* our
+ * lowercase one, and on Windows npm resolves the runner's — so the sandbox
+ * silently leaked back onto the real global prefix. Strip, then set one.
+ */
+function withoutNpmPrefix(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return Object.fromEntries(
+    Object.entries(env).filter(([k]) => !/^npm_config_prefix$/i.test(k)),
+  ) as NodeJS.ProcessEnv;
+}
+
+/**
+ * npm's global package root under `prefix`. The layout differs per platform
+ * (`<prefix>/lib/node_modules` vs `<prefix>\node_modules`), so ask npm rather
+ * than guess. Run through bash: on Windows `npm` is a `.cmd` shim that
+ * `execFile` cannot spawn directly, and bash is what drives the scripts anyway.
+ */
+async function npmGlobalRoot(env: NodeJS.ProcessEnv): Promise<string> {
+  const { stdout } = await execFileP("bash", ["-c", "npm root -g"], { env });
+  return resolve(stdout.trim());
+}
+
+/** Seed a stand-in globally-installed `@odere-pro/agentline` in the sandbox prefix. */
+async function seedGlobalPackage(sb: Sandbox): Promise<string> {
+  const root = await npmGlobalRoot(sb.env);
+  /*
+   * Hard safety interlock. If npm ignored `npm_config_prefix`, `root` is the
+   * REAL global root and seeding there would make this test uninstall the
+   * developer's actual agentline — the very bug it exists to prevent.
+   */
+  if (!root.startsWith(resolve(sb.npmPrefix))) {
+    throw new Error(
+      `npm did not honour npm_config_prefix: global root ${root} is outside sandbox ${sb.npmPrefix}`,
+    );
+  }
+  const pkgDir = join(root, "@odere-pro", "agentline");
+  await fs.mkdir(pkgDir, { recursive: true });
+  await fs.writeFile(
+    join(pkgDir, "package.json"),
+    JSON.stringify({ name: "@odere-pro/agentline", version: "0.0.0-test" }),
+  );
+  return pkgDir;
+}
+
 async function teardown(sb: Sandbox): Promise<void> {
   // `rmrf` retries the Windows `EBUSY` rmdir race the shell scripts'
   // node subprocesses can leave behind; see src/test-helpers/sandbox.
-  await Promise.all([rmrf(sb.root), rmrf(sb.npmCache)]);
+  await Promise.all([rmrf(sb.root), rmrf(sb.npmCache), rmrf(sb.npmPrefix)]);
 }
 
 // `execFile`'s own timeout must clear the slow-Windows spawn budget. The
@@ -443,6 +508,21 @@ describe("scripts/uninstall.sh", () => {
       unknown
     >;
     expect(settings).not.toHaveProperty("statusLine");
+  });
+
+  it("uninstalls the global package only from the sandbox npm prefix", async () => {
+    /*
+     * Regression guard: `uninstall.sh` resolves `npm ls -g` / `npm uninstall
+     * -g` against npm's global prefix, which `HOME` does not relocate. If the
+     * sandbox stops pinning `npm_config_prefix`, this seeded package survives
+     * (because the script went and uninstalled the *real* one instead).
+     */
+    const pkgDir = await seedGlobalPackage(sb);
+    expect(await exists(pkgDir)).toBe(true);
+
+    await runScript(uninstallSh, [], sb.env, sb.root);
+
+    expect(await exists(pkgDir)).toBe(false);
   });
 
   it("preserves user-edited config (without --purge)", async () => {
