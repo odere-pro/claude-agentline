@@ -75,7 +75,7 @@
     "knip": "6.16.1",
     "prettier": "3.9.4",
     "tsup": "8.5.1",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vitest": "4.1.6"
   },
   "scripts": {
